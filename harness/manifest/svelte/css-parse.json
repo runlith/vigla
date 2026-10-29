@@ -1,0 +1,20 @@
+{
+  "samples": {
+    "parseCss > parses a simple rule": "contract",
+    "parseCss > parses at-rules": "contract",
+    "parseCss > parses @import": "contract",
+    "parseCss > parses multiple rules": "contract",
+    "parseCss > has correct start/end positions": "contract",
+    "parseCss > strips BOM": "contract",
+    "parseCss > parses nested rules": "contract",
+    "parseCss > parses empty stylesheet": "contract",
+    "parseCss > parses whitespace-only stylesheet": "contract",
+    "parseCss > parses comments": "contract",
+    "parseCss > parses complex selectors": "contract",
+    "parseCss > parses pseudo-classes and pseudo-elements": "contract",
+    "parseCss > parses @keyframes": "contract",
+    "parseCss > parses class and id selectors": "contract",
+    "parseCss > parses attribute selectors": "contract",
+    "parseCss > parses escaped characters": "contract"
+  }
+}

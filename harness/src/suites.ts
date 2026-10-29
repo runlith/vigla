@@ -1,6 +1,14 @@
+import { basename } from 'node:path';
 import type { Variant } from './runtime/config.ts';
 
-export type Kind = 'runtime' | 'hydration' | 'ssr' | 'browser' | 'custom-elements' | 'units';
+export type Kind =
+	| 'runtime'
+	| 'hydration'
+	| 'ssr'
+	| 'browser'
+	| 'custom-elements'
+	| 'compiler'
+	| 'units';
 
 export interface Upstream {
 	file: string;
@@ -15,6 +23,7 @@ export interface Suite {
 	source: string;
 	files: readonly string[];
 	upstream: readonly Upstream[];
+	tests?: readonly string[];
 }
 
 const variant = /^(.*) \((dom|hydrate|ssr|async-ssr)\)$/;
@@ -32,6 +41,18 @@ function runtime(name: string): Suite {
 		source: `${name}/samples`,
 		files: [`${name}.test.ts`],
 		upstream: [{ file: `${name}/test.ts`, entry: entryOf }]
+	};
+}
+
+function compiler(name: string, tests: readonly string[] = []): Suite {
+	return {
+		project: 'svelte',
+		name,
+		kind: 'compiler',
+		source: `${name}/samples`,
+		files: [`${name}.test.ts`],
+		upstream: [{ file: `${name}/test.ts`, entry: (title) => ({ sample: title }) }],
+		tests
 	};
 }
 
@@ -101,8 +122,44 @@ export const suites: readonly Suite[] = [
 		source: 'motion',
 		files: ['motion.test.ts'],
 		upstream: [{ file: 'motion/test.ts', entry: (title) => ({ sample: title }) }]
-	}
+	},
+	{
+		project: 'svelte',
+		name: 'css-parse',
+		kind: 'units',
+		source: 'css-parse.test.ts',
+		files: ['css-parse.test.ts'],
+		upstream: [{ file: 'css-parse.test.ts', entry: (title) => ({ sample: title }) }]
+	},
+	compiler('validator', [
+		'errors if options.name is illegal',
+		'check warning position',
+		'warns if options.name is not capitalised',
+		'does not warn if options.name begins with non-alphabetic character',
+		'errors if namespace is provided but unrecognised'
+	]),
+	compiler('compiler-errors', ['resets the compiler state including filename']),
+	compiler('parser-legacy'),
+	compiler('parser-modern', ['Strips BOM from the input']),
+	compiler('print'),
+	compiler('preprocess'),
+	compiler('sourcemaps'),
+	compiler('css')
 ];
+
+export function unitFile(suite: Suite): string {
+	return suite.source.endsWith('.ts') ? basename(suite.source) : 'test.ts';
+}
+
+export function entryOfTest(
+	suite: Suite,
+	ancestors: readonly string[],
+	title: string
+): { sample: string; variant?: Variant } | null {
+	if (suite.kind === 'units') return { sample: [...ancestors, title].join(' > ') };
+	if (suite.kind === 'compiler') return { sample: title };
+	return entryOf(title);
+}
 
 export function suiteNamed(name: string): Suite {
 	const suite = suites.find((candidate) => candidate.name === name);

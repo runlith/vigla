@@ -1,0 +1,541 @@
+{
+  "samples": {
+    "a11y-alt-text": "contract",
+    "a11y-anchor-aria-label-has-no-content": "contract",
+    "a11y-anchor-has-content": "contract",
+    "a11y-anchor-in-svg-is-valid": "contract",
+    "a11y-anchor-is-valid": "contract",
+    "a11y-aria-activedescendant": "contract",
+    "a11y-aria-props": "contract",
+    "a11y-aria-proptypes-boolean": "contract",
+    "a11y-aria-proptypes-integer": "contract",
+    "a11y-aria-proptypes-number": "contract",
+    "a11y-aria-proptypes-string": "contract",
+    "a11y-aria-proptypes-token": "contract",
+    "a11y-aria-proptypes-tokenlist": "contract",
+    "a11y-aria-proptypes-tristate": "contract",
+    "a11y-aria-role": "contract",
+    "a11y-aria-unsupported-element": "contract",
+    "a11y-autocomplete-valid": "contract",
+    "a11y-click-events-have-key-events": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "a11y-consider-explicit-label": "contract",
+    "a11y-contenteditable-element-without-child": {
+      "status": "converted",
+      "reason": "legacy-mode reactive `let` replaced by `$state`"
+    },
+    "a11y-fallback-roles": "contract",
+    "a11y-figcaption-in-non-element-block": "contract",
+    "a11y-figcaption-right-place": "contract",
+    "a11y-figcaption-wrong-place": "contract",
+    "a11y-heading-has-content": "contract",
+    "a11y-html-has-lang": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "a11y-iframe-has-title": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "a11y-img-redundant-alt": "contract",
+    "a11y-interactive-supports-focus": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "a11y-label-has-associated-control": "contract",
+    "a11y-label-has-associated-control-2": {
+      "status": "converted",
+      "reason": "`<slot />` replaced by a `{@render}` tag of the `children` prop"
+    },
+    "a11y-label-has-associated-control-3": "contract",
+    "a11y-media-has-caption": "contract",
+    "a11y-missing-attribute-href-aria-disabled": "contract",
+    "a11y-mouse-events-have-key-events": "contract",
+    "a11y-no-abstract-roles": "contract",
+    "a11y-no-access-key": "contract",
+    "a11y-no-autofocus": "contract",
+    "a11y-no-distracting-elements": "contract",
+    "a11y-no-interactive-element-to-noninteractive-role": "contract",
+    "a11y-no-noninteractive-element-interactions": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "a11y-no-noninteractive-element-to-interactive-role": "contract",
+    "a11y-no-noninteractive-tabindex": "contract",
+    "a11y-no-redundant-roles": "contract",
+    "a11y-no-static-element-interactions": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "a11y-not-on-components": "contract",
+    "a11y-popover-label": "contract",
+    "a11y-role-has-required-aria-props": "contract",
+    "a11y-role-supports-aria-props": "contract",
+    "a11y-scope": "contract",
+    "a11y-tabindex-no-positive": "contract",
+    "action-on-component": "contract",
+    "animation-comment-siblings": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "animation-duplicate": "contract",
+    "animation-each-with-const": "contract",
+    "animation-each-with-declaration-tag": "contract",
+    "animation-each-with-whitespace": "contract",
+    "animation-not-in-each": "contract",
+    "animation-not-in-keyed-each": "contract",
+    "animation-on-component": "contract",
+    "animation-siblings": "contract",
+    "anonymous-declarations": "contract",
+    "assignment-to-const": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "assignment-to-const-2": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "assignment-to-const-3": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "assignment-to-const-4": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "assignment-to-const-5": "contract",
+    "assignment-to-const-6": "contract",
+    "assignment-to-const-7": "contract",
+    "assignment-to-const-8": "contract",
+    "attribute-expected-equals": "contract",
+    "attribute-invalid-name": "contract",
+    "attribute-invalid-name-2": "contract",
+    "attribute-invalid-name-3": "contract",
+    "attribute-invalid-name-4": "contract",
+    "attribute-invalid-name-5": "contract",
+    "attribute-quoted": {
+      "status": "difference",
+      "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Dromon"
+    },
+    "attribute-unique-allowed": "contract",
+    "await-component-is-used": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "await-no-catch": "contract",
+    "await-shorthand-no-catch": "contract",
+    "await-shorthand-no-then": "contract",
+    "bidirectional-control-characters": "contract",
+    "bind-group-snippet-parameter": "contract",
+    "bind_group_invalid_expression": "contract",
+    "binding-await-catch": "contract",
+    "binding-await-then": "contract",
+    "binding-await-then-2": "contract",
+    "binding-const": "contract",
+    "binding-const-field": "contract",
+    "binding-dimensions-svg": "contract",
+    "binding-import-component": "contract",
+    "binding-import-element": "contract",
+    "binding-input-checked": "contract",
+    "binding-input-type-boolean": "contract",
+    "binding-invalid": "contract",
+    "binding-invalid-on-element": "contract",
+    "binding-invalid-on-element-2": "contract",
+    "binding-invalid-value": "contract",
+    "binding-invalid-value-global": "contract",
+    "binding-let": "contract",
+    "binding-radio-input-checked": "contract",
+    "binding-select-multiple-dynamic": "contract",
+    "binding-this-input-type-dynamic": "contract",
+    "catch-declares-error-variable": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes; legacy-mode reactive `let` replaced by `$state`"
+    },
+    "check warning position": "contract",
+    "class-state-constructor-1": "contract",
+    "class-state-constructor-10": "contract",
+    "class-state-constructor-2": "contract",
+    "class-state-constructor-3": "contract",
+    "class-state-constructor-4": "contract",
+    "class-state-constructor-5": "contract",
+    "class-state-constructor-6": "contract",
+    "class-state-constructor-7": "contract",
+    "class-state-constructor-8": "contract",
+    "class-state-constructor-9": "contract",
+    "comment-before-function-binding": "contract",
+    "component-event-modifiers-invalid": "contract",
+    "component-invalid-style-directive": "contract",
+    "component-legacy-instantiation": "contract",
+    "component-name-lowercase": "contract",
+    "component-namespaced": "contract",
+    "component-slot-default-reserved": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "component-slot-dynamic": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "component-slot-dynamic-attribute": "contract",
+    "component-slotted-custom-element": "contract",
+    "component-slotted-custom-element-2": "contract",
+    "component-slotted-each-block": "contract",
+    "component-slotted-if-block": "contract",
+    "const-tag-conflict-1": "contract",
+    "const-tag-conflict-2": "contract",
+    "const-tag-inside-key-block": "contract",
+    "const-tag-invalid-rune-usage": "contract",
+    "const-tag-placement-1": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "const-tag-placement-2": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "const-tag-placement-svelte-boundary": "contract",
+    "const-tag-readonly-1": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`; `on:` directives on elements replaced by event attributes"
+    },
+    "const-tag-readonly-2": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "contenteditable-dynamic": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "contenteditable-missing": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "css-invalid-combinator-selector-1": "contract",
+    "css-invalid-combinator-selector-2": "contract",
+    "css-invalid-combinator-selector-3": "contract",
+    "css-invalid-combinator-selector-4": "contract",
+    "css-invalid-global-placement": "contract",
+    "css-invalid-global-placement-2": "contract",
+    "css-invalid-global-placement-3": "contract",
+    "css-invalid-global-placement-4": "contract",
+    "css-invalid-global-placement-5": "contract",
+    "css-invalid-global-placement-6": "contract",
+    "css-invalid-global-selector": "contract",
+    "css-invalid-global-selector-2": "contract",
+    "css-invalid-global-selector-3": "contract",
+    "css-invalid-global-selector-4": "contract",
+    "css-invalid-global-selector-5": "contract",
+    "css-invalid-global-selector-6": "contract",
+    "css-invalid-global-selector-list": "contract",
+    "css-invalid-type-selector-placement": "contract",
+    "css-mismatched-quotes": "contract",
+    "custom-element-props-identifier": "contract",
+    "custom-element-props-identifier-props-option": "contract",
+    "custom-element-props-identifier-rest": "contract",
+    "debug-invalid-args": "contract",
+    "declaration-tag-already-declared": "contract",
+    "declaration-tag-invalid-function": "contract",
+    "declaration-tag-invalid-type": "contract",
+    "declaration-tag-invalid-type-2": "contract",
+    "declaration-tag-legacy-mode": {
+      "status": "dropped",
+      "reason": "its subject is legacy mode, which Dromon rejects"
+    },
+    "declaration-tag-maybe-runes": "contract",
+    "declaration-tag-snippet-parameter": "contract",
+    "declaration-tag-state-referenced-locally": "contract",
+    "default-export": "contract",
+    "default-export-anonymous-class": "contract",
+    "default-export-anonymous-function": "contract",
+    "default-export-indirect": "contract",
+    "default-export-module": "contract",
+    "directive-non-expression": {
+      "status": "converted",
+      "reason": "`on:` directive replaced by a `class:` directive with the same non-expression value"
+    },
+    "document-binding-invalid-dimensions": "contract",
+    "does not warn if options.name begins with non-alphabetic character": "contract",
+    "dollar-dollar-global-in-markup": "contract",
+    "dollar-dollar-global-in-script": "contract",
+    "dollar-global-in-markup": "contract",
+    "dollar-global-in-script": "contract",
+    "dynamic-element-invalid-tag": "contract",
+    "dynamic-element-missing-tag": "contract",
+    "dynamic-element-this": "contract",
+    "each-block-destructured-object-rest-comma-after": "contract",
+    "each-block-invalid-context": "contract",
+    "each-block-invalid-context-destructured": "contract",
+    "each-block-invalid-context-destructured-object": "contract",
+    "each-block-multiple-children": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "empty-block": "contract",
+    "error-mode-warn": "contract",
+    "errors if namespace is provided but unrecognised": "contract",
+    "errors if options.name is illegal": "contract",
+    "event-attribute": "contract",
+    "event-modifiers-invalid": {
+      "status": "dropped",
+      "reason": "its subject is `on:` modifiers on elements, which Dromon rejects"
+    },
+    "event-modifiers-invalid-nonpassive": {
+      "status": "dropped",
+      "reason": "its subject is `on:` modifiers on elements, which Dromon rejects"
+    },
+    "event-modifiers-invalid-passive": {
+      "status": "dropped",
+      "reason": "its subject is `on:` modifiers on elements, which Dromon rejects"
+    },
+    "export-let-unused-svelte-component": {
+      "status": "dropped",
+      "reason": "its subject is `export let`, which runes mode rejects"
+    },
+    "export-not-defined-module-with-source": "contract",
+    "general-siblings-combinator-in-custom-element-selects-slot-fallback": "contract",
+    "global-event-reference": "contract",
+    "global-event-reference-special-elements": "contract",
+    "html-block-in-attribute": "contract",
+    "html-block-in-textarea": "contract",
+    "if-block-whitespace-legacy": {
+      "status": "dropped",
+      "reason": "its subject is legacy mode, which Dromon rejects"
+    },
+    "if-block-whitespace-runes": "contract",
+    "ignore-warning": "contract",
+    "ignore-warning-compiler-option": "contract",
+    "ignore-warning-dash-backwards-compat": {
+      "status": "dropped",
+      "reason": "its subject is legacy mode's acceptance of dash-case warning codes"
+    },
+    "ignore-warnings": "contract",
+    "ignore-warnings-cumulative": "contract",
+    "ignore-warnings-newline": "contract",
+    "ignore-warnings-stacked": "contract",
+    "illegal-attribute-character": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "illegal-variable-declaration": "contract",
+    "illegal_spread_element-document": "contract",
+    "illegal_spread_element-window": "contract",
+    "implicitly-closed-by-parent": "contract",
+    "implicitly-closed-by-sibling": "contract",
+    "import-meta": "contract",
+    "inline-new-class": "contract",
+    "inline-new-class-2": "contract",
+    "inline-new-class-3": "contract",
+    "inline-new-class-4": "contract",
+    "inline-new-class-5": "contract",
+    "invalid-empty-css-declaration": "contract",
+    "invalid-node-placement": "contract",
+    "invalid-node-placement-2": "contract",
+    "invalid-node-placement-3": "contract",
+    "invalid-node-placement-4": "contract",
+    "invalid-node-placement-5": "contract",
+    "invalid-node-placement-6": "contract",
+    "invalid-node-placement-7": "contract",
+    "invalid-node-placement-8": "contract",
+    "invalid-node-placement-template": "contract",
+    "invalid-self-closing-tag": "contract",
+    "js-scope-catch-clause": "contract",
+    "let-directive": {
+      "status": "converted",
+      "reason": "the `let:` case on `<svelte:self>` replaced by one on a component"
+    },
+    "logic-block-in-attribute": "contract",
+    "logic-block-in-textarea": "contract",
+    "module-script-reactive-declaration": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "multiple-script-default-context": "contract",
+    "multiple-script-module-context": "contract",
+    "multiple-var-same-name": "contract",
+    "mutate-derived-private-field": "contract",
+    "namespace-invalid": "contract",
+    "namespace-non-literal": "contract",
+    "no-missing-declarations-for-same-node-let-variable": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "no-runes-mode": {
+      "status": "dropped",
+      "reason": "its subject is legacy mode, which Dromon rejects"
+    },
+    "non-empty-block-dev": "contract",
+    "non-invalid-node-placement-if-snippet": "contract",
+    "reactive-declaration-cyclical": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "reactive-declaration-non-top-level": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "reactive-module-const-variable": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "reactive-module-variable": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "reactive-module-variable-2": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "reactive-statement-non-reactive-self-declaration": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "reassign-derived-private-public-field": "contract",
+    "rest-eachblock-binding": "contract",
+    "rest-eachblock-binding-2": "contract",
+    "rest-eachblock-binding-3": "contract",
+    "rest-eachblock-binding-nested-rest": {
+      "status": "dropped",
+      "reason": "its subject is binding to each-block rest elements, which runes mode rejects"
+    },
+    "rune-invalid-spread-derived": "contract",
+    "rune-invalid-spread-derived-by": "contract",
+    "rune-invalid-spread-state": "contract",
+    "rune-invalid-spread-state-raw": "contract",
+    "runes-conflicting-store-in-module": "contract",
+    "runes-legacy-syntax-warnings": {
+      "status": "difference",
+      "reason": "expects runes-mode deprecation warnings for `<slot>` and `on:`, compile errors in Dromon"
+    },
+    "runes-legacy-syntax-warnings-2": {
+      "status": "dropped",
+      "reason": "its subject is mixing `on:` on elements with event attributes; Dromon rejects `on:` on elements"
+    },
+    "runes-referenced-nonstate": "contract",
+    "runes-referenced-nonstate-2": "contract",
+    "runes-referenced-nonstate-bind-this": "contract",
+    "script-context-module-legacy": {
+      "status": "dropped",
+      "reason": "its subject is `<script context=\"module\">`, which Dromon rejects"
+    },
+    "script-context-module-runes-deprecated": {
+      "status": "difference",
+      "reason": "expects the runes-mode deprecation warning for `context=\"module\"`, a compile error in Dromon"
+    },
+    "script-invalid-context": "contract",
+    "script-invalid-spread-attribute": "contract",
+    "script-unknown-attribute": "contract",
+    "security-anchor-rel-noreferer": "contract",
+    "select-multiple": {
+      "status": "converted",
+      "reason": "legacy-mode reactive `let` replaced by `$state`"
+    },
+    "siblings-combinator-in-custom-element-selects-slot-fallback": "contract",
+    "silence-warnings": {
+      "status": "converted",
+      "reason": "the ignored legacy `reactive_declaration_module_script` warning on `$:` replaced by an ignored `state_referenced_locally` warning"
+    },
+    "silence-warnings-2": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "slot-attribute-component": "contract",
+    "slot-attribute-invalid": "contract",
+    "slot-warning": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "slot-warning-ignore": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes"
+    },
+    "slot-warning2": {
+      "status": "converted",
+      "reason": "`on:` directives on elements replaced by event attributes; the ignored unknown code `unrelated_warning`, which runes mode reports, replaced by the unrelated known code `a11y_autofocus`"
+    },
+    "snippet-already-declared": "contract",
+    "snippet-shadowing-prop": "contract",
+    "snippet-whitespace-ok": "contract",
+    "state-referenced-locally-props-identifier": "contract",
+    "state-referenced-locally-types": "contract",
+    "static-state-reference": "contract",
+    "store-looking-like-rune": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`; `state_referenced_locally` ignored where the store is created from the prop"
+    },
+    "store-rune-conflic-from-props": "contract",
+    "store-runes-conflict": "contract",
+    "style-directive-modifiers-invalid": "contract",
+    "style-directive-valid-reference": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "svelte-component-deprecated": {
+      "status": "difference",
+      "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Dromon"
+    },
+    "svelte-fragment-placement": "contract",
+    "svelte-fragment-placement-2": "contract",
+    "svelte-head-attributes": "contract",
+    "svelte-ignore-export-let-unused": {
+      "status": "dropped",
+      "reason": "its subject is `export let`, which runes mode rejects"
+    },
+    "svelte-ignore-non-reactive-update": "contract",
+    "svelte-self-deprecated": {
+      "status": "difference",
+      "reason": "expects the runes-mode deprecation warning for `<svelte:self>`, a compile error in Dromon"
+    },
+    "svg-child-component-declared-namespace": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "tag-custom-element-options-missing": "contract",
+    "tag-custom-element-options-true": "contract",
+    "tag-emoji": "contract",
+    "tag-hyphen": "contract",
+    "tag-invalid": "contract",
+    "tag-non-string": "contract",
+    "tag-reserved": "contract",
+    "textarea-value-children": "contract",
+    "title-no-attributes": "contract",
+    "title-no-children": "contract",
+    "transition-duplicate-in": "contract",
+    "transition-duplicate-in-transition": "contract",
+    "transition-duplicate-out": "contract",
+    "transition-duplicate-out-transition": "contract",
+    "transition-duplicate-transition": "contract",
+    "transition-duplicate-transition-in": "contract",
+    "transition-duplicate-transition-out": "contract",
+    "transition-on-component": "contract",
+    "ts-unsupported-accessor": "contract",
+    "ts-unsupported-decorator": "contract",
+    "ts-unsupported-enum": "contract",
+    "ts-unsupported-modifier": "contract",
+    "ts-unsupported-modifier-readonly": "contract",
+    "ts-unsupported-namespace": "contract",
+    "unknown-code": "contract",
+    "unreferenced-variables": {
+      "status": "dropped",
+      "reason": "its subject is `export let`, which runes mode rejects"
+    },
+    "unreferenced-variables-each": {
+      "status": "dropped",
+      "reason": "its subject is `export let`, which runes mode rejects"
+    },
+    "use-the-platform": "contract",
+    "valid-reactive-vars": {
+      "status": "dropped",
+      "reason": "its subject is a `$:` statement, which runes mode rejects"
+    },
+    "warns if options.name is not capitalised": "contract",
+    "window-binding-invalid": "contract",
+    "window-binding-invalid-dimensions": "contract",
+    "window-binding-invalid-innerwidth": "contract",
+    "window-binding-online": {
+      "status": "converted",
+      "reason": "legacy-mode reactive `let` replaced by `$state`"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import type { Reporter, TestModule, TestState, Vitest } from 'vitest/node';
 import { load, ruling, statuses, type Manifest } from './manifest.ts';
 import { variants } from './runtime/variants.ts';
-import { entryOf, suiteOfFile, type Suite } from './suites.ts';
+import { entryOfTest, suiteOfFile, type Suite } from './suites.ts';
 
 const states: readonly TestState[] = ['passed', 'failed', 'skipped', 'pending'];
 
@@ -32,7 +32,8 @@ export class Report implements Reporter {
 			}
 			for (const test of module.children.allTests()) {
 				if (test.name === 'manifest' && test.parent.type === 'module') continue;
-				const entry = suite.kind === 'units' ? { sample: test.fullName } : entryOf(test.name);
+				const entry =
+					suite.kind === 'units' ? { sample: test.fullName } : entryOfTest(suite, [], test.name);
 				if (entry === null) continue;
 				const variant = 'variant' in entry ? entry.variant : undefined;
 				const status = ruling(tally.manifest, entry.sample, variant)?.status ?? 'unruled';

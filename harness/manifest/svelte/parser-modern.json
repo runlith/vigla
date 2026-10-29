@@ -1,0 +1,33 @@
+{
+  "samples": {
+    "Strips BOM from the input": "contract",
+    "attachments": "contract",
+    "comment-before-function-binding": "contract",
+    "comment-before-script": "contract",
+    "comment-in-tag": "contract",
+    "const-tag-parenthesized-init": "contract",
+    "css-nth-of-minified": "contract",
+    "css-nth-syntax": "contract",
+    "css-pseudo-classes": "contract",
+    "each-block-object-pattern": "contract",
+    "each-block-object-pattern-special-characters": "contract",
+    "generic-snippets": "contract",
+    "if-block": "contract",
+    "if-block-else": "contract",
+    "if-block-elseif": "contract",
+    "loose-declaration-tag": "contract",
+    "loose-invalid-block": "contract",
+    "loose-invalid-expression": "contract",
+    "loose-unclosed-open-tag": "contract",
+    "loose-unclosed-tag": "contract",
+    "loose-valid-each-as": "contract",
+    "options": "contract",
+    "parens": "contract",
+    "script-style-no-markup": "contract",
+    "semicolon-inside-quotes": "contract",
+    "snippets": "contract",
+    "tag-type-identifier-probe-comment": "contract",
+    "template-shadowroot": "contract",
+    "typescript-in-event-handler": "contract"
+  }
+}

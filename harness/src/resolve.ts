@@ -1,5 +1,5 @@
 import { readFileSync, realpathSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { createRequire, isBuiltin } from 'node:module';
 import { dirname, join } from 'node:path';
 import type { Plugin } from 'vite';
 
@@ -75,6 +75,21 @@ export function svelteFile(
 	const key = source === 'svelte' ? '.' : `./${source.slice('svelte/'.length)}`;
 	const file = pick(svelte.exports[key], side === 'server' ? server : client);
 	return file === null ? null : join(svelte.root, file);
+}
+
+export function borrowed(work: string, anchor: string): Plugin {
+	const prefix = `${work.replaceAll('\\', '/')}/`;
+	return {
+		name: 'harness:borrowed',
+		enforce: 'pre',
+		async resolveId(source, importer) {
+			if (importer === undefined || !importer.replaceAll('\\', '/').startsWith(prefix)) return null;
+			if (/^[./]/.test(source) || isBuiltin(source)) return null;
+			if (source === 'svelte' || source.startsWith('svelte/')) return null;
+			const own = await this.resolve(source, importer, { skipSelf: true });
+			return own ?? this.resolve(source, anchor, { skipSelf: true });
+		}
+	};
 }
 
 export function resolver(

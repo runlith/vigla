@@ -5,6 +5,7 @@
 	"exports": {
 		"./vitest": "./src/vitest.ts",
 		"./helpers": "./src/helpers.ts",
+		"./sourcemaps": "./src/sourcemaps.ts",
 		"./clock": "./src/clock.ts",
 		"./target": "./src/target.ts"
 	},
@@ -12,10 +13,17 @@
 		"copy": "node src/copy.ts"
 	},
 	"dependencies": {
+		"@jridgewell/sourcemap-codec": "1.6.0",
+		"@jridgewell/trace-mapping": "0.3.31",
 		"esbuild": "0.28.1",
 		"jsdom": "25.0.1",
+		"locate-character": "3.0.0",
+		"magic-string": "0.30.21",
 		"playwright": "1.62.1",
+		"source-map": "0.7.4",
+		"typescript": "5.5.4",
 		"vite": "7.3.5",
-		"vitest": "4.1.7"
+		"vitest": "4.1.7",
+		"zimmerframe": "1.1.2"
 	}
 }

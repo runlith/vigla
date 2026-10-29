@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { load, ruling } from './manifest.ts';
 import type { Variant } from './runtime/config.ts';
-import { entryOf, suiteNamed, suiteOfFile, suites, type Suite } from './suites.ts';
+import { entryOfTest, suiteNamed, suiteOfFile, suites, type Suite } from './suites.ts';
 
 interface Results {
 	testResults: {
@@ -52,10 +52,7 @@ function harnessPassed(file: string, suite: Suite): Set<string> {
 		if (suiteOfFile(module.name)?.name !== suite.name) continue;
 		for (const test of module.assertionResults) {
 			if (test.status !== 'passed') continue;
-			const entry: Entry | null =
-				suite.kind === 'units'
-					? { sample: [...test.ancestorTitles, test.title].join(' > ') }
-					: entryOf(test.title);
+			const entry: Entry | null = entryOfTest(suite, test.ancestorTitles, test.title);
 			if (entry !== null && contract(entry)) found.add(key(entry));
 		}
 	}

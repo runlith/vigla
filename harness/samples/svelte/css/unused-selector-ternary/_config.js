@@ -1,0 +1,24 @@
+import { test } from '@dromon/harness/helpers';
+
+export default test({
+	props: {
+		active: true
+	},
+	warnings: [
+		{
+			filename: 'SvelteComponent.svelte',
+			code: 'css_unused_selector',
+			message: 'Unused CSS selector ".maybeactive"',
+			start: {
+				line: 16,
+				column: 1,
+				character: 171
+			},
+			end: {
+				line: 16,
+				column: 13,
+				character: 183
+			}
+		}
+	]
+});

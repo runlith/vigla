@@ -1,16 +1,10 @@
-import {
-	cpSync,
-	existsSync,
-	mkdirSync,
-	readdirSync,
-	readFileSync,
-	rmSync,
-	writeFileSync
-} from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { compileModule, type CompileOptions } from 'svelte/compiler';
 import { afterAll, assert, beforeAll, inject, it } from 'vitest';
-import { faults, load, root, ruling, runs } from '../manifest.ts';
+import { root, ruling, runs } from '../manifest.ts';
+import { forced } from '../reference.ts';
+import { workspace, type Sample } from '../samples.ts';
 import { suiteNamed } from '../suites.ts';
 import type { Fresh } from '../target.ts';
 import { compileDirectory } from './compile.ts';
@@ -18,11 +12,7 @@ import type { Base, Config, Variant } from './config.ts';
 import { listen, runVariant, unlisten, type Session } from './run.ts';
 import { presence, variants, type Presence } from './variants.ts';
 
-export interface Sample<C extends Base> {
-	name: string;
-	cwd: string;
-	config: C;
-}
+export type { Sample };
 
 export interface Kind<C extends Base> {
 	root: 'sample' | 'repository';
@@ -43,13 +33,7 @@ export function reference(
 	rootDir: string,
 	own: Partial<CompileOptions> | undefined
 ): CompileOptions {
-	return {
-		generate: 'client',
-		rootDir,
-		experimental: { async: true },
-		...own,
-		runes: own && 'runes' in own ? own.runes : true
-	};
+	return { generate: 'client', rootDir, ...forced(own) };
 }
 
 export function compileBoth(cwd: string, options: CompileOptions): void {
@@ -73,15 +57,7 @@ async function reactive(work: string): Promise<Session['reactive']> {
 
 export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>): Promise<void> {
 	const target = inject('target');
-	const samples = join(root, 'samples', 'svelte', suite);
-	const run = join(target.root, '.work', `${suite}-${process.pid}`);
-	const dir = join(run, 'packages', 'svelte', 'tests', suiteNamed(suite).source);
-	const cwdOf = (name: string): string => join(dir, name);
-
-	rmSync(run, { recursive: true, force: true });
-	cpSync(samples, dir, { recursive: true });
-
-	const manifest = load('svelte', suite);
+	const { run, manifest, samples } = await workspace<C>(suite);
 	const session: Session = {
 		fresh: (await import(target.fresh)) as Fresh,
 		reactive: await reactive(run)
@@ -91,28 +67,9 @@ export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>):
 	afterAll(async () => {
 		unlisten();
 		await kind.close?.();
-		rmSync(run, { recursive: true, force: true });
 	});
 
-	const names = readdirSync(dir)
-		.filter((name) => !name.startsWith('.'))
-		.sort();
-	const missing = Object.keys(manifest.samples).filter((name) => !names.includes(name));
-	const broken = faults(manifest);
-	if (missing.length > 0 || broken.length > 0) {
-		it('manifest', () => {
-			assert.deepEqual(
-				{ missing, broken },
-				{ missing: [], broken: [] },
-				'manifest entries without a sample, or faulty'
-			);
-		});
-	}
-
-	for (const name of names) {
-		const cwd = cwdOf(name);
-		const file = join(cwd, '_config.js');
-		const config = (existsSync(file) ? ((await import(file)) as { default: C }).default : {}) as C;
+	for (const { name, cwd, config } of samples) {
 		let setup: Promise<CompileOptions> | undefined;
 
 		for (const variant of kind.variants) {

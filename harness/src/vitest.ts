@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { defineConfig, type ViteUserConfig } from 'vitest/config';
 import { root } from './manifest.ts';
 import { Report } from './report.ts';
-import { directory, locate, production, resolver } from './resolve.ts';
+import { borrowed, directory, locate, production, resolver } from './resolve.ts';
 import { suites } from './suites.ts';
 import type { Target } from './target.ts';
 
@@ -29,7 +29,15 @@ export function harness(target: Target): ViteUserConfig {
 	return defineConfig({
 		root: target.root,
 		plugins: [
-			resolver(target.root, { '@dromon/harness/helpers': join(root, 'src', 'helpers.ts') }, scoped)
+			resolver(
+				target.root,
+				{
+					'@dromon/harness/helpers': join(root, 'src', 'helpers.ts'),
+					'@dromon/harness/sourcemaps': join(root, 'src', 'sourcemaps.ts')
+				},
+				scoped
+			),
+			borrowed(join(target.root, '.work'), join(root, 'package.json'))
 		],
 		test: {
 			dir: root,

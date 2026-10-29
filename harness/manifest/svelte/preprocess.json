@@ -1,0 +1,23 @@
+{
+  "samples": {
+    "attributes-with-closing-tag": "contract",
+    "attributes-with-equals": "contract",
+    "comments": "contract",
+    "dependencies": "contract",
+    "empty-sourcemap": "contract",
+    "filename": "contract",
+    "ignores-null": "contract",
+    "markup": "contract",
+    "multiple-preprocessors": "contract",
+    "partial-names": "contract",
+    "script": "contract",
+    "script-multiple": "contract",
+    "script-self-closing": "contract",
+    "style": "contract",
+    "style-async": "contract",
+    "style-attributes": "contract",
+    "style-attributes-modified": "contract",
+    "style-attributes-modified-longer": "contract",
+    "style-self-closing": "contract"
+  }
+}

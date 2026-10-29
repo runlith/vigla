@@ -1,0 +1,57 @@
+{
+  "samples": {
+    "attached-sourcemap": "contract",
+    "basic": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "binding": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "binding-shorthand": "contract",
+    "css": "contract",
+    "css-injected-map": "contract",
+    "decoded-sourcemap": "contract",
+    "each-block": "contract",
+    "effects": "contract",
+    "external": "contract",
+    "markup": "contract",
+    "preprocessed-markup": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "preprocessed-multiple": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "preprocessed-no-map": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "preprocessed-script": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "preprocessed-styles": "contract",
+    "script": "contract",
+    "script-after-comment": "contract",
+    "source-map-generator": "contract",
+    "sourcemap-basename": "contract",
+    "sourcemap-basename-without-outputname": "contract",
+    "sourcemap-concat": "contract",
+    "sourcemap-empty-source": "contract",
+    "sourcemap-names": {
+      "status": "converted",
+      "reason": "`export let` replaced by a plain `let`: the prop is incidental, and a destructured `$props()` default maps its name to the pattern"
+    },
+    "sourcemap-offsets": "contract",
+    "sourcemap-sources": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "static-no-script": "contract",
+    "two-scripts": "contract",
+    "typescript": "contract"
+  }
+}

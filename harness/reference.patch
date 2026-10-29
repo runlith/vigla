@@ -70,3 +70,89 @@
  
  		const Component = (await import(`${test_dir}/_output/server/main.svelte.js`)).default;
  		const { body } = render(Component, { props: config.props || {}, idPrefix: config.id_prefix });
+--- a/packages/svelte/tests/validator/test.ts
++++ b/packages/svelte/tests/validator/test.ts
+@@ -38,11 +38,16 @@
+ 			.replace(/\s+$/, '')
+ 			.replace(/\r/g, '');
+ 
+-		const { warnings } = (module ? compileModule : compile)(input, {
+-			...config.compileOptions,
+-			generate: false,
+-			...options
+-		});
++		const own = { ...config.compileOptions, ...options };
++		const { warnings } = module
++			? compileModule(input, { experimental: { async: true }, ...own, generate: false })
++			: compile(input, {
++					experimental: { async: true },
++					...config.compileOptions,
++					generate: false,
++					...options,
++					runes: 'runes' in own ? own.runes : true
++				});
+ 
+ 		assert.deepEqual(
+ 			warnings.map((w) => ({
+--- a/packages/svelte/tests/compiler-errors/test.ts
++++ b/packages/svelte/tests/compiler-errors/test.ts
+@@ -31,7 +31,8 @@
+ 		try {
+ 			compile(read_file(`${cwd}/main.svelte`), {
+ 				generate: 'client',
+-				experimental: { async: config.async ?? false }
++				experimental: { async: true },
++				runes: true
+ 			});
+ 		} catch (e) {
+ 			const error = e as CompileError;
+@@ -56,7 +57,8 @@
+ 
+ 		try {
+ 			compileModule(read_file(`${cwd}/main.svelte.js`), {
+-				generate: 'client'
++				generate: 'client',
++				experimental: { async: true }
+ 			});
+ 		} catch (e) {
+ 			const error = e as CompileError;
+--- a/packages/svelte/tests/sourcemaps/test.ts
++++ b/packages/svelte/tests/sourcemaps/test.ts
+@@ -65,11 +65,16 @@
+ }
+ 
+ const { test, run } = suite<SourcemapTest>(async (config, cwd) => {
+-	await compile_directory(cwd, 'client', config.compileOptions, true, {
++	const reference = {
++		experimental: { async: true },
++		...config.compileOptions,
++		runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true
++	};
++	await compile_directory(cwd, 'client', reference, true, {
+ 		preprocess: config.preprocess,
+ 		options: config.options
+ 	});
+-	await compile_directory(cwd, 'server', config.compileOptions, true, {
++	await compile_directory(cwd, 'server', reference, true, {
+ 		preprocess: config.preprocess,
+ 		options: config.options
+ 	});
+--- a/packages/svelte/tests/css/test.ts
++++ b/packages/svelte/tests/css/test.ts
+@@ -45,8 +45,14 @@
+ }
+ 
+ const { test, run } = suite<CssTest>(async (config, cwd) => {
+-	await compile_directory(cwd, 'client', { cssHash: () => 'svelte-xyz', ...config.compileOptions });
+-	await compile_directory(cwd, 'server', { cssHash: () => 'svelte-xyz', ...config.compileOptions });
++	const reference = {
++		cssHash: () => 'svelte-xyz',
++		experimental: { async: true },
++		...config.compileOptions,
++		runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true
++	};
++	await compile_directory(cwd, 'client', reference);
++	await compile_directory(cwd, 'server', reference);
+ 
+ 	const expected = {
+ 		html: try_read_file(`${cwd}/expected.html`),

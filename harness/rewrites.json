@@ -2,6 +2,7 @@
 	"../../test": "@dromon/harness/helpers",
 	"../../assert": "@dromon/harness/helpers",
 	"../helpers.js": "@dromon/harness/helpers",
+	"../../helpers.js": "@dromon/harness/sourcemaps",
 	"../animation-helpers.js": "@dromon/harness/helpers",
 	"../../../helpers": "@dromon/harness/helpers",
 	"../../../helpers.js": "@dromon/harness/helpers",

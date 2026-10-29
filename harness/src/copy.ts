@@ -1,5 +1,13 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync
+} from 'node:fs';
+import { basename, dirname, join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { load, root } from './manifest.ts';
 import { suiteNamed } from './suites.ts';
@@ -65,7 +73,9 @@ const to = join(root, 'samples', project, suite);
 const problems: string[] = [];
 
 if (kind === 'units') {
-	const wanted = expected(from);
+	const wanted = statSync(from).isFile()
+		? new Map([[basename(from), rewrite(readFileSync(from, 'utf8'))]])
+		: expected(from);
 	const changes = differs(to, wanted);
 	if (changes.length > 0 && values.check) problems.push(`${suite}: ${changes.join(', ')}`);
 	else if (changes.length > 0) {
@@ -115,8 +125,13 @@ if (existsSync(to)) {
 		else rmSync(join(to, name), { recursive: true, force: true });
 	}
 }
+const tests = suiteNamed(suite).tests ?? [];
 for (const name of Object.keys(manifest.samples)) {
-	if (!upstream.includes(name)) problems.push(`${name}: in the manifest but not upstream`);
+	if (!upstream.includes(name) && !tests.includes(name))
+		problems.push(`${name}: in the manifest but not upstream`);
+}
+for (const name of tests) {
+	if (manifest.samples[name] === undefined) problems.push(`${name}: no status in the manifest`);
 }
 
 for (const problem of problems) console.error(problem);

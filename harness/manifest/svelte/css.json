@@ -1,0 +1,269 @@
+{
+  "samples": {
+    "animations": "contract",
+    "at-layer": "contract",
+    "at-rule-nested-class": "contract",
+    "attribute-selector-bind": {
+      "status": "converted",
+      "reason": "legacy-mode reactive `let` replaced by `$state`"
+    },
+    "attribute-selector-case-sensitive": "contract",
+    "attribute-selector-details-open": "contract",
+    "attribute-selector-dialog-open": "contract",
+    "attribute-selector-html-case-insensitive": "contract",
+    "attribute-selector-matches-derictive": "contract",
+    "attribute-selector-only-name": "contract",
+    "attribute-selector-unquoted": "contract",
+    "attribute-selector-word-arbitrary-whitespace": "contract",
+    "basic": "contract",
+    "child-combinator": "contract",
+    "class-directive": "contract",
+    "clsx-can-prune": "contract",
+    "clsx-cannot-prune-1": "contract",
+    "clsx-cannot-prune-2": "contract",
+    "clsx-cannot-prune-3": "contract",
+    "combinator-child": "contract",
+    "comment-html": "contract",
+    "comment-repeated": "contract",
+    "comment-with-apostrophe": "contract",
+    "comments-after-last-selector": "contract",
+    "container-query": "contract",
+    "css-prune-edge-cases": "contract",
+    "css-vars": "contract",
+    "custom-css-hash": "contract",
+    "descendant-selector-non-top-level-outer": "contract",
+    "descendant-selector-unmatched": "contract",
+    "directive-special-character": "contract",
+    "double-hyphen": "contract",
+    "dynamic-element": "contract",
+    "dynamic-element-tag": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "empty-class": "contract",
+    "empty-rule": "contract",
+    "empty-rule-dev": "contract",
+    "general-siblings-combinator": "contract",
+    "general-siblings-combinator-await": "contract",
+    "general-siblings-combinator-await-not-exhaustive": "contract",
+    "general-siblings-combinator-each": "contract",
+    "general-siblings-combinator-each-2": "contract",
+    "general-siblings-combinator-each-else": "contract",
+    "general-siblings-combinator-each-else-nested": "contract",
+    "general-siblings-combinator-each-nested": "contract",
+    "general-siblings-combinator-former-element-in-slot": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "general-siblings-combinator-if": "contract",
+    "general-siblings-combinator-if-not-exhaustive": "contract",
+    "general-siblings-combinator-if-not-exhaustive-with-each": "contract",
+    "general-siblings-combinator-key": "contract",
+    "general-siblings-combinator-nested-slots": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "general-siblings-combinator-nested-slots-flattened": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "general-siblings-combinator-render-tag": "contract",
+    "general-siblings-combinator-rendertag-global": "contract",
+    "general-siblings-combinator-selects-slot-fallback": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "general-siblings-combinator-slot": "contract",
+    "general-siblings-combinator-slot-global": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "general-siblings-combinator-slots-between": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "general-siblings-combinator-star": "contract",
+    "general-siblings-combinator-svelteelement": "contract",
+    "global": "contract",
+    "global-block": "contract",
+    "global-head-only": "contract",
+    "global-keyframes": "contract",
+    "global-keyframes-with-no-elements": "contract",
+    "global-local": "contract",
+    "global-local-nested": "contract",
+    "global-nested-block": "contract",
+    "global-with-child-combinator": "contract",
+    "global-with-child-combinator-2": "contract",
+    "global-with-class": "contract",
+    "global-with-data-attribute": "contract",
+    "global-with-nesting": "contract",
+    "global-with-root": "contract",
+    "global-with-unused-descendant": "contract",
+    "has": "contract",
+    "has-with-render-tag": "contract",
+    "host": "contract",
+    "is": "contract",
+    "keyframes": "contract",
+    "keyframes-autoprefixed": "contract",
+    "keyframes-from-to": "contract",
+    "local-inside-global": "contract",
+    "media-query": "contract",
+    "media-query-word": "contract",
+    "namespaced-type-selector": "contract",
+    "nested": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "nested-css": "contract",
+    "nested-css-combinator": "contract",
+    "nesting-selectors": "contract",
+    "not-selector": "contract",
+    "not-selector-global": "contract",
+    "omit-scoping-attribute": "contract",
+    "omit-scoping-attribute-attribute-selector": "contract",
+    "omit-scoping-attribute-attribute-selector-contains": "contract",
+    "omit-scoping-attribute-attribute-selector-equals": "contract",
+    "omit-scoping-attribute-attribute-selector-equals-case-insensitive": "contract",
+    "omit-scoping-attribute-attribute-selector-equals-dynamic": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "omit-scoping-attribute-attribute-selector-pipe-equals": "contract",
+    "omit-scoping-attribute-attribute-selector-prefix": "contract",
+    "omit-scoping-attribute-attribute-selector-suffix": "contract",
+    "omit-scoping-attribute-attribute-selector-word-equals": "contract",
+    "omit-scoping-attribute-class-dynamic": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "omit-scoping-attribute-class-static": "contract",
+    "omit-scoping-attribute-descendant": "contract",
+    "omit-scoping-attribute-descendant-global-inner": "contract",
+    "omit-scoping-attribute-descendant-global-inner-class": "contract",
+    "omit-scoping-attribute-descendant-global-inner-multiple": "contract",
+    "omit-scoping-attribute-descendant-global-outer": "contract",
+    "omit-scoping-attribute-descendant-global-outer-multiple": "contract",
+    "omit-scoping-attribute-global": "contract",
+    "omit-scoping-attribute-global-children": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "omit-scoping-attribute-global-descendants": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "omit-scoping-attribute-id": "contract",
+    "omit-scoping-attribute-multiple-descendants": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "omit-scoping-attribute-whitespace": "contract",
+    "omit-scoping-attribute-whitespace-multiple": "contract",
+    "preserve-specificity": "contract",
+    "pseudo-element": "contract",
+    "quote-mark-inside-string": "contract",
+    "render-tag-loop": "contract",
+    "root": "contract",
+    "selectedcontent": "contract",
+    "selector-list": "contract",
+    "siblings-combinator": "contract",
+    "siblings-combinator-await": "contract",
+    "siblings-combinator-await-not-exhaustive": "contract",
+    "siblings-combinator-component": "contract",
+    "siblings-combinator-component-default-snippet": "contract",
+    "siblings-combinator-component-named-snippet": "contract",
+    "siblings-combinator-each": "contract",
+    "siblings-combinator-each-2": "contract",
+    "siblings-combinator-each-else": "contract",
+    "siblings-combinator-each-else-nested": "contract",
+    "siblings-combinator-each-nested": "contract",
+    "siblings-combinator-former-element-in-slot": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-global": "contract",
+    "siblings-combinator-if": "contract",
+    "siblings-combinator-if-not-exhaustive": "contract",
+    "siblings-combinator-if-not-exhaustive-with-each": "contract",
+    "siblings-combinator-key": "contract",
+    "siblings-combinator-missing-fallback": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-nested-slots": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-nested-slots-flattened": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-render-tag": "contract",
+    "siblings-combinator-selects-slot-fallback": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-slot": "contract",
+    "siblings-combinator-slot-named-between-default": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-slots-between": {
+      "status": "dropped",
+      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+    },
+    "siblings-combinator-star": "contract",
+    "siblings-combinator-with-spread": "contract",
+    "snippet-exported": "contract",
+    "snippets": "contract",
+    "snippets-elements": "contract",
+    "special-characters": "contract",
+    "spread": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "supports-charset": "contract",
+    "supports-font-face": "contract",
+    "supports-import": "contract",
+    "supports-namespace": "contract",
+    "supports-nested-page": "contract",
+    "supports-page": "contract",
+    "supports-query": "contract",
+    "undefined-with-scope": "contract",
+    "unicode-identifier": "contract",
+    "universal-selector": "contract",
+    "unknown-at-rule": "contract",
+    "unknown-at-rule-with-following-rules": "contract",
+    "unused-nested-at-rule": "contract",
+    "unused-selector": "contract",
+    "unused-selector-child-combinator": "contract",
+    "unused-selector-empty-attribute": "contract",
+    "unused-selector-in-between": "contract",
+    "unused-selector-leading": "contract",
+    "unused-selector-multiple": "contract",
+    "unused-selector-string-concat": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "unused-selector-ternary": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "unused-selector-ternary-bailed": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "unused-selector-ternary-concat": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "unused-selector-ternary-nested": {
+      "status": "converted",
+      "reason": "`export let` replaced by `$props()`"
+    },
+    "unused-selector-trailing": "contract",
+    "unused-ts-as-expression": "contract",
+    "view-transition": "contract",
+    "weird-selectors": "contract"
+  }
+}
