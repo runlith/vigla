@@ -23,6 +23,7 @@ fields:
       }
     ],
     "id": "transitions",
+    "kind": "product",
     "order": [
       [
         "easing.ts"
