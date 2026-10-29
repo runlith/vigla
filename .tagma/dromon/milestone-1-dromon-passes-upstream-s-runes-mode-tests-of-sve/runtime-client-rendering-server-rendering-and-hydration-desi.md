@@ -12,8 +12,12 @@ fields:
 
 **Public runtime API** is upstream's runes-mode API of `svelte`, `svelte/server`, `svelte/reactivity`, `svelte/reactivity/window`, `svelte/motion`, `svelte/transition`, `svelte/animate`, `svelte/easing`, `svelte/events`, `svelte/attachments` and `svelte/action`, minus what the milestone spec declares legacy; custom elements and `<svelte:boundary>` included.
 
-**Hydration markers** are Dromon's own format unless the harness shows that upstream's HTML comparison pins upstream's markers; that is decided once the harness runs.
+**Kit's contract on the runtime**, designed now: the server `render(Root, { props, context, csp: { nonce } | { hash }, transformError })` returning `head`, `body` and `hashes.script`, as Kit's `runtime/server/page/render.js` calls it; the client `hydrate`, `mount`, `fork`, `settled`, `tick` and `onMount`, as Kit's `runtime/client/client.js` imports them.
+
+**Hydration markers keep upstream's format** (`<!--[-->`, `<!--]-->` and the rest): the hydration samples feed hand-written upstream markers through `_override.html`, some samples compare HTML with comments kept, and nothing outside Dromon reads the markers to argue for another format.
+
+**Lazy environment reads.** The runtime reads `requestAnimationFrame`, `performance.now` and the microtask queue at each use, never captured at module load, so tests and embedders can replace them.
 
 **Acceptance.**
-- The runtime-runes, hydration, server-side-rendering, runtime-browser (custom elements included), runtime-production, runtime-xhtml and motion contracts pass.
-- Upstream's `reactivity` and `ssr` benchmarks meet the milestone's benchmark criterion.
+- The runtime-runes, hydration, server-side-rendering, runtime-browser (custom elements and `test-ssr.ts` included), runtime-production, runtime-xhtml and motion entries pass.
+- The `reactivity` and `ssr` benchmarks meet the milestone's protocol.
