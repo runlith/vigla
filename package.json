@@ -9,7 +9,8 @@
 	],
 	"scripts": {
 		"harness:upstream": "node harness/src/all.ts targets/upstream",
-		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit"
+		"harness:dromon": "node harness/src/all.ts targets/dromon",
+		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/dromon --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p targets/dromon --noEmit"
 	},
 	"devDependencies": {
 		"@types/node": "^25.3.1",

@@ -124,7 +124,9 @@ if (statSync(upstreamFile).isDirectory())
 	process.exit(compareTrees(upstreamFile, harnessFile, names));
 
 let differences = 0;
-for (const suite of names.length > 0 ? names.map(suiteNamed) : suites) {
+for (const suite of names.length > 0
+	? names.map(suiteNamed)
+	: suites.filter((suite) => suite.upstream.length > 0)) {
 	const upstream = upstreamPassed(upstreamFile, suite);
 	const harness = harnessPassed(harnessFile, suite);
 	const onlyUpstream = [...upstream].filter((name) => !harness.has(name));

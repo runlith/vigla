@@ -1,0 +1,14 @@
+{
+	"name": "@dromon/target-dromon",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@dromon/harness": "workspace:*",
+		"dromon": "workspace:*",
+		"svelte": "workspace:@dromon/svelte@*",
+		"vitest": "4.1.7"
+	}
+}

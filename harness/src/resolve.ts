@@ -1,4 +1,4 @@
-import { readFileSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire, isBuiltin } from 'node:module';
 import { dirname, join } from 'node:path';
 import type { Plugin } from 'vite';
@@ -43,8 +43,33 @@ export function locate(target: string, name: string): Package {
 	return read(realpathSync(dirname(require.resolve(`${name}/package.json`))));
 }
 
+function packageRoot(file: string): string {
+	let dir = dirname(file);
+	while (!existsSync(join(dir, 'package.json')) && dirname(dir) !== dir) dir = dirname(dir);
+	return dir;
+}
+
 export function directory(from: string, name: string): string {
-	return realpathSync(dirname(createRequire(join(from, 'package.json')).resolve(name)));
+	const queue = [from];
+	const seen = new Set<string>();
+	for (let root = queue.shift(); root !== undefined; root = queue.shift()) {
+		if (seen.has(root)) continue;
+		seen.add(root);
+		const require = createRequire(join(root, 'package.json'));
+		try {
+			return realpathSync(dirname(require.resolve(name)));
+		} catch {
+			const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+				dependencies?: Record<string, string>;
+			};
+			for (const dependency of Object.keys(manifest.dependencies ?? {})) {
+				try {
+					queue.push(packageRoot(realpathSync(require.resolve(dependency))));
+				} catch {}
+			}
+		}
+	}
+	throw new Error(`${from} loads no ${name}`);
 }
 
 export function production(from: string, name: string): Plugin {

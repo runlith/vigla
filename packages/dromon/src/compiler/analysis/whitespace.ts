@@ -1,0 +1,67 @@
+import type { Fragment, Node, Text } from '../ir/nodes.ts';
+
+const leading = /^[ \t\r\n]+/;
+const trailing = /[ \t\r\n]+$/;
+const visible = /[^ \t\r\n]/;
+
+const removable = new Set([
+	'select',
+	'tr',
+	'table',
+	'tbody',
+	'thead',
+	'tfoot',
+	'colgroup',
+	'datalist'
+]);
+
+const preserving = new Set(['pre', 'textarea']);
+
+function text(node: Text, data: string): Text {
+	return data === node.data ? node : { ...node, data };
+}
+
+export function clean(
+	fragment: Fragment,
+	parent: string | null,
+	preserve: { whitespace: boolean; comments: boolean }
+): Node[] {
+	const nodes = fragment.nodes.filter((node) => node.kind !== 'comment' || preserve.comments);
+	if (preserve.whitespace || (parent !== null && preserving.has(parent))) return nodes;
+
+	let start = 0;
+	let end = nodes.length;
+	while (start < end && isBlank(nodes[start])) start++;
+	while (end > start && isBlank(nodes[end - 1])) end--;
+	const kept = nodes.slice(start, end);
+
+	const first = kept[0];
+	if (first?.kind === 'text') kept[0] = text(first, first.data.replace(leading, ''));
+	const lastIndex = kept.length - 1;
+	const last = kept[lastIndex];
+	if (last?.kind === 'text') kept[lastIndex] = text(last, last.data.replace(trailing, ''));
+
+	const result: Node[] = [];
+	for (let index = 0; index < kept.length; index++) {
+		const node = kept[index] as Node;
+		if (node.kind !== 'text') {
+			result.push(node);
+			continue;
+		}
+		const previous = kept[index - 1];
+		const next = kept[index + 1];
+		let data = node.data;
+		if (previous?.kind !== 'expression') {
+			const joined = previous?.kind === 'text' && trailing.test(previous.data);
+			data = data.replace(leading, joined ? '' : ' ');
+		}
+		if (next?.kind !== 'expression') data = data.replace(trailing, ' ');
+		if (data === '' || (data === ' ' && parent !== null && removable.has(parent))) continue;
+		result.push(text(node, data));
+	}
+	return result;
+}
+
+function isBlank(node: Node | undefined): boolean {
+	return node?.kind === 'text' && !visible.test(node.data);
+}

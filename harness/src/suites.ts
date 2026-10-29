@@ -17,7 +17,7 @@ export interface Upstream {
 }
 
 export interface Suite {
-	project: 'svelte';
+	project: 'svelte' | 'own';
 	name: string;
 	kind: Kind;
 	source: string;
@@ -144,7 +144,15 @@ export const suites: readonly Suite[] = [
 	compiler('print'),
 	compiler('preprocess'),
 	compiler('sourcemaps'),
-	compiler('css')
+	compiler('css'),
+	{
+		project: 'own',
+		name: 'runtime',
+		kind: 'runtime',
+		source: 'runtime/samples',
+		files: ['runtime.test.ts'],
+		upstream: []
+	}
 ];
 
 export function unitFile(suite: Suite): string {

@@ -1,0 +1,20 @@
+{
+	"name": "dromon",
+	"version": "0.0.0",
+	"type": "module",
+	"exports": {
+		".": "./src/entries/index.ts",
+		"./server": "./src/entries/server.ts",
+		"./compiler": "./src/entries/compiler.ts",
+		"./internal/client": "./src/entries/internal/client.ts",
+		"./internal/server": "./src/entries/internal/server.ts"
+	},
+	"dependencies": {
+		"acorn": "^8.18.0",
+		"esm-env": "^1.2.1",
+		"esrap": "^2.3.6"
+	},
+	"devDependencies": {
+		"@types/estree": "^1.0.9"
+	}
+}

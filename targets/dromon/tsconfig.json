@@ -1,0 +1,4 @@
+{
+	"extends": "../../tsconfig.json",
+	"include": ["*.ts", "../upstream/node_modules/svelte/types/index.d.ts"]
+}

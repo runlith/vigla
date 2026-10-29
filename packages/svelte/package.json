@@ -1,0 +1,19 @@
+{
+	"name": "@dromon/svelte",
+	"version": "5.57.3",
+	"type": "module",
+	"exports": {
+		".": "./src/entries/index.ts",
+		"./package.json": "./package.json",
+		"./compiler": "./src/compiler/index.ts",
+		"./internal/client": "./src/entries/internal/client.ts",
+		"./internal/server": "./src/entries/internal/server.ts",
+		"./server": "./src/entries/server.ts"
+	},
+	"dependencies": {
+		"dromon": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/estree": "^1.0.9"
+	}
+}
