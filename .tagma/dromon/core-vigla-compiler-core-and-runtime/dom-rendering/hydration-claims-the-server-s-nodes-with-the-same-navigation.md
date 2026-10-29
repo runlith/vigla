@@ -32,4 +32,6 @@ The cursor obeys three positional rules the generated code depends on:
 
 `{@html}` stands between `<!---->` (in `DEV`, `<!--<hash of the value>-->`) and `<!---->`: hydration adopts whatever the server wrote between them and never repairs it, warning `hydration_html_changed` in `DEV` when the client's value hashes differently, unless a `svelte-ignore` covers it. As an element's only child it sets `innerHTML` on that element instead of standing at an anchor.
 
+A `{@const}` or `{let …}` whose value awaits splits its fragment on both sides: the declarations before it stay in place, and everything after it in that fragment, snippets included, is one async part standing at a single `<!>` position, written by the server between `<!--[-->` and `<!--]-->` as any content waiting on an `await`, so a later declaration may read the awaited one and the split repeats inside.
+
 A server arm or `{#each}` branch other than the client's choice is not a mismatch: the block removes the server's content up to its close marker and renders its own. Anything else — a missing node, a wrong node type, leftover nodes — warns `hydration_mismatch` and throws; `hydrate` then clears the target and mounts fresh, or throws `hydration_failed` under `recover: false`.
