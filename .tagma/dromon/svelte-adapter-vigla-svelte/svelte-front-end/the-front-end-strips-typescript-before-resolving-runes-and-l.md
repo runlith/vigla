@@ -9,9 +9,9 @@ sources:
   - kind: file
     ref: packages/svelte/src/front/typescript.ts
   - kind: file
-    ref: packages/svelte/src/front/messages.ts
-  - kind: file
     ref: packages/svelte/src/front/diagnostics.ts
+  - kind: file
+    ref: packages/svelte/src/front/validate/anchors.ts
 ---
 The public AST keeps TypeScript; the IR never carries it. Lowering strips type annotations, `as`, `satisfies`, `!`, type-only imports and exports and type declarations, as upstream's compiler does before analysis. It refuses enums, decorators, accessor fields, constructor parameter modifiers and namespaces holding values with `typescript_invalid_feature`. Lowering runs before the front end's own checks, so these errors come first, as upstream's do.
 
