@@ -47,6 +47,9 @@ fields:
       },
       {
         "at": "html.ts"
+      },
+      {
+        "at": "list.ts"
       }
     ],
     "id": "dom",
