@@ -13,6 +13,8 @@ sources:
     ref: packages/dromon/src/runtime/reactivity/batch.ts
   - kind: file
     ref: packages/dromon/src/runtime/reactivity/effects.ts
+  - kind: file
+    ref: packages/dromon/src/runtime/reactivity/held.ts
 ---
 A batch is the unit of commit: the writes made since the last flush (each source's value `before` the batch's first write, and once the batch is held or a fork its own latest value `after`), the effects they dirtied, the structure changes its blocks register for commit, and the blocking work still pending in it. Writes made outside a flush go to the one open batch, created by the first write that changes a value and flushed at the next microtask or by `flushSync`. A batch whose blocking work is pending after its structure phase is *held*: it keeps its registered structure changes and the effects it collected, stays among the uncommitted batches, and is processed again once its work settles or something queues into it. A *fork* is a batch that holds until `commit()`, its writes kept in `after` alone and never applied to the sources' values.
 
