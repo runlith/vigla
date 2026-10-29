@@ -1,7 +1,7 @@
 import { CompileError, type Diagnostic, type Ignores } from '../../ir/port.ts';
 import { errors, warnings } from './messages.ts';
 
-export type At = number | { readonly start?: number | null; readonly end?: number | null };
+export type At = number | { readonly start?: number | null; readonly end?: number | null } | object;
 
 export type Args = Readonly<Record<string, string | null | undefined>>;
 
@@ -19,8 +19,9 @@ function format(templates: readonly string[] | undefined, code: string, args: Ar
 
 function span(at: At): { start: number; end: number } {
 	if (typeof at === 'number') return { start: at, end: at };
-	const start = at.start ?? 0;
-	return { start, end: at.end ?? start };
+	const located = at as { readonly start?: number | null; readonly end?: number | null };
+	const start = located.start ?? 0;
+	return { start, end: located.end ?? start };
 }
 
 export function fail(code: string, at: At, args: Args = {}): never {
