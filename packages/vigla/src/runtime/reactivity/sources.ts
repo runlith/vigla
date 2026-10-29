@@ -1,5 +1,4 @@
 import { write } from './batch.ts';
-import { own } from './effects.ts';
 import { DIRTY, type Derived, type Source } from './graph.ts';
 import { get, guard, localize, owner } from './tracking.ts';
 
@@ -62,6 +61,5 @@ export function derived<T>(fn: () => T): Derived<T> {
 		deps: null,
 		rv: 0
 	};
-	own(created);
 	return created;
 }

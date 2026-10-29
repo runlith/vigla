@@ -49,13 +49,17 @@ function closed(previous: Frame | null): void {
 }
 
 export function localize(source: Source): void {
-	const top = frames[frames.length - 1];
-	if (top !== undefined && top.derived) (top.local ??= new Set()).add(source);
+	const depth = frames.length;
+	if (depth === 0) return;
+	const top = frames[depth - 1] as Frame;
+	if (top.derived) (top.local ??= new Set()).add(source);
 }
 
 export function local(source: Source): boolean {
-	const top = frames[frames.length - 1];
-	return top !== undefined && top.local !== null && top.local.has(source);
+	const depth = frames.length;
+	if (depth === 0) return false;
+	const top = frames[depth - 1] as Frame;
+	return top.local !== null && top.local.has(source);
 }
 
 export function guard(source: Source): void {
@@ -157,6 +161,7 @@ function compute(derived: Derived, given: View): unknown {
 		closed(previous);
 		setOwner(previousOwner);
 		const deps = (derived.deps ??= []);
+		if (deps.length === 0 && current.reads.length > 0) own(derived);
 		for (const dep of current.reads) {
 			if (deps.includes(dep)) continue;
 			deps.push(dep);
@@ -286,14 +291,22 @@ export function readDuringRun(source: Source): void {
 	}
 }
 
+function own(derived: Derived): void {
+	const holder = derived.owner;
+	if (holder !== null) (holder.owned ??= []).push(derived);
+}
+
 function reconcile(target: Reaction, next: Source[], keep: boolean): void {
+	const previous = target.deps;
 	const kept = new Set(next);
-	for (const dep of target.deps ?? []) {
+	for (const dep of previous ?? []) {
 		if (keep) kept.add(dep);
 		else if (!kept.has(dep)) dep.reactions?.delete(target);
 	}
 	for (const dep of kept) (dep.reactions ??= new Set()).add(target);
 	target.deps = [...kept];
+	if ((previous === null || previous.length === 0) && kept.size > 0 && isDerived(target))
+		own(target);
 }
 
 export function track<T>(target: Reaction, fn: () => T): T {

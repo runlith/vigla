@@ -74,10 +74,6 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 	return effect;
 }
 
-export function own(derived: Derived): void {
-	if (owner !== null) (owner.owned ??= []).push(derived);
-}
-
 function release(effect: Effect): void {
 	for (const derived of effect.owned ?? []) disconnect(derived);
 	effect.owned = null;
@@ -141,8 +137,27 @@ function start(effect: Effect): Effect {
 	return effect;
 }
 
+function spent(effect: Effect): boolean {
+	const deps = effect.deps;
+	return (
+		effect.status === CLEAN &&
+		!effect.destroyed &&
+		(deps === null || deps.length === 0) &&
+		effect.first === null &&
+		effect.teardown === null &&
+		effect.owned === null &&
+		effect.units === null
+	);
+}
+
 function attach(kind: Kind, fn: () => void | (() => void)): Effect {
-	return start(create(kind, fn, owner));
+	const effect = start(create(kind, fn, owner));
+	if (kind === TEMPLATE && spent(effect)) {
+		unlink(effect);
+		effect.fn = null;
+		effect.destroyed = true;
+	}
+	return effect;
 }
 
 export function root(fn: () => void): Effect {
