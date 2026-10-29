@@ -1,4 +1,4 @@
-import { defineConfig, Format, Imports } from '@runlith/tagma/rules';
+import { defineConfig, Files, Format, Imports } from '@runlith/tagma/rules';
 import { internals, loads, mentions } from './checks/inspections.ts';
 
 export default defineConfig({
@@ -31,6 +31,16 @@ export default defineConfig({
 				]
 			}
 		),
+		size: Files.maxLines(600, {
+			files: {
+				exclude: [
+					...Files.tests,
+					'**/*.d.ts',
+					'harness/samples/**',
+					'packages/svelte/src/front/parse/entities.ts'
+				]
+			}
+		}),
 		'runtime-loads': loads(
 			{
 				allows: ['clsx', 'devalue', 'esm-env'],
