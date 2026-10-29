@@ -41,6 +41,9 @@ fields:
       },
       {
         "at": "async.ts"
+      },
+      {
+        "at": "styles.ts"
       }
     ],
     "id": "dom",
