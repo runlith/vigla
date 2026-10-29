@@ -9,8 +9,10 @@ import {
 	front,
 	legacy,
 	lowerComponent,
+	merge,
 	parseComponent,
 	parseStylesheet,
+	phases,
 	validateComponent,
 	type AST
 } from '../front/index.ts';
@@ -108,10 +110,6 @@ function withoutBom(source: string): string {
 	return source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
 }
 
-function byPosition(...lists: readonly (readonly Diagnostic[])[]): Diagnostic[] {
-	return lists.flat().sort((a, b) => a.start - b.start);
-}
-
 export function parse(source: string, options: ParseOptions & { modern: true }): AST.Root;
 export function parse(source: string, options?: ParseOptions): Record<string, any>;
 export function parse(
@@ -137,9 +135,12 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 	return diagnostics.guard(() => {
 		const notices = diagnostics.notices(validate(options, 'component'));
 		const parsed = parseComponent(source);
-		const syntax = validateComponent(parsed);
+		const syntax = validateComponent(parsed, source, {
+			customElement: options.customElement === true
+		});
 		const reading = lowerComponent(parsed, source, options.filename ?? null);
-		const found = byPosition(syntax, reading.warnings);
+		const phase = phases(parsed.root);
+		const found = merge(syntax, reading.warnings, phase);
 		if (options.generate === false) {
 			return {
 				js: null,
@@ -160,7 +161,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		return {
 			js: output.js,
 			css: null,
-			warnings: [...notices, ...diagnostics.warnings(byPosition(found, output.warnings))],
+			warnings: [...notices, ...diagnostics.warnings(merge(found, output.warnings, phase))],
 			metadata: { runes: true }
 		};
 	});

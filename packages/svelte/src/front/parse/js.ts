@@ -4,6 +4,7 @@ import type * as ES from 'estree';
 import type { JSComment, Located } from '../ast.ts';
 import { fail } from '../diagnostics.ts';
 import type { Locator } from '../locate.ts';
+import { nonLfLineBreak } from './characters.ts';
 
 interface Internals {
 	undefinedExports: Record<string, unknown>;
@@ -49,7 +50,7 @@ export interface Context {
 	readonly locate: Locator;
 }
 
-const nonLf = /\r(?!\n)|[\\u2028\\u2029]/;
+const nonLf = nonLfLineBreak;
 let lastTemplate = '';
 let lfOnly = true;
 

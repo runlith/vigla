@@ -1,4 +1,6 @@
 attribute-empty
+attribute-sequence-expression
+attribute-sequence-expression-2
 attribute-unique
 attribute-unique-binding
 attribute-unique-class
@@ -15,6 +17,7 @@ declaration-tag-trailing-slash
 dollar-binding-declaration-runes
 dollar-binding-import
 each-block-duplicate-else
+each-key-without-as
 element-invalid-name
 else-before-closing
 else-before-closing-2
@@ -34,15 +37,19 @@ malformed-snippet-2
 multiple-styles
 options-children
 raw-mustaches-whitespace
+render-tag-invalid-call
 resets the compiler state including filename
 script-unclosed
 script-unclosed-eof
+snippet-rest-args
 store-prevent-user-declarations
 style-unclosed
 style-unclosed-eof
 svelte-selfdestructive
 then-before-closing
 then-without-await
+unbalanced-curly-component
+unbalanced-curly-element
 unclosed-attribute-self-close-tag
 unexpected-end-of-input
 unexpected-end-of-input-b

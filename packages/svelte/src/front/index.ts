@@ -8,7 +8,7 @@ export { legacy } from './legacy.ts';
 export { locator, type Locator } from './locate.ts';
 export { parseComponent, parseStylesheet, type Parsed } from './parse/index.ts';
 export { print, type PrintOptions, type Printed } from './print/index.ts';
-export { validateComponent } from './validate/index.ts';
+export { merge, phases, validateComponent, type ValidateOptions } from './validate/index.ts';
 
 export function lowerComponent(
 	parsed: Parsed,
