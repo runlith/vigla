@@ -1,8 +1,7 @@
 import { OPEN_ELSE } from '../../shared/markers.ts';
-import { atCommit } from '../reactivity/batch.ts';
 import { block } from '../reactivity/effects.ts';
-import { claim, cursor, hydrating, instruction, isClose, setHydrating, skip } from './hydration.ts';
-import { build, discard, leave, place, type Built } from './range.ts';
+import { Branches, REPAIRED } from './branches.ts';
+import { hydrating, instruction } from './hydration.ts';
 import type { Render } from './template.ts';
 
 export type Snippet = (anchor: ChildNode, ...args: (() => unknown)[]) => void;
@@ -15,51 +14,20 @@ function swap<T>(
 	content: (value: NonNullable<T>) => Render | null,
 	marked: boolean
 ): void {
-	let anchor = node;
-	let current: T | undefined;
-	let shown: Built | null = null;
+	const branches = new Branches<T | null>(node);
 	let first = true;
 	block(() => {
-		const value = select();
-		if (!first && Object.is(value, current)) return;
-		current = value;
-		const render = value == null ? null : content(value as NonNullable<T>);
-		const previous = shown;
-		if (first) {
-			first = false;
-			if (hydrating && marked) {
-				const rendered = instruction(node) !== OPEN_ELSE;
-				claim(node.nextSibling);
-				if (rendered === (render !== null)) {
-					shown = render === null ? null : build(render);
-					anchor = isClose(cursor) ? cursor : skip();
-					return;
-				}
-				anchor = skip();
-				setHydrating(false);
-				try {
-					shown = render === null ? null : build(render);
-				} finally {
-					setHydrating(true);
-				}
-				if (shown !== null) place(shown, anchor);
-				return;
-			}
-			shown = render === null ? null : build(render);
-			if (hydrating) {
-				anchor = cursor;
-				return;
-			}
-			if (shown !== null) place(shown, anchor);
+		const value = select() ?? null;
+		const render = (): Render | null => (value === null ? null : content(value as NonNullable<T>));
+		if (!first) {
+			branches.show(value, render);
 			return;
 		}
-		shown = render === null ? null : build(render);
-		const next = shown;
-		if (previous !== null) leave(previous);
-		atCommit(() => {
-			if (previous !== null) discard(previous);
-			if (next !== null) place(next, anchor);
-		});
+		first = false;
+		const shown = render();
+		const matched =
+			hydrating && marked ? (instruction(node) !== OPEN_ELSE) === (shown !== null) : null;
+		branches.start(value, shown, matched, REPAIRED);
 	});
 }
 

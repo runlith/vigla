@@ -57,6 +57,19 @@ export function place(built: Built, before: ChildNode): void {
 	}
 }
 
+export function stash(built: Built): void {
+	if (built.fragment !== null) return;
+	const fragment = document.createDocumentFragment();
+	let node: ChildNode | null = built.first;
+	while (node !== null) {
+		const next: ChildNode | null = node.nextSibling;
+		fragment.append(node);
+		if (node === built.last) break;
+		node = next;
+	}
+	built.fragment = fragment;
+}
+
 export function discard(built: Built): void {
 	if (built.fragment === null) {
 		let node: ChildNode | null = built.first;
@@ -68,8 +81,4 @@ export function discard(built: Built): void {
 		}
 	}
 	destroy(built.effect);
-}
-
-export function leave(built: Built): void {
-	built.effect.inert = true;
 }
