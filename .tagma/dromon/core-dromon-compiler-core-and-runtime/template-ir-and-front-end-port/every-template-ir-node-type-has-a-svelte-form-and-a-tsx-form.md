@@ -49,4 +49,4 @@ What the table cannot show:
 - `Component` covers dynamic components too: its reference is an expression, and analysis decides whether it can change.
 - The three forms of a `Property` value are distinct meanings: `name` alone is boolean, `name={x}` passes the value as it is, `name="a {b}"` builds a string.
 - `Comment` reaches output only with `preserveComments`; without it whitespace cleaning drops it.
-- `Options` stands on the unit, not in the template; `svelte-ignore` scopes are the unit's `ignores`, not nodes; a style sheet is not yet part of the unit.
+- `Options` stands on the unit, not in the template; `svelte-ignore` scopes are the unit's `ignores`, not nodes; the component's style sheet is the unit's `style`, plain CSS syntax with offsets into the unit's source, which every front end hands over in the same shape.
