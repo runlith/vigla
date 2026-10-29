@@ -30,8 +30,16 @@ export interface Derived<T = unknown> extends Source<T>, Reaction {
 	computed: boolean;
 }
 
+export interface Boundary {
+	readonly parent: Boundary | null;
+	readonly showing: boolean;
+	settle(delta: 1 | -1): void;
+	failed(error: unknown): void;
+}
+
 export interface Effect extends Reaction {
 	readonly kind: Kind;
+	boundary: Boundary | null;
 	fn: (() => void | (() => void)) | null;
 	teardown: (() => void) | null;
 	parent: Effect | null;
