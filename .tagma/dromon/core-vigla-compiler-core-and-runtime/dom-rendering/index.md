@@ -59,6 +59,9 @@ fields:
       },
       {
         "at": "await.ts"
+      },
+      {
+        "at": "targets.ts"
       }
     ],
     "id": "dom",

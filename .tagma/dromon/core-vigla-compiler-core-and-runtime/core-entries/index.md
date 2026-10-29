@@ -47,6 +47,9 @@ fields:
       },
       {
         "at": "action.ts"
+      },
+      {
+        "at": "events.ts"
       }
     ],
     "id": "entries",
