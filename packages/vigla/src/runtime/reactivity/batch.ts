@@ -7,7 +7,7 @@ import {
 	EFFECT,
 	MAYBE,
 	TEMPLATE,
-	isDerived,
+	isDerivedReaction,
 	stamp,
 	type Effect,
 	type Source
@@ -323,7 +323,7 @@ function mark(
 	} else if ((visits += reactions.size) > 10_000) seen = new Set([source]);
 	for (const reaction of reactions) {
 		const previous = reaction.status;
-		if (isDerived(reaction)) {
+		if (isDerivedReaction(reaction)) {
 			if (previous < status) reaction.status = status;
 			mark(reaction, MAYBE, all, forked);
 			continue;

@@ -3,7 +3,7 @@ import { DIRTY, type Derived, type Source } from './graph.ts';
 import { get, guard, localize, owner } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
-	return { v: value, wv: 0, reactions: null, logged: 0, slot: 0 };
+	return { v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
 }
 
 export function state<T>(value: T): Source<T> {
@@ -57,6 +57,7 @@ export function derived<T>(fn: () => T): Derived<T> {
 		reactions: null,
 		logged: 0,
 		slot: 0,
+		read: 0,
 		status: DIRTY,
 		deps: null,
 		rv: 0

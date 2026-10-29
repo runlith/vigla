@@ -25,6 +25,7 @@ export interface Source<T = unknown> {
 	reactions: Set<Reaction> | null;
 	logged: number;
 	slot: number;
+	read: number;
 }
 
 export interface Reaction {
@@ -79,4 +80,12 @@ export function now(): number {
 
 export function isDerived(source: Source | Reaction): source is Derived {
 	return (source as Derived).fn !== undefined && (source as Effect).kind === undefined;
+}
+
+export function isDerivedSource(source: Source): source is Derived {
+	return (source as Derived).fn !== undefined;
+}
+
+export function isDerivedReaction(reaction: Reaction): reaction is Derived {
+	return (reaction as Effect).kind === undefined;
 }

@@ -7,6 +7,7 @@ import {
 	EAGER,
 	MAYBE,
 	isDerived,
+	isDerivedSource,
 	now,
 	stamp,
 	type Derived,
@@ -16,56 +17,101 @@ import {
 } from './graph.ts';
 
 interface Frame {
-	readonly reads: Source[];
-	readonly derived: boolean;
-	readonly guarded: boolean;
-	readonly eager: boolean;
+	version: number;
+	old: Source[] | null;
+	matched: number;
+	extra: Source[] | null;
+	derived: boolean;
+	guarded: boolean;
+	eager: boolean;
 	invalidated: boolean;
 	hidden: Set<Batch> | null;
 	local: Set<Source> | null;
 }
 
+let versions = 0;
+let depth = 0;
+
 function opened(target: Reaction): Frame {
 	const derived = isDerived(target);
 	const kind = (target as Effect).kind;
 	const eager = kind === EAGER;
-	const current: Frame = {
-		reads: [],
-		derived,
-		guarded: derived || eager || kind === BLOCK,
-		eager,
-		invalidated: false,
-		hidden: null,
-		local: null
-	};
+	let current = frames[depth];
+	if (current === undefined) {
+		current = {
+			version: 0,
+			old: null,
+			matched: 0,
+			extra: null,
+			derived: false,
+			guarded: false,
+			eager: false,
+			invalidated: false,
+			hidden: null,
+			local: null
+		};
+		frames.push(current);
+	}
+	current.version = versions += 3;
+	current.old = target.deps;
+	current.matched = 0;
+	current.extra = null;
+	current.derived = derived;
+	current.guarded = derived || eager || kind === BLOCK;
+	current.eager = eager;
+	current.invalidated = false;
+	current.hidden = null;
+	current.local = null;
+	depth++;
 	frame = current;
-	frames.push(current);
 	return current;
 }
 
 function closed(previous: Frame | null): void {
-	frames.pop();
+	depth--;
 	frame = previous;
 }
 
+function top(): Frame | null {
+	return depth === 0 ? null : (frames[depth - 1] as Frame);
+}
+
 export function localize(source: Source): void {
-	const depth = frames.length;
-	if (depth === 0) return;
-	const top = frames[depth - 1] as Frame;
-	if (top.derived) (top.local ??= new Set()).add(source);
+	const at = top();
+	if (at !== null && at.derived) (at.local ??= new Set()).add(source);
 }
 
 export function local(source: Source): boolean {
-	const depth = frames.length;
-	if (depth === 0) return false;
-	const top = frames[depth - 1] as Frame;
-	return top.local !== null && top.local.has(source);
+	const at = top();
+	return at !== null && at.local !== null && at.local.has(source);
 }
 
 export function guard(source: Source): void {
-	const at = frame ?? (frames.length === 0 ? null : (frames[frames.length - 1] as Frame));
+	const at = frame ?? top();
 	if (at === null || !(frame === null ? at.eager : at.guarded)) return;
 	if (at.local === null || !at.local.has(source)) unsafeMutation();
+}
+
+function record(at: Frame, source: Source): void {
+	source.read = at.version;
+	const old = at.old;
+	if (at.extra === null && old !== null && at.matched < old.length && old[at.matched] === source)
+		at.matched++;
+	else (at.extra ??= []).push(source);
+}
+
+function readBy(at: Frame, source: Source): boolean {
+	if (source.read === at.version) return true;
+	const old = at.old;
+	if (old !== null)
+		for (let index = 0; index < at.matched; index++) if (old[index] === source) return true;
+	return at.extra !== null && at.extra.includes(source);
+}
+
+function reads(at: Frame): Source[] {
+	const found = at.old === null ? [] : at.old.slice(0, at.matched);
+	if (at.extra !== null) found.push(...at.extra);
+	return found;
 }
 
 export const NONE: unique symbol = Symbol('none');
@@ -109,11 +155,12 @@ export function setView(next: View | null): View | null {
 }
 
 export function get<T>(source: Source<T>): T {
-	if (frame !== null && (frame.local === null || !frame.local.has(source)))
-		frame.reads.push(source);
+	const at = frame;
+	if (at !== null && source.read !== at.version && (at.local === null || !at.local.has(source)))
+		record(at, source);
 	if (past !== null) return recall(source, past) as T;
 	if (view !== null) return through(source, view) as T;
-	if (isDerived(source)) refresh(source);
+	if (isDerivedSource(source)) refresh(source);
 	return source.v;
 }
 
@@ -161,8 +208,9 @@ function compute(derived: Derived, given: View): unknown {
 		closed(previous);
 		setOwner(previousOwner);
 		const deps = (derived.deps ??= []);
-		if (deps.length === 0 && current.reads.length > 0) own(derived);
-		for (const dep of current.reads) {
+		const extra = current.extra ?? [];
+		if (deps.length === 0 && extra.length > 0) own(derived);
+		for (const dep of extra) {
 			if (deps.includes(dep)) continue;
 			deps.push(dep);
 			(dep.reactions ??= new Set()).add(derived);
@@ -285,9 +333,9 @@ export function written(source: Source): void {
 }
 
 export function readDuringRun(source: Source): void {
-	for (let index = frames.length - 1; index >= 0; index--) {
+	for (let index = depth - 1; index >= 0; index--) {
 		const current = frames[index] as Frame;
-		if (!current.invalidated && current.reads.includes(source)) current.invalidated = true;
+		if (!current.invalidated && readBy(current, source)) current.invalidated = true;
 	}
 }
 
@@ -296,9 +344,56 @@ function own(derived: Derived): void {
 	if (holder !== null) (holder.owned ??= []).push(derived);
 }
 
-function reconcile(target: Reaction, next: Source[], keep: boolean): void {
+function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 	const previous = target.deps;
-	const kept = new Set(next);
+	const old = current.old;
+	const extra = current.extra;
+	const matched = current.matched;
+	if (old === previous && extra === null) {
+		if (old === null) target.deps = [];
+		else if (!keep && matched < old.length) {
+			for (let index = matched; index < old.length; index++)
+				(old[index] as Source).reactions?.delete(target);
+			old.length = matched;
+		}
+		return;
+	}
+	if (old === previous && extra !== null) {
+		const taken = current.version + 2;
+		const tail = current.version + 1;
+		const empty = old === null || old.length === 0;
+		if (old !== null) {
+			for (let index = 0; index < matched; index++) (old[index] as Source).read = taken;
+			for (let index = matched; index < old.length; index++) (old[index] as Source).read = tail;
+		}
+		let count = 0;
+		for (let index = 0; index < extra.length; index++) {
+			const dep = extra[index] as Source;
+			const mark = dep.read;
+			if (mark === taken) continue;
+			dep.read = taken;
+			if (mark !== tail) (dep.reactions ??= new Set()).add(target);
+			else if (keep) continue;
+			extra[count++] = dep;
+		}
+		extra.length = count;
+		if (old === null) target.deps = extra;
+		else if (keep) for (const dep of extra) old.push(dep);
+		else {
+			for (let index = matched; index < old.length; index++) {
+				const dep = old[index] as Source;
+				if (dep.read === tail) dep.reactions?.delete(target);
+			}
+			if (matched === 0) target.deps = extra;
+			else {
+				old.length = matched;
+				for (const dep of extra) old.push(dep);
+			}
+		}
+		if (empty && count > 0 && isDerived(target)) own(target);
+		return;
+	}
+	const kept = new Set(reads(current));
 	for (const dep of previous ?? []) {
 		if (keep) kept.add(dep);
 		else if (!kept.has(dep)) dep.reactions?.delete(target);
@@ -307,6 +402,10 @@ function reconcile(target: Reaction, next: Source[], keep: boolean): void {
 	target.deps = [...kept];
 	if ((previous === null || previous.length === 0) && kept.size > 0 && isDerived(target))
 		own(target);
+}
+
+function dirtyRead(dep: Source): boolean {
+	return isDerivedSource(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep));
 }
 
 export function track<T>(target: Reaction, fn: () => T): T {
@@ -324,11 +423,13 @@ export function track<T>(target: Reaction, fn: () => T): T {
 
 function settleRun(target: Reaction, current: Frame): void {
 	let invalidated = current.invalidated;
-	for (const dep of current.reads) {
-		if (isDerived(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep)))
-			invalidated = true;
-	}
-	reconcile(target, current.reads, view !== null && (view.batch.fork || current.hidden !== null));
+	const old = current.old;
+	if (old !== null)
+		for (let index = 0; !invalidated && index < current.matched; index++)
+			if (dirtyRead(old[index] as Source)) invalidated = true;
+	if (!invalidated && current.extra !== null)
+		for (const dep of current.extra) if (dirtyRead(dep)) invalidated = true;
+	reconcile(target, current, view !== null && (view.batch.fork || current.hidden !== null));
 	target.rv = now();
 	target.status = invalidated ? DIRTY : CLEAN;
 }
@@ -340,15 +441,20 @@ export function takeHidden(): Set<Batch> | null {
 }
 
 export function stale(target: Reaction): boolean {
-	if (target.status === DIRTY) return true;
-	if (target.status === MAYBE) {
-		for (const dep of target.deps ?? []) {
-			if (isDerived(dep)) {
-				if (view !== null && affected(dep, view)) return true;
-				refresh(dep);
-				if (view !== null && view.values.has(dep)) return true;
+	const status = target.status;
+	if (status === DIRTY) return true;
+	if (status === MAYBE) {
+		const deps = target.deps;
+		if (deps !== null) {
+			for (let index = 0; index < deps.length; index++) {
+				const dep = deps[index] as Source;
+				if (isDerivedSource(dep)) {
+					if (view !== null && affected(dep, view)) return true;
+					refresh(dep);
+					if (view !== null && view.values.has(dep)) return true;
+				}
+				if (dep.wv > target.rv) return true;
 			}
-			if (dep.wv > target.rv) return true;
 		}
 		target.status = CLEAN;
 	}
