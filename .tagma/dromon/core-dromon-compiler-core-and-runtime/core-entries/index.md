@@ -75,4 +75,4 @@ sources:
   - kind: file
     ref: packages/dromon/tsconfig.json
 ---
-The published surface of `dromon`: the runtime entries `dromon`, `dromon/server` and `dromon/internal/*`, and `dromon/compiler`, which composes analysis and generation behind the front-end port and prints with `esrap`. What it exports is all an adapter or an application may reach, and the package's `exports` map is this module's.
+The published surface of `dromon`: the runtime entries `dromon`, `dromon/server`, `dromon/reactivity`, `dromon/reactivity/window`, `dromon/motion` and `dromon/internal/*`, and `dromon/compiler`, which composes analysis and generation behind the front-end port and prints with `esrap`. What it exports is all an adapter or an application may reach, and the package's `exports` map is this module's.
