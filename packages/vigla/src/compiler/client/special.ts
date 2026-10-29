@@ -2,7 +2,11 @@ import type * as ES from 'estree';
 import { hash } from '../../shared/hash.ts';
 import { hasAwait, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Fragment, Special, Title } from '../ir/nodes.ts';
+import { isCapture } from '../../shared/html.ts';
+import type { Binding as BindingNode, Fragment, Special, Title } from '../ir/nodes.ts';
+import { accessors } from './bindings.ts';
+import { actionCall, attachCall } from './directives.ts';
+import { handler } from './element.ts';
 import { rewrite, runtime } from './script.ts';
 import { cleaned, render, type TemplateContext } from './template.ts';
 
@@ -74,12 +78,100 @@ function headCode(context: TemplateContext, node: Special): ES.Statement {
 	);
 }
 
+function targetOf(node: Special): ES.Expression {
+	if (node.target === 'window') return b.id('window');
+	if (node.target === 'document') return b.id('document');
+	return b.member(b.id('document'), 'body');
+}
+
+const documentEvents: Readonly<Record<string, string>> = {
+	fullscreenElement: 'fullscreenchange',
+	pointerLockElement: 'pointerlockchange',
+	visibilityState: 'visibilitychange'
+};
+
+function targetBinding(
+	context: TemplateContext,
+	target: ES.Expression,
+	node: BindingNode
+): ES.Expression {
+	const { get, set } = accessors(context, node.expression);
+	const name = node.name;
+	switch (name) {
+		case 'innerWidth':
+		case 'innerHeight':
+		case 'outerWidth':
+		case 'outerHeight':
+			return runtime(context, 'bindWindowSize', b.literal(name), set);
+		case 'scrollX':
+		case 'scrollY':
+			return runtime(
+				context,
+				'bindWindowScroll',
+				b.literal(name === 'scrollX' ? 'x' : 'y'),
+				get,
+				set
+			);
+		case 'online':
+			return runtime(context, 'bindOnline', set);
+		case 'devicePixelRatio':
+			return runtime(context, 'bindProperty', b.literal(name), b.literal('resize'), target, set);
+		case 'activeElement':
+			return runtime(context, 'bindActiveElement', set);
+		default: {
+			const event = documentEvents[name];
+			if (event === undefined) throw unsupported(node, `bind:${name}`);
+			return runtime(context, 'bindProperty', b.literal(name), b.literal(event), target, set);
+		}
+	}
+}
+
+function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
+	const target = targetOf(node);
+	const statements: ES.Statement[] = [];
+	for (const attribute of node.attributes) {
+		switch (attribute.kind) {
+			case 'attribute': {
+				if (attribute.value.kind !== 'expression' || !/^on/i.test(attribute.name)) {
+					throw unsupported(
+						attribute,
+						`The ${attribute.name} attribute on <svelte:${node.target}>`
+					);
+				}
+				let type = attribute.name.slice(2).toLowerCase();
+				const capture = isCapture(type);
+				if (capture) type = type.slice(0, -7);
+				const args: ES.Expression[] = [
+					target,
+					b.literal(type),
+					handler(context, attribute.value.expression)
+				];
+				if (capture) args.push(b.literal(true));
+				statements.push(b.statement(runtime(context, 'on', ...args)));
+				break;
+			}
+			case 'binding':
+				statements.push(b.statement(targetBinding(context, target, attribute)));
+				break;
+			case 'action':
+				statements.push(actionCall(context, target, attribute));
+				break;
+			case 'attachment':
+				statements.push(attachCall(context, target, attribute));
+				break;
+			default:
+				throw unsupported(attribute, `The ${attribute.kind} directive on <svelte:${node.target}>`);
+		}
+	}
+	return statements;
+}
+
 export function separateCode(context: TemplateContext, fragment: Fragment): ES.Statement[] {
 	const statements: ES.Statement[] = [];
 	for (const node of context.component.separate.get(fragment) ?? []) {
 		if (node.kind === 'title') statements.push(titleCode(context, node));
 		else if (node.target === 'head') statements.push(headCode(context, node));
-		else throw unsupported(node, `<svelte:${node.target}>`);
+		else statements.push(...targetCode(context, node));
 	}
 	return statements;
 }

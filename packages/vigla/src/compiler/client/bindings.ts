@@ -10,7 +10,7 @@ interface Accessors {
 	readonly set: ES.Expression;
 }
 
-function accessors(context: TemplateContext, expression: ES.Expression): Accessors {
+export function accessors(context: TemplateContext, expression: ES.Expression): Accessors {
 	if (expression.type === 'SequenceExpression') {
 		const [get, set] = expression.expressions as [ES.Expression, ES.Expression];
 		return { get: rewrite(context, get), set: rewrite(context, set) };

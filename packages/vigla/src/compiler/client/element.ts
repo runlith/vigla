@@ -85,7 +85,7 @@ export function valueOf(context: TemplateContext, emit: Emit | null, value: Valu
 	return b.template(quasis, expressions);
 }
 
-function handler(context: TemplateContext, expression: ES.Expression): ES.Expression {
+export function handler(context: TemplateContext, expression: ES.Expression): ES.Expression {
 	const value = rewrite(context, expression);
 	if (value.type === 'ArrowFunctionExpression' || value.type === 'FunctionExpression') return value;
 	if (expression.type === 'Identifier') {

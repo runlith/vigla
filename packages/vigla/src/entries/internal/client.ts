@@ -41,6 +41,13 @@ export { appendStyles } from '../../runtime/dom/styles.ts';
 export { action, attach, attachment } from '../../runtime/dom/attachments.ts';
 export { html } from '../../runtime/dom/html.ts';
 export { head, title } from '../../runtime/dom/head.ts';
+export {
+	bindActiveElement,
+	bindOnline,
+	bindWindowScroll,
+	bindWindowSize,
+	on
+} from '../../runtime/dom/targets.ts';
 export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
 export { delegate, delegated, listen } from '../../runtime/dom/events.ts';

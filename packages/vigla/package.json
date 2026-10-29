@@ -10,6 +10,7 @@
 		"./server": "./src/entries/server.ts",
 		"./attachments": "./src/entries/attachments.ts",
 		"./action": "./src/entries/action.ts",
+		"./events": "./src/entries/events.ts",
 		"./reactivity": {
 			"browser": "./src/entries/reactivity.ts",
 			"default": "./src/entries/reactivity-server.ts"

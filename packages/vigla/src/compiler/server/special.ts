@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { escapeContent } from '../../shared/escape.ts';
 import { hash } from '../../shared/hash.ts';
-import { hasAwait, unsupported } from '../analysis/index.ts';
+import { hasAwait } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Fragment, Special, Title } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
@@ -51,7 +51,6 @@ export function separateCode(context: TemplateContext, fragment: Fragment): ES.S
 	for (const node of context.component.separate.get(fragment) ?? []) {
 		if (node.kind === 'title') statements.push(titleCode(context, node));
 		else if (node.target === 'head') statements.push(headCode(context, node));
-		else throw unsupported(node, `<svelte:${node.target}>`);
 	}
 	return statements;
 }

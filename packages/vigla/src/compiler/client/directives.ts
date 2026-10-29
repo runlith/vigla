@@ -10,7 +10,7 @@ function optionalCall(callee: ES.Expression, args: ES.Expression[]): ES.Expressi
 
 export function actionCall(
 	context: TemplateContext,
-	element: ES.Identifier,
+	element: ES.Expression,
 	node: Action
 ): ES.Statement {
 	const target = b.id(context.names.unique('$$node'));
@@ -26,7 +26,7 @@ export function actionCall(
 
 export function attachCall(
 	context: TemplateContext,
-	element: ES.Identifier,
+	element: ES.Expression,
 	node: Attachment
 ): ES.Statement {
 	return b.statement(
