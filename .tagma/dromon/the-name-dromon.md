@@ -11,6 +11,6 @@ A dromon (δρόμων, "runner") was the Byzantine war galley, the fleet's fast
 
 **Pronunciation.** Russian dictionaries stress the first syllable, дро́мон [ˈdromən]; Russian speakers will likely say дромо́н by analogy with вагон and патрон (inference). English reads it with the stress on the first syllable (not checked against a dictionary).
 
-**Availability on 2026-10-29.** npm `dromon` was free; `dromon.dev` answered no DNS records (registrar not checked).
+**Availability on 2026-10-29.** npm `dromon` was free. `dromon.dev` is registered (RDAP: since 2026-03-19, expires 2027-03-19) with no DNS records; `dromon.com` is registered since 2001. No registration was found (whois or RDAP) for `dromonjs.dev`, `dromonjs.com`, `dromonjs.org`, `dromon.io`, `dromon.org`, `dromon.sh`, `dromon.build`, `getdromon.dev`, `usedromon.dev`; no registrar was asked.
 
 **Extension.** `.dro` was picked over `.dmn` (OMG's Decision Model and Notation, opened by Camunda) and `.drm` (read as DRM; several unrelated formats) — all three free in GitHub linguist. The two-input decision made it unnecessary: own components are `.tsx`, compatibility is `.svelte`.
