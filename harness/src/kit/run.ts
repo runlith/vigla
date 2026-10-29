@@ -132,6 +132,15 @@ function chosen(unit: Unit): boolean {
 	return picks.some((pick) => pick === unit.app || pick.startsWith(`${unit.app}/`));
 }
 
+const variant = /\(([^()/]+)-\d+\/[^()]*\)$/;
+
+function scripts(unit: Unit): readonly string[] {
+	const picks = selectors(`kit/${unit.tree}`);
+	const steps = picks?.map((pick) => variant.exec(pick)?.[1]);
+	if (steps === undefined || steps.some((step) => step === undefined)) return unit.scripts;
+	return unit.scripts.filter((script) => steps.includes(script.replaceAll(':', '-')));
+}
+
 for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 	const tree = treeNamed('kit', unit.tree);
 	if (tree === undefined) throw new Error(`no kit tree ${unit.tree}`);
@@ -141,7 +150,7 @@ for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 		runs.push({ tree, mode: 'check-1', file: reportName(unit, 'check-1'), env: {} });
 		continue;
 	}
-	const steps = tree.name.endsWith('units') ? [specs(tree)] : plan(dir, unit.scripts);
+	const steps = tree.name.endsWith('units') ? [specs(tree)] : plan(dir, scripts(unit));
 	for (const step of steps) {
 		console.log(`\n${unit.tree}/${unit.app} ${step.label ?? step.command}`);
 		execute(step, {

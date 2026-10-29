@@ -35,9 +35,14 @@ const order = [
 const states = ['passed', 'failed', 'skipped', 'pending', 'todo', 'unloaded'];
 
 interface Seen {
-	passed: boolean;
+	ran: boolean;
+	failed: boolean;
 	runs: boolean;
 	message?: string;
+}
+
+function passed(seen: Seen): boolean {
+	return seen.ran && !seen.failed;
 }
 
 export function judge(judgement: Judgement): Verdict {
@@ -129,13 +134,15 @@ export function judge(judgement: Judgement): Verdict {
 		const cell = `${result.suite}\n${status} ${result.state}`;
 		counts.set(cell, (counts.get(cell) ?? 0) + 1);
 		if (status === 'unruled') errors.push(`${result.suite}: ${id} has no status in the manifest`);
-		const byId = entries.get(result.suite) ?? new Map();
+		const byId = entries.get(result.suite) ?? new Map<string, Seen>();
 		entries.set(result.suite, byId);
 		const before = byId.get(id);
-		const passed = result.state === 'passed' && (before?.passed ?? true);
+		const ran = result.state === 'passed' || result.state === 'failed';
+		const failed = result.state === 'failed' || (before?.failed ?? false);
 		const message = (result.state === 'failed' ? result.message : undefined) ?? before?.message;
 		byId.set(id, {
-			passed,
+			ran: ran || (before?.ran ?? false),
+			failed,
 			runs:
 				status !== 'unruled' && runsOn(status, result.suite.split('/')[0] ?? '', judgement.target),
 			...(message === undefined ? {} : { message })
@@ -172,7 +179,7 @@ export function judge(judgement: Judgement): Verdict {
 						? 'recorded, not reported'
 						: !entry.runs
 							? 'recorded, does not run by its status'
-							: entry.passed
+							: passed(entry)
 								? null
 								: `recorded, failed${entry.message ? `: ${entry.message}` : ''}`;
 				if (problem === null) continue;
@@ -181,7 +188,7 @@ export function judge(judgement: Judgement): Verdict {
 			}
 			recorded.set(suite, { total, failing });
 			const newly = [...byId]
-				.filter(([id, entry]) => entry.passed && entry.runs && !set.has(id))
+				.filter(([id, entry]) => passed(entry) && entry.runs && !set.has(id))
 				.map(([id]) => id)
 				.sort();
 			if (newly.length > 0) fresh.set(suite, newly);
