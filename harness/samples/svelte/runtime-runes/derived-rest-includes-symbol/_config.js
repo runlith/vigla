@@ -1,0 +1,5 @@
+import { test } from '@dromon/harness/helpers';
+
+export default test({
+	html: `<p>true false</p>`
+});

@@ -1,0 +1,11 @@
+import { flushSync } from 'svelte';
+import { test } from '@dromon/harness/helpers';
+
+export default test({
+	html: `<button>false</button>`,
+	test({ assert, target }) {
+		target.querySelector('button')?.click();
+		flushSync();
+		assert.htmlEqual(target.innerHTML, `<button>true</button>`);
+	}
+});

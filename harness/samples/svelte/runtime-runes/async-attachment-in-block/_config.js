@@ -1,0 +1,11 @@
+import { tick } from 'svelte';
+import { test } from '@dromon/harness/helpers';
+
+export default test({
+	mode: ['client', 'hydrate'],
+
+	async test({ assert, target }) {
+		await tick();
+		assert.htmlEqual(target.innerHTML, '<div>attachment ran</div>');
+	}
+});

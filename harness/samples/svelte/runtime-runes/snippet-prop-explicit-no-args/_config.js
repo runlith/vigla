@@ -1,0 +1,7 @@
+import { test } from '@dromon/harness/helpers';
+
+export default test({
+	html: `
+		<p>foo</p>
+	`
+});
