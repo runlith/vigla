@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	skip: true, // TODO works on https://github.com/sveltejs/svelte/pull/17971

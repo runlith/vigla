@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// Test that an async derived inside an $effect.root not connected to the component tree still works

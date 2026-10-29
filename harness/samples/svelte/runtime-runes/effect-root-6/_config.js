@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Test that $effect.root continues to be operational after its parent effect has been destroyed
 export default test({

@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	ssrHtml: '<p>y:y</p> <p>LATER</p> <input value="LATER">',

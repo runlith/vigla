@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Test that components can be used inside <option> elements.
 // This tests two scenarios:

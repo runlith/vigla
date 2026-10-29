@@ -1,5 +1,5 @@
 import MagicString from 'magic-string';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 import { SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import * as path from 'node:path';
 

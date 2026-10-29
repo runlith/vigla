@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // ensure in-place object mutations stay reactive in async
 export default test({

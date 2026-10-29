@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	ssrHtml: '<select><option value="a">a</option><option value="b" selected="">b</option></select>',

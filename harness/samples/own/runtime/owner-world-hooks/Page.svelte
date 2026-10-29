@@ -1,5 +1,5 @@
 <script>
-	import { effect, root } from 'dromon';
+	import { effect, root } from 'vigla';
 
 	let { app, value } = $props();
 

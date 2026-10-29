@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// In non-async mode we're not reacting to deriveds read in the same context they're defined in

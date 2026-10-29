@@ -1,6 +1,6 @@
 import MagicString from 'magic-string';
-import { test } from '@dromon/harness/helpers';
-import { magic_string_preprocessor_result } from '@dromon/harness/sourcemaps';
+import { test } from '@vigla/harness/helpers';
+import { magic_string_preprocessor_result } from '@vigla/harness/sourcemaps';
 
 export default test({
 	preprocess: [

@@ -1,5 +1,5 @@
-import { test } from '@dromon/harness/helpers';
-import { magic_string_bundle } from '@dromon/harness/sourcemaps';
+import { test } from '@vigla/harness/helpers';
+import { magic_string_bundle } from '@vigla/harness/sourcemaps';
 
 export const component_filepath = 'src/input.svelte';
 

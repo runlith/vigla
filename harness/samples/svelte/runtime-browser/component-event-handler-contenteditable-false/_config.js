@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { assert_ok, test } from '@dromon/harness/helpers';
+import { assert_ok, test } from '@vigla/harness/helpers';
 
 // A browser test because JSDOM doesn't support contenteditable
 export default test({

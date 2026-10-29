@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 let math_random = Math.random;
 let calls = 0;

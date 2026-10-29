@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 const buttons = '<button>b</button><button>z</button><button>shift</button>';
 

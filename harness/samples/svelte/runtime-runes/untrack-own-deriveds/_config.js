@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// In async mode we _do_ want to run effects that react to their own state changing

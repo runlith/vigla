@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Tests that fallback value is propagated up correctly when the inner component
 // uses a prop it does not write to but has a fallback value

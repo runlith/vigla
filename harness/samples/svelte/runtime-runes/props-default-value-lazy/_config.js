@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Tests that default values only fire lazily when the prop is undefined, and every time
 export default test({

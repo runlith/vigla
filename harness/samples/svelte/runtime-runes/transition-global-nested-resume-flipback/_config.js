@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // #15604 companion — flipping the condition back while the ancestor is paused must still revive the element
 export default test({

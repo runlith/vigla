@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Regression for #18610: emptying a controlled keyed {#each} while another
 // batch is still pending must not take the fast path that clears state.items

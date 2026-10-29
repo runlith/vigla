@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Tests that a store subscription only present in the template waits for the
 // promise that assigns the store instead of subscribing to `undefined`,

@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Ensure that microtask timing doesn't influence whether or not a scheduled batch is flushed.
 // Timing can be such that the current_batch is reset before the scheduled flush runs, which

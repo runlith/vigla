@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<button>increment</button><p>count: 0</p><p>doubled: 0</p><p>quadrupled: 0</p>`,

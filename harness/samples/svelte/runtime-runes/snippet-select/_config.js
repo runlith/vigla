@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<div><label for="pet-select">Choose a pet 1:</label><select id="pet-select1" name="pets">

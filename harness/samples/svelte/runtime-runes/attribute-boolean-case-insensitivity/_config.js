@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// JSDOM lacks support for some of these attributes, so we'll skip it for now.

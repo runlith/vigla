@@ -1,5 +1,5 @@
 import { flushSync, tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// Regression test for https://github.com/sveltejs/svelte/issues/18485.

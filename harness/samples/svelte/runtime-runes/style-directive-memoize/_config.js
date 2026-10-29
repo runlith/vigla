@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // This test counts mutations on hydration
 // set_style() should not mutate style on hydration, except if mismatch

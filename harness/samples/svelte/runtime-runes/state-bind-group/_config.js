@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<button>+</button><input type="checkbox" value="1"><input type="checkbox" value="2"><input type="checkbox" value="3">\n[]`,

@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // While we don't officially document it, `untrack` also allows to opt out of the "unsafe mutation" validation, which is what we test here
 export default test({

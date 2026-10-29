@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<button>set if</button><button>set if 1</button><button>add</button><button>delete</button><button>clear</button><div>0:0</div>`,

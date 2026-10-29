@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Tests that a newly created batch during an effect flush isn't rebased right away by the previous batch.#commit(),
 // rescheduling an effect on the new batch that shouldn't run.

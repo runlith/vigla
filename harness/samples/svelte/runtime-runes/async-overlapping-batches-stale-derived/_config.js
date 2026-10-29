@@ -1,5 +1,5 @@
 import { flushSync, tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Two overlapping batches write to `b`. The first one commits first, running effects that read
 // `sum` with its own (batch-local) view of `b`. The second one sets `b` back to its original

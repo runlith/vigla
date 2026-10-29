@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<button>person.name.first = "dave"</button><h3>JSON output</h3><div>[{"name":{"first":"rob"}}]</div>`,

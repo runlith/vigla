@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<ul><li>test (1)</li> <span style="background-color: red; width: 20px; height: 20px; display: inline-block;"></span><li>test 2 (2)</li><li>test 3 (3)</li></ul><button>Swap items 1 &amp; 3</button>`,

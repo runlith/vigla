@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// Test that $effect/onMount etc at the top level of components are correctly deferred/coordinated if inside an async block

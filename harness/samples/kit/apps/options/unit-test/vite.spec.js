@@ -2,7 +2,7 @@ import { test, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { createFilter, resolveConfig } from 'vite';
-import { bullet_list } from '@dromon/harness/kit/format';
+import { bullet_list } from '@vigla/harness/kit/format';
 
 const timeout = 60_000;
 

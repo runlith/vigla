@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import MagicString from 'magic-string';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Simulates a bundler plugin (e.g. a Vite plugin using `magic-string`) that transforms
 // the Svelte source *before* it reaches `compile()`, and hands its own sourcemap to

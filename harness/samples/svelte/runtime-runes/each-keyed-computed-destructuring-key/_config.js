@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { ok, test } from '@dromon/harness/helpers';
+import { ok, test } from '@vigla/harness/helpers';
 
 // https://github.com/sveltejs/svelte/issues/18519
 export default test({

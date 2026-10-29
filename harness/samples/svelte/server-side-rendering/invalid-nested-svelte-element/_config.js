@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	skip: true, // TODO: This test actually works, but the error message is printed, not thrown, so we need to have a way to test for that

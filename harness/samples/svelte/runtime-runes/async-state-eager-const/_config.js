@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	compileOptions: { dev: true }, // for testing that teardown effect in eager $.get(loaded) doesn't lead to a crash (because it means REACTION_RAN is set, which means unfreeze_derived runs)

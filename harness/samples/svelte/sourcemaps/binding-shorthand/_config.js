@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	skip: true, // No source map for binding in template because there's no loc property for it; skipped in Svelte 4, too

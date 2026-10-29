@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Tests that an IIFE referencing an `await` @const inside an {#each} block
 // correctly registers the async dependency so the template waits for the

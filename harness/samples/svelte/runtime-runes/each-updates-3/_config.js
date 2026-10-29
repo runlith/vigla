@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<ul><li><button>Delete</button>\na\na</li><li><button>Delete</button>\nb\nb</li><li><button>Delete</button>\nc\nc</li><li><button>Delete</button>\nd\nd</li></ul>`,

@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<div>getSeconds: 0</div><div>getMinutes: 0</div><div>getHours: 15</div><div>getTime: 1708700400000</div><div>toUTCString: Fri, 23 Feb 2024 15:00:00 GMT</div><button>1 second</button><button>1 minute</button><button>1 hour</button>`,

@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { ok, test } from '@dromon/harness/helpers';
+import { ok, test } from '@vigla/harness/helpers';
 
 export default test({
 	skip_mode: ['server'],

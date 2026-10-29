@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 let observers = 0;
 const MutationObserver = globalThis.MutationObserver;

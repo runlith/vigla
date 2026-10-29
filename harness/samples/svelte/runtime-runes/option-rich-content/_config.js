@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Test that rich HTML content in <option> elements compiles without errors
 // and that the component functions correctly (on browsers that support it)

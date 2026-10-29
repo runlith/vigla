@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<div>href: https://svelte.dev/repl/hello-world?version=5.0</div><div>host: svelte.dev</div><div>pathname: /repl/hello-world</div><div>search: ?version=5.0</div><div>version: 5.0</div><div>t:</div><button>update hostname</button><button>update pathname</button><button>update search</button><button>update href</button>`,

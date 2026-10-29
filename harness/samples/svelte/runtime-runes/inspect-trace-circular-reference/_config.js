@@ -1,5 +1,5 @@
-import { test } from '@dromon/harness/helpers';
-import { normalise_trace_logs } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
+import { normalise_trace_logs } from '@vigla/harness/helpers';
 
 export default test({
 	compileOptions: {

@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // #18469 — a sync $derived in a nested snippet reading an async declaration through a closure must block on it
 export default test({

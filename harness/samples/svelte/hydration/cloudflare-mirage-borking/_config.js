@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // https://github.com/sveltejs/svelte/issues/15819
 export default test({

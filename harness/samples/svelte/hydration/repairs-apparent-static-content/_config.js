@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // This test ensures that expressions that seem static (like {'foo'}) are not statically inlined, because
 // they could've been dynamic originally (like {browser ? 'foo' : 'bar'}).

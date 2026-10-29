@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // <option value> is special because falsy values should result in an empty string value attribute
 export default test({

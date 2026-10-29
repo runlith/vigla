@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	// This test mainly checks that we don't run into the 'Batch has scheduled roots' invariant wrongly.

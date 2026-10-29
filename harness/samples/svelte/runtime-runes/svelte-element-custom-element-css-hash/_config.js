@@ -1,4 +1,4 @@
-import { ok, test } from '@dromon/harness/helpers';
+import { ok, test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<custom-element class="red svelte-70s021"></custom-element><custom-element class="red svelte-70s021"></custom-element>`,

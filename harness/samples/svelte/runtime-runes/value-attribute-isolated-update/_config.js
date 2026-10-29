@@ -1,4 +1,4 @@
-import { test, ok } from '@dromon/harness/helpers';
+import { test, ok } from '@vigla/harness/helpers';
 import { flushSync } from 'svelte';
 
 export default test({

@@ -1,7 +1,7 @@
 /** @import { PreprocessorGroup, Preprocessor } from '../../../../src/compiler/public' */
 import * as path from 'node:path';
 import MagicString from 'magic-string';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 let indent_size = 4;
 let comment_multi = true;

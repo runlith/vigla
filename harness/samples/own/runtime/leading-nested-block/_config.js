@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 const buttons = '<button>inner</button> <button>outer</button> <button>first</button> <button>reverse</button>';
 

@@ -1,4 +1,4 @@
-import { test, ok } from '@dromon/harness/helpers';
+import { test, ok } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<svg><a href="/docs"><text class="small" x="20" y="40"></text></a></svg>`,

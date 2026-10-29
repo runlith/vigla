@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 import { counts, reset } from './store.js';
 
 // A blocked store subscription is created after the synchronous part of the

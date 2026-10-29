@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 import { mount } from 'svelte';
 const tick = () => Promise.resolve();
 

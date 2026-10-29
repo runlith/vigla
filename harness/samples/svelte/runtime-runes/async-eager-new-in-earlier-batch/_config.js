@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // The eager expression is created while the earlier batch is processed, in whose view `x` is
 // still 0. It reads the real (latest) value nonetheless, so it should not be re-run later on

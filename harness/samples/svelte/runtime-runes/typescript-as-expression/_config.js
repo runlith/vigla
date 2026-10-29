@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 import { expect, vi } from 'vitest';
 
 const log = vi.fn();

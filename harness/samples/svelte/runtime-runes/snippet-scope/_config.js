@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<p>S</p><a href="#">S</a><p>v</p><a href="#">v</a><p>e</p><a href="#">e</a><p>l</p><a href="#">l</a><p>t</p><a href="#">t</a><p>e</p><a href="#">e</a>`

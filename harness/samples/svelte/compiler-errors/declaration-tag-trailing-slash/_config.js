@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // A tag whose expression ends with a bare `/` at the end of the input used to
 // make `find_matching_bracket` loop forever; it should error instead of hanging.

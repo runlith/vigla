@@ -1,4 +1,4 @@
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // Browsers split text nodes > 65536 characters into multiple consecutive text nodes
 // during HTML parsing. This test verifies that hydration correctly merges them.

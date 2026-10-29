@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import '@dromon/harness/helpers'; // for the matchMedia polyfill
+import '@vigla/harness/helpers'; // for the matchMedia polyfill
 import { describe, it, assert } from 'vitest';
 import { Tween } from 'svelte/motion';
-import { raf } from '@dromon/harness/helpers';
+import { raf } from '@vigla/harness/helpers';
 
 function dropped() {
 	throw new Error('dropped: its manifest status gives the reason');

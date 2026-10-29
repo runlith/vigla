@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // #15604 — a removed each item mid-outro must not be resurrected by an ancestor pause/resume
 export default test({

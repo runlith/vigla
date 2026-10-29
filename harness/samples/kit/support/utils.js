@@ -10,11 +10,11 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, test as base, devices } from '@playwright/test';
 import { number_from_env } from '../../../test-utils/index.js';
 import { read_errors, read_traces } from './records.js';
-import { gate } from '@dromon/harness/kit/gate';
+import { gate } from '@vigla/harness/kit/gate';
 
 /** @type {typeof import('./types.js')['test']} */
 export const test = base.extend({
-	dromon_gate: [
+	harness_gate: [
 		async ({}, use, testInfo) => {
 			gate(testInfo);
 			await use(undefined);

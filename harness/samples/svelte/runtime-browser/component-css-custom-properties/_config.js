@@ -1,4 +1,4 @@
-import { test, assert_ok } from '@dromon/harness/helpers';
+import { test, assert_ok } from '@vigla/harness/helpers';
 
 export default test({
 	html: `

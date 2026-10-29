@@ -1,5 +1,5 @@
 import { flushSync } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 const style_1 = 'invalid-key:0; margin:4px;;color: green ;color:blue ';
 const style_2 = ' other-key : 0 ; padding:2px; COLOR:green; color: blue';

@@ -1,5 +1,5 @@
 import { settled, tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 async function flush() {
 	for (let i = 0; i < 6; i += 1) await tick();

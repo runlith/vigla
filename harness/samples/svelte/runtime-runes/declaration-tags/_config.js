@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 export default test({
 	html: `<button>top 2</button><button>toggle</button><button>2</button><p>4 total</p><div><span>nested</span></div><div><span>nested</span></div>`,

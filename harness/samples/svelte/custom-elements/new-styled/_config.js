@@ -1,4 +1,4 @@
-import { assert_ok, test } from '@dromon/harness/helpers';
+import { assert_ok, test } from '@vigla/harness/helpers';
 const tick = () => Promise.resolve();
 
 export default test({

@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test, ok } from '@dromon/harness/helpers';
+import { test, ok } from '@vigla/harness/helpers';
 
 // Tests that tick only resolves after all pending effects have been cleared
 export default test({

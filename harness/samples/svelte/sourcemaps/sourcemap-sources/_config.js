@@ -1,6 +1,6 @@
 import MagicString, { Bundle } from 'magic-string';
 import * as path from 'node:path';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 /**
  * @param {Bundle} bundle

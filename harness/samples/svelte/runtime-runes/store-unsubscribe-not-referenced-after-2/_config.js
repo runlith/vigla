@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { ok, test } from '@dromon/harness/helpers';
+import { ok, test } from '@vigla/harness/helpers';
 
 // Test that the store is unsubscribed from, even if it's not referenced once the store itself is set to null
 export default test({

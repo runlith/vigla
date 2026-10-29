@@ -1,5 +1,5 @@
 import { assert, expect, test } from 'vitest';
-import { bullet_list } from '@dromon/harness/kit/format';
+import { bullet_list } from '@vigla/harness/kit/format';
 import { build, timeout } from './utils.js';
 
 test('prerenderable routes must be prerendered', { timeout }, () => {

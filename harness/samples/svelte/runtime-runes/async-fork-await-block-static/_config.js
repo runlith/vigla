@@ -1,5 +1,5 @@
 import { tick } from 'svelte';
-import { test } from '@dromon/harness/helpers';
+import { test } from '@vigla/harness/helpers';
 
 // An {#await} block without dependencies can't re-run, so it is the same in every batch: if it's
 // created in a fork, a real batch that adopts the fork's branch must see its states as well
