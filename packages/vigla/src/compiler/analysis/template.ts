@@ -17,7 +17,14 @@ import type {
 	Value
 } from '../ir/nodes.ts';
 import type { Ignores } from '../ir/port.ts';
-import { spanOf, unsupported, type Binding, type Scope, type Scopes } from './scope.ts';
+import {
+	spanOf,
+	unsupported,
+	type Binding,
+	type BindingKind,
+	type Scope,
+	type Scopes
+} from './scope.ts';
 import { clean, preserving, type Preserve } from './whitespace.ts';
 
 export interface ListFacts {
@@ -158,7 +165,7 @@ function dynamicNamespace(node: DynamicElement, parent: Namespace): Namespace {
 }
 
 function hoisted(node: Node): boolean {
-	return node.kind === 'snippet';
+	return node.kind === 'snippet' || node.kind === 'constant';
 }
 
 function apart(node: Node): node is Special | Title {
@@ -234,13 +241,13 @@ export class Template {
 		return lifted;
 	}
 
-	pattern(pattern: ES.Pattern, scope: Scope): Binding[] {
+	pattern(pattern: ES.Pattern, scope: Scope, kind: BindingKind = 'item'): Binding[] {
 		const bound: Binding[] = [];
 		const visit = (node: ES.Pattern): void => {
 			switch (node.type) {
 				case 'Identifier':
 					this.names.add(node.name);
-					bound.push(this.scopes.bind(scope, node, { kind: 'item' }));
+					bound.push(this.scopes.bind(scope, node, { kind }));
 					return;
 				case 'ObjectPattern':
 					for (const property of node.properties) {
@@ -273,7 +280,7 @@ export class Template {
 	fragment(
 		fragment: Fragment,
 		parent: Element | null,
-		scope: Scope,
+		outer: Scope,
 		inherited: boolean,
 		namespace: Namespace,
 		infer = parent === null
@@ -288,6 +295,9 @@ export class Template {
 		if (separate.length > 0) this.separate.set(fragment, separate);
 		const lifted = given.filter(hoisted);
 		const regular = { nodes: lifted.length === 0 ? given : given.filter((node) => !hoisted(node)) };
+		const scope = lifted.some((node) => node.kind === 'constant')
+			? this.scopes.child(outer)
+			: outer;
 		const nodes = [
 			...lifted,
 			...clean(
@@ -486,6 +496,12 @@ export class Template {
 				this.namespaces.set(node, own);
 				for (const attribute of node.attributes) this.attribute(attribute, scope);
 				this.fragment(node.body, null, scope, kept, own, false);
+				return;
+			}
+			case 'constant': {
+				const declarator = node.declarator;
+				if (declarator.init != null) this.expression(declarator.init, scope);
+				this.pattern(declarator.id, scope, 'template-constant');
 				return;
 			}
 			case 'special':

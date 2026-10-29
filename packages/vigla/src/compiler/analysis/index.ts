@@ -62,6 +62,7 @@ export function isSignal(binding: Binding): boolean {
 	switch (binding.kind) {
 		case 'derived':
 		case 'item':
+		case 'template-constant':
 			return true;
 		case 'state':
 		case 'raw-state':
@@ -116,8 +117,35 @@ const supported = new Set<Rune>([
 	'$effect.root',
 	'$effect.tracking',
 	'$effect.pending',
-	'$state.snapshot'
+	'$state.snapshot',
+	'$inspect',
+	'$inspect.trace'
 ]);
+
+export interface Inspection {
+	readonly args: readonly ES.Expression[];
+	readonly inspector: ES.Expression | null;
+}
+
+export function inspection(runes: Runes, call: ES.CallExpression): Inspection | null {
+	const values = (args: readonly (ES.Expression | ES.SpreadElement)[]): ES.Expression[] =>
+		args.filter((argument): argument is ES.Expression => argument.type !== 'SpreadElement');
+	if (runes.get(call.callee) === '$inspect')
+		return { args: values(call.arguments), inspector: null };
+	const callee = call.callee;
+	if (
+		callee.type === 'MemberExpression' &&
+		!callee.computed &&
+		callee.property.type === 'Identifier' &&
+		callee.property.name === 'with' &&
+		callee.object.type === 'CallExpression' &&
+		runes.get(callee.object.callee) === '$inspect'
+	) {
+		const [inspector] = values(call.arguments);
+		return { args: values(callee.object.arguments), inspector: inspector ?? null };
+	}
+	return null;
+}
 
 function checkRunes(
 	runes: Runes,

@@ -1,6 +1,7 @@
 import type * as ES from 'estree';
 import {
 	hasAwait,
+	inspection,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -25,6 +26,7 @@ export interface Context {
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
 	readonly saved?: ReadonlySet<ES.Node>;
+	readonly dev?: boolean;
 }
 
 export function runtime(
@@ -148,10 +150,28 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				const expression = current.expression;
 				if (expression.type !== 'CallExpression') return undefined;
 				const rune = runes.get(expression.callee);
-				if (rune === '$effect' || rune === '$effect.pre') return { type: 'EmptyStatement' };
+				if (rune === '$effect' || rune === '$effect.pre' || rune === '$inspect.trace') {
+					return { type: 'EmptyStatement' };
+				}
+				if (!context.dev && inspection(runes, expression) !== null) {
+					return { type: 'EmptyStatement' };
+				}
 				return undefined;
 			}
 			case 'CallExpression': {
+				const inspected = inspection(runes, current);
+				if (inspected !== null) {
+					if (!context.dev) return b.id('undefined');
+					const args = inspected.args.map((argument) => next(argument));
+					return inspected.inspector === null
+						? b.call(
+								b.member(b.id('console'), 'log'),
+								b.literal('$inspect('),
+								...args,
+								b.literal(')')
+							)
+						: b.call(next(inspected.inspector), b.literal('init'), ...args);
+				}
 				const rune = runes.get(current.callee);
 				switch (rune) {
 					case '$effect.root':

@@ -1,7 +1,9 @@
 import type * as ES from 'estree';
 import {
 	hasAwait,
+	inspection,
 	isSignal,
+	type Inspection,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -22,6 +24,8 @@ export interface Context {
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
 	readonly saved?: ReadonlySet<ES.Node>;
+	readonly dev?: boolean;
+	readonly aliases?: Map<Binding, ES.Expression>;
 }
 
 const declaring = new Set<Rune>(['$state', '$state.raw', '$derived', '$derived.by', '$props.id']);
@@ -78,6 +82,8 @@ export function read(
 	binding: Binding
 ): ES.Expression | undefined {
 	if (context.plain.has(binding)) return undefined;
+	const alias = context.aliases?.get(binding);
+	if (alias !== undefined) return structuredClone(alias);
 	if (binding.kind === 'prop') {
 		if (accessor(binding)) return b.call(node);
 		return propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
@@ -260,6 +266,29 @@ function effectCall(
 	}
 }
 
+function inspectCall(
+	context: Context,
+	inspected: Inspection,
+	next: <T extends ES.Node>(node: T) => T
+): ES.Expression {
+	if (!context.dev)
+		return { type: 'UnaryExpression', operator: 'void', prefix: true, argument: b.literal(0) };
+	const values: ES.ArrayExpression = {
+		type: 'ArrayExpression',
+		elements: inspected.args.map((argument) => next(argument))
+	};
+	const rest = b.id(context.names.unique('$$args'));
+	const inspector =
+		inspected.inspector === null ? b.member(b.id('console'), 'log') : next(inspected.inspector);
+	const forward = b.arrow(
+		[{ type: 'RestElement', argument: rest }],
+		b.call(inspector, { type: 'SpreadElement', argument: rest })
+	);
+	const args: ES.Expression[] = [b.arrow([], values), forward];
+	if (inspected.inspector === null) args.push(b.literal(true));
+	return runtime(context, 'inspect', ...args);
+}
+
 function assignField(
 	context: Context,
 	node: ES.AssignmentExpression,
@@ -363,7 +392,17 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (!stateful(binding) && binding.kind !== 'derived') return undefined;
 				return update(context, current, binding);
 			}
+			case 'ExpressionStatement': {
+				const expression = current.expression;
+				if (expression.type !== 'CallExpression') return undefined;
+				const removed =
+					runes.get(expression.callee) === '$inspect.trace' ||
+					(!context.dev && inspection(runes, expression) !== null);
+				return removed ? ({ type: 'EmptyStatement' } as ES.EmptyStatement) : undefined;
+			}
 			case 'CallExpression': {
+				const inspected = inspection(runes, current);
+				if (inspected !== null) return inspectCall(context, inspected, next);
 				const rune = runes.get(current.callee);
 				if (rune === undefined) return undefined;
 				const replaced = effectCall(context, rune, current);

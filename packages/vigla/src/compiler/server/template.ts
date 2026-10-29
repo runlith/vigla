@@ -2,7 +2,7 @@ import type * as ES from 'estree';
 import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
 import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
 import { empty } from '../../shared/markers.ts';
-import { unsupported, type ComponentAnalysis } from '../analysis/index.ts';
+import { hasAwait, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
 	Attribute,
@@ -348,9 +348,22 @@ export function fragmentCode(
 	textFirst: boolean,
 	children = false
 ): void {
-	const first = nodes.find((node) => node.kind !== 'snippet');
+	const first = nodes.find((node) => node.kind !== 'snippet' && node.kind !== 'constant');
 	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
 	statements.push(...snippetDeclarations(context, nodes));
+	for (const node of nodes) {
+		if (node.kind !== 'constant') continue;
+		const { id, init } = node.declarator;
+		if (init == null) throw unsupported(node, 'A {@const} without a value');
+		if (hasAwait(init)) throw unsupported(node, 'An await in {@const}');
+		statements.push({
+			type: 'VariableDeclaration',
+			kind: 'const',
+			declarations: [
+				{ type: 'VariableDeclarator', id: rewrite(context, id), init: rewrite(context, init) }
+			]
+		});
+	}
 	const alone = !children && standalone(context, nodes);
 	let run: Node[] = [];
 	const flushRun = (): void => {
@@ -370,6 +383,7 @@ export function fragmentCode(
 			continue;
 		}
 		flushRun();
+		if (node.kind === 'constant') continue;
 		const pending = node.kind === 'snippet' ? [] : awaiting(context, [node]);
 		if (pending.length > 0) {
 			asyncChild(context, [node], pending, statements, buffer, fragmentCode);

@@ -131,7 +131,12 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 	);
 	const runtime = options.runtime ?? runtimes;
 	const styles = inject && css !== null ? { hash: style.scoping.hash, code: css.code } : null;
-	const generation = { name: options.name, scoping: style.scoping, styles };
+	const generation = {
+		name: options.name,
+		scoping: style.scoping,
+		styles,
+		dev: options.dev ?? false
+	};
 	const program =
 		options.generate === 'server'
 			? server(analysis, { ...generation, runtime: runtime.server })
@@ -145,7 +150,7 @@ export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output 
 	const runtime = options.runtime ?? runtimes;
 	const program =
 		options.generate === 'server'
-			? serverModule(analysis, { runtime: runtime.server })
-			: clientModule(analysis, { runtime: runtime.client });
+			? serverModule(analysis, { runtime: runtime.server, dev: options.dev ?? false })
+			: clientModule(analysis, { runtime: runtime.client, dev: options.dev ?? false });
 	return { js: printed(program, unit, {}), css: null, warnings };
 }

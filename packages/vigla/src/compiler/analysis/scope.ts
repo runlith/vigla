@@ -14,7 +14,8 @@ export type BindingKind =
 	| 'index'
 	| 'snippet'
 	| 'argument'
-	| 'import';
+	| 'import'
+	| 'template-constant';
 
 export interface Prop {
 	readonly key: string;

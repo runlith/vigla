@@ -14,6 +14,7 @@ import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
 	readonly runtime: string;
+	readonly dev: boolean;
 }
 
 export interface ServerOptions extends ModuleOptions {
@@ -57,7 +58,8 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		out,
 		props,
 		scoping: options.scoping,
-		hoisted: []
+		hoisted: [],
+		dev: options.dev
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const hoisted = context.hoisted;
@@ -115,7 +117,8 @@ export function serverModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		names,
 		runtime: b.id(names.unique('$')),
 		props: null,
-		out: null
+		out: null,
+		dev: options.dev
 	};
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));
 	return b.program([b.namespaceImport(context.runtime.name, options.runtime), ...body]);

@@ -317,7 +317,7 @@ export function render(
 }
 
 export function standalone(context: TemplateContext, nodes: readonly Node[]): boolean {
-	const regular = nodes.filter((node) => node.kind !== 'snippet');
+	const regular = nodes.filter((node) => node.kind !== 'snippet' && node.kind !== 'constant');
 	if (regular.length !== 1) return false;
 	const [only] = regular;
 	if (only?.kind === 'component') return !isDynamicComponent(context, only);

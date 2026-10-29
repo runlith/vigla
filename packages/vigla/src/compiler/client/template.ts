@@ -14,6 +14,7 @@ import {
 	renderCall,
 	snippetDeclarations
 } from './component.ts';
+import { constantDeclarations } from './constants.ts';
 import { dynamicCall } from './dynamic.ts';
 import { elementPart } from './element.ts';
 import { rewrite, runtime, type Context } from './script.ts';
@@ -251,6 +252,7 @@ export function parts(
 				break;
 			}
 			case 'snippet':
+			case 'constant':
 				break;
 			default:
 				throw unsupported(node, `The ${node.kind} node`);
@@ -271,7 +273,7 @@ function withElementChildren(context: TemplateContext, nodes: readonly Node[]): 
 }
 
 function standalone(context: TemplateContext, nodes: readonly Node[]): Node | null {
-	const regular = nodes.filter((node) => node.kind !== 'snippet');
+	const regular = nodes.filter((node) => node.kind !== 'snippet' && node.kind !== 'constant');
 	if (regular.length !== 1) return null;
 	const [only] = regular;
 	if (only === undefined || awaiting(context, [only]).length > 0) return null;
@@ -361,7 +363,10 @@ export function render(
 	namespace: Namespace,
 	textFirst: boolean
 ): ES.Statement[] {
-	const declarations = snippetDeclarations(context, withElementChildren(context, nodes));
+	const declarations = [
+		...snippetDeclarations(context, withElementChildren(context, nodes)),
+		...constantDeclarations(context, nodes)
+	];
 	const alone = standalone(context, nodes);
 	if (alone?.kind === 'component')
 		return [...declarations, ...componentCall(context, alone, anchor)];

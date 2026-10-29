@@ -1,6 +1,6 @@
 import type * as ES from 'estree';
 import { escapeAttribute } from '../../shared/escape.ts';
-import { isCapture, isDelegated, isProperty, isVoid, propertyName } from '../../shared/html.ts';
+import { isProperty, isVoid, propertyName } from '../../shared/html.ts';
 import { unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
@@ -18,6 +18,7 @@ import type {
 import { awaiting } from './asynchronous.ts';
 import { binding } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
+import { event, handler, isEvent } from './events.ts';
 import { rewrite, runtime } from './script.ts';
 import {
 	cleaned,
@@ -34,10 +35,6 @@ import {
 } from './template.ts';
 
 const unsettable = new Set(['autofocus', 'muted', 'defaultValue', 'defaultChecked']);
-
-function isEvent(attribute: Property): boolean {
-	return attribute.value.kind === 'expression' && /^on/i.test(attribute.name);
-}
 
 function valueReactive(context: TemplateContext, value: Value): boolean {
 	if (value.kind === 'boolean') return false;
@@ -84,52 +81,6 @@ export function valueOf(context: TemplateContext, emit: Emit | null, value: Valu
 		}
 	}
 	return b.template(quasis, expressions);
-}
-
-export function handler(context: TemplateContext, expression: ES.Expression): ES.Expression {
-	const value = rewrite(context, expression);
-	if (value.type === 'ArrowFunctionExpression' || value.type === 'FunctionExpression') return value;
-	if (expression.type === 'Identifier') {
-		const binding = context.analysis.references.get(expression);
-		if (binding !== undefined && context.analysis.functions.has(binding)) return value;
-	}
-	const args = b.id(context.names.unique('args'));
-	const callee: ES.MemberExpression = { ...b.member(value, 'apply'), optional: true };
-	return {
-		type: 'FunctionExpression',
-		id: null,
-		params: [{ type: 'RestElement', argument: args }],
-		body: {
-			type: 'BlockStatement',
-			body: [
-				b.statement({
-					type: 'ChainExpression',
-					expression: b.call(callee, { type: 'ThisExpression' }, args)
-				})
-			]
-		},
-		async: false,
-		generator: false
-	};
-}
-
-function event(
-	context: TemplateContext,
-	element: ES.Identifier,
-	attribute: Property
-): ES.Statement {
-	let type = attribute.name.slice(2).toLowerCase();
-	const expression = (attribute.value as { expression: ES.Expression }).expression;
-	const capture = isCapture(type);
-	if (capture) type = type.slice(0, -7);
-	const fn = handler(context, expression);
-	if (!capture && isDelegated(type)) {
-		context.events.add(type);
-		return b.statement(runtime(context, 'delegated', element, b.literal(type), fn));
-	}
-	const args: ES.Expression[] = [element, b.literal(type), fn];
-	if (capture) args.push(b.literal(true));
-	return b.statement(runtime(context, 'listen', ...args));
 }
 
 function update(

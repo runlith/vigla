@@ -1,3 +1,4 @@
+import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import { effect, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
@@ -70,6 +71,7 @@ export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () =>
 }
 
 export function userEffect(fn: () => void | (() => void)): void {
+	if (DEV) Object.defineProperty(fn, 'name', { value: '$effect' });
 	if (initializing !== null && initializing.layer.owner === owner) {
 		initializing.deferred.push(() => effect(fn));
 		return;

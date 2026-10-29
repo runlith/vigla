@@ -6,7 +6,7 @@ import { isCapture } from '../../shared/html.ts';
 import type { Binding as BindingNode, Fragment, Special, Title } from '../ir/nodes.ts';
 import { accessors } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
-import { handler } from './element.ts';
+import { handler, named } from './events.ts';
 import { rewrite, runtime } from './script.ts';
 import { cleaned, render, type TemplateContext } from './template.ts';
 
@@ -144,7 +144,7 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				const args: ES.Expression[] = [
 					target,
 					b.literal(type),
-					handler(context, attribute.value.expression)
+					named(context, type, handler(context, attribute.value.expression))
 				];
 				if (capture) args.push(b.literal(true));
 				statements.push(b.statement(runtime(context, 'on', ...args)));

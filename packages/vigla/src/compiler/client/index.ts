@@ -15,6 +15,7 @@ import { render, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
 	readonly runtime: string;
+	readonly dev: boolean;
 }
 
 export interface ClientOptions extends ModuleOptions {
@@ -86,7 +87,9 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		events: new Set(),
 		groups: new Map(),
 		instance: [],
-		scoping: options.scoping
+		scoping: options.scoping,
+		dev: options.dev,
+		aliases: new Map()
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const level: (ES.Statement | ES.ModuleDeclaration)[] = [];
@@ -189,7 +192,8 @@ export function clientModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		runtime: id,
 		plain: new Set(),
 		hoisted: [],
-		props: null
+		props: null,
+		dev: options.dev
 	};
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));
 	return b.program([b.namespaceImport(id.name, options.runtime), ...context.hoisted, ...body]);
