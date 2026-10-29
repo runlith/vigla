@@ -13,10 +13,10 @@ sources:
   - kind: file
     ref: packages/svelte/src/front/diagnostics.ts
 ---
-The public AST keeps TypeScript; the IR never carries it. Lowering strips type annotations, `as`, `satisfies`, `!`, type-only imports and exports and type declarations the way upstream's compiler does before analysis, and refuses enums, decorators, accessor fields, constructor parameter modifiers and namespaces with values with `typescript_invalid_feature`.
+The public AST keeps TypeScript; the IR never carries it. Lowering strips type annotations, `as`, `satisfies`, `!`, type-only imports and exports and type declarations, as upstream's compiler does before analysis. It refuses enums, decorators, accessor fields, constructor parameter modifiers and namespaces holding values with `typescript_invalid_feature`. Lowering runs before the front end's own checks, so these errors come first, as upstream's do.
 
-Stripping runs before rune resolution because the port keys `runes` by node identity: stripping replaces nodes (an `x as T` becomes `x`), so resolving first would key the map on objects the unit no longer holds.
+Stripping runs before rune resolution because the port keys `runes` by node identity. Stripping replaces nodes (`x as T` becomes `x`), so resolving first would key the map on objects the unit no longer holds.
 
 Names upstream keeps as strings become positioned ESTree for the IR: a component's `ns.Widget` and a directive's dotted name (`use:a.b`, `transition:fade`) become an Identifier or member chain whose offsets point at the name in the source. An each block's index has no position in upstream's AST, so its Identifier carries none.
 
-`messages.ts` is extracted from upstream's `messages/compile-errors` and `messages/compile-warnings` and is not edited by hand: a code with several variants picks the one whose placeholders are all given, as upstream's generated functions choose on their optional argument.
+Lowering records which IR node each template node became. The front end's syntax diagnostics are anchored to template and script nodes, and this map moves them onto the unit's nodes for `ValidateOptions.front`. The core's walk then raises each one where it visits that node, which keeps upstream's first error and warning order. Legacy constructs the front end rejects (`on:`, `let:`, `<svelte:component>`, `<svelte:self>`, `<svelte:fragment>`) lower to nothing, because their anchored error is always raised. Message text comes from the core's catalog (`errorMessage`, `warningMessage`), apart from the few Vigla-only legacy codes that `diagnostics.ts` words itself.
