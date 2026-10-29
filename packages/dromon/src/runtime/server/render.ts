@@ -7,9 +7,11 @@ export type Props = Record<string, unknown>;
 class Global {
 	#uid = 1;
 	readonly prefix: string;
+	readonly transformError: (error: unknown) => unknown;
 
-	constructor(prefix: string) {
+	constructor(prefix: string, transformError?: (error: unknown) => unknown) {
 		this.prefix = prefix;
+		this.transformError = transformError ?? ((error) => error);
 	}
 
 	uid(): string {
@@ -29,6 +31,14 @@ export class Output {
 		this.#parts.push(html);
 	}
 
+	mark(): number {
+		return this.#parts.length;
+	}
+
+	truncate(mark: number): void {
+		this.#parts.length = mark;
+	}
+
 	toString(): string {
 		return this.#parts.join('');
 	}
@@ -40,6 +50,7 @@ export interface RenderOptions<P extends Props> {
 	readonly props?: P;
 	readonly idPrefix?: string;
 	readonly context?: Map<unknown, unknown>;
+	readonly transformError?: (error: unknown) => unknown;
 }
 
 export interface Hashes {
@@ -62,7 +73,7 @@ export function render<P extends Props>(
 	if (prefix?.includes('--')) {
 		throw failure('invalid_id_prefix', 'The `idPrefix` option cannot include `--`.');
 	}
-	const out = new Output(new Global(prefix ? `${prefix}-` : ''));
+	const out = new Output(new Global(prefix ? `${prefix}-` : '', options.transformError));
 	const saved = begin();
 	try {
 		push(options.context);
@@ -79,6 +90,36 @@ export function render<P extends Props>(
 			return Promise.resolve(rendered).then(fulfilled, rejected);
 		}
 	};
+}
+
+export interface BoundaryProps {
+	readonly failed?: ((out: Output, error: unknown, reset: () => void) => void) | null;
+}
+
+function serialized(error: unknown): string {
+	const json = JSON.stringify(error) ?? 'null';
+	return `<!--[?${json.replace(/>/g, '\\u003e').replace(/</g, '\\u003c')}-->`;
+}
+
+export function boundary(out: Output, props: BoundaryProps, children: (out: Output) => void): void {
+	const mark = out.mark();
+	try {
+		children(out);
+	} catch (error) {
+		const failed = props.failed;
+		if (!failed) throw error;
+		out.truncate(mark);
+		const transformed = out.global.transformError(error);
+		if (transformed !== null && typeof (transformed as PromiseLike<unknown>)?.then === 'function') {
+			throw failure(
+				'await_invalid',
+				'Encountered asynchronous work while rendering synchronously.'
+			);
+		}
+		out.push(serialized(transformed));
+		failed(out, transformed, () => {});
+		out.push(close);
+	}
 }
 
 export function propsId(out: Output): string {

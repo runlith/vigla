@@ -14,6 +14,7 @@ export {
 } from '../../runtime/server/attributes.ts';
 export { phase, pop, push } from '../../runtime/server/context.ts';
 export {
+	boundary,
 	derived,
 	iterate,
 	Output,

@@ -1,4 +1,5 @@
 basic (hydrate)
+boundary-nested-extra-node (hydrate)
 claim-comment (hydrate)
 claim-static (hydrate)
 cloudflare-mirage-borking (hydrate)

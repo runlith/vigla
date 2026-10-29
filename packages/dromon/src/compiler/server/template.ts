@@ -16,7 +16,7 @@ import type {
 	Value
 } from '../ir/nodes.ts';
 import { bindings, type Bound } from './bindings.ts';
-import { component, render, snippetDeclarations, standalone } from './component.ts';
+import { boundary, component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
 export interface TemplateContext extends Context {
@@ -325,6 +325,9 @@ export function fragmentCode(
 				break;
 			case 'render':
 				render(context, node, statements, buffer, alone);
+				break;
+			case 'boundary':
+				boundary(context, node, statements, buffer);
 				break;
 			case 'text':
 				buffer.text(escapeContent(node.data));

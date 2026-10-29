@@ -13,6 +13,7 @@ import type {
 	UnkeyedList
 } from '../ir/nodes.ts';
 import {
+	boundaryCall,
 	componentCall,
 	isDynamicComponent,
 	isStaticRender,
@@ -272,6 +273,11 @@ export function parts(
 			case 'render':
 				result.push(
 					anchorPart((anchor, emit) => emit.init.push(...renderCall(context, node, anchor)))
+				);
+				break;
+			case 'boundary':
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(...boundaryCall(context, node, anchor)))
 				);
 				break;
 			case 'snippet':

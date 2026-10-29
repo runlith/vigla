@@ -33,6 +33,7 @@ export {
 	bindValue
 } from '../../runtime/dom/bindings.ts';
 export { branch, list } from '../../runtime/dom/blocks.ts';
+export { boundary } from '../../runtime/dom/boundary.ts';
 export { bindSelect, initSelect, selectValue } from '../../runtime/dom/select.ts';
 export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';

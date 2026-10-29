@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Component, Node, Render, Snippet } from '../ir/nodes.ts';
+import type { Boundary, Component, Node, Render, Snippet } from '../ir/nodes.ts';
 import { bindThisCall } from './bindings.ts';
 import { valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
@@ -168,6 +168,55 @@ export function componentCall(
 				anchor,
 				b.arrow([], rewrite(context, node.reference)),
 				b.arrow([inner, reference], bound(b.call(reference, inner, props)))
+			)
+		)
+	];
+}
+
+export function boundaryCall(
+	context: TemplateContext,
+	node: Boundary,
+	anchor: ES.Expression
+): ES.Statement[] {
+	const nodes = cleaned(context, node.body);
+	const declarations = snippetDeclarations(context, nodes);
+	const properties: ES.Property[] = [];
+	const named = new Set<string>();
+	for (const child of nodes) {
+		if (
+			child.kind === 'snippet' &&
+			(child.name.name === 'failed' || child.name.name === 'pending')
+		) {
+			named.add(child.name.name);
+			properties.push(plain(child.name.name, b.id(child.name.name)));
+		}
+	}
+	for (const attribute of node.attributes) {
+		if (attribute.kind !== 'attribute' || named.has(attribute.name)) continue;
+		const value = valueOf(context, null, attribute.value);
+		properties.push(getter(attribute.name, value));
+	}
+	const regular = nodes.filter(
+		(child) => !(child.kind === 'snippet' && named.has(child.name.name))
+	);
+	const inner = b.id(context.names.unique('$$anchor'));
+	const namespace = context.component.fragmentNamespaces.get(node.body) ?? 'html';
+	const body = render(
+		context,
+		regular.filter((child) => child.kind !== 'snippet'),
+		inner,
+		namespace,
+		true
+	);
+	return [
+		...declarations,
+		b.statement(
+			runtime(
+				context,
+				'boundary',
+				anchor,
+				{ type: 'ObjectExpression', properties },
+				b.arrow([inner], body)
 			)
 		)
 	];

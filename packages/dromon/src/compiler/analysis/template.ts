@@ -211,6 +211,15 @@ export class Template {
 			case 'render':
 				this.expression(node.call, scope);
 				return;
+			case 'boundary':
+				for (const attribute of node.attributes) {
+					if (attribute.kind !== 'attribute') {
+						throw unsupported(attribute, `The ${attribute.kind} directive on a boundary`);
+					}
+					this.value(attribute.value, scope);
+				}
+				this.fragment(node.body, null, this.scopes.child(scope), kept, namespace);
+				return;
 			case 'branch':
 				for (const arm of node.arms) {
 					this.expression(arm.test, scope);

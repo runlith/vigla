@@ -2,7 +2,16 @@ import type * as ES from 'estree';
 import { close, empty, open, openElse } from '../../shared/markers.ts';
 import { spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Component, Expression, Node, Render, Snippet, Text, Value } from '../ir/nodes.ts';
+import type {
+	Boundary,
+	Component,
+	Expression,
+	Node,
+	Render,
+	Snippet,
+	Text,
+	Value
+} from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
@@ -169,6 +178,68 @@ export function component(
 		consequent: { type: 'BlockStatement', body: [push(open), call, push(close)] },
 		alternate: { type: 'BlockStatement', body: [push(openElse), push(close)] }
 	});
+}
+
+export function boundary(
+	context: TemplateContext,
+	node: Boundary,
+	statements: ES.Statement[],
+	buffer: Buffer
+): void {
+	buffer.flush(context, statements);
+	const nodes = context.component.fragments.get(node.body) ?? [];
+	statements.push(...snippetDeclarations(context, nodes));
+	const snippet = (name: string): ES.Expression | null => {
+		if (nodes.some((child) => child.kind === 'snippet' && child.name.name === name))
+			return b.id(name);
+		const attribute = node.attributes.find(
+			(candidate) => candidate.kind === 'attribute' && candidate.name === name
+		);
+		return attribute?.kind === 'attribute' ? valueOf(context, attribute.value) : null;
+	};
+	const pending = snippet('pending');
+	const failed = snippet('failed');
+	const regular = nodes.filter(
+		(child) =>
+			child.kind !== 'snippet' || (child.name.name !== 'failed' && child.name.name !== 'pending')
+	);
+	const out = failed === null ? context.out : b.id(context.names.unique('$$out'));
+	const inner: TemplateContext = { ...context, out };
+	const body: ES.Statement[] = [];
+	if (pending !== null) {
+		body.push(
+			b.statement(b.call(b.member(out, 'push'), b.literal(openElse))),
+			b.statement(b.call(pending, out)),
+			b.statement(b.call(b.member(out, 'push'), b.literal(close)))
+		);
+	} else {
+		const children = new Buffer();
+		children.text(open);
+		fragmentCode(
+			inner,
+			regular.filter((child) => child.kind !== 'snippet'),
+			body,
+			children,
+			true
+		);
+		children.text(close);
+		children.flush(inner, body);
+	}
+	if (failed === null) {
+		statements.push({ type: 'BlockStatement', body });
+		return;
+	}
+	statements.push(
+		b.statement(
+			runtime(
+				context,
+				'boundary',
+				context.out,
+				{ type: 'ObjectExpression', properties: [property('failed', failed)] },
+				b.arrow([out], body)
+			)
+		)
+	);
 }
 
 export function snippetDeclarations(
