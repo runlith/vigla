@@ -20,7 +20,7 @@ edges:
 - An `$effect.root` created outside any component is scheduled and committed as a component's effects are.
 - Once an unmounted tree's flush settled, the runtime holds no state of it.
 
-Creating a root without the caller's reactive context — what runlith's patch exports `without_reactive_context` for — is a layer-compatibility question of stage 2, not this milestone.
+Creating a root without the caller's reactive context — what runlith's patch exports `without_reactive_context` for — is a public primitive of this milestone ([[8191e72f]]).
 
 **Traps.** Rewritten as plain components without `@runlith/layer`, each run on upstream 5.57.3 with async on: red there makes it a fixed defect and a difference; green makes it a regression test. From runlith's tagma repository:
 - hunk 7: `packages/layer/src/svelte/effect-self-invalidation.svelte.test.ts`;
