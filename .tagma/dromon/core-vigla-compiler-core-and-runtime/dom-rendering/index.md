@@ -53,6 +53,9 @@ fields:
       },
       {
         "at": "attachments.ts"
+      },
+      {
+        "at": "head.ts"
       }
     ],
     "id": "dom",
