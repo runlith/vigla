@@ -11,6 +11,7 @@ import { basename, dirname, join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { load, root } from './manifest.ts';
 import { suiteNamed } from './suites.ts';
+import { repositories, samplesOf, treeFiles, treeNamed, type Tree } from './trees.ts';
 
 const sources: Record<string, string> = {
 	svelte: join(root, '..', '.external', 'svelte', 'packages', 'svelte', 'tests')
@@ -56,11 +57,48 @@ function differs(dest: string, wanted: Map<string, string>): string[] {
 	return found;
 }
 
+function copyTree(tree: Tree, check: boolean): number {
+	const from = join(repositories[tree.project], tree.source);
+	const to = samplesOf(tree);
+	const conversions = load(tree.project, tree.name).conversions ?? {};
+	const problems: string[] = [];
+	const upstream = treeFiles(from, tree.exclude);
+	const present = existsSync(to) ? treeFiles(to) : [];
+	for (const file of upstream) {
+		const wanted = readFileSync(join(from, file));
+		const dest = join(to, file);
+		const same = existsSync(dest) && readFileSync(dest).equals(wanted);
+		if (file in conversions) {
+			if (check && same) problems.push(`${file}: converted in the manifest but equal to upstream`);
+			continue;
+		}
+		if (same) continue;
+		if (check) problems.push(`${file}: ${existsSync(dest) ? 'changed' : 'missing'}`);
+		else {
+			mkdirSync(dirname(dest), { recursive: true });
+			writeFileSync(dest, wanted);
+		}
+	}
+	for (const file of present) {
+		if (upstream.includes(file) || file in conversions) continue;
+		if (check) problems.push(`${file}: not an upstream file`);
+		else rmSync(join(to, file));
+	}
+	for (const file of Object.keys(conversions)) {
+		if (!upstream.includes(file) && !present.includes(file))
+			problems.push(`${file}: converted in the manifest but neither upstream nor copied`);
+	}
+	for (const problem of problems) console.error(`${tree.project}/${tree.name}: ${problem}`);
+	return problems.length > 0 ? 1 : 0;
+}
+
 const { values, positionals } = parseArgs({
 	allowPositionals: true,
 	options: { check: { type: 'boolean', default: false } }
 });
 const [project = 'svelte', suite] = positionals;
+const tree = suite === undefined ? undefined : treeNamed(project, suite);
+if (tree !== undefined) process.exit(copyTree(tree, values.check ?? false));
 const base = sources[project];
 if (suite === undefined || base === undefined) {
 	console.error('usage: copy.ts [--check] <project> <suite>');

@@ -4,10 +4,11 @@
 	"workspaces": [
 		"packages/*",
 		"harness",
-		"targets/*"
+		"targets/*",
+		"targets/*/vite-plugin"
 	],
 	"scripts": {
-		"harness:upstream": "bun run --cwd targets/upstream test",
+		"harness:upstream": "node harness/src/all.ts targets/upstream",
 		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit"
 	},
 	"devDependencies": {
@@ -17,8 +18,8 @@
 	},
 	"overrides": {
 		"acorn": "8.18.0",
-		"devalue": "5.9.2",
-		"esm-env": "1.2.1",
+		"devalue": "5.9.4",
+		"esm-env": "1.2.2",
 		"esrap": "2.3.6"
 	}
 }

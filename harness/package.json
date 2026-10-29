@@ -7,7 +7,8 @@
 		"./helpers": "./src/helpers.ts",
 		"./sourcemaps": "./src/sourcemaps.ts",
 		"./clock": "./src/clock.ts",
-		"./target": "./src/target.ts"
+		"./target": "./src/target.ts",
+		"./vite-plugin": "./src/vite-plugin/config.ts"
 	},
 	"scripts": {
 		"copy": "node src/copy.ts"

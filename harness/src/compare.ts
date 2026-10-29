@@ -1,5 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { outcomes } from './summary.ts';
+import { treeNamed, trees, type Tree } from './trees.ts';
 import { load, ruling } from './manifest.ts';
 import type { Variant } from './runtime/config.ts';
 import { entryOfTest, suiteNamed, suiteOfFile, suites, type Suite } from './suites.ts';
@@ -59,12 +62,66 @@ function harnessPassed(file: string, suite: Suite): Set<string> {
 	return found;
 }
 
+function treePassed(tree: Tree, file: string, mode: string | undefined): Set<string> {
+	const manifest = load(tree.project, tree.name);
+	const found = new Set<string>();
+	for (const { key, state } of outcomes(tree, file) ?? []) {
+		if (state === 'passed' && ruling(manifest, key, mode)?.status === 'contract') found.add(key);
+	}
+	return found;
+}
+
+function compareTrees(
+	upstreamDir: string,
+	harnessDir: string,
+	selected: readonly string[]
+): number {
+	let differences = 0;
+	const chosen =
+		selected.length > 0
+			? selected.map((name) => {
+					const [project = '', tree = ''] = name.split('/');
+					const found = treeNamed(project, tree);
+					if (found === undefined) throw new Error(`no tree ${name}`);
+					return found;
+				})
+			: trees;
+	for (const tree of chosen) {
+		const reports = readdirSync(upstreamDir).filter(
+			(file) =>
+				file === `${tree.name}.json` || (file.startsWith(`${tree.name}.`) && file.endsWith('.json'))
+		);
+		for (const report of reports.sort()) {
+			const mode = report.slice(tree.name.length + 1, -'.json'.length) || undefined;
+			const harnessReport = join(harnessDir, report);
+			if (!existsSync(harnessReport)) {
+				console.log(`${tree.project}/${tree.name} ${report}: no harness report`);
+				differences++;
+				continue;
+			}
+			const upstream = treePassed(tree, join(upstreamDir, report), mode);
+			const harness = treePassed(tree, harnessReport, mode);
+			const onlyUpstream = [...upstream].filter((key) => !harness.has(key));
+			const onlyHarness = [...harness].filter((key) => !upstream.has(key));
+			console.log(
+				`${tree.project}/${tree.name}${mode === undefined ? '' : ` (${mode})`}: ${upstream.size} contract entries pass upstream's runner, ${harness.size} the harness`
+			);
+			for (const key of onlyUpstream) console.log(`  only upstream: ${key}`);
+			for (const key of onlyHarness) console.log(`  only harness: ${key}`);
+			differences += onlyUpstream.length + onlyHarness.length;
+		}
+	}
+	return differences > 0 ? 1 : 0;
+}
+
 const { positionals } = parseArgs({ allowPositionals: true });
 const [upstreamFile, harnessFile, ...names] = positionals;
 if (upstreamFile === undefined || harnessFile === undefined) {
 	console.error('usage: compare.ts <upstream.json> <harness.json> [suite...]');
 	process.exit(2);
 }
+if (statSync(upstreamFile).isDirectory())
+	process.exit(compareTrees(upstreamFile, harnessFile, names));
 
 let differences = 0;
 for (const suite of names.length > 0 ? names.map(suiteNamed) : suites) {

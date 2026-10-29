@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Variant } from './runtime/config.ts';
 
 export type Status = 'contract' | 'converted' | 'dropped' | 'difference' | 'covered';
 
@@ -18,12 +17,13 @@ export interface Ruling {
 }
 
 export interface Ruled extends Ruling {
-	variants?: Partial<Record<Variant, Ruling>>;
+	variants?: Partial<Record<string, Ruling>>;
 }
 
 export type Entry = 'contract' | Ruled;
 
 export interface Manifest {
+	conversions?: Record<string, string>;
 	samples: Record<string, Entry>;
 }
 
@@ -37,7 +37,7 @@ export function load(project: string, suite: string): Manifest {
 	return JSON.parse(readFileSync(manifestPath(project, suite), 'utf8')) as Manifest;
 }
 
-export function ruling(manifest: Manifest, sample: string, variant?: Variant): Ruling | undefined {
+export function ruling(manifest: Manifest, sample: string, variant?: string): Ruling | undefined {
 	const entry = manifest.samples[sample];
 	if (entry === undefined) return undefined;
 	if (entry === 'contract') return { status: 'contract' };
@@ -65,7 +65,9 @@ export function faults(manifest: Manifest): string[] {
 		if (entry === 'contract') continue;
 		check(sample, entry);
 		for (const [variant, value] of Object.entries(entry.variants ?? {}))
-			check(`${sample}/${variant}`, value);
+			if (value !== undefined) check(`${sample}/${variant}`, value);
 	}
+	for (const [file, reason] of Object.entries(manifest.conversions ?? {}))
+		if (!reason) found.push(`${file}: converted without a reason`);
 	return found;
 }
