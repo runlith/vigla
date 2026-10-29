@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import type * as IR from '../../ir/nodes.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../../ir/port.ts';
 import { Context, type Settings } from './context.ts';
+import { Order, type Phased } from './order.ts';
 import { fail, Report } from './report.ts';
 import { typeOf, type Reference, type Scope } from './scope.ts';
 import { runeOf, Scopes } from './scopes.ts';
@@ -12,6 +13,7 @@ export interface ValidateOptions {
 	readonly customElement?: boolean;
 	readonly async?: boolean;
 	readonly namespace?: IR.Namespace;
+	readonly warnings?: Phased;
 }
 
 const reserved = new Set(['$$props', '$$restProps', '$$slots']);
@@ -51,7 +53,11 @@ function stores(context: Context, unit: ComponentUnit, instance: Scope): void {
 		const store = name.slice(1);
 		const declaration = instance.get(store);
 		const initial = declaration?.initial as ES.Node | null | undefined;
-		const rune = runeOf(runes, initial);
+		const kind = declaration?.kind;
+		const rune =
+			kind === 'prop' || kind === 'rest_prop' || kind === 'bindable_prop'
+				? '$props'
+				: runeOf(runes, initial);
 		const subscribes =
 			!runeNames.has(name) ||
 			(declaration !== null &&
@@ -191,22 +197,31 @@ export function validateComponent(
 		async: options.async ?? true
 	};
 	const context = new Context(unit, report, scopes, settings, module, instance, visit);
+	const order = new Order(report.warnings);
 	stores(context, unit, instance);
-	if (unit.module !== null) {
-		context.start('module', module);
-		context.es(unit.module);
+	const program = unit.module;
+	if (program !== null) {
+		order.phase('module', () => {
+			context.start('module', module);
+			context.es(program);
+		});
 	}
-	if (unit.instance !== null) {
-		context.start('instance', instance);
-		context.es(unit.instance);
+	const script = unit.instance;
+	if (script !== null) {
+		order.phase('instance', () => {
+			context.start('instance', instance);
+			context.es(script);
+		});
 	}
-	context.start('template', root);
-	new Template(context, unit.options?.namespace ?? options.namespace ?? 'html').fragment(
-		unit.template
-	);
+	order.phase('template', () => {
+		context.start('template', root);
+		new Template(context, unit.options?.namespace ?? options.namespace ?? 'html').fragment(
+			unit.template
+		);
+	});
 	nonReactive(context, [module, instance]);
-	if (unit.module !== null) exports(context, unit.module, unit);
-	return report.warnings;
+	if (program !== null) exports(context, program, unit);
+	return order.result(options.warnings ?? {});
 }
 
 export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}): Diagnostic[] {
@@ -228,7 +243,10 @@ export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}):
 			fail('store_invalid_subscription_module', references[0]!.node);
 		}
 	}
-	context.start(null, scope);
-	context.es(unit.program);
-	return report.warnings;
+	const order = new Order(report.warnings);
+	order.phase('module', () => {
+		context.start(null, scope);
+		context.es(unit.program);
+	});
+	return order.result(options.warnings ?? {});
 }

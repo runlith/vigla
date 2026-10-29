@@ -62,7 +62,12 @@ export class Context {
 
 	rune(node: ES.Node | null | undefined): string | null {
 		if (node?.type !== 'CallExpression') return null;
-		return this.runes.get(node.callee) ?? null;
+		const rune = this.runes.get(node.callee);
+		if (rune === undefined) return null;
+		const callee = node.callee.type === 'MemberExpression' ? node.callee.object : node.callee;
+		if (callee.type === 'Identifier' && this.scope.get(callee.name)?.kind === 'store_sub')
+			return null;
+		return rune;
 	}
 
 	start(program: Program, scope: Scope): void {
