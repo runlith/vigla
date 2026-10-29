@@ -1,28 +1,33 @@
 import { parseProgram, type FrontEnd } from 'dromon/compiler';
 import { Lowering } from './lower.ts';
-import { parse } from './parse.ts';
+import { parseComponent } from './parse/index.ts';
 import { Resolution } from './runes.ts';
+
+export type * as AST from './ast.ts';
+export { legacy } from './legacy.ts';
+export { parseComponent, parseStylesheet, type Parsed } from './parse/index.ts';
 
 export const front: FrontEnd = {
 	component({ source, filename }) {
-		const ast = parse(source);
-		const lowering = new Lowering();
-		if (ast.module !== null) lowering.program(ast.module.content);
-		if (ast.instance !== null) lowering.program(ast.instance.content);
+		const parsed = parseComponent(source);
+		const ast = parsed.root;
+		const lowering = new Lowering(parsed.ts);
+		const module = ast.module === undefined ? null : lowering.program(ast.module.content);
+		const instance = ast.instance === undefined ? null : lowering.program(ast.instance.content);
 		const template = lowering.fragment(ast.fragment);
 		return {
 			unit: {
 				kind: 'component',
 				source,
 				filename,
-				module: ast.module?.content ?? null,
-				instance: ast.instance?.content ?? null,
+				module,
+				instance,
 				template,
 				options: null,
 				runes: lowering.resolution.runes,
 				ignores: new Map()
 			},
-			warnings: []
+			warnings: parsed.warnings
 		};
 	},
 	module({ source, filename }) {

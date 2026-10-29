@@ -1,22 +1,109 @@
 import type * as ES from 'estree';
 import type * as IR from 'dromon/compiler';
 import type * as AST from './ast.ts';
+import { unsupported } from './diagnostics.ts';
 import { Resolution } from './runes.ts';
+import { stripTypes } from './typescript.ts';
+
+const targets: Readonly<Record<string, IR.Target>> = {
+	SvelteHead: 'head',
+	SvelteWindow: 'window',
+	SvelteDocument: 'document',
+	SvelteBody: 'body'
+};
+
+const prefixes: Readonly<Record<string, string>> = {
+	StyleDirective: 'style',
+	BindDirective: 'bind',
+	ClassDirective: 'class',
+	UseDirective: 'use',
+	AnimateDirective: 'animate',
+	OnDirective: 'on',
+	LetDirective: 'let'
+};
+
+function nameStart(attribute: AST.Directive | AST.StyleDirective): number {
+	const prefix =
+		attribute.type === 'TransitionDirective'
+			? attribute.intro && attribute.outro
+				? 'transition'
+				: attribute.intro
+					? 'in'
+					: 'out'
+			: (prefixes[attribute.type] ?? '');
+	return attribute.start + prefix.length + 1;
+}
+
+function located<T extends ES.Node>(node: T, start: number, end: number): T {
+	return Object.assign(node, { start, end });
+}
+
+function chain(name: string, start: number): ES.Expression {
+	const parts = name.split('.');
+	let offset = start;
+	let node: ES.Expression | null = null;
+	for (const part of parts) {
+		const identifier = located<ES.Identifier>(
+			{ type: 'Identifier', name: part },
+			offset,
+			offset + part.length
+		);
+		node =
+			node === null
+				? identifier
+				: located<ES.MemberExpression>(
+						{
+							type: 'MemberExpression',
+							object: node,
+							property: identifier,
+							computed: false,
+							optional: false
+						},
+						start,
+						offset + part.length
+					);
+		offset += part.length + 1;
+	}
+	return node as ES.Expression;
+}
 
 export class Lowering {
 	readonly resolution = new Resolution();
+	readonly ts: boolean;
 
-	program(program: ES.Program): void {
-		this.resolution.program(program);
+	constructor(ts: boolean) {
+		this.ts = ts;
+	}
+
+	clean<T>(node: T): T {
+		return this.ts ? stripTypes(node) : node;
+	}
+
+	program(program: ES.Program): ES.Program {
+		const cleaned = this.clean(program);
+		this.resolution.program(cleaned);
+		return cleaned;
 	}
 
 	expression<T extends ES.Node>(expression: T): T {
-		this.resolution.expression(expression);
-		return expression;
+		const cleaned = this.clean(expression);
+		this.resolution.expression(cleaned);
+		return cleaned;
 	}
 
-	fragment(fragment: AST.Fragment): IR.Fragment {
-		return { nodes: fragment.nodes.map((node) => this.node(node)) };
+	pattern<T extends ES.Node>(pattern: T): T {
+		const cleaned = this.clean(pattern);
+		this.resolution.expression(cleaned);
+		return cleaned;
+	}
+
+	fragment(fragment: AST.Fragment | null | undefined): IR.Fragment {
+		const nodes: IR.Node[] = [];
+		for (const node of fragment?.nodes ?? []) {
+			const lowered = this.node(node);
+			if (lowered !== null) nodes.push(lowered);
+		}
+		return { nodes };
 	}
 
 	part(part: AST.Text | AST.ExpressionTag): IR.Text | IR.Expression {
@@ -30,20 +117,86 @@ export class Lowering {
 				};
 	}
 
-	attribute(attribute: AST.Attribute): IR.Attribute {
-		const { value } = attribute;
-		let lowered: IR.Value;
-		if (value === true) lowered = { kind: 'boolean' };
-		else if (!Array.isArray(value))
-			lowered = { kind: 'expression', expression: this.expression(value.expression) };
-		else lowered = { kind: 'text', parts: value.map((part) => this.part(part)) };
-		return {
-			kind: 'attribute',
-			start: attribute.start,
-			end: attribute.end,
-			name: attribute.name,
-			value: lowered
-		};
+	value(value: AST.AttributeValue): IR.Value {
+		if (value === true) return { kind: 'boolean' };
+		if (!Array.isArray(value))
+			return { kind: 'expression', expression: this.expression(value.expression) };
+		return { kind: 'text', parts: value.map((part) => this.part(part)) };
+	}
+
+	attribute(attribute: AST.AttributeLike): IR.Attribute {
+		const span = { start: attribute.start, end: attribute.end };
+		switch (attribute.type) {
+			case 'Attribute':
+				return {
+					kind: 'attribute',
+					...span,
+					name: attribute.name,
+					value: this.value(attribute.value)
+				};
+			case 'SpreadAttribute':
+				return { kind: 'spread', ...span, expression: this.expression(attribute.expression) };
+			case 'AttachTag':
+				return { kind: 'attachment', ...span, expression: this.expression(attribute.expression) };
+			case 'StyleDirective':
+				return {
+					kind: 'style',
+					...span,
+					name: attribute.name,
+					value:
+						attribute.value === true
+							? {
+									kind: 'expression',
+									expression: this.expression(chain(attribute.name, nameStart(attribute)))
+								}
+							: this.value(attribute.value),
+					important: attribute.modifiers.includes('important')
+				};
+			case 'BindDirective':
+				return {
+					kind: 'binding',
+					...span,
+					name: attribute.name,
+					expression: this.expression(attribute.expression as ES.Expression)
+				};
+			case 'ClassDirective':
+				return {
+					kind: 'class',
+					...span,
+					name: attribute.name,
+					expression: this.expression(attribute.expression as ES.Expression)
+				};
+			case 'UseDirective':
+				return {
+					kind: 'action',
+					...span,
+					action: this.expression(chain(attribute.name, nameStart(attribute))),
+					argument: attribute.expression === null ? null : this.expression(attribute.expression)
+				};
+			case 'TransitionDirective':
+				return {
+					kind: 'transition',
+					...span,
+					direction: attribute.intro && attribute.outro ? 'both' : attribute.intro ? 'in' : 'out',
+					transition: this.expression(chain(attribute.name, nameStart(attribute))),
+					argument: attribute.expression === null ? null : this.expression(attribute.expression),
+					global: attribute.modifiers.includes('global')
+				};
+			case 'AnimateDirective':
+				return {
+					kind: 'animation',
+					...span,
+					animation: this.expression(chain(attribute.name, nameStart(attribute))),
+					argument: attribute.expression === null ? null : this.expression(attribute.expression)
+				};
+			case 'OnDirective':
+			case 'LetDirective':
+				unsupported(`The ${attribute.type}`, attribute);
+		}
+	}
+
+	attributes(node: AST.ElementLike): IR.Attribute[] {
+		return node.attributes.map((attribute) => this.attribute(attribute));
 	}
 
 	branch(block: AST.IfBlock): IR.Branch {
@@ -58,7 +211,7 @@ export class Lowering {
 				body: this.fragment(current.consequent)
 			});
 			const alternate = current.alternate;
-			const [only] = alternate?.nodes ?? [];
+			const only = alternate?.nodes[0];
 			if (
 				alternate !== null &&
 				alternate.nodes.length === 1 &&
@@ -74,38 +227,179 @@ export class Lowering {
 		return { kind: 'branch', start: block.start, end: block.end, arms, fallback };
 	}
 
-	node(node: AST.TemplateNode): IR.Node {
+	each(node: AST.EachBlock): IR.KeyedList | IR.UnkeyedList {
+		const list = {
+			start: node.start,
+			end: node.end,
+			collection: this.expression(node.expression),
+			item: node.context === null ? null : this.pattern(node.context),
+			index:
+				node.index === undefined
+					? null
+					: ({ type: 'Identifier', name: node.index } as ES.Identifier),
+			body: this.fragment(node.body),
+			fallback: node.fallback === undefined ? null : this.fragment(node.fallback)
+		};
+		return node.key === undefined
+			? { kind: 'unkeyed-list', ...list }
+			: { kind: 'keyed-list', ...list, key: this.expression(node.key) };
+	}
+
+	element(node: AST.ElementLike): IR.Node | null {
+		const span = { start: node.start, end: node.end };
+		switch (node.type) {
+			case 'RegularElement':
+				return {
+					kind: 'element',
+					...span,
+					name: node.name,
+					attributes: this.attributes(node),
+					body: this.fragment(node.fragment)
+				};
+			case 'Component':
+				return {
+					kind: 'component',
+					...span,
+					reference: this.expression(chain(node.name, node.start + 1)),
+					attributes: this.attributes(node),
+					body: this.fragment(node.fragment)
+				};
+			case 'TitleElement':
+				return {
+					kind: 'title',
+					...span,
+					parts: node.fragment.nodes
+						.filter(
+							(child): child is AST.Text | AST.ExpressionTag =>
+								child.type === 'Text' || child.type === 'ExpressionTag'
+						)
+						.map((child) => this.part(child))
+				};
+			case 'SvelteHead':
+			case 'SvelteWindow':
+			case 'SvelteDocument':
+			case 'SvelteBody':
+				return {
+					kind: 'special',
+					...span,
+					target: targets[node.type] as IR.Target,
+					attributes: this.attributes(node),
+					body: this.fragment(node.fragment)
+				};
+			case 'SvelteElement':
+				return {
+					kind: 'dynamic-element',
+					...span,
+					tag: this.expression(node.tag as ES.Expression),
+					namespace: null,
+					attributes: this.attributes(node),
+					body: this.fragment(node.fragment)
+				};
+			case 'SvelteBoundary':
+				return {
+					kind: 'boundary',
+					...span,
+					attributes: this.attributes(node),
+					body: this.fragment(node.fragment)
+				};
+			case 'SlotElement': {
+				const name = node.attributes.find(
+					(attribute): attribute is AST.Attribute =>
+						attribute.type === 'Attribute' && attribute.name === 'name'
+				);
+				const value = name?.value;
+				const text =
+					Array.isArray(value) && value.length === 1 && value[0]?.type === 'Text'
+						? value[0].data
+						: null;
+				return {
+					kind: 'slot',
+					...span,
+					name: text,
+					attributes: this.attributes(node),
+					fallback: this.fragment(node.fragment)
+				};
+			}
+			case 'SvelteOptions':
+				return null;
+			case 'SvelteComponent':
+			case 'SvelteSelf':
+			case 'SvelteFragment':
+				unsupported(`<${node.name}>`, node);
+		}
+	}
+
+	node(node: AST.TemplateNode): IR.Node | null {
+		const span = { start: node.start, end: node.end };
 		switch (node.type) {
 			case 'Text':
 			case 'ExpressionTag':
 				return this.part(node);
 			case 'Comment':
-				return { kind: 'comment', start: node.start, end: node.end, data: node.data };
-			case 'RegularElement':
+				return { kind: 'comment', ...span, data: node.data };
+			case 'HtmlTag':
+				return { kind: 'raw-html', ...span, expression: this.expression(node.expression) };
+			case 'ConstTag': {
+				const declaration = this.clean(node.declaration);
+				this.resolution.expression(declaration);
 				return {
-					kind: 'element',
-					start: node.start,
-					end: node.end,
-					name: node.name,
-					attributes: node.attributes.map((attribute) => this.attribute(attribute)),
-					body: this.fragment(node.fragment)
+					kind: 'constant',
+					...span,
+					declarator: declaration.declarations[0] as ES.VariableDeclarator
 				};
+			}
+			case 'DebugTag':
+				return {
+					kind: 'debug',
+					...span,
+					identifiers: node.identifiers.map((identifier) => this.expression(identifier))
+				};
+			case 'RenderTag':
+				return { kind: 'render', ...span, call: this.expression(node.expression) };
+			case 'DeclarationTag':
+				unsupported('A declaration tag', node);
 			case 'IfBlock':
 				return this.branch(node);
-			case 'EachBlock': {
-				const list = {
-					start: node.start,
-					end: node.end,
-					collection: this.expression(node.expression),
-					item: node.context,
-					index: null,
-					body: this.fragment(node.body),
-					fallback: null
+			case 'EachBlock':
+				return this.each(node);
+			case 'AwaitBlock':
+				return {
+					kind: 'async-block',
+					...span,
+					promise: this.expression(node.expression),
+					pending: node.pending === null ? null : this.fragment(node.pending),
+					resolved:
+						node.then === null
+							? null
+							: {
+									binding: node.value === null ? null : this.pattern(node.value),
+									body: this.fragment(node.then)
+								},
+					rejected:
+						node.catch === null
+							? null
+							: {
+									binding: node.error === null ? null : this.pattern(node.error),
+									body: this.fragment(node.catch)
+								}
 				};
-				return node.key === undefined
-					? { kind: 'unkeyed-list', ...list }
-					: { kind: 'keyed-list', ...list, key: this.expression(node.key) };
-			}
+			case 'KeyBlock':
+				return {
+					kind: 'keyed-block',
+					...span,
+					key: this.expression(node.expression),
+					body: this.fragment(node.fragment)
+				};
+			case 'SnippetBlock':
+				return {
+					kind: 'snippet',
+					...span,
+					name: node.expression,
+					parameters: node.parameters.map((parameter) => this.pattern(parameter)),
+					body: this.fragment(node.body)
+				};
+			default:
+				return this.element(node);
 		}
 	}
 }

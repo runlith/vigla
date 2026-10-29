@@ -1,0 +1,7 @@
+Strips BOM from the input
+loose-declaration-tag
+loose-invalid-block
+loose-invalid-expression
+loose-unclosed-open-tag
+loose-unclosed-tag
+loose-valid-each-as

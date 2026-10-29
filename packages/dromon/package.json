@@ -11,6 +11,7 @@
 	},
 	"dependencies": {
 		"acorn": "^8.18.0",
+		"clsx": "^2.1.1",
 		"esm-env": "^1.2.1",
 		"esrap": "^2.3.6"
 	},

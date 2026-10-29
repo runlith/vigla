@@ -6,8 +6,10 @@ import {
 	type Diagnostic,
 	type Runtime
 } from 'dromon/compiler';
-import { front } from '../front/index.ts';
+import { front, legacy, parseComponent, parseStylesheet, type AST } from '../front/index.ts';
 import { validate, type Notice } from './options.ts';
+
+export type { AST };
 
 export interface Experimental {
 	async?: boolean;
@@ -136,7 +138,38 @@ function guarded<T>(source: string, filename: string | undefined, run: () => T):
 	}
 }
 
-export function compile(source: string, options: CompileOptions = {}): CompileResult {
+function withoutBom(source: string): string {
+	return source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
+}
+
+export interface ParseOptions {
+	filename?: string;
+	rootDir?: string;
+	modern?: boolean;
+	loose?: boolean;
+}
+
+export function parse(source: string, options: ParseOptions & { modern: true }): AST.Root;
+export function parse(source: string, options?: ParseOptions): Record<string, any>;
+export function parse(
+	input: string,
+	{ modern, loose }: ParseOptions = {}
+): AST.Root | Record<string, any> {
+	if (typeof input !== 'string') throw new TypeError('Template must be a string');
+	const source = withoutBom(input);
+	return guarded(source, undefined, () => {
+		const parsed = parseComponent(source, loose);
+		return modern ? parsed.root : legacy(source, parsed.root, parsed.options);
+	});
+}
+
+export function parseCss(input: string): AST.Css.StyleSheetFile {
+	const source = withoutBom(input);
+	return guarded(source, undefined, () => parseStylesheet(source));
+}
+
+export function compile(input: string, options: CompileOptions = {}): CompileResult {
+	const source = withoutBom(input);
 	return guarded(source, options.filename, () => {
 		const notices = validate(options, 'component');
 		const reading = front.component({ source, filename: options.filename ?? null });
