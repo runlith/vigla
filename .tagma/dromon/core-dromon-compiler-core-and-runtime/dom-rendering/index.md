@@ -35,6 +35,9 @@ fields:
       },
       {
         "at": "select.ts"
+      },
+      {
+        "at": "boundary.ts"
       }
     ],
     "id": "dom",
