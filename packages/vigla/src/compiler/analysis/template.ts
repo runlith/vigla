@@ -387,12 +387,18 @@ export class Template {
 				this.expression(attribute.action, scope);
 				if (attribute.argument !== null) this.expression(attribute.argument, scope);
 				return;
+			case 'transition':
+				this.expression(attribute.transition, scope);
+				if (attribute.argument !== null) this.expression(attribute.argument, scope);
+				return;
+			case 'animation':
+				this.expression(attribute.animation, scope);
+				if (attribute.argument !== null) this.expression(attribute.argument, scope);
+				return;
 			case 'binding':
 				this.expression(attribute.expression, scope);
 				this.scopes.bound(attribute.expression, scope);
 				return;
-			default:
-				throw unsupported(attribute, `The ${attribute.kind} directive`);
 		}
 	}
 

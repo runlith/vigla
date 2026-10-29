@@ -29,7 +29,9 @@
 		},
 		"./package.json": "./package.json",
 		"./action": "./src/entries/action.ts",
+		"./animate": "./src/entries/animate.ts",
 		"./attachments": "./src/entries/attachments.ts",
+		"./easing": "./src/entries/easing.ts",
 		"./compiler": "./src/compiler/index.ts",
 		"./events": "./src/entries/events.ts",
 		"./internal/client": "./src/entries/internal/client.ts",
@@ -49,7 +51,8 @@
 			"browser": "./src/entries/window.ts",
 			"default": "./src/entries/window-server.ts"
 		},
-		"./server": "./src/entries/server.ts"
+		"./server": "./src/entries/server.ts",
+		"./transition": "./src/entries/transition.ts"
 	},
 	"dependencies": {
 		"@jridgewell/remapping": "^2.3.5",

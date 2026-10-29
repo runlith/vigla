@@ -20,6 +20,7 @@ import { binding } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { event, handler, isEvent } from './events.ts';
 import { rewrite, runtime } from './script.ts';
+import { animationCall, transitionCall } from './transitions.ts';
 import {
 	cleaned,
 	flush,
@@ -243,9 +244,9 @@ export function spread(
 			case 'binding':
 			case 'action':
 			case 'attachment':
+			case 'transition':
+			case 'animation':
 				break;
-			default:
-				throw unsupported(attribute, `The ${attribute.kind} directive`);
 		}
 	}
 	if (classes.length > 0) {
@@ -450,7 +451,9 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			if (
 				attribute.kind === 'binding' ||
 				attribute.kind === 'action' ||
-				attribute.kind === 'attachment'
+				attribute.kind === 'attachment' ||
+				attribute.kind === 'transition' ||
+				attribute.kind === 'animation'
 			) {
 				continue;
 			}
@@ -530,6 +533,13 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const children = controlled ? [] : parts(context, body, childNamespace);
 	for (const child of children) markup += child.html;
 	if (!isVoid(node.name)) markup += `</${node.name}>`;
+	for (const attribute of node.attributes) {
+		if (attribute.kind === 'transition') {
+			setups.push((element, emit) => emit.init.push(transitionCall(context, element, attribute)));
+		} else if (attribute.kind === 'animation') {
+			setups.push((element, emit) => emit.init.push(animationCall(context, element, attribute)));
+		}
+	}
 	return {
 		html: markup,
 		hint: node.name,

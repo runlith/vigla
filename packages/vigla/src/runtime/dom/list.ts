@@ -9,7 +9,7 @@ import {
 	write,
 	type Batch
 } from '../reactivity/batch.ts';
-import { block } from '../reactivity/effects.ts';
+import { block, show as unhide } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
 import { source } from '../reactivity/sources.ts';
 import { owner } from '../reactivity/tracking.ts';
@@ -22,6 +22,14 @@ import {
 	setHydrating,
 	skip as removeServer
 } from './hydration.ts';
+import {
+	animateMoves,
+	building,
+	moverOf,
+	pause,
+	resume,
+	type Mover
+} from '../transitions/manager.ts';
 import { build, discard, place, stash, type Built } from './range.ts';
 import type { Render } from './template.ts';
 
@@ -75,7 +83,9 @@ class List<T> {
 	readonly #render: Item<T>;
 	readonly #fallback: Render | null;
 	#block: Effect | null = null;
+	#start: ChildNode | null = null;
 	readonly #rows = new Map<unknown, Row<T>>();
+	readonly #leaving = new Set<Row<T>>();
 	#order: readonly Row<T>[] = [];
 	#empty: Built | null = null;
 	#emptyShown = false;
@@ -102,10 +112,11 @@ class List<T> {
 		return key;
 	}
 
-	#create(key: unknown, value: T, position: number): Row<T> {
+	#create(key: unknown, value: T, position: number, update: boolean): Row<T> {
 		const item = source(value);
 		const index = source(position);
-		const row: Row<T> = { key, item, index, ...build((at) => this.#render(at, item, index)) };
+		const built = building(update, () => build((at) => this.#render(at, item, index)));
+		const row: Row<T> = { key, item, index, ...built };
 		this.#rows.set(key, row);
 		return row;
 	}
@@ -114,6 +125,11 @@ class List<T> {
 		this.#block = owner;
 		let adopting = false;
 		let restore = false;
+		if (hydrating) this.#start = this.anchor;
+		else {
+			this.#start = document.createTextNode('');
+			this.anchor.before(this.#start);
+		}
 		if (hydrating) {
 			const rendered = instruction(this.anchor) !== OPEN_ELSE;
 			claim(this.anchor.nextSibling);
@@ -136,10 +152,10 @@ class List<T> {
 					setHydrating(false);
 					restore = true;
 				}
-				rows.push(this.#create(key, value, position));
+				rows.push(this.#create(key, value, position, false));
 			}
 			if (items.length === 0 && this.#fallback !== null) {
-				this.#empty = build(this.#fallback);
+				this.#empty = building(false, () => build(this.#fallback as Render));
 				this.#emptyShown = true;
 			}
 			if (adopting) this.anchor = isClose(cursor) ? cursor : removeServer();
@@ -157,13 +173,14 @@ class List<T> {
 	}
 
 	update(items: ArrayLike<T>): void {
+		const batch = processed();
 		const rows: Row<T>[] = [];
 		const seen = this.#key === null ? null : new Map<unknown, number>();
 		for (let position = 0; position < items.length; position++) {
 			const value = items[position] as T;
 			const key = this.#identify(items, position, seen);
 			let row = this.#rows.get(key);
-			if (row === undefined) row = this.#create(key, value, position);
+			if (row === undefined) row = this.#create(key, value, position, true);
 			else {
 				write(row.item, value);
 				write(row.index, position);
@@ -171,8 +188,8 @@ class List<T> {
 			rows.push(row);
 		}
 		const empty = items.length === 0 && this.#fallback !== null;
-		if (empty && this.#empty === null) this.#empty = build(this.#fallback as Render);
-		const batch = processed();
+		if (empty && this.#empty === null)
+			this.#empty = building(true, () => build(this.#fallback as Render));
 		const stage: Stage<T> = { rows, empty };
 		if (batch === null) {
 			this.#apply(stage);
@@ -229,11 +246,24 @@ class List<T> {
 		for (let position = 0; position < previous.length; position++) {
 			const row = previous[position] as Row<T>;
 			if (selected.has(row)) positions.set(row, position);
-			else if (needed?.has(row)) stash(row);
-			else {
-				discard(row);
-				this.#rows.delete(row.key);
+		}
+		const moved: Mover[] = [];
+		for (const row of next) {
+			const mover = positions.has(row) ? moverOf(row.effect) : undefined;
+			if (mover === undefined) continue;
+			mover.measure();
+			moved.push(mover);
+		}
+		for (const row of previous) {
+			if (selected.has(row)) continue;
+			if (needed?.has(row)) {
+				stash(row);
+				continue;
 			}
+			const mover = moverOf(row.effect);
+			mover?.measure();
+			mover?.fix();
+			this.#leave(row);
 		}
 		if (this.#empty !== null) {
 			if (stage.empty && !this.#emptyShown) {
@@ -259,22 +289,44 @@ class List<T> {
 		}
 		if (!ordered) {
 			const stay = kept(order);
-			let before = this.anchor;
-			for (let at = next.length - 1; at >= 0; at--) {
+			let after = this.#start as ChildNode;
+			for (let at = 0; at < next.length; at++) {
 				const row = next[at] as Row<T>;
-				if (!stay.has(at)) place(row, before);
-				before = row.first;
+				if (!stay.has(at)) {
+					if (this.#leaving.delete(row)) {
+						resume(row.effect);
+						moverOf(row.effect)?.unfix();
+					}
+					const before = after.nextSibling as ChildNode;
+					if (before !== row.first) place(row, before);
+				}
+				after = row.last;
 			}
 		}
 		this.#order = next;
 		this.#prune(needed);
+		animateMoves(moved);
+	}
+
+	#leave(row: Row<T>): void {
+		this.#leaving.add(row);
+		pause(row.effect, () => {
+			if (!this.#leaving.delete(row) || this.#block?.destroyed === true) return;
+			if (this.#needed()?.has(row)) {
+				stash(row);
+				unhide(row.effect);
+				return;
+			}
+			discard(row);
+			if (this.#rows.get(row.key) === row) this.#rows.delete(row.key);
+		});
 	}
 
 	#prune(needed: Set<Row<T>> | null): void {
-		if (this.#rows.size > this.#order.length) {
+		if (this.#rows.size > this.#order.length + this.#leaving.size) {
 			const shown = new Set(this.#order);
 			for (const [key, row] of this.#rows) {
-				if (shown.has(row) || needed?.has(row)) continue;
+				if (shown.has(row) || this.#leaving.has(row) || needed?.has(row)) continue;
 				discard(row);
 				this.#rows.delete(key);
 			}

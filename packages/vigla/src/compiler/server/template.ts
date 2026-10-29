@@ -155,7 +155,11 @@ function isEvent(attribute: Attribute): boolean {
 
 function ignored(attribute: Attribute): boolean {
 	return (
-		attribute.kind === 'binding' || attribute.kind === 'action' || attribute.kind === 'attachment'
+		attribute.kind === 'binding' ||
+		attribute.kind === 'action' ||
+		attribute.kind === 'attachment' ||
+		attribute.kind === 'transition' ||
+		attribute.kind === 'animation'
 	);
 }
 

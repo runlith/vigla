@@ -14,7 +14,7 @@ function swap<T>(
 	content: (value: NonNullable<T>) => Render | null,
 	marked: boolean
 ): void {
-	const branches = new Branches<T | null>(node);
+	const branches = new Branches<T | null>(node, true);
 	let first = true;
 	block(() => {
 		const value = select() ?? null;

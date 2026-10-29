@@ -23,6 +23,9 @@
 			"browser": "./src/entries/motion.ts",
 			"default": "./src/entries/motion-server.ts"
 		},
+		"./transition": "./src/entries/transition.ts",
+		"./animate": "./src/entries/animate.ts",
+		"./easing": "./src/entries/easing.ts",
 		"./compiler": "./src/entries/compiler.ts",
 		"./internal/index-client": "./src/entries/index.ts",
 		"./internal/index-server": "./src/entries/index-server.ts",

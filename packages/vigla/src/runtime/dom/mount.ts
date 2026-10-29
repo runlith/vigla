@@ -2,6 +2,7 @@ import { failure, warn } from '../../shared/diagnostics.ts';
 import { OPEN } from '../../shared/markers.ts';
 import { root } from '../reactivity/effects.ts';
 import { owner } from '../reactivity/tracking.ts';
+import { introducing } from '../transitions/manager.ts';
 import { transformAt } from './boundary.ts';
 import { delegateRoot } from './events.ts';
 import {
@@ -54,10 +55,12 @@ function start<P extends Props, E extends Exports>(
 	let exports: E | void = undefined;
 	const props = options.props ?? ({} as P);
 	entry(props);
-	const built = build((anchor) => {
-		if (owner !== null) transformAt(owner, options.transformError);
-		exports = withContext(options.context, () => component(anchor, props));
-	}, root);
+	const built = introducing(options.intro ?? true, () =>
+		build((anchor) => {
+			if (owner !== null) transformAt(owner, options.transformError);
+			exports = withContext(options.context, () => component(anchor, props));
+		}, root)
+	);
 	return { instance: (exports ?? {}) as E, built };
 }
 
