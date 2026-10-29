@@ -405,6 +405,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (inspected !== null) return inspectCall(context, inspected, next);
 				const rune = runes.get(current.callee);
 				if (rune === undefined) return undefined;
+				if (rune === '$state.eager')
+					return runtime(context, 'latest', b.arrow([], next(single(current) as ES.Expression)));
 				const replaced = effectCall(context, rune, current);
 				if (replaced === undefined) return undefined;
 				return { ...replaced, arguments: current.arguments.map((argument) => next(argument)) };

@@ -79,6 +79,7 @@ export {
 	template,
 	tracking
 } from '../../runtime/reactivity/effects.ts';
+export { latest } from '../../runtime/reactivity/latest.ts';
 export { proxy, snapshot } from '../../runtime/reactivity/proxy.ts';
 export { derived, set, state, update, updatePre } from '../../runtime/reactivity/sources.ts';
 export { get } from '../../runtime/reactivity/tracking.ts';

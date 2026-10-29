@@ -118,6 +118,7 @@ const supported = new Set<Rune>([
 	'$effect.tracking',
 	'$effect.pending',
 	'$state.snapshot',
+	'$state.eager',
 	'$inspect',
 	'$inspect.trace'
 ]);

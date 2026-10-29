@@ -180,6 +180,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						return b.literal(false);
 					case '$effect.pending':
 						return b.literal(0);
+					case '$state.eager':
+						return next(single(current));
 					case '$state.snapshot':
 						return runtime(
 							context,
