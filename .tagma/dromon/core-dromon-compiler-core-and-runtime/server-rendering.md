@@ -8,6 +8,12 @@ fields:
     "entries": [
       {
         "at": "render.ts"
+      },
+      {
+        "at": "attributes.ts"
+      },
+      {
+        "at": "context.ts"
       }
     ],
     "id": "ssr",

@@ -14,6 +14,12 @@ fields:
       },
       {
         "at": "html.ts"
+      },
+      {
+        "at": "attributes.ts"
+      },
+      {
+        "at": "diagnostics.ts"
       }
     ],
     "id": "shared",

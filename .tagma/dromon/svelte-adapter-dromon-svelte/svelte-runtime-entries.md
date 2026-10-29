@@ -17,6 +17,9 @@ fields:
       },
       {
         "at": "internal/server.ts"
+      },
+      {
+        "at": "index-server.ts"
       }
     ],
     "id": "svelte-entries",
