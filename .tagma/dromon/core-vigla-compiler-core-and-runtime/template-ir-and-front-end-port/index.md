@@ -21,6 +21,9 @@ fields:
       },
       {
         "at": "style.ts"
+      },
+      {
+        "at": "maps.ts"
       }
     ],
     "id": "ir",
