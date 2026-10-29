@@ -15,6 +15,7 @@ import type {
 	Text,
 	Value
 } from '../ir/nodes.ts';
+import { bindings, type Bound } from './bindings.ts';
 import { component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
@@ -173,7 +174,7 @@ function spreadAttributes(
 			toggles.push(attribute);
 		} else if (attribute.kind === 'style') {
 			list.push(attribute);
-		} else {
+		} else if (attribute.kind !== 'binding') {
 			throw unsupported(attribute, `The ${attribute.kind} directive`);
 		}
 	}
@@ -194,15 +195,16 @@ function spreadAttributes(
 	);
 }
 
-function attributes(context: TemplateContext, node: Element, buffer: Buffer): ES.Expression | null {
+function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bound {
 	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
+	const bound = bindings(context, node, buffer);
 	if (node.attributes.some((attribute) => attribute.kind === 'spread')) {
 		spreadAttributes(context, node, html, buffer);
-		return null;
+		return bound;
 	}
 	let classValue: Value | null = null;
 	let styleValue: Value | null = null;
-	let content: ES.Expression | null = null;
+	let content: ES.Expression | null = bound.content;
 	const toggles: ClassToggle[] = [];
 	const list: StyleProperty[] = [];
 	for (const attribute of node.attributes) {
@@ -214,10 +216,12 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): ES
 			list.push(attribute);
 			continue;
 		}
+		if (attribute.kind === 'binding') continue;
 		if (attribute.kind !== 'attribute')
 			throw unsupported(attribute, `The ${attribute.kind} directive`);
 		if (isEvent(attribute)) continue;
 		const name = html ? attribute.name.toLowerCase() : attribute.name;
+		if (node.name === 'select' && name === 'value' && bound.select !== null) continue;
 		if (name === 'class') {
 			classValue = attribute.value;
 			continue;
@@ -274,7 +278,7 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): ES
 				: ` style="${escapeAttribute(staticText(styleValue))}"`
 		);
 	}
-	return content;
+	return { ...bound, content };
 }
 
 function element(
@@ -284,11 +288,20 @@ function element(
 	buffer: Buffer
 ): void {
 	buffer.text(`<${node.name}`);
-	const content = attributes(context, node, buffer);
+	const { content, raw, select } = attributes(context, node, buffer);
 	buffer.text('>');
 	if (isVoid(node.name)) return;
-	if (content !== null) buffer.value(runtime(context, 'escape', content));
-	else fragmentCode(context, cleaned(context, node.body), statements, buffer, false);
+	if (content !== null) {
+		buffer.value(raw ? runtime(context, 'html', content) : runtime(context, 'escape', content));
+	} else if (select !== null) {
+		buffer.flush(context, statements);
+		statements.push(b.statement(runtime(context, 'pushSelect', select)));
+		fragmentCode(context, cleaned(context, node.body), statements, buffer, false);
+		buffer.flush(context, statements);
+		statements.push(b.statement(runtime(context, 'popSelect')));
+	} else {
+		fragmentCode(context, cleaned(context, node.body), statements, buffer, false);
+	}
 	buffer.text(`</${node.name}>`);
 }
 

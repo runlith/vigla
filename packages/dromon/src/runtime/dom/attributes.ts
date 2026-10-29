@@ -149,6 +149,13 @@ export function value(element: Element, next: unknown): void {
 	target.value = next ?? '';
 }
 
+export function optionValue(element: Element, next: unknown): void {
+	const target = element as Valued;
+	if (target.__value === next && '__value' in target) return;
+	target.__value = next;
+	target.value = next ?? '';
+}
+
 export function checked(element: Element, next: unknown): void {
 	const known = values(element);
 	if (known.checked === (known.checked = next ?? undefined)) return;

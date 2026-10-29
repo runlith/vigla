@@ -1,0 +1,141 @@
+import type * as ES from 'estree';
+import { unsupported } from '../analysis/index.ts';
+import * as b from '../ir/estree.ts';
+import type { Binding as BindingNode, Element } from '../ir/nodes.ts';
+import { rewrite, runtime } from './script.ts';
+import type { Emit, TemplateContext } from './template.ts';
+
+interface Accessors {
+	readonly get: ES.Expression;
+	readonly set: ES.Expression;
+}
+
+function accessors(context: TemplateContext, expression: ES.Expression): Accessors {
+	if (expression.type === 'SequenceExpression') {
+		const [get, set] = expression.expressions as [ES.Expression, ES.Expression];
+		return { get: rewrite(context, get), set: rewrite(context, set) };
+	}
+	const value = b.id(context.names.unique('$$value'));
+	const assignment: ES.AssignmentExpression = {
+		type: 'AssignmentExpression',
+		operator: '=',
+		left: expression as ES.Pattern,
+		right: value
+	};
+	return {
+		get: b.arrow([], rewrite(context, expression)),
+		set: b.arrow([value], rewrite(context, assignment))
+	};
+}
+
+const sizes = new Set(['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']);
+
+const boxes = new Set([
+	'contentRect',
+	'contentBoxSize',
+	'borderBoxSize',
+	'devicePixelContentBoxSize'
+]);
+
+const editable = new Set(['innerHTML', 'innerText', 'textContent']);
+
+function source(expression: ES.Node): string {
+	const located = expression as ES.Node & { start?: number; end?: number };
+	return `${located.start ?? 0}:${located.end ?? 0}`;
+}
+
+function group(context: TemplateContext, attribute: BindingNode): ES.Identifier {
+	const key = source(attribute.expression);
+	let found = context.groups.get(key);
+	if (found === undefined) {
+		found = b.id(context.names.unique('$$group'));
+		context.groups.set(key, found);
+		context.instance.push(b.constant(found.name, { type: 'ArrayExpression', elements: [] }));
+	}
+	return found;
+}
+
+export function bindThisCall(
+	context: TemplateContext,
+	element: ES.Expression,
+	expression: ES.Expression
+): ES.Expression {
+	if (expression.type === 'SequenceExpression') {
+		const { get, set } = accessors(context, expression);
+		return runtime(context, 'bindThis', element, set, get);
+	}
+	const parts: ES.Identifier[] = [];
+	const plain = new Set(context.plain);
+	b.walk(expression, (node) => {
+		if (node.type !== 'Identifier') return;
+		const binding = context.analysis.references.get(node);
+		if (binding === undefined || (binding.kind !== 'item' && binding.kind !== 'index')) return;
+		if (!parts.some((part) => part.name === node.name)) parts.push(b.id(node.name));
+		plain.add(binding);
+	});
+	const inner = { ...context, plain };
+	const value = b.id(context.names.unique('$$value'));
+	const assignment: ES.AssignmentExpression = {
+		type: 'AssignmentExpression',
+		operator: '=',
+		left: expression as ES.Pattern,
+		right: value
+	};
+	const args: ES.Expression[] = [
+		element,
+		b.arrow([value, ...parts], rewrite(inner, assignment)),
+		b.arrow(parts, rewrite(inner, expression))
+	];
+	if (parts.length > 0) {
+		args.push(
+			b.arrow([], {
+				type: 'ArrayExpression',
+				elements: parts.map((part) => rewrite(context, { ...part }))
+			})
+		);
+	}
+	return runtime(context, 'bindThis', ...args);
+}
+
+export function binding(
+	context: TemplateContext,
+	node: Element,
+	attribute: BindingNode
+): (element: ES.Identifier, emit: Emit) => void {
+	const name = attribute.name;
+	return (element, emit) => {
+		if (name === 'this') {
+			emit.init.push(b.statement(bindThisCall(context, element, attribute.expression)));
+			return;
+		}
+		const { get, set } = accessors(context, attribute.expression);
+		const call = (fn: string, ...args: ES.Expression[]): void => {
+			emit.init.push(b.statement(runtime(context, fn, ...args)));
+		};
+		if (name === 'value') {
+			call(node.name === 'select' ? 'bindSelect' : 'bindValue', element, get, set);
+		} else if (name === 'checked') {
+			call('bindChecked', element, get, set);
+		} else if (name === 'indeterminate') {
+			call('bindIndeterminate', element, get, set);
+		} else if (name === 'group') {
+			call('bindGroup', group(context, attribute), element, get, set);
+		} else if (name === 'files') {
+			call('bindFiles', element, get, set);
+		} else if (editable.has(name)) {
+			call('bindContentEditable', b.literal(name), element, get, set);
+		} else if (name === 'open') {
+			call('bindProperty', b.literal('open'), b.literal('toggle'), element, set, get);
+		} else if (name === 'focused') {
+			call('bindFocused', element, set);
+		} else if (name === 'naturalWidth' || name === 'naturalHeight') {
+			call('bindProperty', b.literal(name), b.literal('load'), element, set);
+		} else if (sizes.has(name)) {
+			call('bindSize', element, b.literal(name), set);
+		} else if (boxes.has(name)) {
+			call('bindBox', element, b.literal(name), set);
+		} else {
+			throw unsupported(attribute, `bind:${name}`);
+		}
+	};
+}

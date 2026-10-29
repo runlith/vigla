@@ -142,6 +142,10 @@ export class Template {
 			case 'class':
 				this.expression(attribute.expression, scope);
 				return;
+			case 'binding':
+				this.expression(attribute.expression, scope);
+				this.scopes.bound(attribute.expression, scope);
+				return;
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive`);
 		}
@@ -161,7 +165,6 @@ export class Template {
 					this.expression(attribute.expression, scope);
 					break;
 				case 'binding':
-					if (attribute.name === 'this') throw unsupported(attribute, 'bind:this on a component');
 					this.expression(attribute.expression, scope);
 					this.scopes.bound(attribute.expression, scope);
 					break;

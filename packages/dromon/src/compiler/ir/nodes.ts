@@ -26,6 +26,7 @@ export type Node =
 	| Render
 	| RawHtml
 	| Constant
+	| Declaration
 	| Debug
 	| Title
 	| Special
@@ -141,6 +142,11 @@ export interface RawHtml extends Span {
 export interface Constant extends Span {
 	readonly kind: 'constant';
 	readonly declarator: ES.VariableDeclarator;
+}
+
+export interface Declaration extends Span {
+	readonly kind: 'declaration';
+	readonly declaration: ES.VariableDeclaration;
 }
 
 export interface Debug extends Span {

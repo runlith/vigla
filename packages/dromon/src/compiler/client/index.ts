@@ -1,12 +1,13 @@
 import type * as ES from 'estree';
 import {
+	patternNames,
 	spanOf,
 	unsupported,
 	type ComponentAnalysis,
 	type ModuleAnalysis
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import { rewrite, runtime, type Context } from './script.ts';
+import { read, rewrite, runtime, type Context } from './script.ts';
 import { render, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
@@ -15,6 +16,30 @@ export interface ModuleOptions {
 
 export interface ClientOptions extends ModuleOptions {
 	readonly name: string;
+}
+
+function declaredNames(declaration: ES.Declaration): ES.Identifier[] {
+	if (declaration.type === 'VariableDeclaration') {
+		return declaration.declarations.flatMap((declarator) => patternNames(declarator.id));
+	}
+	return declaration.id === null ? [] : [declaration.id];
+}
+
+function exportProperty(context: Context, name: string, local: ES.Identifier): ES.Property {
+	const binding =
+		context.analysis.references.get(local) ?? context.analysis.declarations.get(local);
+	const value =
+		(binding === undefined ? undefined : read(context, b.id(local.name), binding)) ??
+		b.id(local.name);
+	return {
+		type: 'Property',
+		key: b.literal(name),
+		value: b.functionExpression([], [{ type: 'ReturnStatement', argument: value }]),
+		kind: 'get',
+		method: false,
+		shorthand: false,
+		computed: false
+	};
 }
 
 export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.Program {
@@ -30,18 +55,46 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		plain: new Set(),
 		hoisted: [],
 		props,
-		events: new Set()
+		events: new Set(),
+		groups: new Map(),
+		instance: []
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
+	const exported: ES.Property[] = [];
 	for (const statement of analysis.unit.instance?.body ?? []) {
 		if (statement.type === 'ImportDeclaration') imports.push(statement);
-		else if (statement.type.startsWith('Export'))
-			throw unsupported(spanOf(statement), 'An export from a component');
+		else if (statement.type === 'ExportNamedDeclaration' && statement.source == null) {
+			if (statement.declaration != null) {
+				body.push(rewrite(context, statement.declaration));
+				for (const name of declaredNames(statement.declaration)) {
+					exported.push(exportProperty(context, name.name, name));
+				}
+			}
+			for (const specifier of statement.specifiers) {
+				const local = specifier.local as ES.Identifier;
+				const name =
+					specifier.exported.type === 'Identifier'
+						? specifier.exported.name
+						: String(specifier.exported.value);
+				exported.push(exportProperty(context, name, local));
+			}
+		} else if (statement.type.startsWith('Export'))
+			throw unsupported(spanOf(statement), 'This export from a component');
 		else body.push(rewrite(context, statement as ES.Statement));
 	}
-	body.push(...render(context, analysis.root, anchor, analysis.namespace, true));
-	body.push(b.statement(runtime(context, 'pop')));
+	const template = render(context, analysis.root, anchor, analysis.namespace, true);
+	body.push(...context.instance, ...template);
+	body.push({
+		type: 'ReturnStatement',
+		argument: runtime(
+			context,
+			'pop',
+			...(exported.length > 0
+				? [{ type: 'ObjectExpression', properties: exported } as ES.ObjectExpression]
+				: [])
+		)
+	});
 	const trailer: ES.Statement[] = [];
 	if (context.events.size > 0) {
 		trailer.push(

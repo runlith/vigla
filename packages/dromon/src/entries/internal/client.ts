@@ -10,6 +10,7 @@ export {
 	customProp,
 	defaultChecked,
 	defaultValue,
+	optionValue,
 	removeInputDefaults,
 	removeTextareaChild,
 	selected,
@@ -18,7 +19,21 @@ export {
 	value,
 	xlink
 } from '../../runtime/dom/attributes.ts';
+export {
+	bindBox,
+	bindChecked,
+	bindContentEditable,
+	bindFiles,
+	bindFocused,
+	bindGroup,
+	bindIndeterminate,
+	bindProperty,
+	bindSize,
+	bindThis,
+	bindValue
+} from '../../runtime/dom/bindings.ts';
 export { branch, list } from '../../runtime/dom/blocks.ts';
+export { bindSelect, initSelect, selectValue } from '../../runtime/dom/select.ts';
 export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
 export { delegate, delegated, listen } from '../../runtime/dom/events.ts';

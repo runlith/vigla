@@ -2,7 +2,11 @@ import type * as ES from 'estree';
 import { print } from 'esrap';
 import ts from 'esrap/languages/ts';
 import { analyzeComponent, analyzeModule } from '../compiler/analysis/index.ts';
-import { validateComponent, validateModule } from '../compiler/analysis/validate/index.ts';
+import {
+	validateComponent,
+	validateModule,
+	type ValidateOptions
+} from '../compiler/analysis/validate/index.ts';
 import { client, clientModule } from '../compiler/client/index.ts';
 import type { Namespace } from '../compiler/ir/nodes.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../compiler/ir/port.ts';
@@ -40,6 +44,7 @@ export interface ModuleOptions {
 	readonly generate: Generate;
 	readonly runtime?: Runtime;
 	readonly dev?: boolean;
+	readonly validation?: ValidateOptions;
 }
 
 export interface CompileOptions extends ModuleOptions {
@@ -70,7 +75,7 @@ function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit): Code {
 }
 
 export function compile(unit: ComponentUnit, options: CompileOptions): Output {
-	const warnings = validateComponent(unit, { namespace: options.namespace });
+	const warnings = validateComponent(unit, { ...options.validation, namespace: options.namespace });
 	const analysis = analyzeComponent(
 		unit,
 		{
@@ -88,7 +93,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 }
 
 export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output {
-	const warnings = validateModule(unit);
+	const warnings = validateModule(unit, options.validation);
 	const analysis = analyzeModule(unit);
 	const runtime = options.runtime ?? runtimes;
 	const program =

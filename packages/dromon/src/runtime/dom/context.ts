@@ -51,7 +51,7 @@ export function pop<T>(exports?: T): T {
 	for (const create of done.deferred) create();
 	initializing = done.outer;
 	if (done.layer.owner !== null) done.layer.owner.context = done.saved;
-	return exports as T;
+	return (exports ?? {}) as T;
 }
 
 export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () => T): T {

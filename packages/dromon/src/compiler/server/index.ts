@@ -34,8 +34,10 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
 	for (const statement of analysis.unit.instance?.body ?? []) {
 		if (statement.type === 'ImportDeclaration') imports.push(statement);
-		else if (statement.type.startsWith('Export'))
-			throw unsupported(spanOf(statement), 'An export from a component');
+		else if (statement.type === 'ExportNamedDeclaration' && statement.source == null) {
+			if (statement.declaration != null) body.push(rewrite(context, statement.declaration));
+		} else if (statement.type.startsWith('Export'))
+			throw unsupported(spanOf(statement), 'This export from a component');
 		else body.push(rewrite(context, statement as ES.Statement));
 	}
 	const buffer = new Buffer();

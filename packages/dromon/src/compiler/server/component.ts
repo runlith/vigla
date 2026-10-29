@@ -110,6 +110,7 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 				groups.push(rewrite(context, attribute.expression));
 				break;
 			case 'binding':
+				if (attribute.name === 'this') break;
 				push(...bindingProperties(context, attribute.name, attribute.expression));
 				break;
 			default:

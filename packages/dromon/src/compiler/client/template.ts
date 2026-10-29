@@ -25,6 +25,8 @@ import { rewrite, runtime, type Context } from './script.ts';
 export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
 	readonly events: Set<string>;
+	readonly groups: Map<string, ES.Identifier>;
+	readonly instance: ES.Statement[];
 }
 
 export interface Emit {

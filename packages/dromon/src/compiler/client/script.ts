@@ -69,7 +69,11 @@ function propsMember(context: Context, name: string): ES.MemberExpression {
 		: { type: 'MemberExpression', object: props, property, computed: true, optional: false };
 }
 
-function read(context: Context, node: ES.Identifier, binding: Binding): ES.Expression | undefined {
+export function read(
+	context: Context,
+	node: ES.Identifier,
+	binding: Binding
+): ES.Expression | undefined {
 	if (context.plain.has(binding)) return undefined;
 	if (binding.kind === 'prop') {
 		if (accessor(binding)) return b.call(node);

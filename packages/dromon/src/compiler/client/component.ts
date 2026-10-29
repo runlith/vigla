@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import { spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Component, Node, Render, Snippet } from '../ir/nodes.ts';
+import { bindThisCall } from './bindings.ts';
 import { valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
 import { cleaned, isDynamic, render, type TemplateContext } from './template.ts';
@@ -103,6 +104,7 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 				break;
 			}
 			case 'binding':
+				if (attribute.name === 'this') break;
 				push(...bindingProperties(context, attribute.name, attribute.expression));
 				break;
 			default:
@@ -143,8 +145,17 @@ export function componentCall(
 ): ES.Statement[] {
 	const declarations = snippetDeclarations(context, cleaned(context, node.body));
 	const props = propsObject(context, node);
+	const self = node.attributes.find(
+		(attribute): attribute is Extract<typeof attribute, { kind: 'binding' }> =>
+			attribute.kind === 'binding' && attribute.name === 'this'
+	);
+	const bound = (call: ES.Expression): ES.Expression =>
+		self === undefined ? call : bindThisCall(context, call, self.expression);
 	if (!isDynamicComponent(context, node)) {
-		return [...declarations, b.statement(b.call(rewrite(context, node.reference), anchor, props))];
+		return [
+			...declarations,
+			b.statement(bound(b.call(rewrite(context, node.reference), anchor, props)))
+		];
 	}
 	const inner = b.id(context.names.unique('$$anchor'));
 	const reference = b.id(context.names.unique('$$component'));
@@ -156,7 +167,7 @@ export function componentCall(
 				'component',
 				anchor,
 				b.arrow([], rewrite(context, node.reference)),
-				b.arrow([inner, reference], b.call(reference, inner, props))
+				b.arrow([inner, reference], bound(b.call(reference, inner, props)))
 			)
 		)
 	];

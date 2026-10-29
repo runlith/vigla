@@ -14,6 +14,7 @@ import type {
 	Text,
 	Value
 } from '../ir/nodes.ts';
+import { binding } from './bindings.ts';
 import { rewrite, runtime } from './script.ts';
 import {
 	cleaned,
@@ -140,7 +141,12 @@ function update(
 			left: b.member(element, 'muted'),
 			right: value
 		};
-	if (name === 'value') return runtime(context, 'value', element, value);
+	if (name === 'value') {
+		const grouped = attributes.some((other) => other.kind === 'binding' && other.name === 'group');
+		if (node.name === 'option' || grouped) return runtime(context, 'optionValue', element, value);
+		if (node.name === 'select') return runtime(context, 'selectValue', element, value);
+		return runtime(context, 'value', element, value);
+	}
 	if (name === 'checked') return runtime(context, 'checked', element, value);
 	if (name === 'selected') return runtime(context, 'selected', element, value);
 	if (
@@ -260,6 +266,8 @@ function spread(
 				break;
 			case 'style':
 				styles.push(attribute);
+				break;
+			case 'binding':
 				break;
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive`);
@@ -426,6 +434,9 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	let markup = `<${node.name}`;
 	const setups: ((element: ES.Identifier, emit: Emit) => void)[] = [];
 	const hasSpread = node.attributes.some((attribute) => attribute.kind === 'spread');
+	for (const attribute of node.attributes) {
+		if (attribute.kind === 'binding') setups.push(binding(context, node, attribute));
+	}
 	if (hasSpread) {
 		setups.push((element, emit) => spread(context, node, element, emit));
 	} else {
@@ -447,6 +458,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 				styles.push(attribute);
 				continue;
 			}
+			if (attribute.kind === 'binding') continue;
 			if (attribute.kind !== 'attribute') {
 				throw unsupported(attribute, `The ${attribute.kind} directive`);
 			}
