@@ -1,3 +1,4 @@
+detached-service-root (dom)
 effect-write-read-flush (dom)
 filtered-keyed-list (async-ssr)
 filtered-keyed-list (dom)

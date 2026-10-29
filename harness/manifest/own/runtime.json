@@ -16,6 +16,7 @@
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 8 (rebase): on upstream 5.57.3 the asserted item holds, but the second rebase throws `invariant_violation` \"Batch has scheduled effects\" unhandled, failing the run"
 		},
+		"detached-service-root": "contract",
 		"effect-write-read-flush": {
 			"status": "contract",
 			"reason": "Scheduler trap, hunk 7 (effect self-invalidation): green on upstream 5.57.3, kept as a regression test"
