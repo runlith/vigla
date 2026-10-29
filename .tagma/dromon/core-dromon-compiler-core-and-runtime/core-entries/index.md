@@ -23,6 +23,24 @@ fields:
       },
       {
         "at": "index-server.ts"
+      },
+      {
+        "at": "reactivity.ts"
+      },
+      {
+        "at": "reactivity-server.ts"
+      },
+      {
+        "at": "window.ts"
+      },
+      {
+        "at": "window-server.ts"
+      },
+      {
+        "at": "motion.ts"
+      },
+      {
+        "at": "motion-server.ts"
       }
     ],
     "id": "entries",
@@ -47,6 +65,8 @@ edges:
     to: 01a18680-7dc1-7c56-81a9-8c98fa24c1dc
   - kind: imports
     to: 01a1878f-918e-7939-ab43-8548688c49ca
+  - kind: imports
+    to: 01a18792-64a4-7342-8c33-c00c6ca88dc0
 sources:
   - kind: dir
     ref: packages/dromon/src/entries
