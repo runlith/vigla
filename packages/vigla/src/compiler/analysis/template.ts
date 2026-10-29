@@ -12,6 +12,7 @@ import type {
 	UnkeyedList,
 	Value
 } from '../ir/nodes.ts';
+import type { Ignores } from '../ir/port.ts';
 import { spanOf, unsupported, type Binding, type Scope, type Scopes } from './scope.ts';
 import { clean, preserving, type Preserve } from './whitespace.ts';
 
@@ -56,6 +57,7 @@ export function ownExpressions(node: Node): ES.Expression[] {
 	};
 	switch (node.kind) {
 		case 'expression':
+		case 'raw-html':
 			found.push(node.expression);
 			break;
 		case 'element':
@@ -134,12 +136,16 @@ export class Template {
 	readonly fragments = new Map<Fragment, readonly Node[]>();
 	readonly namespaces = new Map<Element, Namespace>();
 	readonly fragmentNamespaces = new Map<Fragment, Namespace>();
+	readonly ignored = new Map<Node, ReadonlySet<string>>();
+	readonly #ignores: Ignores;
+	#ignoring: ReadonlySet<string> | null = null;
 	inText = false;
 
-	constructor(scopes: Scopes, preserve: Preserve, names: Set<string>) {
+	constructor(scopes: Scopes, preserve: Preserve, names: Set<string>, ignores: Ignores) {
 		this.scopes = scopes;
 		this.preserve = preserve;
 		this.names = names;
+		this.#ignores = ignores;
 	}
 
 	expression(expression: ES.Expression, scope: Scope): void {
@@ -236,11 +242,26 @@ export class Template {
 	}
 
 	node(node: Node, scope: Scope, kept: boolean, namespace: Namespace): void {
+		const outer = this.#ignoring;
+		const codes = this.#ignores.get(node);
+		if (codes !== undefined && codes.size > 0) {
+			this.#ignoring = outer === null ? codes : new Set([...outer, ...codes]);
+		}
+		if (this.#ignoring !== null) this.ignored.set(node, this.#ignoring);
+		try {
+			this.visit(node, scope, kept, namespace);
+		} finally {
+			this.#ignoring = outer;
+		}
+	}
+
+	visit(node: Node, scope: Scope, kept: boolean, namespace: Namespace): void {
 		switch (node.kind) {
 			case 'text':
 			case 'comment':
 				return;
 			case 'expression':
+			case 'raw-html':
 				this.expression(node.expression, scope);
 				return;
 			case 'element': {

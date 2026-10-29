@@ -9,6 +9,7 @@ import type {
 	KeyedList,
 	Namespace,
 	Node,
+	RawHtml,
 	Text,
 	UnkeyedList
 } from '../ir/nodes.ts';
@@ -227,6 +228,24 @@ function listCode(
 	return statements;
 }
 
+export const HTML_CONTROLLED = 1;
+const HTML_SVG = 2;
+const HTML_MATHML = 4;
+const HTML_UNCHECKED = 8;
+
+export function htmlCall(
+	context: TemplateContext,
+	node: RawHtml,
+	target: ES.Identifier,
+	given: number
+): ES.Statement {
+	let flags = given;
+	if (context.component.ignored.get(node)?.has('hydration_html_changed')) flags |= HTML_UNCHECKED;
+	const args: ES.Expression[] = [target, b.arrow([], rewrite(context, node.expression))];
+	if (flags !== 0) args.push(b.literal(flags));
+	return b.statement(runtime(context, 'html', ...args));
+}
+
 function anchorPart(setup: (node: ES.Identifier, emit: Emit) => void): Part {
 	return { html: '<!>', hint: 'node', text: false, referenced: true, children: [], setup };
 }
@@ -300,6 +319,13 @@ export function parts(
 					anchorPart((anchor, emit) => emit.init.push(...boundaryCall(context, node, anchor)))
 				);
 				break;
+			case 'raw-html': {
+				const flags = namespace === 'svg' ? HTML_SVG : namespace === 'mathml' ? HTML_MATHML : 0;
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(htmlCall(context, node, anchor, flags)))
+				);
+				break;
+			}
 			case 'snippet':
 				break;
 			default:
@@ -420,7 +446,7 @@ export function render(
 	if (list.length === 0) return declarations;
 	const emit: Emit = { init: [...declarations], update: [], thunks: [], params: [] };
 	const html = list.map((part) => part.html).join('');
-	const startsWithText = textFirst && list[0]?.hint === 'text';
+	const startsWithText = textFirst && list[0]?.hint === 'text' && !isElement(list[0]);
 	if (startsWithText) emit.init.push(b.statement(runtime(context, 'next')));
 	const [head] = list;
 	const single = list.length === 1 && isElement(head);

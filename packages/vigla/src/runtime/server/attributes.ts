@@ -1,5 +1,8 @@
+import { DEV } from 'esm-env';
 import { clsx, toClass, toStyle, type StyleDirectives } from '../../shared/attributes.ts';
 import { escapeAttribute } from '../../shared/escape.ts';
+import { hash } from '../../shared/hash.ts';
+import { empty } from '../../shared/markers.ts';
 import { isBooleanAttribute } from '../../shared/html.ts';
 
 const invalidName =
@@ -84,6 +87,11 @@ export function optionSelected(value: unknown): string {
 
 export function html(value: unknown): string {
 	return value == null ? '' : String(value);
+}
+
+export function rawHtml(value: unknown): string {
+	const content = html(value);
+	return `${DEV ? `<!--${hash(content)}-->` : empty}${content}${empty}`;
 }
 
 export { clsx };

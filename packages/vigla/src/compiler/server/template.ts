@@ -310,11 +310,11 @@ function element(
 	} else if (select !== null) {
 		buffer.flush(context, statements);
 		statements.push(b.statement(runtime(context, 'pushSelect', select)));
-		fragmentCode(context, cleaned(context, node.body), statements, buffer, false);
+		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
 		buffer.flush(context, statements);
 		statements.push(b.statement(runtime(context, 'popSelect')));
 	} else {
-		fragmentCode(context, cleaned(context, node.body), statements, buffer, false);
+		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
 	}
 	buffer.text(`</${node.name}>`);
 }
@@ -324,12 +324,13 @@ export function fragmentCode(
 	nodes: readonly Node[],
 	statements: ES.Statement[],
 	buffer: Buffer,
-	textFirst: boolean
+	textFirst: boolean,
+	children = false
 ): void {
 	const first = nodes.find((node) => node.kind !== 'snippet');
 	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
 	statements.push(...snippetDeclarations(context, nodes));
-	const alone = standalone(context, nodes);
+	const alone = !children && standalone(context, nodes);
 	let run: Node[] = [];
 	const flushRun = (): void => {
 		if (run.length === 0) return;
@@ -386,6 +387,9 @@ function single(
 				break;
 			case 'expression':
 				buffer.value(runtime(context, 'escape', rewrite(context, node.expression)));
+				break;
+			case 'raw-html':
+				buffer.value(runtime(context, 'rawHtml', rewrite(context, node.expression)));
 				break;
 			case 'element':
 				element(context, node, statements, buffer);

@@ -37,6 +37,7 @@ export { branch, list } from '../../runtime/dom/blocks.ts';
 export { boundary } from '../../runtime/dom/boundary.ts';
 export { bindSelect, initSelect, selectValue } from '../../runtime/dom/select.ts';
 export { appendStyles } from '../../runtime/dom/styles.ts';
+export { html } from '../../runtime/dom/html.ts';
 export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
 export { delegate, delegated, listen } from '../../runtime/dom/events.ts';

@@ -35,6 +35,7 @@ export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly fragments: ReadonlyMap<Fragment, readonly Node[]>;
 	readonly namespaces: ReadonlyMap<Element, Namespace>;
 	readonly fragmentNamespaces: ReadonlyMap<Fragment, Namespace>;
+	readonly ignored: ReadonlyMap<Node, ReadonlySet<string>>;
 	readonly root: readonly Node[];
 	readonly namespace: Namespace;
 	readonly asynchronous: boolean;
@@ -216,7 +217,7 @@ export function analyzeComponent(
 		collectNames(unit.instance, names);
 	}
 	const namespace = unit.options?.namespace ?? defaultNamespace;
-	const template = new Template(scopes, preserve, names);
+	const template = new Template(scopes, preserve, names, unit.ignores);
 	const root = template.fragment(
 		unit.template,
 		null,
@@ -238,8 +239,9 @@ export function analyzeComponent(
 		fragments: template.fragments,
 		namespaces: template.namespaces,
 		fragmentNamespaces: template.fragmentNamespaces,
+		ignored: template.ignored,
 		root,
-		namespace,
+		namespace: template.fragmentNamespaces.get(unit.template) ?? namespace,
 		asynchronous: unit.instance !== null && hasAwait(unit.instance)
 	};
 }

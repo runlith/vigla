@@ -14,11 +14,14 @@ import type {
 	Text,
 	Value
 } from '../ir/nodes.ts';
+import { awaiting } from './asynchronous.ts';
 import { binding } from './bindings.ts';
 import { rewrite, runtime } from './script.ts';
 import {
 	cleaned,
 	flush,
+	HTML_CONTROLLED,
+	htmlCall,
 	isDynamic,
 	memo,
 	parts,
@@ -528,7 +531,16 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	}
 	markup += '>';
 	const childNamespace = node.name === 'foreignObject' ? 'html' : namespace;
-	const children = parts(context, cleaned(context, node.body), childNamespace);
+	const body = cleaned(context, node.body);
+	const [only] = body;
+	const controlled =
+		body.length === 1 && only?.kind === 'raw-html' && awaiting(context, body).length === 0;
+	if (controlled) {
+		setups.push((element, emit) =>
+			emit.init.push(htmlCall(context, only, element, HTML_CONTROLLED))
+		);
+	}
+	const children = controlled ? [] : parts(context, body, childNamespace);
 	for (const child of children) markup += child.html;
 	if (!isVoid(node.name)) markup += `</${node.name}>`;
 	return {
