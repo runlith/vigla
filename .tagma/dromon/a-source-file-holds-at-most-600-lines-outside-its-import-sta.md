@@ -3,6 +3,25 @@ id: 01a18768-8bc2-7423-9532-c17721da6948
 title: A source file holds at most 600 lines outside its import statements
 ord: 19
 tags: ["rule"]
+fields:
+  {
+    "enforcement": {
+      "debt": [],
+      "escaped": [],
+      "inspection": "size",
+      "on": [
+        {
+          "op": "submit_work",
+          "phase": "before"
+        },
+        {
+          "op": "merge_worktree",
+          "phase": "before"
+        }
+      ],
+      "strictness": "gate"
+    }
+  }
 ---
 Counted: every line of a source file outside import statements, blank lines and comments included. Not counted: tests, declaration files, upstream samples copied into the harness, and data tables, which `tagma.config.ts` names.
 
