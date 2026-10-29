@@ -10,13 +10,13 @@ sources:
   - kind: file
     ref: harness/src/resolve.ts
   - kind: file
-    ref: harness/src/vitest.ts
-  - kind: file
     ref: harness/src/runtime/suite.ts
   - kind: file
     ref: harness/src/samples.ts
+  - kind: file
+    ref: harness/src/vitest.ts
 ---
-The harness package declares no `svelte`: every `svelte` and `svelte/*` import — runner, samples, compiled output — resolves through the target's installed package, so one run can never mix two implementations. Compiled server output gets the `default` export conditions and everything else `browser`, as upstream's test config resolves them. The target's package is inlined into Vite's transform rather than externalized to Node: externalized, its `esm-env` import would resolve under Node's conditions, giving `DEV` false where upstream's runs have `DEV` true.
+The harness package declares no `svelte`: every `svelte` and `svelte/*` import — runner, samples, compiled output — resolves through the target's installed package, so one run can never mix two implementations. Compiled server output gets the `default` export conditions and everything else `browser`, as upstream's test config resolves them. `dromon` and `dromon/*` resolve the same way wherever the target installs `dromon`, since own samples import the core by that name and its root entry is a server no-op variant under `default`. The package is found in the target's `node_modules` rather than through `require.resolve`, because `dromon` exports no `./package.json`. The target's package is inlined into Vite's transform rather than externalized to Node: externalized, its `esm-env` import would resolve under Node's conditions, giving `DEV` false where upstream's runs have `DEV` true.
 
 Samples are copied per test process into the target's `.work` and compiled into `_output` beside their `_config.js`, as upstream does, because a sample may import its own compiled output by a path relative to its config; the per-process copy keeps two runs, of one target or two, from overwriting each other.
 
