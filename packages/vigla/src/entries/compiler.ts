@@ -76,6 +76,7 @@ export interface CompileOptions extends ModuleOptions, Mapping {
 	readonly preserveComments?: boolean;
 	readonly namespace?: Namespace;
 	readonly css?: CssOptions;
+	readonly hmr?: boolean;
 }
 
 export interface CssOptions {
@@ -134,7 +135,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 	const program =
 		options.generate === 'server'
 			? server(analysis, { ...generation, runtime: runtime.server })
-			: client(analysis, { ...generation, runtime: runtime.client });
+			: client(analysis, { ...generation, runtime: runtime.client, hmr: options.hmr ?? false });
 	return { js: printed(program, unit, options), css: inject ? null : css, warnings };
 }
 

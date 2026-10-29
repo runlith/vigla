@@ -215,7 +215,8 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			preserveComments: options.preserveComments,
 			validation,
 			outputFilename: options.outputFilename,
-			inputMap: options.sourcemap
+			inputMap: options.sourcemap,
+			hmr: options.hmr
 		});
 		return {
 			js: output.js,

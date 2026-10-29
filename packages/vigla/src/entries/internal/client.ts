@@ -54,6 +54,7 @@ export type { Phase } from '../../runtime/dom/context.ts';
 export { delegate, delegated, listen } from '../../runtime/dom/events.ts';
 export { prop, propsId, rest, updateProp, updatePropPre } from '../../runtime/dom/props.ts';
 export { component, noop, render, spreadProps } from '../../runtime/dom/swap.ts';
+export { cleanupStyles, HMR, hmr } from '../../runtime/dom/hot.ts';
 export {
 	append,
 	child,

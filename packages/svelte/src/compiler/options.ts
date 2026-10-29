@@ -137,7 +137,6 @@ export function validate(options: object, kind: Kind): Notice[] {
 	) {
 		invalid('namespace should be one of "html", "mathml" or "svg"');
 	}
-	if (given.hmr === true) unbuilt('Hot module replacement (`hmr: true`)');
 	if (given.fragments === 'tree') unbuilt('`fragments: "tree"`');
 	return notices;
 }

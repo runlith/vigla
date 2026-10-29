@@ -8,6 +8,7 @@ import {
 } from '../analysis/index.ts';
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
+import { hotComponent } from './hot.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
 import { separateCode } from './special.ts';
 import { render, type TemplateContext } from './template.ts';
@@ -20,6 +21,7 @@ export interface ClientOptions extends ModuleOptions {
 	readonly name: string;
 	readonly scoping: Scoping;
 	readonly styles: InjectedStyle | null;
+	readonly hmr: boolean;
 }
 
 function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
@@ -160,11 +162,14 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			)
 		);
 	}
+	const hash = options.scoping.hash === '' ? null : options.scoping.hash;
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),
 		...imports,
 		...context.hoisted,
-		b.exportDefaultFunction(options.name, [anchor, props], body),
+		...(options.hmr
+			? hotComponent(id, options.name, [anchor, props], body, hash)
+			: [b.exportDefaultFunction(options.name, [anchor, props], body)]),
 		...trailer
 	]);
 }
