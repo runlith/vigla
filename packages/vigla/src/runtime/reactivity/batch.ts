@@ -432,7 +432,8 @@ export function unskip(effect: Effect): void {
 	if (batch === null) return;
 	const skipped = batch.skipped !== null && batch.skipped.delete(effect);
 	(batch.shown ??= new Set()).add(effect);
-	if (skipped || overlooked.has(effect)) requeue(batch, effect);
+	const forked = effect.forked !== 0 && effect.forked !== batch.order;
+	if (skipped || forked || overlooked.has(effect)) requeue(batch, effect);
 }
 
 export function processed(): Batch | null {

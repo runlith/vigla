@@ -25,12 +25,14 @@ import { stale, type View } from './tracking.ts';
 
 export const overlooked = new WeakSet<Effect>();
 
-function gather(effect: Effect, out: Effect[], marked: boolean): void {
+function gather(effect: Effect, out: Effect[], marked: boolean, adopter = 0): void {
 	if (marked) effect.pending = false;
 	for (let child = effect.first; child !== null; child = child.next) {
 		if (child.destroyed) continue;
-		if (child.status !== CLEAN && child.kind !== BRANCH && child.kind !== ROOT) out.push(child);
-		if (!marked || child.pending) gather(child, out, marked);
+		const forked = adopter !== 0 && child.forked !== 0 && child.forked !== adopter;
+		if ((child.status !== CLEAN || forked) && child.kind !== BRANCH && child.kind !== ROOT)
+			out.push(child);
+		if (!marked || child.pending) gather(child, out, marked, adopter);
 	}
 }
 
@@ -52,7 +54,7 @@ export function overlook(branch: Effect, from: Batch): void {
 export function requeue(batch: Batch, branch: Effect): void {
 	overlooked.delete(branch);
 	const found: Effect[] = [];
-	gather(branch, found, false);
+	gather(branch, found, false, batch.order);
 	for (const effect of found) force(batch, effect);
 }
 
