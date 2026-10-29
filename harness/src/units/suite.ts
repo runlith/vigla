@@ -1,4 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { stripTypeScriptTypes } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { compile, compileModule } from 'svelte/compiler';
 import { afterAll, assert, describe, inject, it } from 'vitest';
@@ -18,13 +19,7 @@ function unitFiles(suite: Suite, dir: string): string[] {
 }
 
 async function runes(source: string, out: string): Promise<string> {
-	const { transform } = await import('esbuild');
-	const typed = await transform(readFileSync(source, 'utf8'), {
-		loader: 'ts',
-		format: 'esm',
-		sourcefile: source
-	});
-	const compiled = compileModule(typed.code, {
+	const compiled = compileModule(stripTypeScriptTypes(readFileSync(source, 'utf8')), {
 		filename: source,
 		generate: 'client',
 		dev: true,

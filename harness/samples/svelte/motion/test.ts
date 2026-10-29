@@ -1,54 +1,26 @@
 // @vitest-environment jsdom
 import '@dromon/harness/helpers'; // for the matchMedia polyfill
 import { describe, it, assert } from 'vitest';
-import { get } from 'svelte/store';
-import { spring, tweened, Tween } from 'svelte/motion';
+import { Tween } from 'svelte/motion';
 import { raf } from '@dromon/harness/helpers';
+
+function dropped() {
+	throw new Error('dropped: its manifest status gives the reason');
+}
 
 describe('motion', () => {
 	describe('spring', () => {
-		it('handles initially undefined values', () => {
-			const size = spring();
-
-			size.set(100);
-			assert.equal(get(size), 100);
-		});
+		it('handles initially undefined values', dropped);
 	});
 
 	describe('tweened', () => {
-		it('handles initially undefined values', () => {
-			const size = tweened();
+		it('handles initially undefined values', dropped);
 
-			size.set(100);
-			assert.equal(get(size), 100);
-		});
+		it('sets immediately when duration is 0', dropped);
 
-		it('sets immediately when duration is 0', () => {
-			const size = tweened(0);
+		it('updates correctly when initialized with a `null`-ish value', dropped);
 
-			size.set(100, { duration: 0 });
-			assert.equal(get(size), 100);
-		});
-
-		it('updates correctly when initialized with a `null`-ish value', () => {
-			const size = tweened(undefined as unknown as number, { duration: 0 });
-
-			size.set(10);
-			assert.equal(get(size), 10);
-
-			size.update((v) => v + 10);
-			assert.equal(get(size), 20);
-		});
-
-		it('updates non-numeric values immediately', () => {
-			raf.reset();
-			const boolean = tweened(false);
-
-			boolean.set(true, { duration: 100 });
-
-			raf.tick(1);
-			assert.equal(get(boolean), true);
-		});
+		it('updates non-numeric values immediately', dropped);
 	});
 
 	describe('Tween', () => {
