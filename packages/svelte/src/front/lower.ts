@@ -169,9 +169,12 @@ export class Lowering {
 
 	value(value: AST.AttributeValue): IR.Value {
 		if (value === true) return { kind: 'boolean' };
-		if (!Array.isArray(value))
-			return { kind: 'expression', expression: this.expression(value.expression) };
-		return { kind: 'text', parts: value.map((part) => this.part(part)) };
+		const only = Array.isArray(value) && value.length === 1 ? value[0] : value;
+		if (!Array.isArray(only) && only?.type === 'ExpressionTag') {
+			return { kind: 'expression', expression: this.expression(only.expression) };
+		}
+		const parts = value as (AST.Text | AST.ExpressionTag)[];
+		return { kind: 'text', parts: parts.map((part) => this.part(part)) };
 	}
 
 	attribute(attribute: AST.AttributeLike): IR.Attribute {
