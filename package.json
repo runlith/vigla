@@ -13,7 +13,8 @@
 		"harness:vigla": "node harness/src/cli.ts targets/vigla",
 		"harness:passing": "node harness/src/cli.ts targets/vigla --passing",
 		"harness:differential": "node harness/src/differential.ts",
-		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/vigla --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p packages/vite-plugin --noEmit && tsrs -p targets/vigla --noEmit"
+		"bench": "node benchmarks/src/cli.ts",
+		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/vigla --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p packages/vite-plugin --noEmit && tsrs -p targets/vigla --noEmit && tsrs -p benchmarks --noEmit"
 	},
 	"devDependencies": {
 		"@types/node": "^25.3.1",
