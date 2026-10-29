@@ -10,7 +10,8 @@ fields:
         "at": "render.ts"
       }
     ],
-    "id": "ssr"
+    "id": "ssr",
+    "kind": "product"
   }
 edges:
   - kind: imports

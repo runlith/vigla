@@ -22,7 +22,8 @@ fields:
         "at": "internal/server.ts"
       }
     ],
-    "id": "entries"
+    "id": "entries",
+    "kind": "surface"
   }
 edges:
   - kind: imports

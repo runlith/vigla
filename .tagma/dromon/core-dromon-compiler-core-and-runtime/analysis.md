@@ -10,7 +10,8 @@ fields:
         "at": "index.ts"
       }
     ],
-    "id": "analysis"
+    "id": "analysis",
+    "kind": "product"
   }
 edges:
   - kind: imports

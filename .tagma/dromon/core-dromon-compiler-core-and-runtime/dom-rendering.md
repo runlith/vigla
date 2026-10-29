@@ -16,7 +16,8 @@ fields:
         "at": "template.ts"
       }
     ],
-    "id": "dom"
+    "id": "dom",
+    "kind": "product"
   }
 edges:
   - kind: imports

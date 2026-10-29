@@ -20,7 +20,8 @@ fields:
         "at": "estree.ts"
       }
     ],
-    "id": "ir"
+    "id": "ir",
+    "kind": "kit"
   }
 sources:
   - kind: dir

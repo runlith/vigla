@@ -10,7 +10,8 @@ fields:
         "at": "index.ts"
       }
     ],
-    "id": "server-transform"
+    "id": "server-transform",
+    "kind": "product"
   }
 edges:
   - kind: imports

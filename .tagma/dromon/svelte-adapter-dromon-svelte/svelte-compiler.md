@@ -10,7 +10,8 @@ fields:
         "at": "index.ts"
       }
     ],
-    "id": "svelte-compiler"
+    "id": "svelte-compiler",
+    "kind": "surface"
   }
 edges:
   - kind: imports

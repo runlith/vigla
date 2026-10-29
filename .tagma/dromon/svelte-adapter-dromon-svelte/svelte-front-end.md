@@ -10,7 +10,8 @@ fields:
         "at": "index.ts"
       }
     ],
-    "id": "svelte-front-end"
+    "id": "svelte-front-end",
+    "kind": "product"
   }
 edges:
   - kind: imports

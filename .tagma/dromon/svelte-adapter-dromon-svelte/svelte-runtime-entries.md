@@ -19,7 +19,8 @@ fields:
         "at": "internal/server.ts"
       }
     ],
-    "id": "svelte-entries"
+    "id": "svelte-entries",
+    "kind": "surface"
   }
 edges:
   - kind: imports

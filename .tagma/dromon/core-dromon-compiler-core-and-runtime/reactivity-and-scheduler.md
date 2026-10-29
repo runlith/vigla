@@ -25,7 +25,8 @@ fields:
         "at": "tracking.ts"
       }
     ],
-    "id": "reactivity"
+    "id": "reactivity",
+    "kind": "product"
   }
 sources:
   - kind: dir

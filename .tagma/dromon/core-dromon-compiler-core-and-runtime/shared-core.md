@@ -16,7 +16,8 @@ fields:
         "at": "html.ts"
       }
     ],
-    "id": "shared"
+    "id": "shared",
+    "kind": "substrate"
   }
 sources:
   - kind: dir
