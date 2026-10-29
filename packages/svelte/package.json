@@ -2,6 +2,25 @@
 	"name": "@vigla/svelte",
 	"version": "5.57.3",
 	"type": "module",
+	"vigla": {
+		"frontEnd": {
+			"compiler": "./compiler",
+			"components": [
+				".svelte"
+			],
+			"modules": {
+				"infixes": [
+					".svelte."
+				],
+				"extensions": [
+					".js",
+					".ts"
+				]
+			},
+			"condition": "svelte",
+			"config": "svelte.config"
+		}
+	},
 	"exports": {
 		".": {
 			"worker": "./src/entries/index-server.ts",

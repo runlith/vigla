@@ -1,0 +1,20 @@
+{
+	"name": "@vigla/vite-plugin",
+	"version": "7.3.1",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./package.json": "./package.json"
+	},
+	"dependencies": {
+		"deepmerge": "^4.3.1",
+		"obug": "^2.1.0",
+		"vitefu": "^1.1.2"
+	},
+	"peerDependencies": {
+		"vite": "^8.0.0"
+	},
+	"devDependencies": {
+		"vite": "8.2.2"
+	}
+}
