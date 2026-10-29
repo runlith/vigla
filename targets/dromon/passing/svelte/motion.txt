@@ -1,0 +1,3 @@
+motion > Tween > sets immediately when duration is 0
+motion > Tween > updates non-numeric values immediately
+motion > updates correctly when initialized with a `null`-ish value

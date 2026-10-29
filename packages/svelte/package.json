@@ -12,6 +12,21 @@
 		"./compiler": "./src/compiler/index.ts",
 		"./internal/client": "./src/entries/internal/client.ts",
 		"./internal/server": "./src/entries/internal/server.ts",
+		"./motion": {
+			"worker": "./src/entries/motion-server.ts",
+			"browser": "./src/entries/motion.ts",
+			"default": "./src/entries/motion-server.ts"
+		},
+		"./reactivity": {
+			"worker": "./src/entries/reactivity-server.ts",
+			"browser": "./src/entries/reactivity.ts",
+			"default": "./src/entries/reactivity-server.ts"
+		},
+		"./reactivity/window": {
+			"worker": "./src/entries/window-server.ts",
+			"browser": "./src/entries/window.ts",
+			"default": "./src/entries/window-server.ts"
+		},
 		"./server": "./src/entries/server.ts"
 	},
 	"dependencies": {

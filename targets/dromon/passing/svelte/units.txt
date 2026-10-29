@@ -1,0 +1,72 @@
+internal/client/proxy.test.ts > deletes a property
+internal/client/proxy.test.ts > does not mutate the original object
+internal/client/proxy.test.ts > does not re-proxy proxies
+internal/client/proxy.test.ts > handles array length mutation
+internal/client/proxy.test.ts > handles array mutation
+internal/client/proxy.test.ts > handles array.push
+internal/client/proxy.test.ts > preserves getters
+internal/shared/clone.test.ts > array
+internal/shared/clone.test.ts > class with state field
+internal/shared/clone.test.ts > class with toJSON
+internal/shared/clone.test.ts > cycles
+internal/shared/clone.test.ts > object
+internal/shared/clone.test.ts > primitive
+internal/shared/clone.test.ts > proxied state
+internal/shared/clone.test.ts > reactive class
+reactivity/date.test.ts > Date fine grained tests
+reactivity/date.test.ts > Date methods invoked for the first time in a derived
+reactivity/date.test.ts > Date methods shared between deriveds
+reactivity/date.test.ts > Date propagated changes
+reactivity/date.test.ts > Date.instanceOf
+reactivity/date.test.ts > Date.toLocaleString
+reactivity/date.test.ts > Date.valueOf
+reactivity/date.test.ts > date.setDate and date.setUTCDate
+reactivity/date.test.ts > date.setFullYear and date.setUTCFullYear
+reactivity/date.test.ts > date.setHours and date.setUTCHours
+reactivity/date.test.ts > date.setMilliseconds and date.setUTCMilliseconds
+reactivity/date.test.ts > date.setMinutes and date.setUTCMinutes
+reactivity/date.test.ts > date.setMonth and date.setUTCMonth
+reactivity/date.test.ts > date.setSeconds - edge cases
+reactivity/date.test.ts > date.setSeconds and date.setUTCSeconds
+reactivity/date.test.ts > date.setTime
+reactivity/date.test.ts > date.setYear
+reactivity/map.test.ts > Map.instanceOf
+reactivity/map.test.ts > map handling of undefined values
+reactivity/map.test.ts > map.delete() triggers size reactivity for keys without per-key sources
+reactivity/map.test.ts > map.delete(...)
+reactivity/map.test.ts > map.forEach(...)
+reactivity/map.test.ts > map.get(...)
+reactivity/map.test.ts > map.getOrInsert(...)
+reactivity/map.test.ts > map.getOrInsertComputed(...)
+reactivity/map.test.ts > map.has() and map.get() with undefined values
+reactivity/map.test.ts > map.has(...)
+reactivity/map.test.ts > map.values()
+reactivity/map.test.ts > not invoking reactivity when value is not in the map after changes
+reactivity/set.test.ts > Set.instanceOf
+reactivity/set.test.ts > not invoking reactivity when value is not in the set after changes
+reactivity/set.test.ts > set.delete(...)
+reactivity/set.test.ts > set.forEach()
+reactivity/set.test.ts > set.has(...)
+reactivity/set.test.ts > set.values()
+reactivity/url-search-params.test.ts > SvelteURLSearchParams instanceof URLSearchParams
+reactivity/url-search-params.test.ts > URLSearchParams.append
+reactivity/url-search-params.test.ts > URLSearchParams.delete
+reactivity/url-search-params.test.ts > URLSearchParams.get
+reactivity/url-search-params.test.ts > URLSearchParams.getAll
+reactivity/url-search-params.test.ts > URLSearchParams.set
+reactivity/url-search-params.test.ts > URLSearchParams.set updates when duplicate values collapse to the same comma-joined string
+reactivity/url-search-params.test.ts > URLSearchParams.set updates when duplicate values collapse to the same joined string
+reactivity/url-search-params.test.ts > URLSearchParams.toString
+reactivity/url-search-params.test.ts > new URLSearchParams
+reactivity/url-search-params.test.ts > params.forEach is reactive
+reactivity/url.test.ts > SvelteURL instanceof URL
+reactivity/url.test.ts > url.hash
+reactivity/url.test.ts > url.href
+reactivity/url.test.ts > url.port is updated when the protocol change clears the port
+reactivity/url.test.ts > url.search normalizes value
+reactivity/url.test.ts > url.searchParams
+reactivity/url.test.ts > url.searchParams subscribers are not notified by changes that leave the search string untouched
+reactivity/url.test.ts > url.searchParams writes do not create a reactive dependency
+reactivity/url.test.ts > url.searchParams.forEach re-runs when the search string changes via the URL
+reactivity/url.test.ts > url.searchParams.set updates url when duplicate values collapse to the same joined string
+reactivity/url.test.ts > url.searchParams.size is not notified by unrelated href changes
