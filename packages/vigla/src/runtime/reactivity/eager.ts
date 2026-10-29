@@ -4,13 +4,24 @@ import { present, stale } from './tracking.ts';
 
 const queued = new Set<Effect>();
 let running = false;
+let held = 0;
 
 export function queueEager(effect: Effect): void {
 	queued.add(effect);
 }
 
+export function holdEager<T>(fn: () => T): T {
+	held++;
+	try {
+		return fn();
+	} finally {
+		held--;
+		runEager();
+	}
+}
+
 export function runEager(): void {
-	if (queued.size === 0 || running) return;
+	if (queued.size === 0 || running || held > 0) return;
 	running = true;
 	try {
 		present(() => {

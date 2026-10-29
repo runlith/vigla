@@ -4,6 +4,7 @@ import {
 	BLOCK,
 	CLEAN,
 	DIRTY,
+	EAGER,
 	MAYBE,
 	isDerived,
 	now,
@@ -18,6 +19,7 @@ interface Frame {
 	readonly reads: Source[];
 	readonly derived: boolean;
 	readonly guarded: boolean;
+	readonly eager: boolean;
 	invalidated: boolean;
 	hidden: Set<Batch> | null;
 	local: Set<Source> | null;
@@ -26,10 +28,12 @@ interface Frame {
 function opened(target: Reaction): Frame {
 	const derived = isDerived(target);
 	const kind = (target as Effect).kind;
+	const eager = kind === EAGER;
 	const current: Frame = {
 		reads: [],
 		derived,
-		guarded: derived || kind === BLOCK,
+		guarded: derived || eager || kind === BLOCK,
+		eager,
 		invalidated: false,
 		hidden: null,
 		local: null
@@ -55,8 +59,9 @@ export function local(source: Source): boolean {
 }
 
 export function guard(source: Source): void {
-	if (frame !== null && frame.guarded && (frame.local === null || !frame.local.has(source)))
-		unsafeMutation();
+	const at = frame ?? (frames.length === 0 ? null : (frames[frames.length - 1] as Frame));
+	if (at === null || !(frame === null ? at.eager : at.guarded)) return;
+	if (at.local === null || !at.local.has(source)) unsafeMutation();
 }
 
 export const NONE: unique symbol = Symbol('none');

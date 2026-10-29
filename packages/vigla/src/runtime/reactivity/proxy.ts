@@ -1,9 +1,23 @@
+import { DEV } from 'esm-env';
 import { write } from './batch.ts';
+import { holdEager } from './eager.ts';
 import type { Source } from './graph.ts';
 import { source as plain, state } from './sources.ts';
 import { get, guard, local } from './tracking.ts';
 
 const RAW = Symbol('raw');
+
+const mutating = new Set([
+	'copyWithin',
+	'fill',
+	'pop',
+	'push',
+	'reverse',
+	'shift',
+	'sort',
+	'splice',
+	'unshift'
+]);
 
 const ABSENT = Symbol('absent');
 
@@ -114,7 +128,14 @@ function wrap<T>(value: T, aware: boolean): T {
 	return new Proxy(target, {
 		get(object, prop, receiver) {
 			if (prop === RAW) return object;
-			if (!tracked(prop)) return Reflect.get(object, prop, receiver);
+			if (!tracked(prop)) {
+				const value = Reflect.get(object, prop, receiver);
+				if (!DEV || !array || typeof prop !== 'string' || !mutating.has(prop)) return value;
+				const method = value as (...args: unknown[]) => unknown;
+				return function (this: unknown, ...args: unknown[]): unknown {
+					return holdEager(() => method.apply(this, args));
+				};
+			}
 			const found = get(source(prop));
 			if (found !== ABSENT) return found;
 			return Object.hasOwn(object, prop) ? undefined : Reflect.get(object, prop, receiver);
