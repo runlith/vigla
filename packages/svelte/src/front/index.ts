@@ -6,6 +6,7 @@ import { Resolution } from './runes.ts';
 export type * as AST from './ast.ts';
 export { legacy } from './legacy.ts';
 export { parseComponent, parseStylesheet, type Parsed } from './parse/index.ts';
+export { print, type PrintOptions, type Printed } from './print/index.ts';
 
 export const front: FrontEnd = {
 	component({ source, filename }) {
@@ -23,7 +24,7 @@ export const front: FrontEnd = {
 				module,
 				instance,
 				template,
-				options: null,
+				options: lowering.options(ast.options),
 				runes: lowering.resolution.runes,
 				ignores: new Map()
 			},

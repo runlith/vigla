@@ -97,6 +97,56 @@ export class Lowering {
 		return cleaned;
 	}
 
+	options(options: AST.SvelteOptions | null): IR.Options | null {
+		if (options === null) return null;
+		const element = options.customElement;
+		let customElement: IR.CustomElement | null = null;
+		if (element !== undefined) {
+			const shadow = element.shadow;
+			customElement = {
+				tag: element.tag ?? null,
+				shadow:
+					shadow === undefined
+						? null
+						: typeof shadow === 'string'
+							? shadow
+							: this.expression(shadow),
+				props: this.customProps(options),
+				extend: element.extend === undefined ? null : this.expression(element.extend)
+			};
+		}
+		return {
+			start: options.start,
+			end: options.end,
+			namespace: options.namespace ?? null,
+			css: options.css ?? null,
+			customElement,
+			preserveWhitespace: options.preserveWhitespace ?? null
+		};
+	}
+
+	customProps(options: AST.SvelteOptions): ES.ObjectExpression | null {
+		for (const attribute of options.attributes) {
+			if (attribute.type !== 'Attribute' || attribute.name !== 'customElement') continue;
+			const value = attribute.value;
+			const tag = Array.isArray(value) ? value[0] : value;
+			if (tag === undefined || tag === true || tag.type !== 'ExpressionTag') return null;
+			const object = tag.expression;
+			if (object.type !== 'ObjectExpression') return null;
+			for (const property of object.properties) {
+				if (
+					property.type === 'Property' &&
+					property.key.type === 'Identifier' &&
+					property.key.name === 'props' &&
+					property.value.type === 'ObjectExpression'
+				) {
+					return this.expression(property.value);
+				}
+			}
+		}
+		return null;
+	}
+
 	fragment(fragment: AST.Fragment | null | undefined): IR.Fragment {
 		const nodes: IR.Node[] = [];
 		for (const node of fragment?.nodes ?? []) {

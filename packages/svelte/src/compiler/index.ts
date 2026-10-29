@@ -9,6 +9,7 @@ import {
 import { front, legacy, parseComponent, parseStylesheet, type AST } from '../front/index.ts';
 import { validate, type Notice } from './options.ts';
 
+export { print, type PrintOptions, type Printed } from '../front/index.ts';
 export type { AST };
 
 export interface Experimental {
@@ -177,6 +178,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			generate: generated(options),
 			runtime,
 			name: options.name ?? componentName(options.filename),
+			dev: options.dev,
 			preserveWhitespace: options.preserveWhitespace,
 			preserveComments: options.preserveComments
 		});
@@ -189,11 +191,16 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 	});
 }
 
-export function compileModule(source: string, options: ModuleCompileOptions = {}): CompileResult {
+export function compileModule(input: string, options: ModuleCompileOptions = {}): CompileResult {
+	const source = withoutBom(input);
 	return guarded(source, options.filename, () => {
 		const notices = validate(options, 'module');
 		const reading = front.module({ source, filename: options.filename ?? null });
-		const output = compileModuleUnit(reading.unit, { generate: generated(options), runtime });
+		const output = compileModuleUnit(reading.unit, {
+			generate: generated(options),
+			runtime,
+			dev: options.dev
+		});
 		return {
 			js: output.js,
 			css: null,
