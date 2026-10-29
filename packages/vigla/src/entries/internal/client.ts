@@ -33,6 +33,7 @@ export {
 	bindValue
 } from '../../runtime/dom/bindings.ts';
 export { async, save, script } from '../../runtime/dom/async.ts';
+export { awaited } from '../../runtime/dom/await.ts';
 export { branch, key } from '../../runtime/dom/blocks.ts';
 export { list } from '../../runtime/dom/list.ts';
 export { boundary } from '../../runtime/dom/boundary.ts';

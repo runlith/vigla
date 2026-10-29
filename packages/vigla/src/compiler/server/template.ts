@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
 import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
-import { arm, close, empty, fallback, open, openElse } from '../../shared/markers.ts';
+import { empty } from '../../shared/markers.ts';
 import { unsupported, type ComponentAnalysis } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
@@ -19,6 +19,7 @@ import type {
 import type { Host, Scoping } from '../css/index.ts';
 import { asyncChild, awaiting } from './asynchronous.ts';
 import { bindings, type Bound } from './bindings.ts';
+import { blockCode } from './blocks.ts';
 import { boundary, component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
@@ -57,25 +58,10 @@ export class Buffer {
 	}
 }
 
-function cleaned(context: TemplateContext, fragment: Fragment): readonly Node[] {
+export function cleaned(context: TemplateContext, fragment: Fragment): readonly Node[] {
 	const nodes = context.component.fragments.get(fragment);
 	if (nodes === undefined) throw new Error('fragment was not analyzed');
 	return nodes;
-}
-
-function block(
-	context: TemplateContext,
-	marker: string,
-	fragment: Fragment | null,
-	textFirst: boolean
-): ES.BlockStatement {
-	const statements: ES.Statement[] = [];
-	const buffer = new Buffer();
-	buffer.text(marker);
-	if (fragment !== null)
-		fragmentCode(context, cleaned(context, fragment), statements, buffer, textFirst);
-	buffer.flush(context, statements);
-	return { type: 'BlockStatement', body: statements };
 }
 
 function isStatic(value: Value): boolean {
@@ -433,96 +419,15 @@ function single(
 				buffer.flush(context, statements);
 				statements.push(dynamicCode(context, node));
 				break;
-			case 'branch': {
-				buffer.flush(context, statements);
-				let chain: ES.Statement = block(context, arm(fallback), node.fallback, false);
-				for (let index = node.arms.length - 1; index >= 0; index--) {
-					const entry = node.arms[index];
-					if (entry === undefined) continue;
-					chain = {
-						type: 'IfStatement',
-						test: rewrite(context, entry.test),
-						consequent: block(context, arm(index), entry.body, false),
-						alternate: chain
-					};
-				}
-				statements.push(chain);
-				buffer.text(close);
-				break;
-			}
+			case 'branch':
 			case 'keyed-list':
 			case 'unkeyed-list':
-				list(context, node, statements, buffer);
+			case 'keyed-block':
+			case 'async-block':
+				blockCode(context, node, statements, buffer);
 				break;
 			default:
 				throw unsupported(node, `The ${node.kind} node`);
 		}
 	}
-}
-
-function list(
-	context: TemplateContext,
-	node: Extract<Node, { kind: 'keyed-list' | 'unkeyed-list' }>,
-	statements: ES.Statement[],
-	buffer: Buffer
-): void {
-	const facts = context.component.lists.get(node);
-	if (facts === undefined) throw new Error('each block was not analyzed');
-	buffer.flush(context, statements);
-	const items = b.id(context.names.unique('each_array'));
-	const index = b.id(facts.index?.name ?? context.names.unique('$$index'));
-	const length = b.id(context.names.unique('$$length'));
-	statements.push(
-		b.constant(items.name, runtime(context, 'iterate', rewrite(context, node.collection)))
-	);
-	const body = block(context, '', node.body, true);
-	const loop: ES.ForStatement = {
-		type: 'ForStatement',
-		init: {
-			type: 'VariableDeclaration',
-			kind: 'let',
-			declarations: [
-				{ type: 'VariableDeclarator', id: index, init: b.literal(0) },
-				{ type: 'VariableDeclarator', id: length, init: b.member(items, 'length') }
-			]
-		},
-		test: b.binary('<', index, length),
-		update: { type: 'UpdateExpression', operator: '++', prefix: false, argument: index },
-		body: {
-			type: 'BlockStatement',
-			body: [
-				{
-					type: 'VariableDeclaration',
-					kind: 'const',
-					declarations: [
-						{
-							type: 'VariableDeclarator',
-							id: b.id(facts.item.name),
-							init: {
-								type: 'MemberExpression',
-								object: items,
-								property: index,
-								computed: true,
-								optional: false
-							}
-						}
-					]
-				},
-				...body.body
-			]
-		}
-	};
-	const push = (html: string): ES.Statement =>
-		b.statement(b.call(b.member(context.out, 'push'), b.literal(html)));
-	if (node.fallback !== null) {
-		statements.push({
-			type: 'IfStatement',
-			test: b.binary('!==', b.member(items, 'length'), b.literal(0)),
-			consequent: { type: 'BlockStatement', body: [push(open), loop] },
-			alternate: block(context, openElse, node.fallback, true)
-		});
-	} else {
-		statements.push(push(open), loop);
-	}
-	buffer.text(close);
 }

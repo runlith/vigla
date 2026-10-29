@@ -2,19 +2,10 @@ import type * as ES from 'estree';
 import { escapeContent } from '../../shared/escape.ts';
 import { dynamic, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type {
-	Branch,
-	Expression,
-	Fragment,
-	KeyedList,
-	Namespace,
-	Node,
-	RawHtml,
-	Text,
-	UnkeyedList
-} from '../ir/nodes.ts';
+import type { Expression, Fragment, Namespace, Node, RawHtml, Text } from '../ir/nodes.ts';
 import type { Host, Scoping } from '../css/index.ts';
 import { asyncSetup, awaiting } from './asynchronous.ts';
+import { blockCode } from './blocks.ts';
 import {
 	boundaryCall,
 	componentCall,
@@ -158,77 +149,6 @@ function textPart(context: TemplateContext, run: readonly (Text | Expression)[])
 	};
 }
 
-function arm(
-	context: TemplateContext,
-	fragment: Fragment,
-	textFirst: boolean,
-	params: readonly ES.Pattern[] = []
-): ES.ArrowFunctionExpression {
-	const anchor = b.id(context.names.unique('$$anchor'));
-	const namespace = context.component.fragmentNamespaces.get(fragment) ?? 'html';
-	return b.arrow(
-		[anchor, ...params],
-		render(context, cleaned(context, fragment), anchor, namespace, textFirst)
-	);
-}
-
-function branchCode(context: TemplateContext, node: Branch, anchor: ES.Identifier): ES.Statement[] {
-	const statements: ES.Statement[] = [];
-	const arms = node.arms.map((entry) => {
-		const name = context.names.unique('arm');
-		statements.push(b.constant(name, arm(context, entry.body, false)));
-		return b.id(name);
-	});
-	let fallback: ES.Expression = b.literal(null);
-	if (node.fallback !== null) {
-		const name = context.names.unique('fallback');
-		statements.push(b.constant(name, arm(context, node.fallback, false)));
-		fallback = b.id(name);
-	}
-	let select: ES.Expression = b.literal(-1);
-	for (let index = node.arms.length - 1; index >= 0; index--) {
-		const entry = node.arms[index] as (typeof node.arms)[number];
-		select = b.conditional(rewrite(context, entry.test), b.literal(index), select);
-	}
-	statements.push(
-		b.statement(
-			runtime(
-				context,
-				'branch',
-				anchor,
-				b.arrow([], select),
-				{ type: 'ArrayExpression', elements: arms },
-				fallback
-			)
-		)
-	);
-	return statements;
-}
-
-function listCode(
-	context: TemplateContext,
-	node: KeyedList | UnkeyedList,
-	anchor: ES.Identifier
-): ES.Statement[] {
-	const facts = context.component.lists.get(node);
-	if (facts === undefined) throw new Error('each block was not analyzed');
-	const item = b.id(facts.item.name);
-	const index = b.id(facts.index?.name ?? context.names.unique('$$index'));
-	const collection = b.arrow([], rewrite(context, node.collection));
-	const plain = new Set([...context.plain, facts.item]);
-	if (facts.index !== null) plain.add(facts.index);
-	const key =
-		node.kind === 'keyed-list'
-			? b.arrow([item, index], rewrite({ ...context, plain }, node.key))
-			: b.literal(null);
-	const statements: ES.Statement[] = [];
-	const body = arm(context, node.body, true, [item, index]);
-	const args: ES.Expression[] = [anchor, collection, key, body];
-	if (node.fallback !== null) args.push(arm(context, node.fallback, true));
-	statements.push(b.statement(runtime(context, 'list', ...args)));
-	return statements;
-}
-
 export const HTML_CONTROLLED = 1;
 const HTML_SVG = 2;
 const HTML_MATHML = 4;
@@ -295,14 +215,12 @@ export function parts(
 				});
 				break;
 			case 'branch':
-				result.push(
-					anchorPart((anchor, emit) => emit.init.push(...branchCode(context, node, anchor)))
-				);
-				break;
 			case 'keyed-list':
 			case 'unkeyed-list':
+			case 'keyed-block':
+			case 'async-block':
 				result.push(
-					anchorPart((anchor, emit) => emit.init.push(...listCode(context, node, anchor)))
+					anchorPart((anchor, emit) => emit.init.push(...blockCode(context, node, anchor)))
 				);
 				break;
 			case 'component':
