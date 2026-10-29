@@ -1,0 +1,22 @@
+---
+id: 01a18680-7dbc-7244-b1cc-b88469397a8d
+title: Analysis
+ord: 3
+tags: ["module"]
+fields:
+  {
+    "entries": [
+      {
+        "at": "index.ts"
+      }
+    ],
+    "id": "analysis"
+  }
+edges:
+  - kind: imports
+    to: 01a18680-7dbb-7e28-818d-c9e31564a15f
+sources:
+  - kind: dir
+    ref: packages/dromon/src/compiler/analysis
+---
+Decides what a unit's code means before any output exists: scopes and bindings, which bindings are reactive and how — state, raw state, derived, each item — which identifiers reference them, and the template's whitespace as HTML keeps it. Client and server generation read only its result, so both agree on meaning; a construct it does not support yet fails here with an `unsupported` diagnostic.
