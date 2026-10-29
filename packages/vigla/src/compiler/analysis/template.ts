@@ -220,6 +220,41 @@ export class Template {
 		});
 	}
 
+	parameter(pattern: ES.Pattern, scope: Scope, defaulted: boolean): void {
+		switch (pattern.type) {
+			case 'Identifier':
+				this.names.add(pattern.name);
+				this.scopes.bind(scope, pattern, {
+					kind: defaulted ? 'template-constant' : 'argument'
+				});
+				return;
+			case 'AssignmentPattern':
+				this.expression(pattern.right, scope);
+				this.parameter(pattern.left, scope, true);
+				return;
+			case 'ObjectPattern':
+				for (const property of pattern.properties) {
+					if (property.type === 'RestElement') {
+						this.parameter(property.argument, scope, defaulted);
+						continue;
+					}
+					if (property.computed) this.expression(property.key as ES.Expression, scope);
+					this.parameter(property.value, scope, defaulted);
+				}
+				return;
+			case 'ArrayPattern':
+				for (const element of pattern.elements) {
+					if (element !== null) this.parameter(element, scope, defaulted);
+				}
+				return;
+			case 'RestElement':
+				this.parameter(pattern.argument, scope, defaulted);
+				return;
+			default:
+				throw unsupported(spanOf(pattern), 'This snippet parameter pattern');
+		}
+	}
+
 	lifted(instance: Scope): Set<Snippet> {
 		const lifted = new Set<Snippet>();
 		const instanceBinding = (binding: Binding): boolean =>
@@ -422,19 +457,13 @@ export class Template {
 				return;
 			case 'snippet': {
 				const inner = this.scopes.root(scope);
-				for (const parameter of node.parameters) {
-					if (parameter.type !== 'Identifier') {
-						throw unsupported(spanOf(parameter), 'A snippet parameter pattern or default');
-					}
-					this.names.add(parameter.name);
-					this.scopes.bind(inner, parameter, { kind: 'argument' });
-				}
 				const outer = this.#used;
 				if (this.#depth === 1) {
 					this.#used = new Set();
 					this.#uses.set(node, this.#used);
 				}
 				try {
+					for (const parameter of node.parameters) this.parameter(parameter, inner, false);
 					this.fragment(node.body, null, inner, kept, namespace);
 				} finally {
 					this.#used = outer;

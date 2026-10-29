@@ -44,6 +44,7 @@ export { html } from '../../runtime/dom/html.ts';
 export { head, title } from '../../runtime/dom/head.ts';
 export { element } from '../../runtime/dom/element.ts';
 export { inspect } from '../../runtime/dom/inspect.ts';
+export { fallback, toArray } from '../../runtime/dom/values.ts';
 export {
 	bindActiveElement,
 	bindOnline,

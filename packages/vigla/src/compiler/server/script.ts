@@ -202,8 +202,18 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					case '$derived': {
 						const given = single(init);
 						if (hasAwait(given)) {
-							const pending = runtime(context, 'save', next(given));
-							const value = b.call({ type: 'AwaitExpression', argument: pending });
+							const saved = new Set(context.saved ?? []);
+							b.walk(given, (node) => {
+								if (
+									node.type === 'FunctionExpression' ||
+									node.type === 'ArrowFunctionExpression' ||
+									node.type === 'FunctionDeclaration'
+								) {
+									return false;
+								}
+								if (node.type === 'AwaitExpression') saved.add(node);
+							});
+							const value = rewrite({ ...context, saved }, given);
 							return { ...current, init: runtime(context, 'held', value) };
 						}
 						return {

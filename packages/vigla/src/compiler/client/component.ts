@@ -3,6 +3,7 @@ import { spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Boundary, Component, Node, Render, Snippet } from '../ir/nodes.ts';
 import { bindThisCall } from './bindings.ts';
+import { snippetParameters } from './parameters.ts';
 import { valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
 import { cleaned, isDynamic, render, type TemplateContext } from './template.ts';
@@ -258,18 +259,14 @@ export function snippetDeclarations(
 
 function snippetDeclaration(context: TemplateContext, node: Snippet): ES.FunctionDeclaration {
 	const anchor = b.id(context.names.unique('$$anchor'));
-	const params = node.parameters.map((parameter) => ({
-		type: 'AssignmentPattern' as const,
-		left: parameter as ES.Identifier,
-		right: b.member(context.runtime, 'noop')
-	}));
+	const { params, declarations } = snippetParameters(context, node.parameters);
 	const namespace = context.component.fragmentNamespaces.get(node.body) ?? 'html';
 	const body = render(context, cleaned(context, node.body), anchor, namespace, true);
 	return {
 		type: 'FunctionDeclaration',
 		id: node.name,
 		params: [anchor, ...params],
-		body: { type: 'BlockStatement', body },
+		body: { type: 'BlockStatement', body: [...declarations, ...body] },
 		async: false,
 		generator: false
 	};

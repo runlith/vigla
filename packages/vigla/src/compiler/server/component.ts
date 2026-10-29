@@ -270,7 +270,7 @@ function snippetDeclaration(context: TemplateContext, node: Snippet): ES.Functio
 	return {
 		type: 'FunctionDeclaration',
 		id: node.name,
-		params: [out, ...(node.parameters as ES.Pattern[])],
+		params: [out, ...node.parameters.map((parameter) => rewrite(context, parameter))],
 		body: { type: 'BlockStatement', body: statements },
 		async: false,
 		generator: false
