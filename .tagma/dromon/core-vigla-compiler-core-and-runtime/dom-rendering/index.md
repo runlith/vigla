@@ -71,6 +71,9 @@ fields:
         "for": [
           "33d45c4b"
         ]
+      },
+      {
+        "at": "inspect.ts"
       }
     ],
     "id": "dom",
