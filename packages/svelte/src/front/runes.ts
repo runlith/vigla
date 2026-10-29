@@ -184,6 +184,11 @@ function reserved(name: ES.Identifier): void {
 
 export class Resolution {
 	readonly runes = new Map<ES.Node, Rune>();
+	readonly #seen: ((node: ES.Node) => void) | undefined;
+
+	constructor(seen?: (node: ES.Node) => void) {
+		this.#seen = seen;
+	}
 
 	program(program: ES.Program): void {
 		this.visit(program, null, false);
@@ -199,6 +204,7 @@ export class Resolution {
 	}
 
 	private visit(node: ES.Node, scope: Scope | null, nested: boolean): void {
+		this.#seen?.(node);
 		if (node.type === 'CallExpression') {
 			const found = runeName(node.callee);
 			if (found !== null && !shadowed(scope, found.base)) this.runes.set(node.callee, found.rune);

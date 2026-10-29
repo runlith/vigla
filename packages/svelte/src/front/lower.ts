@@ -1,7 +1,9 @@
 import type * as ES from 'estree';
 import type * as IR from 'dromon/compiler';
 import type * as AST from './ast.ts';
+import type { Diagnostic } from 'dromon/compiler';
 import { unsupported } from './diagnostics.ts';
+import { extractIgnores } from './ignores.ts';
 import { Resolution } from './runes.ts';
 import { stripTypes } from './typescript.ts';
 
@@ -67,12 +69,29 @@ function chain(name: string, start: number): ES.Expression {
 	return node as ES.Expression;
 }
 
+type Commented = ES.Node & { leadingComments?: { value: string; start?: number }[] };
+
 export class Lowering {
-	readonly resolution = new Resolution();
+	readonly resolution: Resolution;
 	readonly ts: boolean;
+	readonly ignores = new Map<object, ReadonlySet<string>>();
+	readonly warnings: Diagnostic[] = [];
 
 	constructor(ts: boolean) {
 		this.ts = ts;
+		this.resolution = new Resolution((node) => this.commented(node));
+	}
+
+	commented(node: Commented): void {
+		const comments = node.leadingComments;
+		if (comments === undefined) return;
+		const codes: string[] = [];
+		for (const comment of comments) {
+			const extracted = extractIgnores((comment.start ?? Number.NaN) + 2, comment.value);
+			codes.push(...extracted.codes);
+			this.warnings.push(...extracted.warnings);
+		}
+		if (codes.length > 0) this.ignores.set(node, new Set(codes));
 	}
 
 	clean<T>(node: T): T {
@@ -149,11 +168,27 @@ export class Lowering {
 
 	fragment(fragment: AST.Fragment | null | undefined): IR.Fragment {
 		const nodes: IR.Node[] = [];
+		const comments: AST.Comment[] = [];
 		for (const node of fragment?.nodes ?? []) {
+			if (node.type === 'Comment') comments.push(node);
 			const lowered = this.node(node);
-			if (lowered !== null) nodes.push(lowered);
+			if (lowered === null) continue;
+			nodes.push(lowered);
+			if (node.type === 'Comment' || node.type === 'Text') continue;
+			if (comments.length > 0) this.templateIgnores(lowered, comments.splice(0));
 		}
 		return { nodes };
+	}
+
+	templateIgnores(node: IR.Node, comments: readonly AST.Comment[]): void {
+		const codes: string[] = [];
+		for (let index = comments.length - 1; index >= 0; index--) {
+			const comment = comments[index] as AST.Comment;
+			const extracted = extractIgnores(comment.start + 4, comment.data);
+			codes.push(...extracted.codes);
+			this.warnings.push(...extracted.warnings);
+		}
+		if (codes.length > 0) this.ignores.set(node, new Set(codes));
 	}
 
 	part(part: AST.Text | AST.ExpressionTag): IR.Text | IR.Expression {

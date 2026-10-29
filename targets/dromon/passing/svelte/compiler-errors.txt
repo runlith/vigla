@@ -34,6 +34,7 @@ malformed-snippet-2
 multiple-styles
 options-children
 raw-mustaches-whitespace
+resets the compiler state including filename
 script-unclosed
 script-unclosed-eof
 store-prevent-user-declarations

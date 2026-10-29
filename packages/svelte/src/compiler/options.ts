@@ -126,10 +126,15 @@ export function validate(options: object, kind: Kind): Notice[] {
 	}
 	if (given.runes === false) invalid('`runes: false` — legacy mode is not supported');
 	if (typeof given.runes === 'function') unbuilt('A `runes` option given as a function');
-	if (given.generate === false) unbuilt('`generate: false`');
 	if (given.customElement === true) unbuilt('Custom element output (`customElement: true`)');
-	if (given.namespace !== undefined && given.namespace !== 'html')
-		unbuilt(`The ${String(given.namespace)} namespace`);
+	if (
+		given.namespace !== undefined &&
+		given.namespace !== 'html' &&
+		given.namespace !== 'svg' &&
+		given.namespace !== 'mathml'
+	) {
+		invalid('namespace should be one of "html", "mathml" or "svg"');
+	}
 	if (given.hmr === true) unbuilt('Hot module replacement (`hmr: true`)');
 	if (given.fragments === 'tree') unbuilt('`fragments: "tree"`');
 	if (given.sourcemap !== undefined) unbuilt('An input source map (`sourcemap`)');

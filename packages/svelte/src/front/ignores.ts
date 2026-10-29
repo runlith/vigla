@@ -1,4 +1,6 @@
-import { warningCodes } from './diagnostics.ts';
+import type { Diagnostic } from 'dromon/compiler';
+import { warning, warningCodes } from './diagnostics.ts';
+import { closest } from './fuzzy.ts';
 
 const runtimeCodes = [
 	'await_waterfall',
@@ -29,6 +31,41 @@ export const ignorePrefix = /^\s*svelte-ignore\s/;
 
 export function replacement(code: string): string {
 	return legacyCodes[code] ?? code.replace(/-/g, '_');
+}
+
+export interface Extracted {
+	readonly codes: string[];
+	readonly warnings: Diagnostic[];
+}
+
+const runesCodes = /([\w$-]+)(,)?/gm;
+
+export function extractIgnores(offset: number, text: string): Extracted {
+	const match = ignorePrefix.exec(text);
+	const codes: string[] = [];
+	const warnings: Diagnostic[] = [];
+	if (match === null) return { codes, warnings };
+	const length = match[0].length;
+	const from = offset + length;
+	for (const found of text.slice(length).matchAll(runesCodes)) {
+		const code = found[1] as string;
+		if (ignorableCodes.has(code)) {
+			codes.push(code);
+		} else {
+			const start = from + found.index;
+			const at = { start, end: start + code.length };
+			const replaced = replacement(code);
+			if (ignorableCodes.has(replaced)) {
+				warnings.push(warning('legacy_code', at, { code, suggestion: replaced }));
+			} else {
+				warnings.push(
+					warning('unknown_code', at, { code, suggestion: closest(code, [...ignorableCodes]) })
+				);
+			}
+		}
+		if (!found[2]) break;
+	}
+	return { codes, warnings };
 }
 
 export function ignoredCodes(text: string): string[] {

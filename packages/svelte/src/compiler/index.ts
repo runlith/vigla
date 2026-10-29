@@ -1,14 +1,23 @@
 import {
 	compile as compileUnit,
 	compileModule as compileModuleUnit,
-	CompileError as Fault,
 	type Code,
 	type Diagnostic,
 	type Runtime
 } from 'dromon/compiler';
-import { front, legacy, parseComponent, parseStylesheet, type AST } from '../front/index.ts';
-import { validate, type Notice } from './options.ts';
+import {
+	front,
+	legacy,
+	lowerComponent,
+	parseComponent,
+	parseStylesheet,
+	validateComponent,
+	type AST
+} from '../front/index.ts';
+import { Diagnostics, type Warning } from './diagnostics.ts';
+import { validate } from './options.ts';
 
+export { CompileError, type Location, type Warning } from './diagnostics.ts';
 export { print, type PrintOptions, type Printed } from '../front/index.ts';
 export {
 	preprocess,
@@ -57,70 +66,28 @@ export interface CompileOptions extends ModuleCompileOptions {
 	sourcemap?: object | string;
 }
 
-export interface Location {
-	line: number;
-	column: number;
-	character: number;
-}
-
-export interface Warning {
-	code: string;
-	message: string;
-	filename?: string;
-	start?: Location;
-	end?: Location;
-	position?: [number, number];
-}
-
 export interface Metadata {
 	runes: boolean;
 }
 
 export interface CompileResult {
-	js: Code;
+	js: Code | null;
 	css: null;
 	warnings: Warning[];
 	metadata: Metadata;
 }
 
+export interface ParseOptions {
+	filename?: string;
+	rootDir?: string;
+	modern?: boolean;
+	loose?: boolean;
+}
+
 const runtime: Runtime = { client: 'svelte/internal/client', server: 'svelte/internal/server' };
-
-function locate(source: string, offset: number): Location {
-	let line = 1;
-	let start = 0;
-	for (let index = 0; index < offset && index < source.length; index++) {
-		if (source[index] === '\n') {
-			line++;
-			start = index + 1;
-		}
-	}
-	return { line, column: offset - start, character: offset };
-}
-
-export class CompileError extends Error {
-	readonly code: string;
-	readonly filename: string | undefined;
-	readonly position: [number, number];
-	readonly start: Location;
-	readonly end: Location;
-
-	constructor(diagnostic: Diagnostic, source: string, filename: string | undefined) {
-		super(`${diagnostic.message}\nhttps://svelte.dev/e/${diagnostic.code}`);
-		this.name = 'CompileError';
-		this.code = diagnostic.code;
-		this.filename = filename;
-		this.position = [diagnostic.start, diagnostic.end];
-		this.start = locate(source, diagnostic.start);
-		this.end = locate(source, diagnostic.end);
-	}
-}
 
 function generated(options: ModuleCompileOptions): 'client' | 'server' {
 	return options.generate === 'server' ? 'server' : 'client';
-}
-
-function warnings(notices: readonly Notice[], filename: string | undefined): Warning[] {
-	return notices.map((notice) => ({ code: notice.code, message: notice.message, filename }));
 }
 
 function componentName(filename: string | undefined): string {
@@ -137,24 +104,12 @@ function componentName(filename: string | undefined): string {
 	return /^[0-9]/.test(capital) ? `_${capital}` : capital;
 }
 
-function guarded<T>(source: string, filename: string | undefined, run: () => T): T {
-	try {
-		return run();
-	} catch (error) {
-		if (error instanceof Fault) throw new CompileError(error.diagnostic, source, filename);
-		throw error;
-	}
-}
-
 function withoutBom(source: string): string {
 	return source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
 }
 
-export interface ParseOptions {
-	filename?: string;
-	rootDir?: string;
-	modern?: boolean;
-	loose?: boolean;
+function byPosition(...lists: readonly (readonly Diagnostic[])[]): Diagnostic[] {
+	return lists.flat().sort((a, b) => a.start - b.start);
 }
 
 export function parse(source: string, options: ParseOptions & { modern: true }): AST.Root;
@@ -165,7 +120,7 @@ export function parse(
 ): AST.Root | Record<string, any> {
 	if (typeof input !== 'string') throw new TypeError('Template must be a string');
 	const source = withoutBom(input);
-	return guarded(source, undefined, () => {
+	return new Diagnostics(source, undefined).guard(() => {
 		const parsed = parseComponent(source, loose);
 		return modern ? parsed.root : legacy(source, parsed.root, parsed.options);
 	});
@@ -173,26 +128,39 @@ export function parse(
 
 export function parseCss(input: string): AST.Css.StyleSheetFile {
 	const source = withoutBom(input);
-	return guarded(source, undefined, () => parseStylesheet(source));
+	return new Diagnostics(source, undefined).guard(() => parseStylesheet(source));
 }
 
 export function compile(input: string, options: CompileOptions = {}): CompileResult {
 	const source = withoutBom(input);
-	return guarded(source, options.filename, () => {
-		const notices = validate(options, 'component');
-		const reading = front.component({ source, filename: options.filename ?? null });
+	const diagnostics = new Diagnostics(source, options.filename, options.warningFilter);
+	return diagnostics.guard(() => {
+		const notices = diagnostics.notices(validate(options, 'component'));
+		const parsed = parseComponent(source);
+		const syntax = validateComponent(parsed);
+		const reading = lowerComponent(parsed, source, options.filename ?? null);
+		const found = byPosition(syntax, reading.warnings);
+		if (options.generate === false) {
+			return {
+				js: null,
+				css: null,
+				warnings: [...notices, ...diagnostics.warnings(found)],
+				metadata: { runes: true }
+			};
+		}
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
 			name: options.name ?? componentName(options.filename),
 			dev: options.dev,
+			namespace: options.namespace,
 			preserveWhitespace: options.preserveWhitespace,
 			preserveComments: options.preserveComments
 		});
 		return {
 			js: output.js,
 			css: null,
-			warnings: warnings(notices, options.filename),
+			warnings: [...notices, ...diagnostics.warnings(byPosition(found, output.warnings))],
 			metadata: { runes: true }
 		};
 	});
@@ -200,9 +168,13 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 
 export function compileModule(input: string, options: ModuleCompileOptions = {}): CompileResult {
 	const source = withoutBom(input);
-	return guarded(source, options.filename, () => {
-		const notices = validate(options, 'module');
+	const diagnostics = new Diagnostics(source, options.filename, options.warningFilter);
+	return diagnostics.guard(() => {
+		const notices = diagnostics.notices(validate(options, 'module'));
 		const reading = front.module({ source, filename: options.filename ?? null });
+		if (options.generate === false) {
+			return { js: null, css: null, warnings: notices, metadata: { runes: true } };
+		}
 		const output = compileModuleUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
@@ -211,7 +183,7 @@ export function compileModule(input: string, options: ModuleCompileOptions = {})
 		return {
 			js: output.js,
 			css: null,
-			warnings: warnings(notices, options.filename),
+			warnings: [...notices, ...diagnostics.warnings(output.warnings)],
 			metadata: { runes: true }
 		};
 	});
