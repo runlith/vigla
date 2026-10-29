@@ -210,6 +210,19 @@ export function forget(source: Source): void {
 	clear(source);
 }
 
+export function present<T>(fn: () => T): T {
+	const previousPast = past;
+	const previousView = view;
+	past = null;
+	view = null;
+	try {
+		return fn();
+	} finally {
+		past = previousPast;
+		view = previousView;
+	}
+}
+
 export function recalling(before: Prior, later: Prior | null, fn: () => void): void {
 	const previousPast = past;
 	const previousFrame = frame;

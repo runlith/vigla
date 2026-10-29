@@ -3,6 +3,7 @@ import {
 	BRANCH,
 	CLEAN,
 	DIRTY,
+	EAGER,
 	EFFECT,
 	ROOT,
 	TEMPLATE,
@@ -16,6 +17,7 @@ import { orphan } from './errors.ts';
 import {
 	disconnect,
 	owner,
+	present,
 	reading,
 	setOwner,
 	takeHidden,
@@ -180,6 +182,10 @@ export function template(fn: () => void | (() => void)): Effect {
 export function pre(fn: () => void | (() => void)): Effect {
 	if (owner === null) orphan('$effect.pre');
 	return attach(TEMPLATE, fn);
+}
+
+export function eager(fn: () => void | (() => void)): Effect {
+	return present(() => attach(EAGER, fn));
 }
 
 export function effect(fn: () => void | (() => void)): Effect {

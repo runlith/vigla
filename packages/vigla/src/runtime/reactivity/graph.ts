@@ -7,8 +7,15 @@ export const BRANCH = 2;
 export const BLOCK = 3;
 export const TEMPLATE = 4;
 export const EFFECT = 5;
+export const EAGER = 6;
 
-export type Kind = typeof ROOT | typeof BRANCH | typeof BLOCK | typeof TEMPLATE | typeof EFFECT;
+export type Kind =
+	| typeof ROOT
+	| typeof BRANCH
+	| typeof BLOCK
+	| typeof TEMPLATE
+	| typeof EFFECT
+	| typeof EAGER;
 
 export type Status = typeof CLEAN | typeof MAYBE | typeof DIRTY;
 

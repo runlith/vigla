@@ -3,6 +3,7 @@ import {
 	BLOCK,
 	CLEAN,
 	DIRTY,
+	EAGER,
 	EFFECT,
 	MAYBE,
 	TEMPLATE,
@@ -12,6 +13,7 @@ import {
 	type Source
 } from './graph.ts';
 import { offscreen, run } from './effects.ts';
+import { queueEager, runEager } from './eager.ts';
 import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
 import {
@@ -321,10 +323,21 @@ function mark(
 	} else if ((visits += reactions.size) > 10_000) seen = new Set([source]);
 	for (const reaction of reactions) {
 		const previous = reaction.status;
-		if (forked !== 0 && previous === CLEAN && (reaction as Effect).forked === forked) continue;
-		if (previous < status) reaction.status = status;
-		if (isDerived(reaction)) mark(reaction, MAYBE, all, forked);
-		else if (all || previous === CLEAN) schedule(reaction as Effect);
+		if (isDerived(reaction)) {
+			if (previous < status) reaction.status = status;
+			mark(reaction, MAYBE, all, forked);
+			continue;
+		}
+		const effect = reaction as Effect;
+		if (effect.kind === EAGER) {
+			if (staging) continue;
+			if (previous < status) effect.status = status;
+			queueEager(effect);
+			continue;
+		}
+		if (forked !== 0 && previous === CLEAN && effect.forked === forked) continue;
+		if (previous < status) effect.status = status;
+		if (all || previous === CLEAN) schedule(effect);
 	}
 }
 
@@ -337,6 +350,8 @@ function dirty(source: Source, forked = 0): void {
 	seen = null;
 }
 
+let staging = false;
+
 function staged<T>(fork: Batch, source: Source<T>, value: T): T {
 	const after = (fork.after ??= new Map());
 	const shown = after.has(source) ? after.get(source) : source.v;
@@ -347,7 +362,12 @@ function staged<T>(fork: Batch, source: Source<T>, value: T): T {
 		forget(source);
 		view.values.set(source, value);
 	}
-	dirty(source);
+	staging = true;
+	try {
+		dirty(source);
+	} finally {
+		staging = false;
+	}
 	return value;
 }
 
@@ -368,6 +388,7 @@ export function write<T>(source: Source<T>, value: T): T {
 		else conceal(source, previous, batch);
 	}
 	dirty(source);
+	runEager();
 	return value;
 }
 
@@ -379,6 +400,7 @@ export function apply(batch: Batch): void {
 		source.wv = stamp();
 		dirty(source, batch.order);
 	}
+	runEager();
 }
 
 export function retire(teardown: () => void): void {
