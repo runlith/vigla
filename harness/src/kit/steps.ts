@@ -63,6 +63,10 @@ function expand(
 	}
 }
 
+export function labelOf(name: string): string {
+	return name.replace(/[:= ]/g, '-').toLowerCase();
+}
+
 export function plan(dir: string, names: readonly string[]): Step[] {
 	const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as {
 		scripts?: Record<string, string>;
@@ -70,12 +74,20 @@ export function plan(dir: string, names: readonly string[]): Step[] {
 	const scripts = manifest.scripts ?? {};
 	const steps: Step[] = [];
 	for (const name of names) {
-		if (scripts[name] === undefined) continue;
+		const words = tokens(name);
+		const env: Record<string, string> = {};
+		for (let match = assignment.exec(words[0] ?? ''); match !== null;) {
+			env[match[1] ?? ''] = match[2] ?? '';
+			words.shift();
+			match = assignment.exec(words[0] ?? '');
+		}
+		const script = words.join(' ');
+		if (scripts[script] === undefined) continue;
 		const expanded: Step[] = [];
-		expand(scripts, name, {}, expanded);
+		expand(scripts, script, env, expanded);
 		let count = 0;
 		for (const step of expanded) {
-			if (step.kind !== 'shell') step.label = `${name.replaceAll(':', '-')}-${++count}`;
+			if (step.kind !== 'shell') step.label = `${labelOf(name)}-${++count}`;
 			steps.push(step);
 		}
 	}

@@ -1,0 +1,429 @@
+{
+  "conversions": {},
+  "samples": {
+    "adapter.spec.ts > Vite build configuration > bundles production dependencies that vite-plugin-svelte marks noExternal": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > Vite build configuration > bundles the server source with the app and keeps production dependencies external": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > Vite build configuration > keeps adapter chunks at the output root so the hand-off path resolves": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > adapter contract > identifies itself and declares supported SvelteKit features": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > adapter contract > requires the SvelteKit build to run in Bun": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > cleans the output and copies the Vite build next to the hand-off module": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > compiles an executable from the Vite build instead of copying it": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > defaults the base to the root and leaves the origin undefined": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > hands the configured values to the server": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > loads instrumentation before the generated server entrypoint": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > normalizes compile option \"bun-linux-x64\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > normalizes compile option {\"target\":\"bun-windows-x64\",\"windows\":{\"hideConsole\":true}}": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > passes supported advanced options while retaining reserved options": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > build output > reports every Bun diagnostic before failing the build": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > embeds assets in compiled executables from a staging directory": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > fails when a server-readable asset is absent from compiled build output": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > precompresses assets and marks the variants in the generated routes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > rejects route segments starting with a colon": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > rejects wildcard characters in prerendered redirect sources": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > rejects wildcard filenames when compile is %s": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > warns when precompress is combined with compile": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "adapter.spec.ts > generated routes > writes regular-build assets and excludes prerendered routes from server reads": {
+      "status": "covered",
+      "reason": "drives adapter-bun's builder against the layout of its internal `src` with Bun's build APIs mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > boolean_env > parses the accepted truthy and falsy spellings": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > boolean_env > rejects any other value": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > boolean_env > returns the fallback for an absent variable": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses .5K as 512 bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses 0 as 0 bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses 1.5M as 1572864 bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses 2g as 2147483648 bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses 512 as 512 bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses 512K as 524288 bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > parses Infinity as Infinity bytes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects a non-whole or unsafe byte count 0.1": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects a non-whole or unsafe byte count 9007199254740992": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects invalid syntax \"\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects invalid syntax \"-1\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects invalid syntax \"1KB\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects invalid syntax \"1T\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > rejects invalid syntax \"one\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > bytes_env > returns the fallback for an absent variable": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > env > rejects unexpected variables that use a configured prefix": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > env > treats an explicitly empty value as present": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > env > uses the prefixed value when present and otherwise returns the fallback": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > enforces a bounded range": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > enforces a minimum": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > parses 0 as 0": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > parses 42 as 42": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > parses 9007199254740991 as 9007199254740991": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects integers beyond the safe range": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects non-integer syntax \" 1\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects non-integer syntax \"\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects non-integer syntax \"+1\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects non-integer syntax \"-1\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects non-integer syntax \"1.5\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > rejects non-integer syntax \"1e2\"": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "env.spec.ts > number_env > returns the fallback for an absent variable": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/env.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > derives the public origin from configured proxy headers": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > disables timeouts and proxy buffering for event streams": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > falls back past proxy headers that are present but empty": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > initializes SvelteKit with Bun environment variables and server-readable assets": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > leaves ordinary responses and their timeouts unchanged": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > normalizes the request origin from the Host header": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > reads a configured client address header": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > rejects a present but empty Host header": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > reports absent and too-short forwarded address headers": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > returns 400 for an invalid origin from APP_PORT_HEADER": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > returns 400 for an invalid origin from APP_PROTOCOL_HEADER": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > returns undefined when Bun cannot determine the peer address": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > selects a trusted X-Forwarded-For address from the right": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "handler.spec.ts > uses paths.origin as the trusted request origin when configured": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/handler.js` with its routes mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > a prerendered root page has no duplicate alternate route": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > a root deployment registers routes with a leading slash": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > client assets use the configured base and URL-encode path segments": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > client index files are also available at their directory URL": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > embedded routes use the imported asset instead of a filesystem path": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > immutable SvelteKit assets receive a long-lived cache policy": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > other client HTML files are also available without their extension": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > precompressed variants are negotiated with their own validators": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > prerendered assets use the base path and preserve their content type": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > prerendered page /page redirects its alternate form /page/ to the canonical URL": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > prerendered page /page/ redirects its alternate form /page to the canonical URL": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > prerendered redirects retain their status and location": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > range requests are served from the identity representation": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > redirects to non-ASCII canonical URLs use a percent-encoded location": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > route paths use WHATWG serialization, the form user agents send": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > server assets resolve from the client output in regular builds": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > static routes revalidate against the build-time hash": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > static routes revalidate by date when the client has no ETag": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "routes.spec.ts > sub-delims stay raw in route paths with a fully-encoded alias": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/routes-util.js`; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > Bun.semver orders 1.3.14 against the 1.4.0 floor as -1": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > Bun.semver orders 1.4.0 against the 1.4.0 floor as 0": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > Bun.semver orders 1.4.1 against the 1.4.0 floor as 1": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > Bun.semver orders 1.5.0-canary.1 against the 1.4.0 floor as 1": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > Bun.semver orders 2.0.0 against the 1.4.0 floor as 1": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > a Unix socket takes precedence over TCP-only options": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > a second shutdown signal forces the process to exit": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > environment variables override TCP server defaults": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > force-closes lingering connections after SHUTDOWN_TIMEOUT": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > gracefully stops the server and emits sveltekit:shutdown for SIGINT": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > gracefully stops the server and emits sveltekit:shutdown for SIGTERM": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > refuses to start on a Bun older than 1.4": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > rejects invalid startup environment {\"BODY_SIZE_LIMIT\":\"1.1\"}": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > rejects invalid startup environment {\"CONNECTION_IDLE_TIMEOUT\":\"256\"}": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > rejects invalid startup environment {\"DEVELOPMENT\":\"sometimes\"}": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > removes a stale socket file before listening": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    },
+    "start.spec.ts > starts Bun with production defaults and generated request routes": {
+      "status": "covered",
+      "reason": "drives adapter-bun's internal `src/index.js` with the process, routes and handler mocked; covered by the tests of @vigla/adapter-bun"
+    }
+  }
+}

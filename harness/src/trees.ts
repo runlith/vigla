@@ -68,7 +68,20 @@ export const trees: readonly Tree[] = [
 	},
 	kit('adapter-node-support', 'packages/adapter-node/test', 'none', ['apps']),
 	{ ...kit('units', 'packages/kit/src', 'path'), include: /\.spec\.js$/ },
-	{ ...kit('adapter-node-units', 'packages/adapter-node/src', 'path'), include: /\.spec\.ts$/ }
+	{ ...kit('adapter-node-units', 'packages/adapter-node/src', 'path'), include: /\.spec\.ts$/ },
+	{
+		...kit('adapter-bun', 'packages/adapter-bun/test/apps', 'path'),
+		rewrites: { ...kitRewrites, '../../../index.js': '@sveltejs/adapter-bun' }
+	},
+	kit('adapter-bun-support', 'packages/adapter-bun/test', 'none', [
+		'apps',
+		'adapter.spec.ts',
+		'env.spec.ts',
+		'handler.spec.ts',
+		'routes.spec.ts',
+		'start.spec.ts'
+	]),
+	{ ...kit('adapter-bun-units', 'packages/adapter-bun/test', 'path'), include: /^[^/]+\.spec\.ts$/ }
 ];
 
 export function treeFiles(

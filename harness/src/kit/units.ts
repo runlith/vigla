@@ -46,6 +46,16 @@ export function units(root: string): Unit[] {
 		...each(root, 'adapter-node', 'packages/adapter-node/test/apps', [
 			'test:build',
 			'test:platform'
+		]),
+		{
+			tree: 'adapter-bun-units',
+			app: 'adapter-bun',
+			dir: 'packages/adapter-bun',
+			scripts: ['test:unit']
+		},
+		...each(root, 'adapter-bun', 'packages/adapter-bun/test/apps', [
+			'test:platform',
+			'COMPILE=true test:platform'
 		])
 	];
 }

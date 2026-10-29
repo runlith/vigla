@@ -14,7 +14,7 @@ import { covers, selectors, selects } from '../scope.ts';
 import { install, store } from '../store.ts';
 import { entryId } from '../suites.ts';
 import { samplesOf, treeNamed, trees, type Tree } from '../trees.ts';
-import { execute, plan, type Step } from './steps.ts';
+import { execute, labelOf, plan, type Step } from './steps.ts';
 import { checkTypes } from './types.ts';
 import { reportName, selected, units, type Unit } from './units.ts';
 
@@ -50,7 +50,8 @@ function prepare(): void {
 	for (const base of [
 		'packages/kit/test',
 		'packages/adapter-static/test',
-		'packages/adapter-node/test'
+		'packages/adapter-node/test',
+		'packages/adapter-bun/test'
 	])
 		packages(join(work, base), found);
 	for (const dir of found) install(dir, into);
@@ -138,7 +139,7 @@ function scripts(unit: Unit): readonly string[] {
 	const picks = selectors(`kit/${unit.tree}`);
 	const steps = picks?.map((pick) => variant.exec(pick)?.[1]);
 	if (steps === undefined || steps.some((step) => step === undefined)) return unit.scripts;
-	return unit.scripts.filter((script) => steps.includes(script.replaceAll(':', '-')));
+	return unit.scripts.filter((script) => steps.includes(labelOf(script)));
 }
 
 for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
