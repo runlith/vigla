@@ -29,6 +29,12 @@ fields:
       },
       {
         "at": "swap.ts"
+      },
+      {
+        "at": "bindings.ts"
+      },
+      {
+        "at": "select.ts"
       }
     ],
     "id": "dom",
