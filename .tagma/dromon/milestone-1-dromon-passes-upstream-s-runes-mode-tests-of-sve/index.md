@@ -52,7 +52,7 @@ The reference configuration is runes forced and async on, for every test that co
 - Remote functions, experimental behind a flag in Kit 3.1: recommended in, with no flag; the `async` app holds 71 of the 72 `.remote.*` files, so leaving them out removes most of Kit's async coverage.
 - Adapters: recommended node and static; `adapter-auto` installs the Vercel, Cloudflare and Netlify adapters, so it waits for them.
 - Out of this milestone, recommended: the `snapshot` suite (it pins upstream's generated code, which a new code generator does not reproduce), `@sveltejs/package`, `@sveltejs/enhanced-img` and the vite-plugin inspector.
-- Package names `dromon`, `@dromon/svelte`, `@dromon/kit`, `@dromon/vite-plugin`, `@dromon/adapter-*`: npm `dromon` is free, the `@dromon` scope is not verified.
+- Package names `dromon`, `@dromon/svelte`, `@dromon/kit`, `@dromon/vite-plugin`, `@dromon/adapter-*`: npm `dromon` is held by the project, while the `@dromon` scope belongs to an npm organization outside it, so the scoped names cannot be published as written; a rename to Vigla, whose name and scope are both available, is under the operator's consideration.
 
 **Acceptance.**
 - The manifest gives every upstream test in scope a status, and every non-contract status a reason.
