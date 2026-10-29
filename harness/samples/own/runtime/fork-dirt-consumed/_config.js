@@ -24,8 +24,6 @@ export default test({
 
 		commit.click();
 		await flush();
-		release.click();
-		await flush();
 		assert.htmlEqual(target.innerHTML, `${buttons} <p>1</p> <b>forked</b>`);
 		assert.deepEqual(logs, ['built']);
 	}

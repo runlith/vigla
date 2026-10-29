@@ -13,7 +13,16 @@ import {
 } from './graph.ts';
 import { collect, orphaned, retire, revisit, schedule } from './batch.ts';
 import { orphan } from './errors.ts';
-import { disconnect, owner, reading, setOwner, takeHidden, track, untrack } from './tracking.ts';
+import {
+	disconnect,
+	owner,
+	reading,
+	setOwner,
+	takeHidden,
+	track,
+	untrack,
+	view
+} from './tracking.ts';
 
 let created = 0;
 
@@ -45,6 +54,7 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		boundary: parent === null ? null : parent.boundary,
 		context: parent === null ? null : parent.context,
 		order: ++created,
+		forked: 0,
 		status: DIRTY,
 		deps: null,
 		rv: 0,
@@ -109,6 +119,7 @@ export function run(effect: Effect): void {
 		setOwner(previous);
 	}
 	const hidden = tracked ? takeHidden() : null;
+	effect.forked = view !== null && view.batch.fork ? view.batch.order : 0;
 	if (failed) {
 		fail(effect, caught);
 		return;

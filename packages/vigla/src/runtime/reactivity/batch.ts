@@ -307,7 +307,12 @@ export function collect(effect: Effect): void {
 let visits = 0;
 let seen: Set<Source> | null = null;
 
-function mark(source: Source, status: typeof DIRTY | typeof MAYBE, all: boolean): void {
+function mark(
+	source: Source,
+	status: typeof DIRTY | typeof MAYBE,
+	all: boolean,
+	forked: number
+): void {
 	const reactions = source.reactions;
 	if (reactions === null) return;
 	if (seen !== null) {
@@ -316,18 +321,19 @@ function mark(source: Source, status: typeof DIRTY | typeof MAYBE, all: boolean)
 	} else if ((visits += reactions.size) > 10_000) seen = new Set([source]);
 	for (const reaction of reactions) {
 		const previous = reaction.status;
+		if (forked !== 0 && previous === CLEAN && (reaction as Effect).forked === forked) continue;
 		if (previous < status) reaction.status = status;
-		if (isDerived(reaction)) mark(reaction, MAYBE, all);
+		if (isDerived(reaction)) mark(reaction, MAYBE, all, forked);
 		else if (all || previous === CLEAN) schedule(reaction as Effect);
 	}
 }
 
-function dirty(source: Source): void {
+function dirty(source: Source, forked = 0): void {
 	if (source.reactions === null) return;
 	visits = 0;
 	const all = pending.length > 0;
 	if (all) members(receiving());
-	mark(source, DIRTY, all);
+	mark(source, DIRTY, all, forked);
 	seen = null;
 }
 
@@ -371,7 +377,7 @@ export function apply(batch: Batch): void {
 		if (Object.is(source.v, value)) continue;
 		source.v = value;
 		source.wv = stamp();
-		dirty(source);
+		dirty(source, batch.order);
 	}
 }
 
