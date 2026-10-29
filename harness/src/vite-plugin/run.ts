@@ -1,15 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import {
-	cpSync,
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	readdirSync,
-	rmSync,
-	symlinkSync
-} from 'node:fs';
-import { join, resolve } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
 import { root } from '../manifest.ts';
+import { install, read, store } from '../store.ts';
 import { summarize, type Run } from '../summary.ts';
 import { samplesOf, treeNamed, type Tree } from '../trees.ts';
 
@@ -24,16 +17,6 @@ function tree(name: string): Tree {
 	return found;
 }
 
-interface Manifest {
-	name: string;
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-}
-
-function read(dir: string): Manifest {
-	return JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as Manifest;
-}
-
 function locals(e2e: string): Map<string, string> {
 	const found = new Map<string, string>();
 	const base = join(e2e, '_test_dependencies');
@@ -44,50 +27,6 @@ function locals(e2e: string): Map<string, string> {
 	return found;
 }
 
-interface Store {
-	root: string;
-	known: Map<string, string>;
-	copies: Map<string, string>;
-	linked: Set<string>;
-}
-
-function link(modules: string, dir: string, from: string, store: Store): void {
-	const manifest = read(dir);
-	for (const [name, spec] of Object.entries({
-		...manifest.dependencies,
-		...manifest.devDependencies
-	})) {
-		const local = store.known.get(name);
-		if (local === undefined) continue;
-		const at = join(modules, name);
-		mkdirSync(join(at, '..'), { recursive: true });
-		if (spec.startsWith('file:'))
-			symlinkSync(copy(resolve(from, spec.slice('file:'.length)), store), at, 'dir');
-		else {
-			symlinkSync(local, at, 'dir');
-			if (!store.linked.has(local)) {
-				store.linked.add(local);
-				link(join(local, 'node_modules'), local, local, store);
-			}
-		}
-	}
-}
-
-function copy(source: string, store: Store): string {
-	const done = store.copies.get(source);
-	if (done !== undefined) return done;
-	const name = read(source).name;
-	const modules = join(store.root, String(store.copies.size), 'node_modules');
-	const at = join(modules, name);
-	store.copies.set(source, at);
-	cpSync(source, at, {
-		recursive: true,
-		filter: (file) => !file.slice(source.length).split('/').includes('node_modules')
-	});
-	link(modules, at, source, store);
-	return at;
-}
-
 function prepare(): void {
 	rmSync(work, { recursive: true, force: true });
 	cpSync(samplesOf(tree('units')), join(work, 'packages', 'vite-plugin-svelte', '__tests__'), {
@@ -95,17 +34,11 @@ function prepare(): void {
 	});
 	const e2e = join(work, 'packages', 'e2e-tests');
 	cpSync(samplesOf(tree('e2e')), e2e, { recursive: true });
-	const store: Store = {
-		root: join(work, 'node_modules', '.local'),
-		known: locals(e2e),
-		copies: new Map(),
-		linked: new Set()
-	};
+	const into = store(join(work, 'node_modules', '.local'), locals(e2e));
 	for (const name of readdirSync(e2e)) {
 		const dir = join(e2e, name);
 		if (name === '_test_dependencies' || !existsSync(join(dir, 'package.json'))) continue;
-		mkdirSync(join(dir, 'node_modules'), { recursive: true });
-		link(join(dir, 'node_modules'), dir, dir, store);
+		install(dir, into);
 	}
 }
 

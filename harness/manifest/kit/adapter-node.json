@@ -1,0 +1,21 @@
+{
+  "conversions": {},
+  "samples": {
+    "basic/build.test.js > dependencies are not bundled": "contract",
+    "basic/build.test.js > exports the handler": "contract",
+    "basic/test/test.js > CSR": "contract",
+    "basic/test/test.js > does not record dotfiles, except .well-known": "contract",
+    "basic/test/test.js > does not set X-Accel-Buffering header on other responses": "contract",
+    "basic/test/test.js > initializes dynamic env before instrumentation": "contract",
+    "basic/test/test.js > loads bundled Svelte dependencies": "contract",
+    "basic/test/test.js > loads external dependencies": "contract",
+    "basic/test/test.js > records aliases for html files": "contract",
+    "basic/test/test.js > records the size, content hash and compressed variants of each file": "contract",
+    "basic/test/test.js > renders components from bundled Svelte dependencies": "contract",
+    "basic/test/test.js > serves immutable assets with an immutable cache header": "contract",
+    "basic/test/test.js > serves prerendered pages and redirects to their canonical path": "contract",
+    "basic/test/test.js > sets X-Accel-Buffering header on text/event-stream responses": "contract",
+    "basic/test/test.js > SSR": "contract",
+    "basic/test/test.js > uses the content types from the manifest": "contract"
+  }
+}

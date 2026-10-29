@@ -1,0 +1,12 @@
+{
+  "conversions": {},
+  "samples": {
+    "actions.test.ts > typechecks": "contract",
+    "app-error-enhanced/error.test.ts > typechecks": "contract",
+    "env.test.ts > typechecks": "contract",
+    "error.test.ts > typechecks": "contract",
+    "load.test.ts > typechecks": "contract",
+    "remote.test.ts > typechecks": "contract",
+    "request-event.test.ts > typechecks": "contract"
+  }
+}

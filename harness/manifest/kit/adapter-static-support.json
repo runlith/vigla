@@ -1,0 +1,6 @@
+{
+  "conversions": {
+    "utils.js": "Playwright runs its bundled Chromium instead of the `chrome` channel"
+  },
+  "samples": {}
+}

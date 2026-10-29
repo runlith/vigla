@@ -1,0 +1,22 @@
+{
+  "conversions": {
+    "prerendered/src/routes/+layout.svelte": "`<slot>` replaced by `children`",
+    "prerendered/src/routes/+page.svelte": "`export let` replaced by `$props()`",
+    "prerendered/src/routes/server-emitted-asset/+page.svelte": "`export let` replaced by `$props()`",
+    "spa/src/routes/+layout.svelte": "`<slot>` replaced by `children`"
+  },
+  "samples": {
+    "prerendered/test/test.js > exposes public env vars to the client": "contract",
+    "prerendered/test/test.js > generates HTML files": "contract",
+    "prerendered/test/test.js > prerenders a page": "contract",
+    "prerendered/test/test.js > prerenders a referenced endpoint with implicit `prerender` setting": "contract",
+    "prerendered/test/test.js > prerenders an unreferenced endpoint with explicit `prerender` setting": "contract",
+    "spa/test/test.js >  > fallback page includes root layout styles before CSR starts": "contract",
+    "spa/test/test.js > does not prerender pages without prerender=true": "contract",
+    "spa/test/test.js > generates a fallback page": "contract",
+    "spa/test/test.js > prerenders page with prerender=true": "contract",
+    "spa/test/test.js > renders content in fallback page when JS runs": "contract",
+    "spa/test/test.js > renders error page for missing page": "contract",
+    "spa/test/test.js > uses correct environment variables for fallback page (mode = staging)": "contract"
+  }
+}

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { outcomes } from './summary.ts';
+import { modeOf, outcomes } from './summary.ts';
 import { treeNamed, trees, type Tree } from './trees.ts';
 import { load, ruling } from './manifest.ts';
 import type { Variant } from './runtime/config.ts';
@@ -65,8 +65,9 @@ function harnessPassed(file: string, suite: Suite): Set<string> {
 function treePassed(tree: Tree, file: string, mode: string | undefined): Set<string> {
 	const manifest = load(tree.project, tree.name);
 	const found = new Set<string>();
-	for (const { key, state } of outcomes(tree, file) ?? []) {
-		if (state === 'passed' && ruling(manifest, key, mode)?.status === 'contract') found.add(key);
+	for (const { key, state, variant } of outcomes(tree, file, mode) ?? []) {
+		if (state === 'passed' && ruling(manifest, key, variant)?.status === 'contract')
+			found.add(variant === undefined ? key : `${key} (${variant})`);
 	}
 	return found;
 }
@@ -92,7 +93,7 @@ function compareTrees(
 				file === `${tree.name}.json` || (file.startsWith(`${tree.name}.`) && file.endsWith('.json'))
 		);
 		for (const report of reports.sort()) {
-			const mode = report.slice(tree.name.length + 1, -'.json'.length) || undefined;
+			const mode = modeOf(tree, report);
 			const harnessReport = join(harnessDir, report);
 			if (!existsSync(harnessReport)) {
 				console.log(`${tree.project}/${tree.name} ${report}: no harness report`);
@@ -104,7 +105,7 @@ function compareTrees(
 			const onlyUpstream = [...upstream].filter((key) => !harness.has(key));
 			const onlyHarness = [...harness].filter((key) => !upstream.has(key));
 			console.log(
-				`${tree.project}/${tree.name}${mode === undefined ? '' : ` (${mode})`}: ${upstream.size} contract entries pass upstream's runner, ${harness.size} the harness`
+				`${tree.project}/${tree.name} ${report}: ${upstream.size} contract entries pass upstream's runner, ${harness.size} the harness`
 			);
 			for (const key of onlyUpstream) console.log(`  only upstream: ${key}`);
 			for (const key of onlyHarness) console.log(`  only harness: ${key}`);

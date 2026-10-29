@@ -1,0 +1,6 @@
+{
+  "conversions": {
+    "utils.js": "Playwright runs its bundled Chromium instead of the `chrome` channel; each test is ruled from the harness manifest by an automatic fixture"
+  },
+  "samples": {}
+}

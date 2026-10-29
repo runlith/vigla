@@ -1,0 +1,25 @@
+{
+  "conversions": {},
+  "samples": {
+    "env.spec.js > $app/env/private is not dynamically importable from the client": "contract",
+    "env.spec.js > $app/env/private is not importable from client hooks outside the project root": "contract",
+    "env.spec.js > $app/env/private is not importable from the service worker": "contract",
+    "env.spec.js > $app/env/private is not statically importable from the client": "contract",
+    "env.spec.js > $app/forms, $app/navigation and $app/state are not importable from the service worker": "contract",
+    "prerender.spec.js > a root +server.js returning non-HTML cannot be prerendered": "contract",
+    "prerender.spec.js > an error in a `prerender` function should fail the build": "contract",
+    "prerender.spec.js > entry generators should match their own route": "contract",
+    "prerender.spec.js > links to missing fragments fail the build by default": "contract",
+    "prerender.spec.js > prerenderable routes must be prerendered": "contract",
+    "prerender.spec.js > prerendered endpoints cannot have fallback handlers": "contract",
+    "remote.spec.js > *.remote.js files cannot be used without the experimental.remoteFunctions flag": "contract",
+    "removed-modules.spec.js > an unresolved $lib import explains how to migrate": "contract",
+    "removed-modules.spec.js > an unresolved $service-worker import explains how to migrate": "contract",
+    "server-only.spec.js > #lib/*.server.* is not dynamically importable from the client": "contract",
+    "server-only.spec.js > #lib/*.server.* is not statically importable from the client": "contract",
+    "server-only.spec.js > #lib/**/server/* is not dynamically importable from the client": "contract",
+    "server-only.spec.js > #lib/**/server/* is not statically importable from the client": "contract",
+    "server-only.spec.js > a server-only module imported by both server and client code reports the browser import": "contract",
+    "syntax-error.spec.js > a syntax error fails the build": "contract"
+  }
+}

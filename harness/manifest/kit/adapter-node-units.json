@@ -1,0 +1,93 @@
+{
+  "conversions": {},
+  "samples": {
+    "env.spec.ts > timeout_env > parses positive integers correctly": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/env.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "env.spec.ts > timeout_env > parses zero correctly": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/env.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "env.spec.ts > timeout_env > returns the fallback when variable is not set": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/env.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "env.spec.ts > timeout_env > returns undefined when variable is not set and no fallback is provided": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/env.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "env.spec.ts > timeout_env > throws an error for negative integers": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/env.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "env.spec.ts > timeout_env > throws an error for non-integer values": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/env.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > answers a matching if-none-match with a 304 that carries the validators": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > decodes percent-encoding but not reserved characters or +": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > disallows non-GET/HEAD methods on recorded paths only": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > keeps scheme-like prerendered paths on the original origin": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > marks assets below the immutable directory only": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > negotiates the compressed variant": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > passes unknown paths to the next handler": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > resolves aliases to their html file": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > serves a recorded file with its precomputed headers": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > serves byte ranges": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "static.spec.ts > serves prerendered pages and redirects their non-canonical trailing-slash form": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/static.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "utils.spec.ts > format_listening_address > falls back to configured host and port when the address is unavailable": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/utils.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "utils.spec.ts > format_listening_address > formats IPv6 addresses as valid URLs": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/utils.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "utils.spec.ts > format_listening_address > returns the socket path unchanged": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/utils.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "utils.spec.ts > format_listening_address > uses the actual listening port assigned by the server": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/utils.js`; covered by the tests of @dromon/adapter-node"
+    },
+    "utils.spec.ts > parse_as_bytes > parses correctly": {
+      "status": "covered",
+      "reason": "drives adapter-node's internal `src/utils.js`; covered by the tests of @dromon/adapter-node"
+    }
+  }
+}

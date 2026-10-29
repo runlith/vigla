@@ -1,10 +1,13 @@
 import {
 	existsSync,
+	lstatSync,
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	readlinkSync,
 	rmSync,
 	statSync,
+	symlinkSync,
 	writeFileSync
 } from 'node:fs';
 import { basename, dirname, join, relative } from 'node:path';
@@ -24,11 +27,19 @@ const rewrites = JSON.parse(readFileSync(join(root, 'rewrites.json'), 'utf8')) a
 
 const specifier = /(\bfrom\s*|\bimport\s*\(\s*|\bimport\s+)(['"])([^'"\n]+)\2/g;
 
-export function rewrite(text: string): string {
+export function rewrite(text: string, map: Readonly<Record<string, string>> = rewrites): string {
 	return text.replace(specifier, (whole, lead: string, quote: string, path: string) => {
-		const replacement = rewrites[path];
+		const replacement = map[path];
 		return replacement === undefined ? whole : `${lead}${quote}${replacement}${quote}`;
 	});
+}
+
+const scripts = /\.(?:[cm]?[jt]s|svelte)$/;
+
+function upstreamFile(file: string, path: string, tree: Tree): Buffer {
+	const bytes = readFileSync(path);
+	if (tree.rewrites === undefined || !scripts.test(file)) return bytes;
+	return Buffer.from(rewrite(bytes.toString('utf8'), tree.rewrites));
 }
 
 function files(dir: string): string[] {
@@ -62,30 +73,42 @@ function copyTree(tree: Tree, check: boolean): number {
 	const to = samplesOf(tree);
 	const conversions = load(tree.project, tree.name).conversions ?? {};
 	const problems: string[] = [];
-	const upstream = treeFiles(from, tree.exclude);
-	const present = existsSync(to) ? treeFiles(to) : [];
+	const upstream = new Set(treeFiles(from, tree.exclude, tree.include));
+	const present = new Set(existsSync(to) ? treeFiles(to) : []);
 	for (const file of upstream) {
-		const wanted = readFileSync(join(from, file));
 		const dest = join(to, file);
-		const same = existsSync(dest) && readFileSync(dest).equals(wanted);
+		const exists = present.has(file);
+		if (lstatSync(join(from, file)).isSymbolicLink()) {
+			const target = readlinkSync(join(from, file));
+			if (exists && lstatSync(dest).isSymbolicLink() && readlinkSync(dest) === target) continue;
+			if (check) problems.push(`${file}: ${exists ? 'changed' : 'missing'} symlink`);
+			else {
+				rmSync(dest, { recursive: true, force: true });
+				mkdirSync(dirname(dest), { recursive: true });
+				symlinkSync(target, dest);
+			}
+			continue;
+		}
+		const wanted = upstreamFile(file, join(from, file), tree);
+		const same = exists && readFileSync(dest).equals(wanted);
 		if (file in conversions) {
 			if (check && same) problems.push(`${file}: converted in the manifest but equal to upstream`);
 			continue;
 		}
 		if (same) continue;
-		if (check) problems.push(`${file}: ${existsSync(dest) ? 'changed' : 'missing'}`);
+		if (check) problems.push(`${file}: ${exists ? 'changed' : 'missing'}`);
 		else {
 			mkdirSync(dirname(dest), { recursive: true });
 			writeFileSync(dest, wanted);
 		}
 	}
 	for (const file of present) {
-		if (upstream.includes(file) || file in conversions) continue;
+		if (upstream.has(file) || file in conversions) continue;
 		if (check) problems.push(`${file}: not an upstream file`);
 		else rmSync(join(to, file));
 	}
 	for (const file of Object.keys(conversions)) {
-		if (!upstream.includes(file) && !present.includes(file))
+		if (!upstream.has(file) && !present.has(file))
 			problems.push(`${file}: converted in the manifest but neither upstream nor copied`);
 	}
 	for (const problem of problems) console.error(`${tree.project}/${tree.name}: ${problem}`);
