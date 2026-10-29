@@ -387,6 +387,9 @@ export class Scopes {
 						if (node.declarator.init) this.expression(node.declarator.init, scope);
 					});
 					return;
+				case 'declaration':
+					this.expression(node.declaration, scope);
+					return;
 				case 'debug':
 					for (const identifier of node.identifiers) this.expression(identifier, scope);
 					return;

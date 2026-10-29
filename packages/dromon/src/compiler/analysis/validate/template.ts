@@ -11,7 +11,7 @@ import {
 	validateElement
 } from './element.ts';
 import { fail } from './report.ts';
-import { typeOf } from './scope.ts';
+import { identifiers, typeOf } from './scope.ts';
 
 export class Template {
 	readonly context: Context;
@@ -159,6 +159,18 @@ export class Template {
 				}
 				return;
 			}
+			case 'declaration': {
+				const path = context.path;
+				if (path.length !== 1 || typeOf(path[0]!) !== 'fragment') return;
+				for (const declarator of node.declaration.declarations) {
+					for (const id of identifiers(declarator.id)) {
+						if (context.instance?.declarations.has(id.name)) {
+							fail('declaration_duplicate', id, { name: id.name });
+						}
+					}
+				}
+				return;
+			}
 			default:
 				return;
 		}
@@ -252,6 +264,9 @@ export class Template {
 					const init = node.declarator.init;
 					if (init) context.deeper(context.depth + 1, () => context.es(init));
 				});
+				return;
+			case 'declaration':
+				context.deeper(context.scope.depth, () => context.es(node.declaration));
 				return;
 			case 'debug':
 				for (const identifier of node.identifiers) this.#expression(identifier);

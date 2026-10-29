@@ -53,6 +53,7 @@ action-on-component
 animation-comment-siblings
 animation-duplicate
 animation-each-with-const
+animation-each-with-declaration-tag
 animation-each-with-whitespace
 animation-not-in-each
 animation-not-in-keyed-each
@@ -133,10 +134,13 @@ custom-element-props-identifier
 custom-element-props-identifier-props-option
 custom-element-props-identifier-rest
 debug-invalid-args
+declaration-tag-already-declared
 declaration-tag-invalid-function
 declaration-tag-invalid-type
 declaration-tag-invalid-type-2
 declaration-tag-maybe-runes
+declaration-tag-snippet-parameter
+declaration-tag-state-referenced-locally
 default-export
 default-export-anonymous-class
 default-export-anonymous-function

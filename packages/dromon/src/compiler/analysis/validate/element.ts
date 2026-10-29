@@ -41,6 +41,7 @@ function animation(context: Context, attribute: IR.Animation): void {
 		(node) =>
 			node.kind !== 'comment' &&
 			node.kind !== 'constant' &&
+			node.kind !== 'declaration' &&
 			(node.kind !== 'text' || node.data.trim() !== '')
 	);
 	if (body.length > 1) fail('animation_invalid_placement', attribute);
