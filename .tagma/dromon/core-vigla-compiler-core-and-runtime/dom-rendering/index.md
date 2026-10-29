@@ -50,6 +50,9 @@ fields:
       },
       {
         "at": "list.ts"
+      },
+      {
+        "at": "attachments.ts"
       }
     ],
     "id": "dom",
