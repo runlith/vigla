@@ -23,15 +23,46 @@ const named: Readonly<Record<string, string>> = {
 	nbsp: ' '
 };
 
-const entity = /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi;
+const uppercase: Readonly<Record<string, string>> = { AMP: '&', LT: '<', GT: '>', QUOT: '"' };
 
-function decode(raw: string): string {
-	return raw.replace(entity, (whole, body: string) => {
-		if (body.startsWith('#x') || body.startsWith('#X'))
-			return String.fromCodePoint(parseInt(body.slice(2), 16));
-		if (body.startsWith('#')) return String.fromCodePoint(parseInt(body.slice(1), 10));
-		return named[body.toLowerCase()] ?? whole;
-	});
+const legacy = new Set(['amp', 'lt', 'gt', 'quot', 'nbsp', 'AMP', 'LT', 'GT', 'QUOT']);
+
+const reference = /&(?:#([xX][0-9a-fA-F]+|\d+);?|([A-Za-z][A-Za-z0-9]*)(;?))/g;
+
+function codePoint(digits: string): string {
+	const hex = digits[0] === 'x' || digits[0] === 'X';
+	const code = hex ? parseInt(digits.slice(1), 16) : parseInt(digits, 10);
+	const valid = code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff);
+	return String.fromCodePoint(valid ? code : 0xfffd);
+}
+
+function decode(raw: string, start: number, attribute: boolean): string {
+	return raw.replace(
+		reference,
+		(
+			whole: string,
+			digits: string | undefined,
+			name: string | undefined,
+			end: string | undefined,
+			offset: number
+		) => {
+			if (digits !== undefined) return codePoint(digits);
+			const word = name ?? '';
+			const value = named[word] ?? uppercase[word];
+			if (end === ';') {
+				if (value !== undefined) return value;
+				throw new CompileError({
+					code: 'unsupported',
+					message: `The character reference \`&${word};\` is not supported yet`,
+					start: start + offset,
+					end: start + offset + whole.length
+				});
+			}
+			if (value === undefined || !legacy.has(word)) return whole;
+			if (attribute && raw[offset + whole.length] === '=') return whole;
+			return value;
+		}
+	);
 }
 
 const voids = new Set([
@@ -158,7 +189,7 @@ class Parser {
 		const start = this.index;
 		while (this.index < this.source.length && !this.at('<') && !this.at('{')) this.index++;
 		const raw = this.source.slice(start, this.index);
-		return { type: 'Text', start, end: this.index, raw, data: decode(raw) };
+		return { type: 'Text', start, end: this.index, raw, data: decode(raw, start, false) };
 	}
 
 	comment(): Comment {
@@ -306,7 +337,7 @@ class Parser {
 
 	textPart(start: number): Text {
 		const raw = this.source.slice(start, this.index);
-		return { type: 'Text', start, end: this.index, raw, data: decode(raw) };
+		return { type: 'Text', start, end: this.index, raw, data: decode(raw, start, true) };
 	}
 
 	attributes(): Attribute[] {
@@ -386,6 +417,14 @@ class Parser {
 			return null;
 		}
 		if (name === 'style') this.unsupported('A style element', start);
+		if (name === 'slot') {
+			this.fail(
+				'slot_element_deprecated',
+				'Using `<slot>` to render parent content is deprecated. Use `{@render ...}` tags instead',
+				start
+			);
+		}
+		if (name === 'script') this.unsupported('A script element inside the template', start);
 		if (name.includes(':') || /^[A-Z]/.test(name) || name.includes('.'))
 			this.unsupported(`The <${name}> element`, start);
 		let nodes: TemplateNode[] = [];

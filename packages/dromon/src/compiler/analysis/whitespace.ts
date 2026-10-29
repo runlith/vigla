@@ -1,5 +1,10 @@
 import type { Fragment, Node, Text } from '../ir/nodes.ts';
 
+export interface Preserve {
+	readonly whitespace: boolean;
+	readonly comments: boolean;
+}
+
 const leading = /^[ \t\r\n]+/;
 const trailing = /[ \t\r\n]+$/;
 const visible = /[^ \t\r\n]/;
@@ -15,19 +20,27 @@ const removable = new Set([
 	'datalist'
 ]);
 
-const preserving = new Set(['pre', 'textarea']);
+export const preserving: ReadonlySet<string> = new Set(['pre', 'textarea']);
 
 function text(node: Text, data: string): Text {
 	return data === node.data ? node : { ...node, data };
 }
 
-export function clean(
-	fragment: Fragment,
-	parent: string | null,
-	preserve: { whitespace: boolean; comments: boolean }
-): Node[] {
+function dropPreNewline(nodes: Node[], parent: string | null): Node[] {
+	const [first] = nodes;
+	if (
+		parent === 'pre' &&
+		first?.kind === 'text' &&
+		(first.data === '\n' || first.data === '\r\n')
+	) {
+		return nodes.slice(1);
+	}
+	return nodes;
+}
+
+export function clean(fragment: Fragment, parent: string | null, preserve: Preserve): Node[] {
 	const nodes = fragment.nodes.filter((node) => node.kind !== 'comment' || preserve.comments);
-	if (preserve.whitespace || (parent !== null && preserving.has(parent))) return nodes;
+	if (preserve.whitespace) return dropPreNewline(nodes, parent);
 
 	let start = 0;
 	let end = nodes.length;

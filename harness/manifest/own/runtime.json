@@ -1,5 +1,6 @@
 {
 	"samples": {
-		"filtered-keyed-list": "contract"
+		"filtered-keyed-list": "contract",
+		"leading-nested-block": "contract"
 	}
 }

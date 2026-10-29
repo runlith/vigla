@@ -1,5 +1,11 @@
 import type * as ES from 'estree';
-import { spanOf, unsupported, type Binding, type ScriptAnalysis } from '../analysis/index.ts';
+import {
+	isSignal,
+	spanOf,
+	unsupported,
+	type Binding,
+	type ScriptAnalysis
+} from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Rune } from '../ir/port.ts';
 
@@ -19,15 +25,6 @@ export function runtime(
 	return b.call(b.member(context.runtime, name), ...args);
 }
 
-function signal(binding: Binding): boolean {
-	return (
-		binding.kind === 'state' ||
-		binding.kind === 'raw-state' ||
-		binding.kind === 'derived' ||
-		binding.kind === 'item'
-	);
-}
-
 function primitive(node: ES.Expression): boolean {
 	return node.type === 'Literal' && !('regex' in node);
 }
@@ -43,16 +40,20 @@ function argument(node: ES.CallExpression): ES.Expression | null {
 function declare(
 	context: Context,
 	rune: Rune,
+	binding: Binding | undefined,
 	init: ES.CallExpression,
 	next: <T extends ES.Node>(node: T) => T
 ): ES.Expression {
 	const given = argument(init);
 	const value = given === null ? b.id('undefined') : next(given);
+	const source = binding !== undefined && isSignal(binding);
 	switch (rune) {
-		case '$state':
-			return runtime(context, 'state', primitive(value) ? value : runtime(context, 'proxy', value));
+		case '$state': {
+			const proxied = primitive(value) ? value : runtime(context, 'proxy', value);
+			return source ? runtime(context, 'state', proxied) : proxied;
+		}
 		case '$state.raw':
-			return runtime(context, 'state', value);
+			return source ? runtime(context, 'state', value) : value;
 		case '$derived':
 			return runtime(context, 'derived', b.arrow([], value));
 		case '$derived.by':
@@ -91,12 +92,12 @@ function assign(
 }
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
-	const { references, runes } = context.analysis;
+	const { references, declarations, runes } = context.analysis;
 	return b.rewrite(node, (current, next) => {
 		switch (current.type) {
 			case 'Identifier': {
 				const binding = references.get(current);
-				if (binding === undefined || context.plain.has(binding) || !signal(binding))
+				if (binding === undefined || context.plain.has(binding) || !isSignal(binding))
 					return undefined;
 				return runtime(context, 'get', current);
 			}
@@ -109,21 +110,16 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			case 'AssignmentExpression': {
 				if (current.left.type !== 'Identifier') return undefined;
 				const binding = references.get(current.left);
-				if (binding === undefined || !signal(binding)) return undefined;
+				if (binding === undefined || !isSignal(binding)) return undefined;
 				return assign(context, current, binding, next);
-			}
-			case 'UpdateExpression': {
-				if (current.argument.type !== 'Identifier') return undefined;
-				const binding = references.get(current.argument);
-				if (binding === undefined || !signal(binding)) return undefined;
-				throw unsupported(spanOf(current), 'Updating state with ++ or --');
 			}
 			case 'VariableDeclarator': {
 				const init = current.init;
 				if (init?.type !== 'CallExpression') return undefined;
 				const rune = runes.get(init.callee);
 				if (rune === undefined) return undefined;
-				return { ...current, init: declare(context, rune, init, next) };
+				const binding = current.id.type === 'Identifier' ? declarations.get(current.id) : undefined;
+				return { ...current, init: declare(context, rune, binding, init, next) };
 			}
 			default:
 				return undefined;

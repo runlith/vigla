@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import { children } from '../ir/estree.ts';
+import type { Span } from '../ir/nodes.ts';
 import { CompileError, type Rune, type Runes } from '../ir/port.ts';
 
 export type BindingKind = 'normal' | 'state' | 'raw-state' | 'derived' | 'item' | 'import';
@@ -37,12 +38,12 @@ export class Scope {
 	}
 }
 
-export function spanOf(node: ES.Node): { start: number; end: number } {
-	const located = node as ES.Node & { start?: number; end?: number };
+export function spanOf(node: ES.Node): Span {
+	const located = node as ES.Node & Partial<Span>;
 	return { start: located.start ?? 0, end: located.end ?? 0 };
 }
 
-export function unsupported(span: { start: number; end: number }, what: string): CompileError {
+export function unsupported(span: Span, what: string): CompileError {
 	return new CompileError({
 		code: 'unsupported',
 		message: `${what} is not supported yet`,
@@ -95,8 +96,9 @@ function isReference(node: ES.Identifier, parent: ES.Node | null): boolean {
 		case 'MemberExpression':
 			return parent.object === node || parent.computed;
 		case 'MethodDefinition':
-		case 'PropertyDefinition':
 			return parent.computed && parent.key === node;
+		case 'PropertyDefinition':
+			return parent.value === node || (parent.computed && parent.key === node);
 		case 'Property':
 			return parent.computed ? true : parent.value === node;
 		case 'ExportSpecifier':
@@ -217,15 +219,34 @@ export class Scopes {
 			if (binding !== null) this.references.set(node, binding);
 			return;
 		}
-		if (node.type === 'AssignmentExpression' || node.type === 'UpdateExpression') {
-			const target = node.type === 'AssignmentExpression' ? node.left : node.argument;
-			const names = target.type === 'Identifier' ? [target] : patternNames(target as ES.Pattern);
-			for (const name of names) {
-				const binding = inner.lookup(name.name);
-				if (binding !== null) binding.reassigned = true;
-			}
+		if (node.type === 'AssignmentExpression')
+			this.written(
+				node.left,
+				inner,
+				node.left.type !== 'Identifier',
+				'Destructuring assignment to'
+			);
+		if (node.type === 'UpdateExpression')
+			this.written(node.argument as ES.Pattern, inner, true, 'Updating with ++ or --');
+		if (
+			(node.type === 'ForInStatement' || node.type === 'ForOfStatement') &&
+			node.left.type !== 'VariableDeclaration'
+		) {
+			this.written(node.left, inner, true, 'A loop assigning to');
 		}
 		children(node, (child) => this.resolve(child, inner, node));
+	}
+
+	private written(target: ES.Pattern, scope: Scope, refused: boolean, what: string): void {
+		const names = target.type === 'Identifier' ? [target] : patternNames(target);
+		for (const name of names) {
+			const binding = scope.lookup(name.name);
+			if (binding === null) continue;
+			binding.reassigned = true;
+			if (refused && binding.kind !== 'normal' && binding.kind !== 'import') {
+				throw unsupported(spanOf(target), `${what} a ${binding.kind} binding`);
+			}
+		}
 	}
 
 	private pattern(pattern: ES.Pattern, scope: Scope, kind: BindingKind, rune: Rune | null): void {

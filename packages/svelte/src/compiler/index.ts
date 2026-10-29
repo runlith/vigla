@@ -7,6 +7,7 @@ import {
 	type Runtime
 } from 'dromon/compiler';
 import { front } from '../front/index.ts';
+import { validate, type Notice } from './options.ts';
 
 export interface Experimental {
 	async?: boolean;
@@ -104,30 +105,12 @@ export class CompileError extends Error {
 	}
 }
 
-function invalid(source: string, filename: string | undefined, message: string): CompileError {
-	return new CompileError(
-		{ code: 'options_invalid_value', message, start: 0, end: 0 },
-		source,
-		filename
-	);
+function generated(options: ModuleCompileOptions): 'client' | 'server' {
+	return options.generate === 'server' ? 'server' : 'client';
 }
 
-function generated(source: string, options: ModuleCompileOptions): 'client' | 'server' {
-	if (options.experimental?.async === false) {
-		throw invalid(
-			source,
-			options.filename,
-			'Invalid compiler option: `experimental.async: false` — async is the only mode'
-		);
-	}
-	if (options.generate === false) {
-		throw invalid(
-			source,
-			options.filename,
-			'Invalid compiler option: `generate: false` is not supported yet'
-		);
-	}
-	return options.generate ?? 'client';
+function warnings(notices: readonly Notice[], filename: string | undefined): Warning[] {
+	return notices.map((notice) => ({ code: notice.code, message: notice.message, filename }));
 }
 
 function componentName(filename: string | undefined): string {
@@ -154,32 +137,35 @@ function guarded<T>(source: string, filename: string | undefined, run: () => T):
 }
 
 export function compile(source: string, options: CompileOptions = {}): CompileResult {
-	if (options.runes === false) {
-		throw invalid(
-			source,
-			options.filename,
-			'Invalid compiler option: `runes: false` — legacy mode is not supported'
-		);
-	}
-	const generate = generated(source, options);
 	return guarded(source, options.filename, () => {
+		const notices = validate(options, 'component');
 		const reading = front.component({ source, filename: options.filename ?? null });
 		const output = compileUnit(reading.unit, {
-			generate,
+			generate: generated(options),
 			runtime,
 			name: options.name ?? componentName(options.filename),
 			preserveWhitespace: options.preserveWhitespace,
 			preserveComments: options.preserveComments
 		});
-		return { js: output.js, css: null, warnings: [], metadata: { runes: true } };
+		return {
+			js: output.js,
+			css: null,
+			warnings: warnings(notices, options.filename),
+			metadata: { runes: true }
+		};
 	});
 }
 
 export function compileModule(source: string, options: ModuleCompileOptions = {}): CompileResult {
-	const generate = generated(source, options);
 	return guarded(source, options.filename, () => {
+		const notices = validate(options, 'module');
 		const reading = front.module({ source, filename: options.filename ?? null });
-		const output = compileModuleUnit(reading.unit, { generate, runtime });
-		return { js: output.js, css: null, warnings: [], metadata: { runes: true } };
+		const output = compileModuleUnit(reading.unit, { generate: generated(options), runtime });
+		return {
+			js: output.js,
+			css: null,
+			warnings: warnings(notices, options.filename),
+			metadata: { runes: true }
+		};
 	});
 }

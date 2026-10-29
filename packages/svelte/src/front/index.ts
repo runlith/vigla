@@ -1,13 +1,14 @@
 import { parseProgram, type FrontEnd } from 'dromon/compiler';
-import { collectRunes, Lowering } from './lower.ts';
+import { Lowering } from './lower.ts';
 import { parse } from './parse.ts';
+import { Resolution } from './runes.ts';
 
 export const front: FrontEnd = {
 	component({ source, filename }) {
 		const ast = parse(source);
 		const lowering = new Lowering();
-		if (ast.instance !== null) lowering.expression(ast.instance.content);
-		if (ast.module !== null) lowering.expression(ast.module.content);
+		if (ast.module !== null) lowering.program(ast.module.content);
+		if (ast.instance !== null) lowering.program(ast.instance.content);
 		const template = lowering.fragment(ast.fragment);
 		return {
 			unit: {
@@ -18,7 +19,7 @@ export const front: FrontEnd = {
 				instance: ast.instance?.content ?? null,
 				template,
 				options: null,
-				runes: lowering.runes,
+				runes: lowering.resolution.runes,
 				ignores: new Map()
 			},
 			warnings: []
@@ -26,10 +27,17 @@ export const front: FrontEnd = {
 	},
 	module({ source, filename }) {
 		const program = parseProgram(source, 0, source.length);
-		const runes = new Map();
-		collectRunes(program, runes);
+		const resolution = new Resolution();
+		resolution.program(program);
 		return {
-			unit: { kind: 'module', source, filename, program, runes, ignores: new Map() },
+			unit: {
+				kind: 'module',
+				source,
+				filename,
+				program,
+				runes: resolution.runes,
+				ignores: new Map()
+			},
 			warnings: []
 		};
 	}

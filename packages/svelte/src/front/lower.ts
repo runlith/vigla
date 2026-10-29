@@ -1,65 +1,17 @@
 import type * as ES from 'estree';
 import type * as IR from 'dromon/compiler';
 import type * as AST from './ast.ts';
-
-const known = new Set<string>([
-	'$state',
-	'$state.raw',
-	'$state.snapshot',
-	'$state.eager',
-	'$derived',
-	'$derived.by',
-	'$effect',
-	'$effect.pre',
-	'$effect.root',
-	'$effect.tracking',
-	'$effect.pending',
-	'$props',
-	'$props.id',
-	'$bindable',
-	'$inspect',
-	'$inspect.trace',
-	'$host'
-]);
-
-const skipped = new Set(['type', 'loc', 'range', 'start', 'end']);
-
-function runeOf(callee: ES.Node): IR.Rune | null {
-	let name: string | null = null;
-	if (callee.type === 'Identifier') name = callee.name;
-	else if (
-		callee.type === 'MemberExpression' &&
-		!callee.computed &&
-		callee.object.type === 'Identifier' &&
-		callee.property.type === 'Identifier'
-	) {
-		name = `${callee.object.name}.${callee.property.name}`;
-	}
-	return name !== null && known.has(name) ? (name as IR.Rune) : null;
-}
-
-export function collectRunes(node: ES.Node, runes: Map<ES.Node, IR.Rune>): void {
-	if (node.type === 'CallExpression') {
-		const rune = runeOf(node.callee);
-		if (rune !== null) runes.set(node.callee, rune);
-	}
-	for (const key of Object.keys(node)) {
-		if (skipped.has(key)) continue;
-		const value = (node as unknown as Record<string, unknown>)[key];
-		const items = Array.isArray(value) ? value : [value];
-		for (const item of items) {
-			if (typeof item === 'object' && item !== null && typeof (item as ES.Node).type === 'string') {
-				collectRunes(item as ES.Node, runes);
-			}
-		}
-	}
-}
+import { Resolution } from './runes.ts';
 
 export class Lowering {
-	readonly runes = new Map<ES.Node, IR.Rune>();
+	readonly resolution = new Resolution();
+
+	program(program: ES.Program): void {
+		this.resolution.program(program);
+	}
 
 	expression<T extends ES.Node>(expression: T): T {
-		collectRunes(expression, this.runes);
+		this.resolution.expression(expression);
 		return expression;
 	}
 

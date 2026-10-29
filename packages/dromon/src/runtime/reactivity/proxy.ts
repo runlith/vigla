@@ -60,7 +60,8 @@ export function proxy<T>(value: T): T {
 			if (prop === RAW) return object;
 			if (!tracked(prop)) return Reflect.get(object, prop, receiver);
 			const found = get(source(prop));
-			return found === ABSENT ? Reflect.get(object, prop, receiver) : found;
+			if (found !== ABSENT) return found;
+			return Object.hasOwn(object, prop) ? undefined : Reflect.get(object, prop, receiver);
 		},
 		has(object, prop) {
 			if (prop === RAW) return true;
@@ -73,8 +74,10 @@ export function proxy<T>(value: T): T {
 			if (array && prop === 'length') {
 				const length = sources.get('length') as Source<unknown>;
 				for (let position = next as number; position < (length.v as number); position++) {
-					const item = sources.get(String(position));
-					if (item !== undefined) write(item, ABSENT);
+					const key = String(position);
+					const item = sources.get(key);
+					if (item === undefined) sources.set(key, state(ABSENT));
+					else write(item, ABSENT);
 				}
 				write(length, next);
 				write(keys, (keys.v as number) + 1);

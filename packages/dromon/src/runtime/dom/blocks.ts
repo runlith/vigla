@@ -47,7 +47,7 @@ export class DuplicateKey extends Error {
 
 export function list<T>(
 	anchor: ChildNode,
-	collection: () => Iterable<T> | ArrayLike<T>,
+	collection: () => Iterable<T> | ArrayLike<T> | null | undefined,
 	key: ((item: T) => unknown) | null,
 	render: Item<T>
 ): void {
@@ -55,7 +55,8 @@ export function list<T>(
 	let order: Row<T>[] = [];
 	let first = true;
 	block(() => {
-		const items = Array.from(collection());
+		const given = collection();
+		const items = given == null ? [] : Array.from(given);
 		const next: Row<T>[] = [];
 		const seen = new Map<unknown, Row<T>>();
 		for (let position = 0; position < items.length; position++) {

@@ -4,18 +4,19 @@ import type { Render } from './template.ts';
 
 export interface Built {
 	readonly effect: Effect;
-	readonly first: ChildNode | null;
-	readonly last: ChildNode | null;
+	readonly first: ChildNode;
+	readonly last: ChildNode;
 	fragment: DocumentFragment | null;
 }
 
-export function build(render: Render): Built {
+export function build(render: Render, create: (fn: () => void) => Effect = branch): Built {
 	const fragment = document.createDocumentFragment();
+	const first = document.createTextNode('');
 	const anchor = document.createTextNode('');
-	fragment.append(anchor);
-	const effect = branch(() => render(anchor));
+	fragment.append(first, anchor);
+	const effect = create(() => render(anchor));
 	anchor.remove();
-	return { effect, first: fragment.firstChild, last: fragment.lastChild, fragment };
+	return { effect, first, last: fragment.lastChild as ChildNode, fragment };
 }
 
 export function place(built: Built, before: ChildNode): void {
@@ -24,7 +25,7 @@ export function place(built: Built, before: ChildNode): void {
 		built.fragment = null;
 		return;
 	}
-	if (built.first === null || built.last?.nextSibling === before) return;
+	if (built.last.nextSibling === before) return;
 	let node: ChildNode = built.first;
 	for (;;) {
 		const next = node.nextSibling;
@@ -35,7 +36,7 @@ export function place(built: Built, before: ChildNode): void {
 }
 
 export function discard(built: Built): void {
-	if (built.fragment === null && built.first !== null) {
+	if (built.fragment === null) {
 		let node: ChildNode | null = built.first;
 		while (node !== null) {
 			const next: ChildNode | null = node.nextSibling;

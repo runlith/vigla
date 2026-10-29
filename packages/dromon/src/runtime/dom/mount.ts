@@ -1,5 +1,5 @@
-import { destroy, root } from '../reactivity/effects.ts';
-import type { Effect } from '../reactivity/graph.ts';
+import { root } from '../reactivity/effects.ts';
+import { build, discard, type Built } from './range.ts';
 
 export type Props = Record<string, unknown>;
 
@@ -16,29 +16,20 @@ export interface MountOptions<P extends Props> {
 	readonly anchor?: ChildNode | null;
 }
 
-interface Mounted {
-	readonly effect: Effect;
-	readonly first: ChildNode | null;
-	readonly last: ChildNode | null;
-}
-
-const mounted = new WeakMap<object, Mounted>();
+const mounted = new WeakMap<object, Built>();
 
 export function mount<P extends Props, E extends Exports>(
 	component: Component<P, E>,
 	options: MountOptions<P>
 ): E {
-	const fragment = document.createDocumentFragment();
-	const anchor = document.createTextNode('');
-	fragment.append(anchor);
 	let exports: E | void = undefined;
-	const effect = root(() => {
+	const built = build((anchor) => {
 		exports = component(anchor, options.props ?? ({} as P));
-	});
-	anchor.remove();
+	}, root);
 	const instance = (exports ?? {}) as E;
-	mounted.set(instance, { effect, first: fragment.firstChild, last: fragment.lastChild });
-	options.target.insertBefore(fragment, options.anchor ?? null);
+	mounted.set(instance, built);
+	options.target.insertBefore(built.fragment as DocumentFragment, options.anchor ?? null);
+	built.fragment = null;
 	return instance;
 }
 
@@ -46,14 +37,7 @@ export function unmount(instance: object): Promise<void> {
 	const found = mounted.get(instance);
 	if (found !== undefined) {
 		mounted.delete(instance);
-		let node = found.first;
-		while (node !== null) {
-			const next: ChildNode | null = node.nextSibling;
-			node.remove();
-			if (node === found.last) break;
-			node = next;
-		}
-		destroy(found.effect);
+		discard(found);
 	}
 	return Promise.resolve();
 }

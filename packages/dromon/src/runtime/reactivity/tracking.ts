@@ -65,6 +65,7 @@ export function track<T>(target: Reaction, fn: () => T): T {
 	try {
 		return fn();
 	} finally {
+		for (const dep of reads) if (isDerived(dep) && dep.status !== CLEAN) invalidated = true;
 		reconcile(target, reads);
 		target.rv = now();
 		target.status = invalidated ? DIRTY : CLEAN;

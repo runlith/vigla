@@ -20,10 +20,14 @@ export interface RenderOptions<P extends Props> {
 	readonly props?: P;
 }
 
+export interface Hashes {
+	readonly script: readonly string[];
+}
+
 export interface Rendered {
 	readonly head: string;
 	readonly body: string;
-	readonly hashes: { readonly script: readonly string[] };
+	readonly hashes: Hashes;
 }
 
 export type Rendering = Rendered & PromiseLike<Rendered>;
