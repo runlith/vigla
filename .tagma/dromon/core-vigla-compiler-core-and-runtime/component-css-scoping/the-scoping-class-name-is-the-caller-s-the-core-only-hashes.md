@@ -6,6 +6,8 @@ tags: ["explanation"]
 sources:
   - kind: file
     ref: packages/vigla/src/compiler/css/hash.ts
+  - kind: file
+    ref: packages/vigla/src/shared/hash.ts
 ---
 The core takes the class as `css.hash` and names no scheme, so an adapter keeps its own: the `.svelte` adapter applies `cssHash` and otherwise uses `svelte-` and the core's `hash` of the root-relative filename, or of the sheet text when there is no filename. A client and a server compile of one component must receive the same name, since hydration claims server markup whose classes the client then updates.
 
