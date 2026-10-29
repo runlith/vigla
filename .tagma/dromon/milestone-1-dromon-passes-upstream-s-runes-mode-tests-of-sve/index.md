@@ -53,7 +53,6 @@ The reference configuration is runes forced and async on, for every test that co
 - Adapters: recommended node and static; `adapter-auto` installs the Vercel, Cloudflare and Netlify adapters, so it waits for them.
 - Out of this milestone, recommended: the `snapshot` suite (it pins upstream's generated code, which a new code generator does not reproduce), `@sveltejs/package`, `@sveltejs/enhanced-img` and the vite-plugin inspector.
 - Package names `dromon`, `@dromon/svelte`, `@dromon/kit`, `@dromon/vite-plugin`, `@dromon/adapter-*`: npm `dromon` is free, the `@dromon` scope is not verified.
-- The harness against rule [[468243f4]]: thousands of entries stay red until built. Proposed: the run against Dromon is a progress report, not the repository's test suite; an entry joins the test suite in the change that makes it pass, and from then on a red is a failing test under the rule.
 
 **Acceptance.**
 - The manifest gives every upstream test in scope a status, and every non-contract status a reason.

@@ -27,9 +27,10 @@ edges:
 
 **Validated on upstream first.** Before any Dromon code, the runners on `targets/upstream` must reproduce the pass set of upstream's own runners run with runes forced and async on. A runner change is valid only when that equality still holds.
 
-**Report.** One command runs the whole harness against either target and prints counts per suite and status.
+**Report and the passing set.** One command runs the whole harness against either target and prints counts per suite, status and result. Against Dromon that run is a progress report: an entry Dromon has never passed fails nothing. The entries Dromon passes are recorded in the repository per suite; the change that first makes an entry pass records it, and a recorded entry that fails fails the run. The recorded set is the repository's test suite on Dromon: one command runs it alone, and one runs a single suite or sample for a change that affects only it.
 
 **Acceptance.**
 - Every upstream test in scope has a status in the manifest.
 - On `targets/upstream`, Dromon's runners pass exactly the contract entries upstream's own runners pass in the reference configuration.
 - No runner imports anything under `svelte/internal`; only the upstream target's hook touches upstream internals.
+- On `targets/dromon`, a run fails exactly when a recorded entry fails.
