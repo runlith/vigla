@@ -1,12 +1,13 @@
 import type * as ES from 'estree';
 import { unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { DynamicElement } from '../ir/nodes.ts';
+import type { DynamicElement, Transition } from '../ir/nodes.ts';
 import { bindThisCall } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { spread, valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
 import { cleaned, flush, render, scopeHash, type Emit, type TemplateContext } from './template.ts';
+import { transitionCall } from './transitions.ts';
 
 function dynamicNamespace(context: TemplateContext, node: DynamicElement): ES.Expression | null {
 	for (const attribute of node.attributes) {
@@ -31,8 +32,12 @@ export function dynamicCall(
 	const inner = b.id(context.names.unique('$$anchor'));
 	const emit: Emit = { init: [], update: [], thunks: [], params: [] };
 	let attributes = scopeHash(context, node) !== null;
+	const transitions: Transition[] = [];
 	for (const attribute of node.attributes) {
 		switch (attribute.kind) {
+			case 'transition':
+				transitions.push(attribute);
+				break;
 			case 'action':
 				emit.init.push(actionCall(context, element, attribute));
 				break;
@@ -55,6 +60,8 @@ export function dynamicCall(
 		}
 	}
 	if (attributes) spread(context, node, element, emit);
+	for (const transition of transitions)
+		emit.init.push(transitionCall(context, element, transition));
 	const children = render(context, cleaned(context, node.body), inner, namespace, false);
 	const body = [...flush(context, emit), ...children];
 	const args: ES.Expression[] = [

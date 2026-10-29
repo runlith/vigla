@@ -73,7 +73,7 @@ export function element(
 	namespace: (() => string | null | undefined) | null = null
 ): void {
 	if (hydrating) advance();
-	const branches = new Branches<string | null>(node);
+	const branches = new Branches<string | null>(node, true);
 	let first = true;
 	block(() => {
 		const next = (tag() as string | null | undefined) || null;
