@@ -1,0 +1,10 @@
+{
+	"../../test": "@dromon/harness/helpers",
+	"../../../helpers": "@dromon/harness/helpers",
+	"../../../helpers.js": "@dromon/harness/helpers",
+	"../../../animation-helpers": "@dromon/harness/helpers",
+	"../../../animation-helpers.js": "@dromon/harness/helpers",
+	"../../../suite": "@dromon/harness/helpers",
+	"../../../../src/index-client": "svelte",
+	"../../../../src/index-client.js": "svelte"
+}

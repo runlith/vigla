@@ -1,0 +1,17 @@
+{
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"harness",
+		"targets/*"
+	],
+	"scripts": {
+		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^25.3.1",
+		"oxfmt": "^0.72.0",
+		"tsrs": "0.18.0-ts7.1.0-dev.20260929"
+	}
+}

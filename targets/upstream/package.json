@@ -1,0 +1,13 @@
+{
+	"name": "@dromon/target-upstream",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@dromon/harness": "workspace:*",
+		"svelte": "5.57.3",
+		"vitest": "4.1.7"
+	}
+}

@@ -1,0 +1,18 @@
+{
+	"name": "@dromon/harness",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./vitest": "./src/vitest.ts",
+		"./helpers": "./src/helpers.ts",
+		"./target": "./src/target.ts"
+	},
+	"scripts": {
+		"copy": "node src/copy.ts"
+	},
+	"dependencies": {
+		"jsdom": "25.0.1",
+		"vite": "7.3.5",
+		"vitest": "4.1.7"
+	}
+}

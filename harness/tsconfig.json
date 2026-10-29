@@ -1,0 +1,4 @@
+{
+	"extends": "../tsconfig.json",
+	"include": ["src", "suites", "../targets/upstream/node_modules/svelte/types/index.d.ts"]
+}
