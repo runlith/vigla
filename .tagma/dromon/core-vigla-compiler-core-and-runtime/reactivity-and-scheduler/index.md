@@ -35,6 +35,9 @@ fields:
       },
       {
         "at": "tasks.ts"
+      },
+      {
+        "at": "latest.ts"
       }
     ],
     "id": "reactivity",
