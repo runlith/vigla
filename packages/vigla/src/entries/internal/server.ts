@@ -18,6 +18,7 @@ export {
 	appendStyles,
 	boundary,
 	derived,
+	element,
 	head,
 	held,
 	iterate,

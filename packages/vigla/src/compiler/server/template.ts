@@ -7,6 +7,7 @@ import * as b from '../ir/estree.ts';
 import type {
 	Attribute,
 	ClassToggle,
+	DynamicElement,
 	Element,
 	Expression,
 	Fragment,
@@ -175,6 +176,15 @@ function spreadAttributes(
 	html: boolean,
 	buffer: Buffer
 ): void {
+	buffer.value(attributesCall(context, node, html));
+}
+
+export function attributesCall(
+	context: TemplateContext,
+	node: Element | DynamicElement,
+	html: boolean
+): ES.Expression {
+	const name = node.kind === 'element' ? node.name : '';
 	const properties: (ES.Property | ES.SpreadElement)[] = [];
 	const toggles: ClassToggle[] = [];
 	const list: StyleProperty[] = [];
@@ -194,18 +204,16 @@ function spreadAttributes(
 	}
 	let flags = 0;
 	if (!html) flags |= NAMESPACED | PRESERVE_CASE;
-	if (node.name.includes('-')) flags |= PRESERVE_CASE;
-	if (node.name === 'input') flags |= INPUT;
-	buffer.value(
-		runtime(
-			context,
-			'attributes',
-			{ type: 'ObjectExpression', properties },
-			b.literal(scopeHash(context, node)),
-			toggles.length > 0 ? directives(context, toggles) : b.literal(null),
-			list.length > 0 ? styles(context, list) : b.literal(null),
-			b.literal(flags)
-		)
+	if (name.includes('-')) flags |= PRESERVE_CASE;
+	if (name === 'input') flags |= INPUT;
+	return runtime(
+		context,
+		'attributes',
+		{ type: 'ObjectExpression', properties },
+		b.literal(scopeHash(context, node)),
+		toggles.length > 0 ? directives(context, toggles) : b.literal(null),
+		list.length > 0 ? styles(context, list) : b.literal(null),
+		b.literal(flags)
 	);
 }
 
@@ -299,6 +307,26 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 		);
 	}
 	return { ...bound, content };
+}
+
+function dynamicCode(context: TemplateContext, node: DynamicElement): ES.Statement {
+	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
+	const out = b.id(context.names.unique('$$out'));
+	const inner: TemplateContext = { ...context, out };
+	const body: ES.Statement[] = [];
+	const content = new Buffer();
+	fragmentCode(inner, cleaned(inner, node.body), body, content, false);
+	content.flush(inner, body);
+	return b.statement(
+		runtime(
+			context,
+			'element',
+			context.out,
+			rewrite(context, node.tag),
+			b.arrow([], attributesCall(context, node, html)),
+			b.arrow([out], body)
+		)
+	);
 }
 
 function element(
@@ -399,6 +427,10 @@ function single(
 				break;
 			case 'element':
 				element(context, node, statements, buffer);
+				break;
+			case 'dynamic-element':
+				buffer.flush(context, statements);
+				statements.push(dynamicCode(context, node));
 				break;
 			case 'branch': {
 				buffer.flush(context, statements);

@@ -1,6 +1,7 @@
 import type * as ES from 'estree';
 import { walk } from '../ir/estree.ts';
 import type {
+	DynamicElement,
 	Element,
 	Fragment,
 	KeyedList,
@@ -42,7 +43,7 @@ export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly unit: ComponentUnit;
 	readonly lists: ReadonlyMap<KeyedList | UnkeyedList, ListFacts>;
 	readonly fragments: ReadonlyMap<Fragment, readonly Node[]>;
-	readonly namespaces: ReadonlyMap<Element, Namespace>;
+	readonly namespaces: ReadonlyMap<Element | DynamicElement, Namespace>;
 	readonly fragmentNamespaces: ReadonlyMap<Fragment, Namespace>;
 	readonly ignored: ReadonlyMap<Node, ReadonlySet<string>>;
 	readonly separate: ReadonlyMap<Fragment, readonly (Special | Title)[]>;

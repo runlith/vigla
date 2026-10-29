@@ -6,6 +6,7 @@ import * as b from '../ir/estree.ts';
 import type {
 	Attribute,
 	ClassToggle,
+	DynamicElement,
 	Element,
 	Expression,
 	Namespace,
@@ -228,12 +229,13 @@ function styleDirectives(
 	};
 }
 
-function spread(
+export function spread(
 	context: TemplateContext,
-	node: Element,
+	node: Element | DynamicElement,
 	element: ES.Identifier,
 	outer: Emit
 ): void {
+	const name = node.kind === 'element' ? node.name : null;
 	const emit: Emit = { init: [], update: [], thunks: [], params: [] };
 	const properties: (ES.Property | ES.SpreadElement)[] = [];
 	const classes: ClassToggle[] = [];
@@ -310,8 +312,8 @@ function spread(
 	});
 	const args: ES.Expression[] = [element, previous, { type: 'ObjectExpression', properties }];
 	const hash = scopeHash(context, node);
-	if (hash !== null || node.name === 'input') args.push(b.literal(hash));
-	if (node.name === 'input') args.push(b.literal(true));
+	if (hash !== null || name === 'input') args.push(b.literal(hash));
+	if (name === 'input') args.push(b.literal(true));
 	emit.update.push(
 		b.statement({
 			type: 'AssignmentExpression',
@@ -321,7 +323,7 @@ function spread(
 		})
 	);
 	outer.init.push(...flush(context, emit));
-	if (node.name === 'textarea') {
+	if (name === 'textarea') {
 		outer.init.push(b.statement(runtime(context, 'removeTextareaChild', element)));
 	}
 }

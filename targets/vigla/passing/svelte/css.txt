@@ -30,6 +30,8 @@ descendant-selector-non-top-level-outer
 descendant-selector-unmatched
 directive-special-character
 double-hyphen
+dynamic-element
+dynamic-element-tag
 empty-class
 empty-rule
 empty-rule-dev
@@ -45,6 +47,7 @@ general-siblings-combinator-if-not-exhaustive-with-each
 general-siblings-combinator-render-tag
 general-siblings-combinator-rendertag-global
 general-siblings-combinator-star
+general-siblings-combinator-svelteelement
 global
 global-block
 global-head-only

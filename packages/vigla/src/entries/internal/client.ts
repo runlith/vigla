@@ -41,6 +41,7 @@ export { appendStyles } from '../../runtime/dom/styles.ts';
 export { action, attach, attachment } from '../../runtime/dom/attachments.ts';
 export { html } from '../../runtime/dom/html.ts';
 export { head, title } from '../../runtime/dom/head.ts';
+export { element } from '../../runtime/dom/element.ts';
 export {
 	bindActiveElement,
 	bindOnline,

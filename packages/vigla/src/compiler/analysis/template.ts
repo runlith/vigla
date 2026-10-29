@@ -4,6 +4,7 @@ import { walk } from '../ir/estree.ts';
 import type {
 	Attribute,
 	Component,
+	DynamicElement,
 	Element,
 	Fragment,
 	KeyedList,
@@ -64,8 +65,10 @@ export function ownExpressions(node: Node): ES.Expression[] {
 			break;
 		case 'element':
 		case 'component':
+		case 'dynamic-element':
 		case 'boundary':
 			if (node.kind === 'component') found.push(node.reference);
+			if (node.kind === 'dynamic-element') found.push(node.tag);
 			for (const attribute of node.attributes) {
 				switch (attribute.kind) {
 					case 'attribute':
@@ -136,6 +139,23 @@ function inferred(nodes: readonly Node[], fallback: Namespace): Namespace {
 	return found ?? fallback;
 }
 
+const xmlns: Readonly<Record<string, Namespace>> = {
+	'http://www.w3.org/2000/svg': 'svg',
+	'http://www.w3.org/1998/Math/MathML': 'mathml',
+	'http://www.w3.org/1999/xhtml': 'html'
+};
+
+function dynamicNamespace(node: DynamicElement, parent: Namespace): Namespace {
+	for (const attribute of node.attributes) {
+		if (attribute.kind !== 'attribute' || attribute.name !== 'xmlns') continue;
+		const value = attribute.value;
+		if (value.kind !== 'text' || !value.parts.every((part) => part.kind === 'text')) continue;
+		const found = xmlns[value.parts.map((part) => (part as { data: string }).data).join('')];
+		if (found !== undefined) return found;
+	}
+	return parent;
+}
+
 function hoisted(node: Node): boolean {
 	return node.kind === 'snippet';
 }
@@ -150,7 +170,7 @@ export class Template {
 	readonly names: Set<string>;
 	readonly lists = new Map<KeyedList | UnkeyedList, ListFacts>();
 	readonly fragments = new Map<Fragment, readonly Node[]>();
-	readonly namespaces = new Map<Element, Namespace>();
+	readonly namespaces = new Map<Element | DynamicElement, Namespace>();
 	readonly fragmentNamespaces = new Map<Fragment, Namespace>();
 	readonly ignored = new Map<Node, ReadonlySet<string>>();
 	readonly separate = new Map<Fragment, readonly (Special | Title)[]>();
@@ -401,6 +421,14 @@ export class Template {
 					this.fragment(outcome.body, null, inner, kept, namespace);
 				}
 				return;
+			case 'dynamic-element': {
+				this.expression(node.tag, scope);
+				const own = dynamicNamespace(node, namespace);
+				this.namespaces.set(node, own);
+				for (const attribute of node.attributes) this.attribute(attribute, scope);
+				this.fragment(node.body, null, scope, kept, own, false);
+				return;
+			}
 			case 'special':
 				for (const attribute of node.attributes) this.attribute(attribute, scope);
 				if (node.target === 'head') this.fragment(node.body, null, scope, kept, 'html', false);

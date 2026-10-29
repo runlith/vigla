@@ -23,6 +23,7 @@ import {
 	renderCall,
 	snippetDeclarations
 } from './component.ts';
+import { dynamicCall } from './dynamic.ts';
 import { elementPart } from './element.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
@@ -317,6 +318,11 @@ export function parts(
 			case 'boundary':
 				result.push(
 					anchorPart((anchor, emit) => emit.init.push(...boundaryCall(context, node, anchor)))
+				);
+				break;
+			case 'dynamic-element':
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(...dynamicCall(context, node, anchor)))
 				);
 				break;
 			case 'raw-html': {

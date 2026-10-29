@@ -1,4 +1,5 @@
 import { failure } from '../../shared/diagnostics.ts';
+import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
 import { begin, end, push } from './context.ts';
 
@@ -205,6 +206,36 @@ export function render<P extends Props>(
 			return settled.then(fulfilled, rejected);
 		}
 	};
+}
+
+const validTag =
+	/^[a-zA-Z][a-zA-Z0-9]*(-[-a-zA-Z0-9._\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD\u{10000}-\u{EFFFF}]*)?$/u;
+
+const rawText = new Set(['textarea', 'script', 'style', 'title']);
+
+export function element(
+	out: Output,
+	tag: unknown,
+	attributes: () => string,
+	children: (out: Output) => void
+): void {
+	out.push(empty);
+	if (tag) {
+		const name = String(tag);
+		if (!validTag.test(name)) {
+			throw failure(
+				'dynamic_element_invalid_tag',
+				`\`<svelte:element this="${name}">\` is not a valid element name — the element will not be rendered`
+			);
+		}
+		out.push(`<${name}${attributes()}>`);
+		if (!isVoid(name)) {
+			out.child(children);
+			if (!rawText.has(name)) out.push(empty);
+			out.push(`</${name}>`);
+		}
+	}
+	out.push(empty);
 }
 
 export function head(out: Output, hash: string, fn: (out: Output) => void): void {
