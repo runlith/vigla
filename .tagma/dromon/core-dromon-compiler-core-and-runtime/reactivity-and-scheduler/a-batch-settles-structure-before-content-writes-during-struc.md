@@ -1,6 +1,6 @@
 ---
 id: 01a1868a-e2b1-75a8-92fb-02edaa9fb09b
-title: A batch settles structure before content, and a later batch sharing a source commits with the earlier one
+title: "A batch settles structure before content: writes during structure and commit, teardowns' included, join it"
 ord: 1
 tags: ["explanation"]
 edges:

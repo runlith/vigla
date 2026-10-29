@@ -22,4 +22,4 @@ sources:
   - kind: dir
     ref: packages/svelte/src/compiler
 ---
-`svelte/compiler` over the core: `compile` and `compileModule` with upstream's options and result shape, output importing `svelte/internal/*`, and core diagnostics rethrown as upstream-shaped `CompileError`s.
+`svelte/compiler` over the core: `compile` and `compileModule` with upstream's options and result shape, options validated with upstream's codes and the ones not built yet refused as `unsupported`, output importing `svelte/internal/*`, and core diagnostics rethrown as upstream-shaped `CompileError`s.

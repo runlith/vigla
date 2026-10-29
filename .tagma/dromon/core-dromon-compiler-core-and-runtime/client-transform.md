@@ -24,4 +24,4 @@ sources:
   - kind: dir
     ref: packages/dromon/src/compiler/client
 ---
-Generates a component's and a module's client code from the analysis: HTML templates cloned per instance, DOM navigation, template effects, blocks and listeners, and scripts rewritten so rune-declared bindings are read and written through signals. The caller names the runtime the output imports, so `.svelte` output imports `svelte/internal/client` and native output `dromon/internal/client`.
+Generates a component's and a module's client code from the analysis: HTML templates cloned per instance, DOM navigation, template effects, blocks and listeners, and scripts rewritten so reassigned state and deriveds are read and written through signals, while state never reassigned is its proxy or plain value, as an exported binding needs. The caller names the runtime the output imports, so `.svelte` output imports `svelte/internal/client` and native output `dromon/internal/client`.
