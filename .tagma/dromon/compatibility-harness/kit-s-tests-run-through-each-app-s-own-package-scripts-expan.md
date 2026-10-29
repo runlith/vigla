@@ -1,0 +1,23 @@
+---
+id: 01a186ae-3fd5-74c0-a6ef-0500dc17f0fd
+title: Kit's tests run through each app's own package scripts, expanded step by step on the reference and the harness alike
+ord: 15
+tags: ["explanation"]
+edges:
+  - kind: relates
+    to: 01a18679-19d9-77b5-9372-29e928467398
+sources:
+  - kind: dir
+    ref: harness/src/kit
+  - kind: file
+    ref: harness/src/store.ts
+---
+Upstream runs Kit's apps through package scripts that chain `pnpm` calls, environment prefixes and several test commands; options runs `playwright test` three times under different `PATHS_*` values, options-2 twice with and without a service worker. `steps.ts` expands a script the way pnpm would and gives each `playwright test` or `vitest run` its own JSON report, labelled `<script>-<n>`. That label, with the Playwright project for browser tests, is an entry's variant, so the same test under two environments is two entries. The reference runner and the harness run the same expansion, the reference in upstream's copy and the harness in the target's work tree. A failing step does not stop the ones after it, unlike `&&`, so both sides report every step.
+
+The runs cover each app's `test:dev`, `test:build` and the `server-side-route-resolution` and `cross-platform` variants it has. `svelte-async` is left out because async is forced in every run, which makes it the same run as `test:dev` and `test:build`. Prerendering's and build-errors' cross-platform scripts only rerun `test:build`.
+
+Tests and Playwright's web servers call `pnpm` themselves, so the target's `kit` package pins pnpm 12.11.2, the version Kit's `packageManager` names, and the root manifest trusts its install script. Without that script the binary stays a shebang-less `sh` shim, and Node's `execFile('pnpm')` fails with `ENOEXEC`.
+
+Each app copy's `node_modules` links the packages its `package.json` declares, from the target's install, with `file:` packages copied into a store as pnpm injects them. Kit's build names a font by its `node_modules/<package>` path only when the app's own `node_modules` holds that package, and options' preload hook filters on that name. Inside the repository pnpm finds the root manifest, runs its dependency check before every script and fails on the copies' `catalog:` specs, so the harness turns that check off (`pnpm_config_verify_deps_before_run=false`). Playwright retries each test twice on both sides through `KIT_E2E_RETRIES`, as upstream's CI does; that keeps one-off timing failures out of the equality.
+
+Every app test takes `test` from Kit's `test/utils.js`. The harness copy of that file adds an automatic fixture that rules each test from the manifest; the reference copy carries only the shared change from the `chrome` channel to Playwright's bundled Chromium. The adapters' tests import `test` from `@playwright/test` directly and run without a gate, which their all-contract manifests allow.
