@@ -114,10 +114,12 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		options.namespace ?? 'html'
 	);
 	const runtime = options.runtime ?? runtimes;
+	const styles = inject && css !== null ? { hash: style.scoping.hash, code: css.code } : null;
+	const generation = { name: options.name, scoping: style.scoping, styles };
 	const program =
 		options.generate === 'server'
-			? server(analysis, { runtime: runtime.server, name: options.name })
-			: client(analysis, { runtime: runtime.client, name: options.name });
+			? server(analysis, { ...generation, runtime: runtime.server })
+			: client(analysis, { ...generation, runtime: runtime.client });
 	return { js: printed(program, unit), css: inject ? null : css, warnings };
 }
 

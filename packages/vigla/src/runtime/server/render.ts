@@ -4,6 +4,11 @@ import { begin, end, push } from './context.ts';
 
 export type Props = Record<string, unknown>;
 
+export interface Style {
+	readonly hash: string;
+	readonly code: string;
+}
+
 class Global {
 	#uid = 1;
 	readonly prefix: string;
@@ -19,6 +24,7 @@ class Global {
 	}
 
 	readonly pending: Promise<unknown>[] = [];
+	readonly styles = new Set<Style>();
 
 	track(promise: Promise<unknown>): void {
 		promise.catch(() => {});
@@ -104,7 +110,11 @@ export function render<P extends Props>(
 	} finally {
 		end(saved);
 	}
-	const result = (): Rendered => ({ head: '', body: out.toString(), hashes: { script: [] } });
+	const result = (): Rendered => {
+		let head = '';
+		for (const { hash, code } of global.styles) head += `<style id="${hash}">${code}</style>`;
+		return { head, body: out.toString(), hashes: { script: [] } };
+	};
 	if (global.pending.length === 0) {
 		const rendered = result();
 		return {
@@ -162,6 +172,10 @@ export function boundary(out: Output, props: BoundaryProps, children: (out: Outp
 		failed(out, transformed, () => {});
 		out.push(close);
 	}
+}
+
+export function appendStyles(out: Output, style: Style): void {
+	out.global.styles.add(style);
 }
 
 export function propsId(out: Output): string {

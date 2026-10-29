@@ -22,6 +22,7 @@ import {
 	isDynamic,
 	memo,
 	parts,
+	scopeHash,
 	type Emit,
 	type Part,
 	type TemplateContext
@@ -302,7 +303,9 @@ function spread(
 		declarations: [{ type: 'VariableDeclarator', id: previous, init: null }]
 	});
 	const args: ES.Expression[] = [element, previous, { type: 'ObjectExpression', properties }];
-	if (node.name === 'input') args.push(b.literal(null), b.literal(true));
+	const hash = scopeHash(context, node);
+	if (hash !== null || node.name === 'input') args.push(b.literal(hash));
+	if (node.name === 'input') args.push(b.literal(true));
 	emit.update.push(
 		b.statement({
 			type: 'AssignmentExpression',
@@ -374,6 +377,7 @@ function classAttribute(
 		b.literal(namespace === 'html' && !node.name.includes('-')),
 		given
 	];
+	const hash = scopeHash(context, node);
 	if (toggles.length > 0) {
 		const previous = b.id(context.names.unique('classes'));
 		emit.init.push({
@@ -381,7 +385,7 @@ function classAttribute(
 			kind: 'let',
 			declarations: [{ type: 'VariableDeclarator', id: previous, init: null }]
 		});
-		args.push(b.literal(null), previous, directivesObject(context, target, toggles));
+		args.push(b.literal(hash), previous, directivesObject(context, target, toggles));
 		const call = {
 			type: 'AssignmentExpression',
 			operator: '=',
@@ -391,6 +395,7 @@ function classAttribute(
 		(reactive ? emit.update : emit.init).push(b.statement(call));
 		return;
 	}
+	if (hash !== null) args.push(b.literal(hash));
 	(reactive ? emit.update : emit.init).push(b.statement(runtime(context, 'className', ...args)));
 }
 
@@ -500,11 +505,16 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			setups.push((element, emit) =>
 				classAttribute(context, node, element, value, toggles, namespace, emit)
 			);
-		} else if (classValue !== null) {
-			markup +=
-				classValue.kind === 'boolean'
-					? ' class'
-					: ` class="${escapeAttribute(staticText(classValue))}"`;
+		} else {
+			const hash = scopeHash(context, node);
+			const given = classValue === null ? null : staticText(classValue);
+			const name = hash === null ? given : given ? `${given} ${hash}` : hash;
+			if (name !== null) {
+				markup +=
+					hash === null && classValue?.kind === 'boolean'
+						? ' class'
+						: ` class="${escapeAttribute(name)}"`;
+			}
 		}
 		if (styles.length > 0 || styleDynamic) {
 			const value = styleValue;

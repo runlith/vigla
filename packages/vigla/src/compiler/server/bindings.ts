@@ -93,7 +93,7 @@ export function bindings(context: TemplateContext, node: Element, buffer: Buffer
 	}
 	if (node.name === 'select' && select === null) {
 		const given = attribute(node, 'value');
-		if (given !== undefined && given.value.kind !== 'text') select = valueOf(context, given);
+		if (given !== undefined) select = valueOf(context, given);
 	}
 	if (node.name === 'option') {
 		const own = valueOf(context, attribute(node, 'value')) ?? staticText(context, node);

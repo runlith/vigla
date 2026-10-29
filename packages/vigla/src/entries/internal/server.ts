@@ -14,6 +14,7 @@ export {
 } from '../../runtime/server/attributes.ts';
 export { phase, pop, push, save } from '../../runtime/server/context.ts';
 export {
+	appendStyles,
 	boundary,
 	derived,
 	held,

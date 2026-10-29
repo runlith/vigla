@@ -15,6 +15,7 @@ import type {
 	Text,
 	Value
 } from '../ir/nodes.ts';
+import type { Host, Scoping } from '../css/index.ts';
 import { asyncChild, awaiting } from './asynchronous.ts';
 import { bindings, type Bound } from './bindings.ts';
 import { boundary, component, render, snippetDeclarations, standalone } from './component.ts';
@@ -23,6 +24,12 @@ import { rewrite, runtime, type Context } from './script.ts';
 export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
 	readonly out: ES.Identifier;
+	readonly scoping: Scoping;
+}
+
+function scopeHash(context: TemplateContext, node: Host): string | null {
+	const { hash, scoped } = context.scoping;
+	return hash !== '' && scoped.has(node) ? hash : null;
 }
 
 export class Buffer {
@@ -188,7 +195,7 @@ function spreadAttributes(
 			context,
 			'attributes',
 			{ type: 'ObjectExpression', properties },
-			b.literal(null),
+			b.literal(scopeHash(context, node)),
 			toggles.length > 0 ? directives(context, toggles) : b.literal(null),
 			list.length > 0 ? styles(context, list) : b.literal(null),
 			b.literal(flags)
@@ -254,18 +261,24 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 			)
 		);
 	}
+	const hash = scopeHash(context, node);
 	if (toggles.length > 0 || (classValue !== null && !isStatic(classValue))) {
 		let value: ES.Expression = classValue === null ? b.literal(null) : valueOf(context, classValue);
 		if (classValue?.kind === 'expression') value = runtime(context, 'clsx', value);
 		const args: ES.Expression[] = [value];
-		if (toggles.length > 0) args.push(b.literal(null), directives(context, toggles));
+		if (toggles.length > 0) args.push(b.literal(hash), directives(context, toggles));
+		else if (hash !== null) args.push(b.literal(hash));
 		buffer.value(runtime(context, 'attrClass', ...args));
-	} else if (classValue !== null) {
-		buffer.text(
-			classValue.kind === 'boolean'
-				? ' class'
-				: ` class="${escapeAttribute(staticText(classValue))}"`
-		);
+	} else {
+		const given = classValue === null ? null : staticText(classValue);
+		const name = hash === null ? given : given ? `${given} ${hash}` : hash;
+		if (name !== null) {
+			buffer.text(
+				hash === null && classValue?.kind === 'boolean'
+					? ' class'
+					: ` class="${escapeAttribute(name)}"`
+			);
+		}
 	}
 	if (list.length > 0 || (styleValue !== null && !isStatic(styleValue))) {
 		const value = styleValue === null ? b.literal(null) : valueOf(context, styleValue);

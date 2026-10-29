@@ -91,6 +91,21 @@ export function literal(value: string | number | boolean | null): ES.Literal {
 	return { type: 'Literal', value };
 }
 
+export function object(entries: Readonly<Record<string, ES.Expression>>): ES.ObjectExpression {
+	return {
+		type: 'ObjectExpression',
+		properties: Object.entries(entries).map(([key, value]) => ({
+			type: 'Property',
+			key: /^[A-Za-z_$][\w$]*$/.test(key) ? id(key) : literal(key),
+			value,
+			kind: 'init',
+			method: false,
+			shorthand: false,
+			computed: false
+		}))
+	};
+}
+
 export function member(object: ES.Expression, property: string): ES.MemberExpression {
 	return {
 		type: 'MemberExpression',

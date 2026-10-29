@@ -12,6 +12,7 @@ import type {
 	Text,
 	UnkeyedList
 } from '../ir/nodes.ts';
+import type { Host, Scoping } from '../css/index.ts';
 import { asyncSetup, awaiting } from './asynchronous.ts';
 import {
 	boundaryCall,
@@ -29,6 +30,12 @@ export interface TemplateContext extends Context {
 	readonly events: Set<string>;
 	readonly groups: Map<string, ES.Identifier>;
 	readonly instance: ES.Statement[];
+	readonly scoping: Scoping;
+}
+
+export function scopeHash(context: TemplateContext, node: Host): string | null {
+	const { hash, scoped } = context.scoping;
+	return hash !== '' && scoped.has(node) ? hash : null;
 }
 
 export interface Emit {

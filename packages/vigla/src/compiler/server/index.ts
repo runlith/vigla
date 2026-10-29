@@ -6,6 +6,7 @@ import {
 	type ModuleAnalysis
 } from '../analysis/index.ts';
 import { close, open } from '../../shared/markers.ts';
+import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
@@ -16,6 +17,8 @@ export interface ModuleOptions {
 
 export interface ServerOptions extends ModuleOptions {
 	readonly name: string;
+	readonly scoping: Scoping;
+	readonly styles: InjectedStyle | null;
 }
 
 function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
@@ -51,10 +54,19 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		names,
 		runtime: id,
 		out,
-		props
+		props,
+		scoping: options.scoping
 	};
 	const imports: ES.ImportDeclaration[] = [];
-	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
+	const hoisted: ES.Statement[] = [];
+	const body: ES.Statement[] = [];
+	if (options.styles !== null) {
+		const css = names.unique('$$css');
+		const { hash, code } = options.styles;
+		hoisted.push(b.constant(css, b.object({ hash: b.literal(hash), code: b.literal(code) })));
+		body.push(b.statement(runtime(context, 'appendStyles', out, b.id(css))));
+	}
+	body.push(b.statement(runtime(context, 'push')));
 	const inner = analysis.asynchronous ? b.id(names.unique('$$out')) : out;
 	const scripted: TemplateContext = analysis.asynchronous
 		? { ...context, out: inner, saved: topLevelAwaits(analysis) }
@@ -85,6 +97,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),
 		...imports,
+		...hoisted,
 		b.exportDefaultFunction(options.name, [out, props], body)
 	]);
 }

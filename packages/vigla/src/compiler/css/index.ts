@@ -16,6 +16,11 @@ export interface Scoping {
 	readonly scoped: ReadonlySet<Host>;
 }
 
+export interface InjectedStyle {
+	readonly hash: string;
+	readonly code: string;
+}
+
 export interface StyleOptions {
 	readonly hash: string;
 }

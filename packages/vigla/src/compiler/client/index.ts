@@ -6,6 +6,7 @@ import {
 	type ComponentAnalysis,
 	type ModuleAnalysis
 } from '../analysis/index.ts';
+import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
 import { render, type TemplateContext } from './template.ts';
@@ -16,6 +17,8 @@ export interface ModuleOptions {
 
 export interface ClientOptions extends ModuleOptions {
 	readonly name: string;
+	readonly scoping: Scoping;
+	readonly styles: InjectedStyle | null;
 }
 
 function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
@@ -79,10 +82,20 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		props,
 		events: new Set(),
 		groups: new Map(),
-		instance: []
+		instance: [],
+		scoping: options.scoping
 	};
 	const imports: ES.ImportDeclaration[] = [];
-	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
+	const body: ES.Statement[] = [];
+	if (options.styles !== null) {
+		const css = names.unique('$$css');
+		const { hash, code } = options.styles;
+		context.hoisted.push(
+			b.constant(css, b.object({ hash: b.literal(hash), code: b.literal(code) }))
+		);
+		body.push(b.statement(runtime(context, 'appendStyles', anchor, b.id(css))));
+	}
+	body.push(b.statement(runtime(context, 'push')));
 	const script: ES.Statement[] = [];
 	const exported: ES.Property[] = [];
 	const saving: Context = analysis.asynchronous
