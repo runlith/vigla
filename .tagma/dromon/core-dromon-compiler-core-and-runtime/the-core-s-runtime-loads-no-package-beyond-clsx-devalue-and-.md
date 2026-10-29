@@ -3,6 +3,25 @@ id: 01a18687-b5c2-718d-b1a7-89399f16e731
 title: The core's runtime loads no package beyond `clsx`, `devalue` and `esm-env`
 ord: 11
 tags: ["rule"]
+fields:
+  {
+    "enforcement": {
+      "debt": [],
+      "escaped": [],
+      "inspection": "runtime-loads",
+      "on": [
+        {
+          "op": "submit_work",
+          "phase": "before"
+        },
+        {
+          "op": "merge_worktree",
+          "phase": "before"
+        }
+      ],
+      "strictness": "gate"
+    }
+  }
 edges:
   - kind: relates
     to: 01a18605-d03d-737c-9a72-8cc4b3360999
