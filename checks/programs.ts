@@ -1,5 +1,5 @@
 import { defineProgram, type Finding, type Reading, type Side } from '@runlith/tagma/rules';
-import type { InternalsParams, LoadsParams, MentionsParams } from './inspections.ts';
+import type { InternalsParams, LoadsParams, MentionsParams, Programs } from './inspections.ts';
 
 const specifier = /(?:\bfrom|\bimport\s*\(|\bimport|\brequire\s*\()\s*(['"`])([^'"`]+)\1/g;
 
@@ -64,8 +64,6 @@ async function internals(side: Side, params: InternalsParams): Promise<Reading> 
 	return { findings };
 }
 
-const declared = /\bdeclare\s+module\s*(['"`])([^'"`]+)\1/g;
-
 const referenced = /^\s*\/\/\/\s*<reference\s+types\s*=\s*(['"])([^'"]+)\1/gm;
 
 const dependencyFields = [
@@ -125,6 +123,50 @@ function manifestFindings(
 	return findings;
 }
 
+interface Literal {
+	readonly value: string;
+	readonly start: number;
+}
+
+function literals(text: string): Literal[] {
+	const found: Literal[] = [];
+	let index = 0;
+	while (index < text.length) {
+		const char = text[index] ?? '';
+		const next = text[index + 1];
+		if (char === '/' && next === '/') {
+			const end = text.indexOf('\n', index);
+			index = end === -1 ? text.length : end;
+		} else if (char === '/' && next === '*') {
+			const end = text.indexOf('*/', index + 2);
+			index = end === -1 ? text.length : end + 2;
+		} else if (char === '"' || char === "'" || char === '`') {
+			let stop = index + 1;
+			let value = '';
+			let plain = true;
+			while (stop < text.length && text[stop] !== char) {
+				if (text[stop] === '\\') {
+					value += text[stop + 1] ?? '';
+					stop += 2;
+					continue;
+				}
+				if (char === '`' && text[stop] === '$' && text[stop + 1] === '{') plain = false;
+				value += text[stop];
+				stop += 1;
+			}
+			if (plain) found.push({ value, start: index });
+			index = stop + 1;
+		} else {
+			index += 1;
+		}
+	}
+	return found;
+}
+
+const specifierPosition = /(?<![.\w$])(?:from|import|import\s*\(|require\s*\()\s*$/;
+
+const modulePosition = /(?<![.\w$])declare\s+module\s*$/;
+
 async function mentions(side: Side, params: MentionsParams): Promise<Reading> {
 	const names = naming(params.packages);
 	const { fix } = params;
@@ -146,13 +188,11 @@ async function mentions(side: Side, params: MentionsParams): Promise<Reading> {
 				fix
 			});
 		};
-		for (const match of source.matchAll(specifier)) {
-			const target = match[2] ?? '';
-			if (names(target)) found(target, match.index, 'imports');
-		}
-		for (const match of source.matchAll(declared)) {
-			const target = match[2] ?? '';
-			if (names(target)) found(target, match.index, 'declares module');
+		for (const literal of literals(text)) {
+			if (!names(literal.value)) continue;
+			const before = source.slice(Math.max(0, literal.start - 64), literal.start);
+			if (specifierPosition.test(before)) found(literal.value, literal.start, 'imports');
+			else if (modulePosition.test(before)) found(literal.value, literal.start, 'declares module');
 		}
 		for (const match of text.matchAll(referenced)) {
 			const target = match[2] ?? '';
@@ -162,56 +202,55 @@ async function mentions(side: Side, params: MentionsParams): Promise<Reading> {
 	return { findings };
 }
 
-const fromClause = /\b(import|export)\s+([^'"`;]*?)\s*from\s*(['"])([^'"\n]+)\3/g;
+interface Scanned {
+	readonly path: string;
+	readonly kind: string;
+}
 
-const bareLoad = /(?:\bimport\s*|\bimport\s*\(\s*|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g;
+interface Scanner {
+	scanImports(code: string): Scanned[];
+}
 
-function typeOnly(clause: string): boolean {
-	const trimmed = clause.trim();
-	if (/^type\b/.test(trimmed)) return true;
-	const braces = /^\{([^}]*)\}$/.exec(trimmed);
-	if (braces === null) return false;
-	const parts = (braces[1] ?? '')
-		.split(',')
-		.map((part) => part.trim())
-		.filter((part) => part !== '');
-	return parts.length > 0 && parts.every((part) => /^type\b/.test(part));
+interface Runtime {
+	readonly Bun: { readonly Transpiler: new (options: { loader: 'ts' }) => Scanner };
 }
 
 function bare(target: string): boolean {
 	return !target.startsWith('.') && !target.startsWith('/');
 }
 
+function located(text: string, target: string): number {
+	for (const quote of ["'", '"', '`']) {
+		const offset = text.indexOf(`${quote}${target}${quote}`);
+		if (offset !== -1) return offset;
+	}
+	return 0;
+}
+
 async function loads(side: Side, params: LoadsParams): Promise<Reading> {
 	const allowed = naming(params.allows);
+	const scanner = new (globalThis as unknown as Runtime).Bun.Transpiler({ loader: 'ts' });
 	const findings: Finding[] = [];
 	for (const path of side.paths) {
 		const text = await side.read(path);
 		if (text === null) continue;
-		const source = code(text);
-		const found = (target: string, offset: number): void => {
-			if (!bare(target) || allowed(target)) return;
+		const seen = new Set<string>();
+		for (const { path: target } of scanner.scanImports(text)) {
+			if (!bare(target) || allowed(target) || seen.has(target)) continue;
+			seen.add(target);
 			findings.push({
 				fingerprint: `${target} @ ${path}`,
 				path,
-				line: lineOf(text, offset),
+				line: lineOf(text, located(text, target)),
 				message: `loads ${target} at runtime`,
 				fix: params.fix
 			});
-		};
-		for (const match of source.matchAll(fromClause)) {
-			if (!typeOnly(match[2] ?? '')) found(match[4] ?? '', match.index);
 		}
-		for (const match of source.matchAll(bareLoad)) found(match[2] ?? '', match.index);
 	}
 	return { findings };
 }
 
-export default defineProgram<{
-	internals: InternalsParams;
-	mentions: MentionsParams;
-	loads: LoadsParams;
-}>({
+export default defineProgram<Programs>({
 	loads: async ({ params, tree, base }) =>
 		base === null
 			? { tree: await loads(tree, params) }

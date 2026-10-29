@@ -26,6 +26,12 @@ export const loads = defineInspection<LoadsParams>({
 	concern: 'loading'
 });
 
+export type Programs = {
+	readonly internals: InternalsParams;
+	readonly mentions: MentionsParams;
+	readonly loads: LoadsParams;
+};
+
 export const mentions = defineInspection<MentionsParams>({
 	program: 'checks/programs.ts',
 	name: 'mentions',
