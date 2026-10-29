@@ -23,6 +23,12 @@ fields:
         "for": [
           "e3f1d060"
         ]
+      },
+      {
+        "at": "src/vite-plugin/config.ts",
+        "for": [
+          "e3f1d060"
+        ]
       }
     ],
     "id": "harness",
