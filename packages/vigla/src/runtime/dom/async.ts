@@ -27,8 +27,8 @@ interface Resume {
 	readonly end: ChildNode | null;
 }
 
-function park(node: ChildNode): Resume {
-	if (!hydrating) return { start: null, end: null };
+function park(node: ChildNode | null): Resume {
+	if (!hydrating || node === null) return { start: null, end: null };
 	const end = matchingClose(node);
 	const start = node.nextSibling;
 	claim(end);
@@ -54,9 +54,9 @@ function settleWith(effect: Effect | null, error: unknown): void {
 }
 
 export function async(
-	node: ChildNode,
+	node: ChildNode | null,
 	thunks: readonly (() => unknown)[],
-	fn: (anchor: ChildNode, ...values: Source[]) => void
+	fn: (anchor: ChildNode | null, ...values: Source[]) => void
 ): void {
 	const parked = park(node);
 	const anchor = parked.end ?? node;
@@ -105,7 +105,11 @@ export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
 export function script(node: ChildNode, fn: () => Promise<Render>): void {
 	const parked = park(hydrating ? cursor : node);
 	if (parked.end !== null) claim(parked.end.nextSibling);
-	const anchor = parked.end ?? node;
+	let anchor = parked.end;
+	if (anchor === null) {
+		anchor = document.createTextNode('');
+		node.before(anchor);
+	}
 	const at = owner;
 	const done = work();
 	const restore = suspend();

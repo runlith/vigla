@@ -1,5 +1,5 @@
 import { failure } from '../../shared/diagnostics.ts';
-import { close, open } from '../../shared/markers.ts';
+import { close, empty, open } from '../../shared/markers.ts';
 import { begin, end, push } from './context.ts';
 
 export type Props = Record<string, unknown>;
@@ -25,6 +25,7 @@ class Global {
 
 	readonly pending: Promise<unknown>[] = [];
 	readonly styles = new Set<Style>();
+	readonly titles: Output[] = [];
 
 	track(promise: Promise<unknown>): void {
 		promise.catch(() => {});
@@ -34,14 +35,46 @@ class Global {
 	async settle(): Promise<void> {
 		while (this.pending.length > 0) await Promise.all(this.pending.splice(0));
 	}
+
+	title(): string {
+		let chosen: Output | null = null;
+		let best: readonly number[] | null = null;
+		for (const title of this.titles) {
+			const path = title.path();
+			if (path === null) continue;
+			if (best === null || later(path, best)) {
+				chosen = title;
+				best = path;
+			}
+		}
+		return chosen === null ? '' : chosen.collect(undefined, true).head;
+	}
 }
+
+function later(path: readonly number[], than: readonly number[]): boolean {
+	let index = 0;
+	while (index < path.length && index < than.length && path[index] === than[index]) index++;
+	if (index === path.length) return false;
+	return index === than.length || (path[index] as number) > (than[index] as number);
+}
+
+export interface Content {
+	head: string;
+	body: string;
+}
+
+type Channel = 'body' | 'head' | 'title';
 
 export class Output {
 	readonly #parts: (string | Output)[] = [];
+	readonly #parent: Output | null;
+	readonly #channel: Channel;
 	readonly global: Global;
 
-	constructor(global: Global) {
+	constructor(global: Global, parent: Output | null = null, channel?: Channel) {
 		this.global = global;
+		this.#parent = parent;
+		this.#channel = channel ?? (parent === null || parent.#channel === 'body' ? 'body' : 'head');
 	}
 
 	push(html: string): void {
@@ -49,10 +82,31 @@ export class Output {
 	}
 
 	child(fn: (out: Output) => void | Promise<void>): void {
-		const inner = new Output(this.global);
+		this.#run(new Output(this.global, this), fn);
+	}
+
+	head(fn: (out: Output) => void | Promise<void>): void {
+		this.#run(new Output(this.global, this, 'head'), fn);
+	}
+
+	title(fn: (out: Output) => void | Promise<void>): void {
+		const inner = new Output(this.global, this, 'title');
+		this.global.titles.push(inner);
+		this.#run(inner, fn);
+	}
+
+	#run(inner: Output, fn: (out: Output) => void | Promise<void>): void {
 		this.#parts.push(inner);
 		const result = fn(inner);
 		if (result instanceof Promise) this.global.track(result);
+	}
+
+	path(): number[] | null {
+		const parent = this.#parent;
+		if (parent === null) return [];
+		const above = parent.path();
+		const index = parent.#parts.indexOf(this);
+		return above === null || index === -1 ? null : [...above, index];
 	}
 
 	mark(): number {
@@ -63,10 +117,18 @@ export class Output {
 		this.#parts.length = mark;
 	}
 
+	collect(content: Content = { head: '', body: '' }, title = false): Content {
+		for (const part of this.#parts) {
+			if (typeof part !== 'string') {
+				if (part.#channel !== 'title' || title) part.collect(content, title);
+			} else if (this.#channel === 'body') content.body += part;
+			else content.head += part;
+		}
+		return content;
+	}
+
 	toString(): string {
-		let html = '';
-		for (const part of this.#parts) html += typeof part === 'string' ? part : part.toString();
-		return html;
+		return this.collect().body;
 	}
 }
 
@@ -111,9 +173,10 @@ export function render<P extends Props>(
 		end(saved);
 	}
 	const result = (): Rendered => {
-		let head = '';
+		const content = out.collect();
+		let head = content.head + global.title();
 		for (const { hash, code } of global.styles) head += `<style id="${hash}">${code}</style>`;
-		return { head, body: out.toString(), hashes: { script: [] } };
+		return { head, body: content.body, hashes: { script: [] } };
 	};
 	if (global.pending.length === 0) {
 		const rendered = result();
@@ -142,6 +205,14 @@ export function render<P extends Props>(
 			return settled.then(fulfilled, rejected);
 		}
 	};
+}
+
+export function head(out: Output, hash: string, fn: (out: Output) => void): void {
+	out.head((inner) => {
+		inner.push(`<!--${hash}-->`);
+		inner.child(fn);
+		inner.push(empty);
+	});
 }
 
 export interface BoundaryProps {

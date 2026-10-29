@@ -1,0 +1,57 @@
+import type * as ES from 'estree';
+import { escapeContent } from '../../shared/escape.ts';
+import { hash } from '../../shared/hash.ts';
+import { hasAwait, unsupported } from '../analysis/index.ts';
+import * as b from '../ir/estree.ts';
+import type { Fragment, Special, Title } from '../ir/nodes.ts';
+import { rewrite, runtime } from './script.ts';
+import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
+
+function titleCode(context: TemplateContext, node: Title): ES.Statement {
+	const out = b.id(context.names.unique('$$out'));
+	const buffer = new Buffer();
+	const statements: ES.Statement[] = [];
+	const awaited = new Map(context.awaited ?? []);
+	for (const part of node.parts) {
+		if (part.kind !== 'expression') continue;
+		if (awaited.has(part.expression) || !hasAwait(part.expression)) continue;
+		const id = b.id(context.names.unique('$async'));
+		awaited.set(part.expression, id);
+		const saved = runtime(context, 'save', rewrite(context, part.expression));
+		statements.push(b.constant(id.name, b.call({ type: 'AwaitExpression', argument: saved })));
+	}
+	const asynchronous = statements.length > 0;
+	const inner: TemplateContext = { ...context, out, awaited };
+	buffer.text('<title>');
+	for (const part of node.parts) {
+		if (part.kind === 'text') buffer.text(escapeContent(part.data));
+		else buffer.value(runtime(inner, 'escape', rewrite(inner, part.expression)));
+	}
+	buffer.text('</title>');
+	buffer.flush(inner, statements);
+	const fn = { ...b.arrow([out], statements), async: asynchronous };
+	return b.statement(b.call(b.member(context.out, 'title'), fn));
+}
+
+function headCode(context: TemplateContext, node: Special): ES.Statement {
+	const out = b.id(context.names.unique('$$out'));
+	const inner: TemplateContext = { ...context, out };
+	const statements: ES.Statement[] = [...separateCode(inner, node.body)];
+	const buffer = new Buffer();
+	fragmentCode(inner, context.component.fragments.get(node.body) ?? [], statements, buffer, false);
+	buffer.flush(inner, statements);
+	const hashed = hash((context.component.unit.filename ?? '(unknown)').replace(/\\/g, '/'));
+	return b.statement(
+		runtime(context, 'head', context.out, b.literal(hashed), b.arrow([out], statements))
+	);
+}
+
+export function separateCode(context: TemplateContext, fragment: Fragment): ES.Statement[] {
+	const statements: ES.Statement[] = [];
+	for (const node of context.component.separate.get(fragment) ?? []) {
+		if (node.kind === 'title') statements.push(titleCode(context, node));
+		else if (node.target === 'head') statements.push(headCode(context, node));
+		else throw unsupported(node, `<svelte:${node.target}>`);
+	}
+	return statements;
+}

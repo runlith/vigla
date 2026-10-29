@@ -1,6 +1,15 @@
 import type * as ES from 'estree';
 import { walk } from '../ir/estree.ts';
-import type { Element, Fragment, KeyedList, Namespace, Node, UnkeyedList } from '../ir/nodes.ts';
+import type {
+	Element,
+	Fragment,
+	KeyedList,
+	Namespace,
+	Node,
+	Special,
+	Title,
+	UnkeyedList
+} from '../ir/nodes.ts';
 import {
 	CompileError,
 	type ComponentUnit,
@@ -36,6 +45,7 @@ export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly namespaces: ReadonlyMap<Element, Namespace>;
 	readonly fragmentNamespaces: ReadonlyMap<Fragment, Namespace>;
 	readonly ignored: ReadonlyMap<Node, ReadonlySet<string>>;
+	readonly separate: ReadonlyMap<Fragment, readonly (Special | Title)[]>;
 	readonly root: readonly Node[];
 	readonly namespace: Namespace;
 	readonly asynchronous: boolean;
@@ -240,6 +250,7 @@ export function analyzeComponent(
 		namespaces: template.namespaces,
 		fragmentNamespaces: template.fragmentNamespaces,
 		ignored: template.ignored,
+		separate: template.separate,
 		root,
 		namespace: template.fragmentNamespaces.get(unit.template) ?? namespace,
 		asynchronous: unit.instance !== null && hasAwait(unit.instance)

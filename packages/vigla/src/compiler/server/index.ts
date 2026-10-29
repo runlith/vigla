@@ -9,6 +9,7 @@ import { close, open } from '../../shared/markers.ts';
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { rewrite, runtime, type Context } from './script.ts';
+import { separateCode } from './special.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
@@ -81,7 +82,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		else script.push(rewrite(scripted, statement as ES.Statement));
 	}
 	const template: TemplateContext = { ...context, out: inner };
-	const content: ES.Statement[] = [];
+	const content: ES.Statement[] = separateCode(template, analysis.unit.template);
 	const buffer = new Buffer();
 	if (analysis.asynchronous) buffer.text(open);
 	fragmentCode(template, analysis.root, content, buffer, true);

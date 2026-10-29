@@ -9,6 +9,7 @@ import {
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
+import { separateCode } from './special.ts';
 import { render, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
@@ -122,9 +123,13 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			throw unsupported(spanOf(statement), 'This export from a component');
 		else script.push(rewrite(saving, statement as ES.Statement));
 	}
+	const separate = separateCode(context, analysis.unit.template);
 	if (analysis.asynchronous) {
 		const inner = b.id(names.unique('$$anchor'));
-		const template = render(context, analysis.root, inner, analysis.namespace, true);
+		const template = [
+			...separate,
+			...render(context, analysis.root, inner, analysis.namespace, true)
+		];
 		const fn = b.arrow(
 			[],
 			[
@@ -135,7 +140,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		body.push(b.statement(runtime(context, 'script', anchor, { ...fn, async: true })));
 	} else {
 		const template = render(context, analysis.root, anchor, analysis.namespace, true);
-		body.push(...script, ...context.instance, ...template);
+		body.push(...script, ...context.instance, ...separate, ...template);
 	}
 	body.push({
 		type: 'ReturnStatement',

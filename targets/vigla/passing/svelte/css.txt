@@ -47,6 +47,7 @@ general-siblings-combinator-rendertag-global
 general-siblings-combinator-star
 global
 global-block
+global-head-only
 global-keyframes
 global-keyframes-with-no-elements
 global-local

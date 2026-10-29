@@ -9,6 +9,8 @@ import type {
 	KeyedList,
 	Namespace,
 	Node,
+	Special,
+	Title,
 	UnkeyedList,
 	Value
 } from '../ir/nodes.ts';
@@ -17,7 +19,7 @@ import { spanOf, unsupported, type Binding, type Scope, type Scopes } from './sc
 import { clean, preserving, type Preserve } from './whitespace.ts';
 
 export interface ListFacts {
-	readonly item: Binding;
+	readonly names: readonly Binding[];
 	readonly index: Binding | null;
 }
 
@@ -91,6 +93,12 @@ export function ownExpressions(node: Node): ES.Expression[] {
 		case 'unkeyed-list':
 			found.push(node.collection);
 			break;
+		case 'keyed-block':
+			found.push(node.key);
+			break;
+		case 'async-block':
+			found.push(node.promise);
+			break;
 		case 'render': {
 			const call = (
 				node.call.type === 'ChainExpression' ? node.call.expression : node.call
@@ -132,6 +140,10 @@ function hoisted(node: Node): boolean {
 	return node.kind === 'snippet';
 }
 
+function apart(node: Node): node is Special | Title {
+	return node.kind === 'special' || node.kind === 'title';
+}
+
 export class Template {
 	readonly scopes: Scopes;
 	readonly preserve: Preserve;
@@ -141,6 +153,7 @@ export class Template {
 	readonly namespaces = new Map<Element, Namespace>();
 	readonly fragmentNamespaces = new Map<Fragment, Namespace>();
 	readonly ignored = new Map<Node, ReadonlySet<string>>();
+	readonly separate = new Map<Fragment, readonly (Special | Title)[]>();
 	readonly #ignores: Ignores;
 	#ignoring: ReadonlySet<string> | null = null;
 	inText = false;
@@ -158,6 +171,42 @@ export class Template {
 		this.scopes.resolve(expression, scope);
 	}
 
+	pattern(pattern: ES.Pattern, scope: Scope): Binding[] {
+		const bound: Binding[] = [];
+		const visit = (node: ES.Pattern): void => {
+			switch (node.type) {
+				case 'Identifier':
+					this.names.add(node.name);
+					bound.push(this.scopes.bind(scope, node, { kind: 'item' }));
+					return;
+				case 'ObjectPattern':
+					for (const property of node.properties) {
+						if (property.type === 'RestElement') {
+							visit(property.argument);
+							continue;
+						}
+						if (property.computed) this.expression(property.key as ES.Expression, scope);
+						visit(property.value);
+					}
+					return;
+				case 'ArrayPattern':
+					for (const element of node.elements) if (element !== null) visit(element);
+					return;
+				case 'RestElement':
+					visit(node.argument);
+					return;
+				case 'AssignmentPattern':
+					this.expression(node.right, scope);
+					visit(node.left);
+					return;
+				default:
+					throw unsupported(spanOf(node), 'This destructuring pattern');
+			}
+		};
+		visit(pattern);
+		return bound;
+	}
+
 	fragment(
 		fragment: Fragment,
 		parent: Element | null,
@@ -170,9 +219,12 @@ export class Template {
 		const kept = inherited || (name !== null && preserving.has(name));
 		const own = infer ? inferred(fragment.nodes, namespace) : namespace;
 		const foreign = own === 'svg' && name !== 'text' && !this.inText;
-		const lifted = fragment.nodes.filter(hoisted);
-		const regular =
-			lifted.length === 0 ? fragment : { nodes: fragment.nodes.filter((node) => !hoisted(node)) };
+		const separate = fragment.nodes.filter(apart);
+		const given =
+			separate.length === 0 ? fragment.nodes : fragment.nodes.filter((node) => !apart(node));
+		if (separate.length > 0) this.separate.set(fragment, separate);
+		const lifted = given.filter(hoisted);
+		const regular = { nodes: lifted.length === 0 ? given : given.filter((node) => !hoisted(node)) };
 		const nodes = [
 			...lifted,
 			...clean(
@@ -189,6 +241,7 @@ export class Template {
 			this.names.add(node.name.name);
 			this.scopes.bind(scope, node.name, { kind: 'snippet' });
 		}
+		for (const node of separate) this.node(node, scope, kept, own);
 		for (const node of nodes) this.node(node, scope, kept, own);
 		return nodes;
 	}
@@ -320,24 +373,43 @@ export class Template {
 				return;
 			case 'keyed-list':
 			case 'unkeyed-list': {
-				if (node.item === null || node.item.type !== 'Identifier') {
-					throw unsupported(node, 'An each block without a single item name');
-				}
 				this.expression(node.collection, scope);
 				const inner = this.scopes.child(scope);
-				this.names.add(node.item.name);
-				const item = this.scopes.bind(inner, node.item, { kind: 'item' });
+				const names = node.item === null ? [] : this.pattern(node.item, inner);
 				let index: Binding | null = null;
 				if (node.index !== null) {
 					this.names.add(node.index.name);
 					index = this.scopes.bind(inner, node.index, { kind: 'index' });
 				}
-				this.lists.set(node, { item, index });
+				this.lists.set(node, { names, index });
 				if (node.kind === 'keyed-list') this.expression(node.key, inner);
 				this.fragment(node.body, null, inner, kept, namespace);
 				if (node.fallback !== null) this.fragment(node.fallback, null, scope, kept, namespace);
 				return;
 			}
+			case 'keyed-block':
+				this.expression(node.key, scope);
+				this.fragment(node.body, null, scope, kept, namespace);
+				return;
+			case 'async-block':
+				this.expression(node.promise, scope);
+				if (node.pending !== null) this.fragment(node.pending, null, scope, kept, namespace);
+				for (const outcome of [node.resolved, node.rejected]) {
+					if (outcome === null) continue;
+					const inner = this.scopes.child(scope);
+					if (outcome.binding !== null) this.pattern(outcome.binding, inner);
+					this.fragment(outcome.body, null, inner, kept, namespace);
+				}
+				return;
+			case 'special':
+				for (const attribute of node.attributes) this.attribute(attribute, scope);
+				if (node.target === 'head') this.fragment(node.body, null, scope, kept, 'html', false);
+				return;
+			case 'title':
+				for (const part of node.parts) {
+					if (part.kind === 'expression') this.expression(part.expression, scope);
+				}
+				return;
 			default:
 				throw unsupported(node, `The ${node.kind} node`);
 		}
