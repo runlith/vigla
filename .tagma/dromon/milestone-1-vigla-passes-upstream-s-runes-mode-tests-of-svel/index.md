@@ -24,7 +24,7 @@ Moving Tagma onto Vigla is stage 2 and outside this spec.
 
 **Scope** ([[019de65b]]). Every upstream test file and sample below is in the manifest:
 - Svelte: the suites under `packages/svelte/tests` except runtime-legacy and migrate (legacy mode and the Svelte 4 migration); the unit tests `packages/svelte/src/**/*.test.ts`; `tests/css-parse.test.ts`; `tests/runtime-browser/test-ssr.ts`; `tests/store` pending the stores decision.
-- SvelteKit: `packages/kit` unit specs, `test/apps` with each app's Playwright and vitest steps, `test/build-errors`, `test/prerendering`, `test/types`, and the tests of the adapters in scope.
+- SvelteKit: `packages/kit` unit specs, `test/apps` with each app's Playwright and vitest steps, `test/build-errors`, `test/prerendering`, `test/types`, and the tests of the node, bun and static adapters; the Cloudflare, Vercel, Netlify and auto adapters follow this milestone.
 - vite-plugin-svelte: its unit specs and its e2e projects outside the inspector, in each run mode upstream uses (`test:serve`, `test:build`, `test:build:watch`).
 
 **The manifest.** One status per entry, keyed Svelte `suite/sample/variant`, Kit `app/file/title/project/mode`, vite-plugin `project/file/title/mode`. Variants and modes in: Svelte `dom`, `hydrate`, `ssr` and `async-ssr`; Kit dev and build, its Playwright projects with and without JS, and the variant scripts upstream runs (`server-side-route-resolution`, `cross-platform`, `paths-*`), each app only in the modes it has. The harness fails when an entry in scope has no status.
@@ -50,7 +50,6 @@ The reference configuration is runes forced and async on, for every test that co
 **Open for the operator.**
 - Stores (`svelte/store`, `$store`, `tests/store`): recommended kept — stores are not legacy mode, 39 runes samples use them and `motion` imports them; Kit 3 already dropped `$app/stores`.
 - Remote functions, experimental behind a flag in Kit 3.1: recommended in, with no flag; the `async` app holds 71 of the 72 `.remote.*` files, so leaving them out removes most of Kit's async coverage.
-- Adapters: recommended node and static; `adapter-auto` installs the Vercel, Cloudflare and Netlify adapters, so it waits for them.
 - Out of this milestone, recommended: the `snapshot` suite (it pins upstream's generated code, which a new code generator does not reproduce), `@sveltejs/package`, `@sveltejs/enhanced-img` and the vite-plugin inspector.
 
 **Acceptance.**
