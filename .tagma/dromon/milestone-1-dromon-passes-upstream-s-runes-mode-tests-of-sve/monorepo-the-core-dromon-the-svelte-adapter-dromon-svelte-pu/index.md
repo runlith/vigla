@@ -15,7 +15,7 @@ fields:
 
 The compiler core and the runtime stay one package, as upstream's: compiled components import the runtime of the package and version that compiled them.
 
-**The core knows no Svelte.** No file of `dromon` names `svelte` — no specifier, declared module, type or version. A front end fills the core's port, turning one source form into the template IR, the script ESTree and its syntax-bound diagnostics ([[9ca8ebb2]]); the core has no relation to any front end. Runes are named exports of `dromon` for its native format ([[8cd5da81]]).
+**The core knows no Svelte.** No module of `dromon` imports a `svelte` specifier, declares a `svelte` module or depends on the `svelte` package. Data formats the contract keeps from upstream (`__svelte_meta`, `window.__svelte`) and the parser's npm scope (`@sveltejs/acorn-typescript`) are not Svelte as a module and stay. A front end fills the core's port, turning one source form into the template IR, the script ESTree and its syntax-bound diagnostics ([[9ca8ebb2]]); the core has no relation to any front end. Runes are named exports of `dromon` for its native format ([[8cd5da81]]).
 
 **The adapter carries what Svelte's world reads** — `svelte-check` 4.7.7, vite-plugin-svelte, SvelteKit and third-party libraries:
 - the `.svelte` front end, global runes in `.svelte` and `.svelte.js`/`.svelte.ts`, and `svelte/compiler` over the core;
@@ -34,7 +34,7 @@ The compiler core and the runtime stay one package, as upstream's: compiled comp
 **Acceptance.**
 - Every package builds and typechecks clean with tsrs.
 - The module cards exist and the import rule is enforced at gate with zero debt.
-- No file of `packages/dromon` names `svelte` in an import specifier, a declared module or its `package.json`.
+- No file of `packages/dromon` imports a `svelte` specifier or declares a `svelte` module, and its `package.json` does not depend on `svelte`.
 - The packed `@dromon/svelte` has exactly the `exports` keys above, a `compiler/index.js` that `require` loads in Node, and a `version` in the 5.x line.
 - `svelte-check` 4.7.7 runs over an app with `svelte` aliased to the packed `@dromon/svelte` and reports Svelte 5 diagnostics.
 - In an app with `svelte` aliased, state created through `svelte` is read reactively through `dromon`: one runtime instance.
