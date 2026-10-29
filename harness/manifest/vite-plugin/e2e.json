@@ -14,7 +14,7 @@
     "kit-async/src/routes/+page.svelte": "`$lib` imports replaced by the `#lib` subpath import Kit 3.1 uses",
     "kit-async/svelte.config.js": "removed; Kit 3.1 refuses a `svelte.config.js` and takes its options through `sveltekit()`",
     "kit-async/vite.config.js": "the Kit 2 `svelte.config.js` options passed to `sveltekit()`, as Kit 3.1 requires",
-    "kit-node/__tests__/kit.spec.ts": "the edit of Counter.svelte's initial count follows its `$state` declaration",
+    "kit-node/__tests__/kit.spec.ts": "the resolved-config expectations follow what Kit 3.1.0 generates: no separate `build.ssr` config, `@opentelemetry/api` instead of `cookie` and `set-cookie-parser` external, `noExternal: true` in build, and Kit’s `devalue` and `esm-env` pre-bundled; the edit of Counter.svelte's initial count follows its `$state` declaration",
     "kit-node/jsconfig.json": "extends `$app/tsconfig`, as Kit 3.1 requires",
     "kit-node/package.json": "declares the `#lib` subpath import that replaces Kit 2’s `$lib` in Kit 3.1",
     "kit-node/src/lib/Child.svelte": "`export let` replaced by `$props()`",
@@ -115,8 +115,8 @@
     "kit-node/kit.spec.ts > kit-node > index route > should respect transforms": "contract",
     "kit-node/kit.spec.ts > kit-node > output > should produce hermetic build": "contract",
     "kit-node/kit.spec.ts > kit-node > resolved config > should have generated values": {
-      "status": "difference",
-      "reason": "asserts the `ssr.external` list Kit 2.59 resolves, which vite-plugin-svelte 7.3.1 tests against; Kit 3.1's list differs"
+      "status": "converted",
+      "reason": "its resolved-config expectations, written against Kit 2.59, follow what Kit 3.1.0 generates: no `build.ssr` config, `@opentelemetry/api` instead of `cookie` and `set-cookie-parser` external, `noExternal: true` in build, Kit’s `devalue` and `esm-env` pre-bundled"
     },
     "package-json-svelte-field/package-json-svelte-field.spec.ts > should render component imported via svelte field in package.json": "contract",
     "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works": "contract",
