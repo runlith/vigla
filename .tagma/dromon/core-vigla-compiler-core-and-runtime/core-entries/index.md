@@ -50,6 +50,15 @@ fields:
       },
       {
         "at": "events.ts"
+      },
+      {
+        "at": "transition.ts"
+      },
+      {
+        "at": "animate.ts"
+      },
+      {
+        "at": "easing.ts"
       }
     ],
     "id": "entries",
@@ -76,6 +85,8 @@ edges:
     to: 01a1878f-918e-7939-ab43-8548688c49ca
   - kind: imports
     to: 01a18792-64a4-7342-8c33-c00c6ca88dc0
+  - kind: imports
+    to: 01a187ee-bdbe-7def-8088-abb9f99c705e
 sources:
   - kind: dir
     ref: packages/vigla/src/entries

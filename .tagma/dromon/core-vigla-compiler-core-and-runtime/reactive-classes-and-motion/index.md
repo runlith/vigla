@@ -83,6 +83,12 @@ fields:
         "for": [
           "33d45c4b"
         ]
+      },
+      {
+        "at": "frames.ts",
+        "for": [
+          "f99c705e"
+        ]
       }
     ],
     "id": "classes",
