@@ -268,7 +268,7 @@ describe('kit-node', () => {
 		it('should have generated values', async () => {
 			const configs = [];
 			if (isBuild) {
-				configs.push('serve', 'build', 'build.ssr');
+				configs.push('serve', 'build');
 			} else {
 				configs.push('serve');
 			}
@@ -293,18 +293,19 @@ describe('kit-node', () => {
 								'sade',
 								'cli-color',
 								'tiny-glob',
-								'cookie',
-								'set-cookie-parser',
+								'@opentelemetry/api',
 								'e2e-test-dep-cjs-and-esm',
 								'e2e-test-dep-cjs-only',
 								'e2e-test-dep-scss-only'
 							]
-						: [],
+						: ['@opentelemetry/api'],
 					`ssr.external in ${filename}`
 				);
 				expectArrayEqual(
-					config.ssr.noExternal,
-					[
+					isServe ? config.ssr.noExternal : [config.ssr.noExternal],
+					!isServe
+						? [true]
+						: [
 						'svelte',
 						'/^svelte\\//', // serialized with toString
 						'e2e-test-dep-svelte-api-only',
@@ -344,6 +345,8 @@ describe('kit-node', () => {
 					'svelte',
 					'svelte/internal/disclose-version',
 					'svelte/legacy',
+					'@sveltejs/kit > devalue',
+					'@sveltejs/kit > esm-env',
 					'svelte-i18n > deepmerge',
 					'svelte-i18n > cli-color',
 					'svelte-i18n > tiny-glob'
