@@ -5,7 +5,7 @@ import { chromium, type Browser } from 'playwright';
 import { compile, compileModule, type CompileOptions, type Warning } from 'svelte/compiler';
 import { assert, inject } from 'vitest';
 import { root } from '../manifest.ts';
-import { locate, svelteFile, type Package } from '../resolve.ts';
+import { installed, targetFile, targetPackages, type Named } from '../resolve.ts';
 import type { BrowserConfig, Variant } from '../runtime/config.ts';
 import type { Kind, Sample } from '../runtime/suite.ts';
 import type { Flags } from './driver.ts';
@@ -14,12 +14,12 @@ type Side = 'client' | 'server';
 
 const props = join(root, 'src', 'runtime', 'props.svelte.js');
 
-function target(svelte: Package, side: Side): Plugin {
+function target(packages: readonly Named[], side: Side): Plugin {
 	return {
 		name: 'harness:target',
 		setup(build) {
-			build.onResolve({ filter: /^svelte(\/|$)/ }, (args) => {
-				const file = svelteFile(svelte, args.path, side);
+			build.onResolve({ filter: /^(svelte|dromon)(\/|$)/ }, (args) => {
+				const file = targetFile(packages, args.path, side);
 				return file === null ? undefined : { path: file };
 			});
 		}
@@ -81,7 +81,7 @@ async function bundle(
 	flags: Flags,
 	warnings: Warning[]
 ): Promise<string> {
-	const svelte = locate(inject('target').root, 'svelte');
+	const packages = installed(inject('target').root, targetPackages);
 	const result = await build({
 		stdin: { contents: entry(side, sample, flags), resolveDir: sample.cwd, loader: 'js' },
 		write: false,
@@ -91,7 +91,7 @@ async function bundle(
 		platform: side === 'client' ? 'browser' : 'node',
 		conditions: ['browser', 'production'],
 		alias: { '@dromon/harness/helpers': join(root, 'src', 'helpers.ts') },
-		plugins: [target(svelte, side), components(side, options, flags.customElement, warnings)]
+		plugins: [target(packages, side), components(side, options, flags.customElement, warnings)]
 	});
 	const [output] = result.outputFiles;
 	if (output === undefined) throw new Error(`esbuild produced no ${side} bundle`);

@@ -39,8 +39,11 @@ function read(root: string): Package {
 }
 
 export function locate(target: string, name: string): Package {
-	const require = createRequire(join(target, 'package.json'));
-	return read(realpathSync(dirname(require.resolve(`${name}/package.json`))));
+	for (let dir = target; ; dir = dirname(dir)) {
+		const at = join(dir, 'node_modules', name);
+		if (existsSync(join(at, 'package.json'))) return read(realpathSync(at));
+		if (dirname(dir) === dir) throw new Error(`${target} installs no ${name}`);
+	}
 }
 
 function packageRoot(file: string): string {
@@ -91,16 +94,35 @@ export function served(importer: string | undefined): boolean {
 	return importer !== undefined && importer.replaceAll('\\', '/').includes('/_output/server/');
 }
 
-export function svelteFile(
-	svelte: Package,
+export interface Named extends Package {
+	name: string;
+}
+
+export function installed(target: string, names: readonly string[]): Named[] {
+	const found: Named[] = [];
+	for (const name of names) {
+		try {
+			found.push({ name, ...locate(target, name) });
+		} catch {}
+	}
+	return found;
+}
+
+export function targetFile(
+	packages: readonly Named[],
 	source: string,
 	side: 'client' | 'server'
 ): string | null {
-	if (source !== 'svelte' && !source.startsWith('svelte/')) return null;
-	const key = source === 'svelte' ? '.' : `./${source.slice('svelte/'.length)}`;
-	const file = pick(svelte.exports[key], side === 'server' ? server : client);
-	return file === null ? null : join(svelte.root, file);
+	for (const found of packages) {
+		if (source !== found.name && !source.startsWith(`${found.name}/`)) continue;
+		const key = source === found.name ? '.' : `./${source.slice(found.name.length + 1)}`;
+		const file = pick(found.exports[key], side === 'server' ? server : client);
+		return file === null ? null : join(found.root, file);
+	}
+	return null;
 }
+
+export const targetPackages = ['svelte', 'dromon'];
 
 export function borrowed(work: string, anchor: string): Plugin {
 	const prefix = `${work.replaceAll('\\', '/')}/`;
@@ -110,7 +132,8 @@ export function borrowed(work: string, anchor: string): Plugin {
 		async resolveId(source, importer) {
 			if (importer === undefined || !importer.replaceAll('\\', '/').startsWith(prefix)) return null;
 			if (/^[./]/.test(source) || isBuiltin(source)) return null;
-			if (source === 'svelte' || source.startsWith('svelte/')) return null;
+			if (targetPackages.some((name) => source === name || source.startsWith(`${name}/`)))
+				return null;
 			const own = await this.resolve(source, importer, { skipSelf: true });
 			return own ?? this.resolve(source, anchor, { skipSelf: true });
 		}
@@ -122,14 +145,14 @@ export function resolver(
 	aliases: Readonly<Record<string, string>>,
 	scoped: (source: string, importer: string | undefined) => string | null
 ): Plugin {
-	const svelte = locate(target, 'svelte');
+	const packages = installed(target, targetPackages);
 	return {
 		name: 'harness:target',
 		enforce: 'pre',
 		resolveId(source, importer) {
 			const alias = aliases[source] ?? scoped(source, importer);
 			if (alias !== null && alias !== undefined) return alias;
-			return svelteFile(svelte, source, served(importer) ? 'server' : 'client');
+			return targetFile(packages, source, served(importer) ? 'server' : 'client');
 		}
 	};
 }
