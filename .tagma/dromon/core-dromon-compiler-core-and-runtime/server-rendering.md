@@ -26,4 +26,4 @@ sources:
   - kind: dir
     ref: packages/dromon/src/runtime/server
 ---
-Server rendering: the output compiled server code pushes HTML into, `render()` with the result Kit reads, and the helpers compiled server code calls.
+Server rendering: the output compiled server code pushes HTML into, `render()` with the result Kit reads, the component context a render keeps, and the helpers compiled server code calls, such as attribute serialization.

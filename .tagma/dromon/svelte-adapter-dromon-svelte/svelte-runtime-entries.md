@@ -36,4 +36,4 @@ sources:
   - kind: file
     ref: packages/svelte/tsconfig.json
 ---
-The runtime entries Svelte's world imports as `svelte`, `svelte/server` and `svelte/internal/*`, each re-exporting the matching `dromon` entry so code reaching the runtime by either name shares one instance. Its `package.json` carries the adapter's name, its 5.x version and its `exports` keys.
+The runtime entries Svelte's world imports as `svelte`, `svelte/server` and `svelte/internal/*`, each re-exporting the matching `dromon` entry so code reaching the runtime by either name shares one instance, and installing the reporter that prints runtime diagnostics in upstream's form. Its `package.json` carries the adapter's name, its 5.x version and its `exports` keys.
