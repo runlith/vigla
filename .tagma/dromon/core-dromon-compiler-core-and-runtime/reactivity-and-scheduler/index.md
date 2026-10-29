@@ -23,6 +23,12 @@ fields:
       },
       {
         "at": "tracking.ts"
+      },
+      {
+        "at": "async.ts"
+      },
+      {
+        "at": "fork.ts"
       }
     ],
     "id": "reactivity",
