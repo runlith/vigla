@@ -23,6 +23,7 @@ export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
 export { delegate, delegated, listen } from '../../runtime/dom/events.ts';
 export { prop, propsId, rest, updateProp, updatePropPre } from '../../runtime/dom/props.ts';
+export { component, noop, render, spreadProps } from '../../runtime/dom/swap.ts';
 export {
 	append,
 	child,

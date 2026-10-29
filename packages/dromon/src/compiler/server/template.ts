@@ -15,6 +15,7 @@ import type {
 	Text,
 	Value
 } from '../ir/nodes.ts';
+import { component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
 export interface TemplateContext extends Context {
@@ -298,10 +299,20 @@ export function fragmentCode(
 	buffer: Buffer,
 	textFirst: boolean
 ): void {
-	const [first] = nodes;
+	const first = nodes.find((node) => node.kind !== 'snippet');
 	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
+	statements.push(...snippetDeclarations(context, nodes));
+	const alone = standalone(context, nodes);
 	for (const node of nodes) {
 		switch (node.kind) {
+			case 'snippet':
+				break;
+			case 'component':
+				component(context, node, statements, buffer, alone);
+				break;
+			case 'render':
+				render(context, node, statements, buffer, alone);
+				break;
 			case 'text':
 				buffer.text(escapeContent(node.data));
 				break;

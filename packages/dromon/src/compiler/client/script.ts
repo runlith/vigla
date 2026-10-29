@@ -4,10 +4,12 @@ import {
 	spanOf,
 	unsupported,
 	type Binding,
-	type ScriptAnalysis
+	type ScriptAnalysis,
+	type StateField
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Rune } from '../ir/port.ts';
+import { classBody, fieldValue, privateField } from './classes.ts';
 
 export interface Context {
 	readonly analysis: ScriptAnalysis;
@@ -16,6 +18,7 @@ export interface Context {
 	readonly plain: ReadonlySet<Binding>;
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
+	readonly fields?: ReadonlyMap<string, StateField>;
 }
 
 const declaring = new Set<Rune>(['$state', '$state.raw', '$derived', '$derived.by', '$props.id']);
@@ -73,6 +76,7 @@ function read(context: Context, node: ES.Identifier, binding: Binding): ES.Expre
 		return propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
 	}
 	if (binding.kind === 'index') return runtime(context, 'get', node);
+	if (binding.kind === 'argument') return b.call(node);
 	if (!isSignal(binding)) return undefined;
 	return runtime(context, 'get', node);
 }
@@ -105,7 +109,7 @@ function assign(
 	binding: Binding,
 	next: <T extends ES.Node>(node: T) => T
 ): ES.Expression {
-	if (binding.kind === 'derived' || binding.kind === 'item' || binding.kind === 'index') {
+	if (binding.kind === 'item' || binding.kind === 'index') {
 		throw unsupported(spanOf(node), `Assigning to a ${binding.kind} binding`);
 	}
 	const target = node.left as ES.Identifier;
@@ -241,6 +245,47 @@ function effectCall(
 	}
 }
 
+function assignField(
+	context: Context,
+	node: ES.AssignmentExpression,
+	next: <T extends ES.Node>(node: T) => T
+): ES.Expression | undefined {
+	const left = node.left as ES.MemberExpression;
+	const declared =
+		left.object.type === 'ThisExpression' && !left.computed && left.property.type === 'Identifier'
+			? context.fields?.get(left.property.name)
+			: undefined;
+	if (declared !== undefined && declared.node === node) {
+		return {
+			...node,
+			left: { ...left, property: declared.key },
+			right: fieldValue(context, declared, next)
+		};
+	}
+	const field = privateField(context, left);
+	if (field === undefined) return undefined;
+	const source: ES.MemberExpression = { ...left, object: next(left.object) };
+	const right = next(node.right);
+	const wrap = (value: ES.Expression): ES.Expression =>
+		field.rune === '$state' ? runtime(context, 'proxy', value) : value;
+	if (node.operator === '=') return runtime(context, 'set', source, wrap(right));
+	if (node.operator === '&&=' || node.operator === '||=' || node.operator === '??=') {
+		const operator = node.operator.slice(0, -1) as ES.LogicalOperator;
+		return b.logical(
+			operator,
+			runtime(context, 'get', source),
+			runtime(context, 'set', source, wrap(right))
+		);
+	}
+	const operator = node.operator.slice(0, -1) as ES.BinaryOperator;
+	return runtime(
+		context,
+		'set',
+		source,
+		wrap(b.binary(operator, runtime(context, 'get', source), right))
+	);
+}
+
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 	const { references, declarations, runes } = context.analysis;
 	return b.rewrite(node, (current, next) => {
@@ -257,7 +302,21 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (value === current.value) return current;
 				return { ...current, key, shorthand: false, value };
 			}
+			case 'ClassBody': {
+				const fields = context.analysis.classes.get(current);
+				if (fields === undefined) return undefined;
+				const inner: Context = { ...context, fields };
+				return classBody(inner, current, fields, (child) => rewrite(inner, child));
+			}
+			case 'MemberExpression': {
+				const field = privateField(context, current);
+				if (field === undefined) return undefined;
+				return runtime(context, 'get', { ...current, object: next(current.object) });
+			}
 			case 'AssignmentExpression': {
+				if (current.left.type === 'MemberExpression') {
+					return assignField(context, current, next);
+				}
 				if (current.left.type !== 'Identifier') return undefined;
 				const binding = references.get(current.left);
 				if (binding === undefined || context.plain.has(binding)) return undefined;
@@ -267,11 +326,18 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				return assign(context, current, binding, next);
 			}
 			case 'UpdateExpression': {
+				if (current.argument.type === 'MemberExpression') {
+					const target = current.argument;
+					if (privateField(context, target) === undefined) return undefined;
+					const source = { ...target, object: next(target.object) };
+					const delta = b.literal(current.operator === '++' ? 1 : -1);
+					return runtime(context, current.prefix ? 'updatePre' : 'update', source, delta);
+				}
 				if (current.argument.type !== 'Identifier') return undefined;
 				const binding = references.get(current.argument);
 				if (binding === undefined || context.plain.has(binding)) return undefined;
 				if (binding.kind === 'prop' && accessor(binding)) return update(context, current, binding);
-				if (!stateful(binding)) return undefined;
+				if (!stateful(binding) && binding.kind !== 'derived') return undefined;
 				return update(context, current, binding);
 			}
 			case 'CallExpression': {

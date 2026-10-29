@@ -12,6 +12,8 @@ export type BindingKind =
 	| 'rest-prop'
 	| 'item'
 	| 'index'
+	| 'snippet'
+	| 'argument'
 	| 'import';
 
 export interface Prop {
@@ -339,6 +341,11 @@ export class Scopes {
 			this.written(node.left, inner);
 		}
 		children(node, (child) => this.resolve(child, inner, node));
+	}
+
+	bound(expression: ES.Expression, scope: Scope): void {
+		if (expression.type === 'SequenceExpression') return;
+		this.written(expression as ES.Pattern, scope);
 	}
 
 	private written(target: ES.Pattern, scope: Scope): void {

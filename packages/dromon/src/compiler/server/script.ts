@@ -1,6 +1,19 @@
 import type * as ES from 'estree';
-import { spanOf, unsupported, type Binding, type ScriptAnalysis } from '../analysis/index.ts';
+import {
+	spanOf,
+	unsupported,
+	type Binding,
+	type ScriptAnalysis,
+	type StateField
+} from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
+import {
+	classBody,
+	constructorField,
+	fieldValue,
+	isDerivedField,
+	privateDerived
+} from './classes.ts';
 
 export interface Context {
 	readonly analysis: ScriptAnalysis;
@@ -8,6 +21,7 @@ export interface Context {
 	readonly runtime: ES.Identifier;
 	readonly props: ES.Identifier | null;
 	readonly out: ES.Identifier | null;
+	readonly fields?: ReadonlyMap<string, StateField>;
 }
 
 export function runtime(
@@ -71,10 +85,49 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				const key = current.shorthand ? { ...current.key } : current.key;
 				return value === current.value ? current : { ...current, key, shorthand: false, value };
 			}
+			case 'ClassBody': {
+				const fields = context.analysis.classes.get(current);
+				if (fields === undefined) return undefined;
+				const inner: Context = { ...context, fields };
+				return classBody(inner, current, fields, (child) => rewrite(inner, child));
+			}
+			case 'MemberExpression': {
+				if (privateDerived(context, current) === undefined) return undefined;
+				return b.call({ ...current, object: next(current.object) });
+			}
 			case 'AssignmentExpression':
 			case 'UpdateExpression': {
+				if (current.type === 'AssignmentExpression') {
+					const declared = constructorField(context, current);
+					if (declared !== undefined) {
+						const left = current.left as ES.MemberExpression;
+						const target = isDerivedField(declared) ? { ...left, property: declared.key } : left;
+						return { ...current, left: target, right: fieldValue(context, declared, next) };
+					}
+					if (current.left.type === 'MemberExpression' && privateDerived(context, current.left)) {
+						const left = current.left;
+						if (current.operator !== '=')
+							throw unsupported(spanOf(current), 'A compound assignment to a derived field');
+						return b.call({ ...left, object: next(left.object) }, next(current.right));
+					}
+				}
 				const target = current.type === 'AssignmentExpression' ? current.left : current.argument;
 				const binding = target.type === 'Identifier' ? references.get(target) : undefined;
+				if (derived(binding) && current.type === 'AssignmentExpression') {
+					const id = target as ES.Identifier;
+					const right = next(current.right);
+					if (current.operator === '=') return b.call(id, right);
+					if (
+						current.operator === '&&=' ||
+						current.operator === '||=' ||
+						current.operator === '??='
+					) {
+						const operator = current.operator.slice(0, -1) as ES.LogicalOperator;
+						return b.logical(operator, b.call(id), b.call(id, right));
+					}
+					const operator = current.operator.slice(0, -1) as ES.BinaryOperator;
+					return b.call(id, b.binary(operator, b.call(id), right));
+				}
 				if (derived(binding) || binding?.kind === 'item' || binding?.kind === 'index') {
 					throw unsupported(spanOf(current), `Assigning to a ${binding?.kind ?? ''} binding`);
 				}

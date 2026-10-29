@@ -87,10 +87,15 @@ export function propsId(out: Output): string {
 	return id;
 }
 
-export function derived<T>(fn: () => T): () => T {
+export function derived<T>(fn: () => T): (value?: T) => T {
 	let computed = false;
 	let value = undefined as T;
-	return () => {
+	return function (next?: T): T {
+		if (arguments.length > 0) {
+			value = next as T;
+			computed = true;
+			return value;
+		}
 		if (!computed) {
 			value = fn();
 			computed = true;
@@ -106,6 +111,21 @@ export function iterate<T>(
 	return (collection as ArrayLike<T>).length !== undefined
 		? (collection as ArrayLike<T>)
 		: Array.from(collection as Iterable<T>);
+}
+
+export function spreadProps(
+	...sources: (Record<PropertyKey, unknown> | null | undefined)[]
+): Record<PropertyKey, unknown> {
+	const merged: Record<PropertyKey, unknown> = {};
+	for (const source of sources) {
+		if (source == null) continue;
+		for (const key of Object.keys(source)) {
+			const descriptor = Object.getOwnPropertyDescriptor(source, key);
+			if (descriptor !== undefined)
+				Object.defineProperty(merged, key, { ...descriptor, configurable: true, enumerable: true });
+		}
+	}
+	return merged;
 }
 
 export function snapshot<T>(value: T): T {

@@ -48,6 +48,15 @@ export function fork(): never {
 	return unavailable('fork');
 }
 
+export { Owner, getOwner, root } from '../runtime/reactivity/owners.ts';
+export type { Cell } from '../runtime/reactivity/sources.ts';
+
+export function effect(): void {}
+
+export function cell<T>(value: T): { current: T } {
+	return { current: value };
+}
+
 export async function tick(): Promise<void> {}
 
 export async function settled(): Promise<void> {}

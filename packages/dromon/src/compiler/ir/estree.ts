@@ -125,6 +125,20 @@ export function arrow(
 	};
 }
 
+export function functionExpression(
+	params: readonly ES.Pattern[],
+	body: readonly ES.Statement[]
+): ES.FunctionExpression {
+	return {
+		type: 'FunctionExpression',
+		id: null,
+		params: [...params],
+		body: { type: 'BlockStatement', body: [...body] },
+		async: false,
+		generator: false
+	};
+}
+
 export function conditional(
 	test: ES.Expression,
 	consequent: ES.Expression,

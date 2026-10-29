@@ -12,6 +12,13 @@ import type {
 	Text,
 	UnkeyedList
 } from '../ir/nodes.ts';
+import {
+	componentCall,
+	isDynamicComponent,
+	isStaticRender,
+	renderCall,
+	snippetDeclarations
+} from './component.ts';
 import { elementPart } from './element.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
@@ -255,12 +262,43 @@ export function parts(
 					anchorPart((anchor, emit) => emit.init.push(...listCode(context, node, anchor)))
 				);
 				break;
+			case 'component':
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(...componentCall(context, node, anchor)))
+				);
+				break;
+			case 'render':
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(...renderCall(context, node, anchor)))
+				);
+				break;
+			case 'snippet':
+				break;
 			default:
 				throw unsupported(node, `The ${node.kind} node`);
 		}
 	}
 	flush();
 	return result;
+}
+
+function withElementChildren(context: TemplateContext, nodes: readonly Node[]): Node[] {
+	const result: Node[] = [];
+	for (const node of nodes) {
+		result.push(node);
+		if (node.kind === 'element')
+			result.push(...withElementChildren(context, cleaned(context, node.body)));
+	}
+	return result;
+}
+
+function standalone(context: TemplateContext, nodes: readonly Node[]): Node | null {
+	const regular = nodes.filter((node) => node.kind !== 'snippet');
+	if (regular.length !== 1) return null;
+	const [only] = regular;
+	if (only?.kind === 'component' && !isDynamicComponent(context, only)) return only;
+	if (only?.kind === 'render' && isStaticRender(context, only)) return only;
+	return null;
 }
 
 export function navigate(
@@ -344,9 +382,14 @@ export function render(
 	namespace: Namespace,
 	textFirst: boolean
 ): ES.Statement[] {
+	const declarations = snippetDeclarations(context, withElementChildren(context, nodes));
+	const alone = standalone(context, nodes);
+	if (alone?.kind === 'component')
+		return [...declarations, ...componentCall(context, alone, anchor)];
+	if (alone?.kind === 'render') return [...declarations, ...renderCall(context, alone, anchor)];
 	const list = parts(context, nodes, namespace);
-	if (list.length === 0) return [];
-	const emit: Emit = { init: [], update: [], thunks: [], params: [] };
+	if (list.length === 0) return declarations;
+	const emit: Emit = { init: [...declarations], update: [], thunks: [], params: [] };
 	const html = list.map((part) => part.html).join('');
 	const startsWithText = textFirst && list[0]?.hint === 'text';
 	if (startsWithText) emit.init.push(b.statement(runtime(context, 'next')));

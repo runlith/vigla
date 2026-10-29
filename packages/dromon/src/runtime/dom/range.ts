@@ -12,17 +12,19 @@ export interface Built {
 
 function adopt(render: Render, create: (fn: () => void) => Effect): Built {
 	const start = cursor;
-	const before = start.previousSibling as ChildNode;
+	const parent = start.parentNode as ParentNode;
+	const before = start.previousSibling;
 	const effect = create(() => render(start));
 	const end = cursor;
-	if (before.nextSibling === end) {
+	const first = before === null ? parent.firstChild : before.nextSibling;
+	if (first === end) {
 		const marker = document.createTextNode('');
 		end.before(marker);
 		return { effect, first: marker, last: marker, fragment: null };
 	}
 	return {
 		effect,
-		first: before.nextSibling as ChildNode,
+		first: first as ChildNode,
 		last: end.previousSibling as ChildNode,
 		fragment: null
 	};
