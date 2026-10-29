@@ -74,6 +74,9 @@ fields:
       },
       {
         "at": "inspect.ts"
+      },
+      {
+        "at": "values.ts"
       }
     ],
     "id": "dom",
