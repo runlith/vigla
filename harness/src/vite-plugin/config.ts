@@ -29,10 +29,10 @@ function tree(name: string): Tree {
 }
 
 export function vitePlugin(): Record<string, unknown> {
-	const work = process.env.DROMON_WORK;
-	if (work === undefined) throw new Error('DROMON_WORK is not set');
-	const run = process.env.DROMON_TREE;
-	const mode = process.env.DROMON_MODE || undefined;
+	const work = process.env.VIGLA_WORK;
+	if (work === undefined) throw new Error('VIGLA_WORK is not set');
+	const run = process.env.VIGLA_TREE;
+	const mode = process.env.VIGLA_MODE || undefined;
 	if (run === 'vite-plugin/units') {
 		const units = tree('units');
 		const skipped = idle(units, mode).map(
@@ -58,7 +58,7 @@ export function vitePlugin(): Record<string, unknown> {
 			esbuild: { target: 'node18' }
 		};
 	}
-	if (run !== 'vite-plugin/e2e') throw new Error(`DROMON_TREE names no vite-plugin run: ${run}`);
+	if (run !== 'vite-plugin/e2e') throw new Error(`VIGLA_TREE names no vite-plugin run: ${run}`);
 	const e2e = tree('e2e');
 	const root = join(work, 'packages', 'e2e-tests');
 	const timeout = process.env.CI ? 50000 : 30000;

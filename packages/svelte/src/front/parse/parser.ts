@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import type { Diagnostic } from 'dromon/compiler';
+import type { Diagnostic } from 'vigla/compiler';
 import type * as AST from '../ast.ts';
 import { fail, warning, type Args, type At } from '../diagnostics.ts';
 import type { Locator } from '../locate.ts';

@@ -10,9 +10,9 @@
 	],
 	"scripts": {
 		"harness:upstream": "node harness/src/cli.ts targets/upstream",
-		"harness:dromon": "node harness/src/cli.ts targets/dromon",
-		"harness:passing": "node harness/src/cli.ts targets/dromon --passing",
-		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/dromon --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p targets/dromon --noEmit"
+		"harness:vigla": "node harness/src/cli.ts targets/vigla",
+		"harness:passing": "node harness/src/cli.ts targets/vigla --passing",
+		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/vigla --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p targets/vigla --noEmit"
 	},
 	"devDependencies": {
 		"@types/node": "^25.3.1",

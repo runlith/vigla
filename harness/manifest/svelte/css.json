@@ -53,7 +53,7 @@
     "general-siblings-combinator-each-nested": "contract",
     "general-siblings-combinator-former-element-in-slot": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "general-siblings-combinator-if": "contract",
     "general-siblings-combinator-if-not-exhaustive": "contract",
@@ -61,29 +61,29 @@
     "general-siblings-combinator-key": "contract",
     "general-siblings-combinator-nested-slots": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "general-siblings-combinator-nested-slots-flattened": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "general-siblings-combinator-render-tag": "contract",
     "general-siblings-combinator-rendertag-global": "contract",
     "general-siblings-combinator-selects-slot-fallback": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "general-siblings-combinator-slot": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "general-siblings-combinator-slot-global": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "general-siblings-combinator-slots-between": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "general-siblings-combinator-star": "contract",
     "general-siblings-combinator-svelteelement": "contract",
@@ -182,7 +182,7 @@
     "siblings-combinator-each-nested": "contract",
     "siblings-combinator-former-element-in-slot": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-global": "contract",
     "siblings-combinator-if": "contract",
@@ -191,32 +191,32 @@
     "siblings-combinator-key": "contract",
     "siblings-combinator-missing-fallback": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-nested-slots": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-nested-slots-flattened": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-render-tag": "contract",
     "siblings-combinator-selects-slot-fallback": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-slot": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "siblings-combinator-slot-named-between-default": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-slots-between": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "siblings-combinator-star": "contract",
     "siblings-combinator-with-spread": "contract",

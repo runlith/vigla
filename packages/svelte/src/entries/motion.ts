@@ -1,1 +1,1 @@
-export * from 'dromon/internal/motion-client';
+export * from 'vigla/internal/motion-client';

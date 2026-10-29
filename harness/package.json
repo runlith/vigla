@@ -1,5 +1,5 @@
 {
-	"name": "@dromon/harness",
+	"name": "@vigla/harness",
 	"private": true,
 	"type": "module",
 	"exports": {

@@ -89,8 +89,8 @@ mkdirSync(results, { recursive: true });
 if (scope !== null) {
 	const file = join(results, 'scope.json');
 	writeFileSync(file, `${JSON.stringify(scope)}\n`);
-	process.env.DROMON_SCOPE = file;
-} else delete process.env.DROMON_SCOPE;
+	process.env.VIGLA_SCOPE = file;
+} else delete process.env.VIGLA_SCOPE;
 const env = process.env;
 
 const wanted = (project: string): boolean =>
@@ -129,7 +129,7 @@ for (const part of ['vite-plugin', 'kit'] as const) {
 	const outcome = spawnSync('node', [join(root, 'src', part, 'run.ts')], {
 		cwd: dir,
 		stdio: 'inherit',
-		env: { ...env, DROMON_RESULTS: join(results, part) }
+		env: { ...env, VIGLA_RESULTS: join(results, part) }
 	});
 	parts.push(part);
 	exits[part] = outcome.status ?? 1;

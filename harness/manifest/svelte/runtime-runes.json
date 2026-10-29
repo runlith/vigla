@@ -263,7 +263,7 @@
     "async-skipped-branch": "contract",
     "async-slot": {
       "status": "dropped",
-      "reason": "asserts <slot> outside a custom element, a compile error in Dromon"
+      "reason": "asserts <slot> outside a custom element, a compile error in Vigla"
     },
     "async-snippet-coordinated-mount": "contract",
     "async-sole-if-child": "contract",
@@ -349,7 +349,7 @@
     "await-resolve-2": "contract",
     "before-update-in-legacy-child": {
       "status": "dropped",
-      "reason": "asserts beforeUpdate in a runes={false} child; both are compile errors in Dromon"
+      "reason": "asserts beforeUpdate in a runes={false} child; both are compile errors in Vigla"
     },
     "bigint-increment": "contract",
     "bigint-increment-mutation": "contract",
@@ -381,11 +381,11 @@
     "bindable-prop-and-export": "contract",
     "binding-interop": {
       "status": "dropped",
-      "reason": "asserts bindings between runes and runes={false} components; runes={false} is a compile error in Dromon"
+      "reason": "asserts bindings between runes and runes={false} components; runes={false} is a compile error in Vigla"
     },
     "binding-interop-derived": {
       "status": "dropped",
-      "reason": "asserts bindings between runes and runes={false} components; runes={false} is a compile error in Dromon"
+      "reason": "asserts bindings between runes and runes={false} components; runes={false} is a compile error in Vigla"
     },
     "binding-property-non-reactive-ignored": {
       "status": "converted",
@@ -541,7 +541,7 @@
     "component-dont-fuse-whitespace": "contract",
     "component-let-directive": {
       "status": "dropped",
-      "reason": "asserts let: on slot content; <slot> outside a custom element is a compile error in Dromon"
+      "reason": "asserts let: on slot content; <slot> outside a custom element is a compile error in Vigla"
     },
     "component-prop-unescaped": "contract",
     "component-transition-hmr": {
@@ -885,7 +885,7 @@
     "event-on": "contract",
     "event-on-2": {
       "status": "dropped",
-      "reason": "asserts the order of on: listeners, a compile error on elements in Dromon"
+      "reason": "asserts the order of on: listeners, a compile error on elements in Vigla"
     },
     "event-on-3": "contract",
     "event-prop-current-target": "contract",
@@ -917,7 +917,7 @@
     },
     "fine-grained-prop-reactive-statement": {
       "status": "dropped",
-      "reason": "asserts a $: reactive statement in a runes={false} component, a compile error in Dromon"
+      "reason": "asserts a $: reactive statement in a runes={false} component, a compile error in Vigla"
     },
     "flush-sync-inside-attachment": "contract",
     "flush-sync-no-scheduled": "contract",
@@ -1027,43 +1027,43 @@
     "labeled-statement-derived": "contract",
     "legacy-class-transformation": {
       "status": "dropped",
-      "reason": "asserts the class component API of compatibility.componentApi 4, an option Dromon rejects"
+      "reason": "asserts the class component API of compatibility.componentApi 4, an option Vigla rejects"
     },
     "legacy-recursive-reactive-block": {
       "status": "dropped",
-      "reason": "asserts run() from svelte/legacy, an entry Dromon does not have"
+      "reason": "asserts run() from svelte/legacy, an entry Vigla does not have"
     },
     "legacy-runes-ambiguous": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-explicit-false": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-export-$$props": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-export-$$restProps": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-export-const": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-export-labeled": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-export-let": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "legacy-runes-ambiguous-export-let-2": {
       "status": "dropped",
-      "reason": "asserts runes-or-legacy mode inference for a component without runes; Dromon has no legacy mode"
+      "reason": "asserts runes-or-legacy mode inference for a component without runes; Vigla has no legacy mode"
     },
     "lifecycle-render-order-for-children": "contract",
     "lifecycle-render-order-for-children-2": "contract",
@@ -1162,7 +1162,7 @@
     "props-alias-weird": "contract",
     "props-and-slots": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "props-array-each": "contract",
     "props-assignment-tracking": "contract",
@@ -1275,15 +1275,15 @@
     "side-effect-template": "contract",
     "slot": {
       "status": "dropped",
-      "reason": "asserts <slot> outside a custom element, a compile error in Dromon"
+      "reason": "asserts <slot> outside a custom element, a compile error in Vigla"
     },
     "slot-static": {
       "status": "dropped",
-      "reason": "asserts <slot> outside a custom element, a compile error in Dromon"
+      "reason": "asserts <slot> outside a custom element, a compile error in Vigla"
     },
     "slot-svelte-fragment-render-tag": {
       "status": "dropped",
-      "reason": "its subject is `<svelte:fragment>`, which Dromon rejects"
+      "reason": "its subject is `<svelte:fragment>`, which Vigla rejects"
     },
     "snippet": "contract",
     "snippet-access-in-script": "contract",
@@ -1372,11 +1372,11 @@
     "snippet-select": "contract",
     "snippet-slot-let-error": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "snippet-slot-let-renamed-children-error": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "snippet-slot-no-error": "contract",
     "snippet-spread": {
@@ -1390,7 +1390,7 @@
     "snippet-whitespace": "contract",
     "snippets-as-slots": {
       "status": "dropped",
-      "reason": "asserts snippets filling <slot>, a compile error in Dromon"
+      "reason": "asserts snippets filling <slot>, a compile error in Vigla"
     },
     "spread-element-input-select": "contract",
     "spread-props": "contract",
@@ -1460,7 +1460,7 @@
     "svelte-component-props-update": "contract",
     "svelte-component-switch-dev": {
       "status": "dropped",
-      "reason": "asserts <svelte:component> switching, a compile error in Dromon"
+      "reason": "asserts <svelte:component> switching, a compile error in Vigla"
     },
     "svelte-element-css-hash": "contract",
     "svelte-element-custom-element-css-hash": "contract",

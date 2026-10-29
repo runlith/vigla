@@ -1,9 +1,9 @@
 {
-	"name": "@dromon/target-upstream-kit",
+	"name": "@vigla/target-upstream-kit",
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@dromon/harness": "workspace:*",
+		"@vigla/harness": "workspace:*",
 		"@fontsource/libre-barcode-128-text": "5.3.0",
 		"@opentelemetry/api": "1.9.1",
 		"@opentelemetry/sdk-node": "0.223.0",

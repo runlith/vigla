@@ -151,7 +151,7 @@
     "text-empty-2": "contract",
     "text-fallback": {
       "status": "dropped",
-      "reason": "asserts <slot> fallback content, a compile error outside custom elements in Dromon"
+      "reason": "asserts <slot> fallback content, a compile error outside custom elements in Vigla"
     },
     "top-level-text": "contract",
     "whitespace-at-block-start": "contract"

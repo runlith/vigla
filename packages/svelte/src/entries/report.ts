@@ -1,4 +1,4 @@
-import type { Reporter } from 'dromon/internal/server';
+import type { Reporter } from 'vigla/internal/server';
 
 function link(code: string): string {
 	return `https://svelte.dev/e/${code}`;

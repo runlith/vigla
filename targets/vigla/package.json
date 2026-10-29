@@ -1,5 +1,5 @@
 {
-	"name": "@dromon/target-dromon",
+	"name": "@vigla/target-vigla",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -9,9 +9,9 @@
 		"passing": "passing"
 	},
 	"dependencies": {
-		"@dromon/harness": "workspace:*",
-		"dromon": "workspace:*",
-		"svelte": "workspace:@dromon/svelte@*",
+		"@vigla/harness": "workspace:*",
+		"vigla": "workspace:*",
+		"svelte": "workspace:@vigla/svelte@*",
 		"vitest": "4.1.7"
 	}
 }

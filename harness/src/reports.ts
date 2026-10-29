@@ -62,7 +62,7 @@ const played: Readonly<Record<string, string>> = {
 };
 
 export function resultsDir(target: string): string {
-	return process.env.DROMON_RESULTS ?? join(target, '.results');
+	return process.env.VIGLA_RESULTS ?? join(target, '.results');
 }
 
 function walk(

@@ -5,7 +5,7 @@
 	"samples": {
 		"signals > $effect.root inside deriveds stay alive independently (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > $effect.root inside deriveds stay alive independently (runes mode)": {
 			"status": "converted",
@@ -13,7 +13,7 @@
 		},
 		"signals > a derived that throws on its first run re-runs when its dependencies change (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > a derived that throws on its first run re-runs when its dependencies change (runes mode)": {
 			"status": "covered",
@@ -21,7 +21,7 @@
 		},
 		"signals > a reaction that throws after first-reading a fresh derived does not leak it (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > a reaction that throws after first-reading a fresh derived does not leak it (runes mode)": {
 			"status": "covered",
@@ -29,7 +29,7 @@
 		},
 		"signals > bigint states update correctly (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > bigint states update correctly (runes mode)": {
 			"status": "converted",
@@ -37,7 +37,7 @@
 		},
 		"signals > correctly cleanup unowned nested derived values (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > correctly cleanup unowned nested derived values (runes mode)": {
 			"status": "covered",
@@ -45,7 +45,7 @@
 		},
 		"signals > creating effects within a derived correctly handles ownership (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > creating effects within a derived correctly handles ownership (runes mode)": {
 			"status": "converted",
@@ -53,7 +53,7 @@
 		},
 		"signals > derived from derived (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > derived from derived (runes mode)": {
 			"status": "converted",
@@ -61,7 +61,7 @@
 		},
 		"signals > derived from state (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > derived from state (runes mode)": {
 			"status": "converted",
@@ -69,7 +69,7 @@
 		},
 		"signals > derived read in an untracked context should not leak in deps reactions (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > derived read in an untracked context should not leak in deps reactions (runes mode)": {
 			"status": "covered",
@@ -77,7 +77,7 @@
 		},
 		"signals > derived when connected should add new dependency to its reaction even when read outside effect (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > derived when connected should add new dependency to its reaction even when read outside effect (runes mode)": {
 			"status": "converted",
@@ -85,7 +85,7 @@
 		},
 		"signals > derived whose original parent effect has been destroyed no longer updates (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > derived whose original parent effect has been destroyed no longer updates (runes mode)": {
 			"status": "converted",
@@ -93,7 +93,7 @@
 		},
 		"signals > deriveds containing effects work correctly (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds containing effects work correctly (runes mode)": {
 			"status": "covered",
@@ -101,7 +101,7 @@
 		},
 		"signals > deriveds containing effects work correctly when used with untrack (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds containing effects work correctly when used with untrack (runes mode)": {
 			"status": "covered",
@@ -109,7 +109,7 @@
 		},
 		"signals > deriveds do not depend on state they own (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds do not depend on state they own (runes mode)": {
 			"status": "converted",
@@ -117,7 +117,7 @@
 		},
 		"signals > deriveds read inside the root/branches are cleaned up (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds read inside the root/branches are cleaned up (runes mode)": {
 			"status": "covered",
@@ -125,7 +125,7 @@
 		},
 		"signals > deriveds set after they are DIRTY doesn't get updated on get (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds set after they are DIRTY doesn't get updated on get (runes mode)": {
 			"status": "converted",
@@ -133,7 +133,7 @@
 		},
 		"signals > deriveds update upon reconnection #1 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds update upon reconnection #1 (runes mode)": {
 			"status": "converted",
@@ -141,7 +141,7 @@
 		},
 		"signals > deriveds update upon reconnection #2 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds update upon reconnection #2 (runes mode)": {
 			"status": "converted",
@@ -149,7 +149,7 @@
 		},
 		"signals > deriveds update upon reconnection #3 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > deriveds update upon reconnection #3 (runes mode)": {
 			"status": "converted",
@@ -161,7 +161,7 @@
 		},
 		"signals > effect teardown is removed on re-run (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > effect teardown is removed on re-run (runes mode)": {
 			"status": "converted",
@@ -169,7 +169,7 @@
 		},
 		"signals > effect with derived using unowned derived every time (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > effect with derived using unowned derived every time (runes mode)": {
 			"status": "covered",
@@ -177,7 +177,7 @@
 		},
 		"signals > effect with state and derived in it (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > effect with state and derived in it (runes mode)": {
 			"status": "converted",
@@ -185,7 +185,7 @@
 		},
 		"signals > effects correctly handle unowned derived values that do not change (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > effects correctly handle unowned derived values that do not change (runes mode)": {
 			"status": "covered",
@@ -193,7 +193,7 @@
 		},
 		"signals > effects do depend on state they own (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > effects do depend on state they own (runes mode)": {
 			"status": "converted",
@@ -201,7 +201,7 @@
 		},
 		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn #2 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn #2 (runes mode)": {
 			"status": "covered",
@@ -209,7 +209,7 @@
 		},
 		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn (runes mode)": {
 			"status": "converted",
@@ -217,7 +217,7 @@
 		},
 		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #1 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #1 (runes mode)": {
 			"status": "covered",
@@ -225,7 +225,7 @@
 		},
 		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #2 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #2 (runes mode)": {
 			"status": "covered",
@@ -233,7 +233,7 @@
 		},
 		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #3 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #3 (runes mode)": {
 			"status": "covered",
@@ -241,7 +241,7 @@
 		},
 		"signals > multiple effects with state and derived in it #1 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > multiple effects with state and derived in it #1 (runes mode)": {
 			"status": "converted",
@@ -249,7 +249,7 @@
 		},
 		"signals > multiple effects with state and derived in it #2 (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > multiple effects with state and derived in it #2 (runes mode)": {
 			"status": "converted",
@@ -257,7 +257,7 @@
 		},
 		"signals > nested effects depend on state of upper effects (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > nested effects depend on state of upper effects (runes mode)": {
 			"status": "converted",
@@ -265,7 +265,7 @@
 		},
 		"signals > owned deriveds correctly cleanup when no longer connected to graph (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > owned deriveds correctly cleanup when no longer connected to graph (runes mode)": {
 			"status": "covered",
@@ -273,7 +273,7 @@
 		},
 		"signals > proxy version state does not trigger self-dependency guard (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > proxy version state does not trigger self-dependency guard (runes mode)": {
 			"status": "converted",
@@ -281,7 +281,7 @@
 		},
 		"signals > reconnecting deriveds does not duplicate subscriptions (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > reconnecting deriveds does not duplicate subscriptions (runes mode)": {
 			"status": "covered",
@@ -289,7 +289,7 @@
 		},
 		"signals > schedules rerun when updating deeply nested value (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > schedules rerun when updating deeply nested value (runes mode)": {
 			"status": "converted",
@@ -297,7 +297,7 @@
 		},
 		"signals > schedules rerun when writing to signal after reading it from derived (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > schedules rerun when writing to signal after reading it from derived (runes mode)": {
 			"status": "converted",
@@ -305,7 +305,7 @@
 		},
 		"signals > schedules rerun when writing to signal before reading it (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > schedules rerun when writing to signal before reading it (runes mode)": {
 			"status": "converted",
@@ -313,7 +313,7 @@
 		},
 		"signals > schedules rerun when writing to signal before reading it from derived (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > schedules rerun when writing to signal before reading it from derived (runes mode)": {
 			"status": "converted",
@@ -321,7 +321,7 @@
 		},
 		"signals > set version state does not trigger self-dependency guard (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > set version state does not trigger self-dependency guard (runes mode)": {
 			"status": "converted",
@@ -329,7 +329,7 @@
 		},
 		"signals > state reset (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > state reset (runes mode)": {
 			"status": "converted",
@@ -337,7 +337,7 @@
 		},
 		"signals > two effects with an unowned derived that has no dependencies (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > two effects with an unowned derived that has no dependencies (runes mode)": {
 			"status": "converted",
@@ -345,7 +345,7 @@
 		},
 		"signals > two effects with an unowned derived that has some dependencies (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > two effects with an unowned derived that has some dependencies (runes mode)": {
 			"status": "covered",
@@ -353,7 +353,7 @@
 		},
 		"signals > unowned deriveds are correctly connected and disconnected from the graph (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds are correctly connected and disconnected from the graph (runes mode)": {
 			"status": "covered",
@@ -361,7 +361,7 @@
 		},
 		"signals > unowned deriveds are not added as reactions (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds are not added as reactions (runes mode)": {
 			"status": "covered",
@@ -369,7 +369,7 @@
 		},
 		"signals > unowned deriveds are not added as reactions but trigger effects (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds are not added as reactions but trigger effects (runes mode)": {
 			"status": "covered",
@@ -377,7 +377,7 @@
 		},
 		"signals > unowned deriveds correctly re-attach to their source (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds correctly re-attach to their source (runes mode)": {
 			"status": "converted",
@@ -385,7 +385,7 @@
 		},
 		"signals > unowned deriveds correctly update (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds correctly update (runes mode)": {
 			"status": "converted",
@@ -393,7 +393,7 @@
 		},
 		"signals > unowned deriveds dependencies are correctly de-duped (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds dependencies are correctly de-duped (runes mode)": {
 			"status": "covered",
@@ -401,7 +401,7 @@
 		},
 		"signals > unowned deriveds set after they are DIRTY doesn't get updated on get (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds set after they are DIRTY doesn't get updated on get (runes mode)": {
 			"status": "converted",
@@ -409,7 +409,7 @@
 		},
 		"signals > unowned deriveds track missing array indexes (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds track missing array indexes (runes mode)": {
 			"status": "converted",
@@ -417,7 +417,7 @@
 		},
 		"signals > unowned deriveds track missing property checks on proxies (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > unowned deriveds track missing property checks on proxies (runes mode)": {
 			"status": "converted",
@@ -425,7 +425,7 @@
 		},
 		"signals > untracked derived reads inside effects do not reconnect disconnected dependencies (legacy mode)": {
 			"status": "dropped",
-			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+			"reason": "runs in a legacy-mode component context, which Vigla rejects"
 		},
 		"signals > untracked derived reads inside effects do not reconnect disconnected dependencies (runes mode)": {
 			"status": "covered",

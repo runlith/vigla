@@ -18,7 +18,7 @@ function target(packages: readonly Named[], side: Side): Plugin {
 	return {
 		name: 'harness:target',
 		setup(build) {
-			build.onResolve({ filter: /^(svelte|dromon)(\/|$)/ }, (args) => {
+			build.onResolve({ filter: /^(svelte|vigla)(\/|$)/ }, (args) => {
 				const file = targetFile(packages, args.path, side);
 				return file === null ? undefined : { path: file };
 			});
@@ -90,7 +90,7 @@ async function bundle(
 		globalName: side === 'client' ? 'test' : 'test_ssr',
 		platform: side === 'client' ? 'browser' : 'node',
 		conditions: ['browser', 'production'],
-		alias: { '@dromon/harness/helpers': join(root, 'src', 'helpers.ts') },
+		alias: { '@vigla/harness/helpers': join(root, 'src', 'helpers.ts') },
 		plugins: [target(packages, side), components(side, options, flags.customElement, warnings)]
 	});
 	const [output] = result.outputFiles;

@@ -2,7 +2,7 @@
   "samples": {
     "$$props": {
       "status": "dropped",
-      "reason": "asserts $$props and $$restProps, compile errors in Dromon"
+      "reason": "asserts $$props and $$restProps, compile errors in Vigla"
     },
     "$$slot": "contract",
     "$$slot-dynamic-content": {

@@ -1,3 +1,3 @@
-import { vitePlugin } from '@dromon/harness/vite-plugin';
+import { vitePlugin } from '@vigla/harness/vite-plugin';
 
 export default vitePlugin();

@@ -133,7 +133,7 @@
     "scan-deps/scan-deps.spec.ts > vite import scan > should not fail to discover dependencies exported from script module": "contract",
     "scan-deps/scan-deps.spec.ts > vite import scan > should work with exports from module context": {
       "status": "dropped",
-      "reason": "its subject is the quoting variants of `context=\"module\"`, which Dromon rejects"
+      "reason": "its subject is the quoting variants of `context=\"module\"`, which Vigla rejects"
     },
     "svelte-preprocess/svelte-preprocess.spec.ts > hmr > should apply styles from new dependency": "contract",
     "svelte-preprocess/svelte-preprocess.spec.ts > hmr > should apply updates when editing _someImport.scss": "contract",

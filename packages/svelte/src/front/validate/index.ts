@@ -1,4 +1,4 @@
-import type { Diagnostic } from 'dromon/compiler';
+import type { Diagnostic } from 'vigla/compiler';
 import type * as AST from '../ast.ts';
 import { bidirectionalChar } from '../parse/characters.ts';
 import type { Parsed } from '../parse/index.ts';

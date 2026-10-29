@@ -1,6 +1,6 @@
-import { setReporter } from 'dromon/internal/client';
+import { setReporter } from 'vigla/internal/client';
 import { reporter } from '../report.ts';
 
 setReporter(reporter);
 
-export * from 'dromon/internal/client';
+export * from 'vigla/internal/client';

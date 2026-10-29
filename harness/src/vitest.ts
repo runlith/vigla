@@ -32,8 +32,8 @@ export function harness(target: Target): ViteUserConfig {
 			resolver(
 				target.root,
 				{
-					'@dromon/harness/helpers': join(root, 'src', 'helpers.ts'),
-					'@dromon/harness/sourcemaps': join(root, 'src', 'sourcemaps.ts')
+					'@vigla/harness/helpers': join(root, 'src', 'helpers.ts'),
+					'@vigla/harness/sourcemaps': join(root, 'src', 'sourcemaps.ts')
 				},
 				scoped
 			),

@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
-import type * as IR from 'dromon/compiler';
+import type * as IR from 'vigla/compiler';
 import type * as AST from './ast.ts';
-import type { Diagnostic } from 'dromon/compiler';
+import type { Diagnostic } from 'vigla/compiler';
 import { unsupported } from './diagnostics.ts';
 import { extractIgnores } from './ignores.ts';
 import { Resolution } from './runes.ts';

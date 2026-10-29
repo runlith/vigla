@@ -117,7 +117,7 @@
     "attribute-invalid-name-5": "contract",
     "attribute-quoted": {
       "status": "difference",
-      "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Dromon"
+      "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Vigla"
     },
     "attribute-unique-allowed": "contract",
     "await-component-is-used": {
@@ -147,7 +147,7 @@
     "binding-invalid-value-global": "contract",
     "binding-let": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "binding-radio-input-checked": "contract",
     "binding-select-multiple-dynamic": "contract",
@@ -170,7 +170,7 @@
     "comment-before-function-binding": "contract",
     "component-event-modifiers-invalid": {
       "status": "dropped",
-      "reason": "its subject is `on:` on a component, which Dromon rejects"
+      "reason": "its subject is `on:` on a component, which Vigla rejects"
     },
     "component-invalid-style-directive": "contract",
     "component-legacy-instantiation": "contract",
@@ -178,28 +178,28 @@
     "component-namespaced": "contract",
     "component-slot-default-reserved": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "component-slot-dynamic": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "component-slot-dynamic-attribute": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slotted-custom-element": "contract",
     "component-slotted-custom-element-2": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "component-slotted-each-block": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "component-slotted-if-block": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "const-tag-conflict-1": "contract",
     "const-tag-conflict-2": "contract",
@@ -259,7 +259,7 @@
     "declaration-tag-invalid-type-2": "contract",
     "declaration-tag-legacy-mode": {
       "status": "dropped",
-      "reason": "its subject is legacy mode, which Dromon rejects"
+      "reason": "its subject is legacy mode, which Vigla rejects"
     },
     "declaration-tag-maybe-runes": "contract",
     "declaration-tag-snippet-parameter": "contract",
@@ -297,15 +297,15 @@
     "event-attribute": "contract",
     "event-modifiers-invalid": {
       "status": "dropped",
-      "reason": "its subject is `on:` modifiers on elements, which Dromon rejects"
+      "reason": "its subject is `on:` modifiers on elements, which Vigla rejects"
     },
     "event-modifiers-invalid-nonpassive": {
       "status": "dropped",
-      "reason": "its subject is `on:` modifiers on elements, which Dromon rejects"
+      "reason": "its subject is `on:` modifiers on elements, which Vigla rejects"
     },
     "event-modifiers-invalid-passive": {
       "status": "dropped",
-      "reason": "its subject is `on:` modifiers on elements, which Dromon rejects"
+      "reason": "its subject is `on:` modifiers on elements, which Vigla rejects"
     },
     "export-let-unused-svelte-component": {
       "status": "dropped",
@@ -319,7 +319,7 @@
     "html-block-in-textarea": "contract",
     "if-block-whitespace-legacy": {
       "status": "dropped",
-      "reason": "its subject is legacy mode, which Dromon rejects"
+      "reason": "its subject is legacy mode, which Vigla rejects"
     },
     "if-block-whitespace-runes": "contract",
     "ignore-warning": "contract",
@@ -361,7 +361,7 @@
     "js-scope-catch-clause": "contract",
     "let-directive": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "logic-block-in-attribute": "contract",
     "logic-block-in-textarea": "contract",
@@ -377,11 +377,11 @@
     "namespace-non-literal": "contract",
     "no-missing-declarations-for-same-node-let-variable": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "no-runes-mode": {
       "status": "dropped",
-      "reason": "its subject is legacy mode, which Dromon rejects"
+      "reason": "its subject is legacy mode, which Vigla rejects"
     },
     "non-empty-block-dev": "contract",
     "non-invalid-node-placement-if-snippet": "contract",
@@ -424,22 +424,22 @@
     "runes-conflicting-store-in-module": "contract",
     "runes-legacy-syntax-warnings": {
       "status": "difference",
-      "reason": "expects runes-mode deprecation warnings for `<slot>` and `on:`, compile errors in Dromon"
+      "reason": "expects runes-mode deprecation warnings for `<slot>` and `on:`, compile errors in Vigla"
     },
     "runes-legacy-syntax-warnings-2": {
       "status": "dropped",
-      "reason": "its subject is mixing `on:` on elements with event attributes; Dromon rejects `on:` on elements"
+      "reason": "its subject is mixing `on:` on elements with event attributes; Vigla rejects `on:` on elements"
     },
     "runes-referenced-nonstate": "contract",
     "runes-referenced-nonstate-2": "contract",
     "runes-referenced-nonstate-bind-this": "contract",
     "script-context-module-legacy": {
       "status": "dropped",
-      "reason": "its subject is `<script context=\"module\">`, which Dromon rejects"
+      "reason": "its subject is `<script context=\"module\">`, which Vigla rejects"
     },
     "script-context-module-runes-deprecated": {
       "status": "difference",
-      "reason": "expects the runes-mode deprecation warning for `context=\"module\"`, a compile error in Dromon"
+      "reason": "expects the runes-mode deprecation warning for `context=\"module\"`, a compile error in Vigla"
     },
     "script-invalid-context": "contract",
     "script-invalid-spread-attribute": "contract",
@@ -460,23 +460,23 @@
     },
     "slot-attribute-component": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "slot-attribute-invalid": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "slot-warning": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "slot-warning-ignore": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "slot-warning2": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "snippet-already-declared": "contract",
     "snippet-shadowing-prop": "contract",
@@ -497,15 +497,15 @@
     },
     "svelte-component-deprecated": {
       "status": "difference",
-      "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Dromon"
+      "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Vigla"
     },
     "svelte-fragment-placement": {
       "status": "dropped",
-      "reason": "its subject is `<svelte:fragment>`, which Dromon rejects"
+      "reason": "its subject is `<svelte:fragment>`, which Vigla rejects"
     },
     "svelte-fragment-placement-2": {
       "status": "dropped",
-      "reason": "its subject is `<svelte:fragment>`, which Dromon rejects"
+      "reason": "its subject is `<svelte:fragment>`, which Vigla rejects"
     },
     "svelte-head-attributes": "contract",
     "svelte-ignore-export-let-unused": {
@@ -515,7 +515,7 @@
     "svelte-ignore-non-reactive-update": "contract",
     "svelte-self-deprecated": {
       "status": "difference",
-      "reason": "expects the runes-mode deprecation warning for `<svelte:self>`, a compile error in Dromon"
+      "reason": "expects the runes-mode deprecation warning for `<svelte:self>`, a compile error in Vigla"
     },
     "svg-child-component-declared-namespace": {
       "status": "converted",

@@ -15,43 +15,43 @@
     "component-invalid-name": "contract",
     "component-slot-duplicate-error": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slot-duplicate-error-2": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slot-duplicate-error-3": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slot-duplicate-error-4": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slot-duplicate-error-5": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slot-duplicate-error-6": {
       "status": "dropped",
-      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Vigla rejects"
     },
     "component-slot-nested-error": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "component-slot-nested-error-2": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "component-slot-nested-error-3": {
       "status": "dropped",
-      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Vigla rejects"
     },
     "const-tag-cyclical": {
       "status": "dropped",
-      "reason": "its subject is `const_tag_cycle`, a legacy-mode diagnostic; Dromon follows runes mode, which compiles the cycle"
+      "reason": "its subject is `const_tag_cycle`, a legacy-mode diagnostic; Vigla follows runes mode, which compiles the cycle"
     },
     "const-tag-sequence": "contract",
     "const-tag-snippet-invalid-reference-1": "contract",
@@ -71,7 +71,7 @@
     "declaration-tag-trailing-slash": "contract",
     "dollar-binding-declaration-legacy": {
       "status": "dropped",
-      "reason": "its subject is a `runes={false}` component, which Dromon rejects"
+      "reason": "its subject is a `runes={false}` component, which Vigla rejects"
     },
     "dollar-binding-declaration-runes": "contract",
     "dollar-binding-declaration-runes-2": "contract",
@@ -111,11 +111,11 @@
     "legacy-no-const-update": "contract",
     "let-directive-children-snippet": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "let-directive-children-snippet-expression": {
       "status": "dropped",
-      "reason": "its subject is the `let:` directive, which Dromon rejects"
+      "reason": "its subject is the `let:` directive, which Vigla rejects"
     },
     "malformed-snippet": "contract",
     "malformed-snippet-2": "contract",
@@ -158,11 +158,11 @@
     "script-unclosed-eof": "contract",
     "self-reference": {
       "status": "dropped",
-      "reason": "its subject is `<svelte:self>`, which Dromon rejects"
+      "reason": "its subject is `<svelte:self>`, which Vigla rejects"
     },
     "slot-conflicting-with-render-tag": {
       "status": "dropped",
-      "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
+      "reason": "its subject is `<slot>`, which Vigla rejects outside custom elements"
     },
     "snippet-children-conflict": "contract",
     "snippet-invalid-export": "contract",

@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import { CompileError, type Rune } from 'dromon/compiler';
+import { CompileError, type Rune } from 'vigla/compiler';
 
 const known = new Set<string>([
 	'$state',

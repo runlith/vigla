@@ -1,4 +1,4 @@
-import { parseProgram, type ComponentUnit, type FrontEnd, type Reading } from 'dromon/compiler';
+import { parseProgram, type ComponentUnit, type FrontEnd, type Reading } from 'vigla/compiler';
 import { Lowering } from './lower.ts';
 import { parseComponent, type Parsed } from './parse/index.ts';
 import { Resolution } from './runes.ts';

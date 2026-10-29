@@ -8,7 +8,7 @@ import {
 	type Code,
 	type Diagnostic,
 	type Runtime
-} from 'dromon/compiler';
+} from 'vigla/compiler';
 import {
 	front,
 	legacy,

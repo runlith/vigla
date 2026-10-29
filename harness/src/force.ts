@@ -1,6 +1,6 @@
 import { registerHooks } from 'node:module';
 
-const marker = 'dromon-forced';
+const marker = 'harness-forced';
 
 function wrapper(real: string): string {
 	const from = JSON.stringify(real);

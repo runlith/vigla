@@ -35,7 +35,7 @@
     },
     "component-slot-binding-dimensions": {
       "status": "dropped",
-      "reason": "asserts bindings on <slot> content, a compile error outside custom elements in Dromon"
+      "reason": "asserts bindings on <slot> content, a compile error outside custom elements in Vigla"
     },
     "css-props-dynamic-component": "contract",
     "dom-clobbering-cache-symbols-spread": "contract",
@@ -75,27 +75,27 @@
     "spread-input-number-incomplete-value": "contract",
     "svelte-component-css-custom-properties": {
       "status": "dropped",
-      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Dromon"
+      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Vigla"
     },
     "svelte-component-css-custom-properties-dynamic": {
       "status": "dropped",
-      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Dromon"
+      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Vigla"
     },
     "svelte-component-css-custom-properties2": {
       "status": "dropped",
-      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Dromon"
+      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Vigla"
     },
     "svelte-self-css-custom-properties": {
       "status": "dropped",
-      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Dromon"
+      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Vigla"
     },
     "svelte-self-css-custom-properties-dynamic": {
       "status": "dropped",
-      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Dromon"
+      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Vigla"
     },
     "svelte-self-css-custom-properties2": {
       "status": "dropped",
-      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Dromon"
+      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Vigla"
     },
     "transition-nested-measure": "contract",
     "transition-slide-hidden-parent": "contract"

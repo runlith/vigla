@@ -17,8 +17,8 @@ export interface Tree {
 const kitRewrites: Readonly<Record<string, string>> = {
 	'../../../../adapter-static/index.js': '@sveltejs/adapter-static',
 	'../../../../../adapter-auto/index.js': '@sveltejs/adapter-auto',
-	'../../src/utils/format.js': '@dromon/harness/kit/format',
-	'../../../../src/utils/format.js': '@dromon/harness/kit/format'
+	'../../src/utils/format.js': '@vigla/harness/kit/format',
+	'../../../../src/utils/format.js': '@vigla/harness/kit/format'
 };
 
 function kit(

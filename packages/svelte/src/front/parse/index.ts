@@ -1,4 +1,4 @@
-import type { Diagnostic } from 'dromon/compiler';
+import type { Diagnostic } from 'vigla/compiler';
 import type * as AST from '../ast.ts';
 import { fail } from '../diagnostics.ts';
 import { locator, type Locator } from '../locate.ts';

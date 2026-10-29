@@ -1,9 +1,9 @@
 {
-	"name": "@dromon/target-upstream-vite-plugin",
+	"name": "@vigla/target-upstream-vite-plugin",
 	"private": true,
 	"type": "module",
 	"dependencies": {
-		"@dromon/harness": "workspace:*",
+		"@vigla/harness": "workspace:*",
 		"@sveltejs/adapter-node": "6.0.0",
 		"@sveltejs/kit": "3.1.0",
 		"@sveltejs/package": "2.5.8",

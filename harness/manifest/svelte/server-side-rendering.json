@@ -104,7 +104,7 @@
     "component-with-different-extension": "contract",
     "component-yield": {
       "status": "dropped",
-      "reason": "asserts <slot> content (yield), a compile error outside custom elements in Dromon"
+      "reason": "asserts <slot> content (yield), a compile error outside custom elements in Vigla"
     },
     "computed": {
       "status": "converted",
@@ -135,7 +135,7 @@
     "destructure-state-iterable": "contract",
     "directives": {
       "status": "dropped",
-      "reason": "asserts on: directive output, a compile error on elements in Dromon"
+      "reason": "asserts on: directive output, a compile error on elements in Vigla"
     },
     "dynamic-element-string": "contract",
     "dynamic-element-variable": "contract",
@@ -196,7 +196,7 @@
     "invalid-nested-svelte-element": "contract",
     "legacy-imports": {
       "status": "dropped",
-      "reason": "asserts svelte/legacy imports, an entry Dromon does not have"
+      "reason": "asserts svelte/legacy imports, an entry Vigla does not have"
     },
     "option-body-escaped": "contract",
     "option-scoped-class": "contract",

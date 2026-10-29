@@ -45,7 +45,7 @@
 		"leading-nested-block": "contract",
 		"owner-world-hooks": {
 			"status": "difference",
-			"reason": "Application primitives (spec 8191e72f): layer's WorldHooks filled with public `dromon` API alone — `root`, `effect`, `cell`, `untrack`; upstream 5.57.3 has no such entry, so the sample cannot run there"
+			"reason": "Application primitives (spec 8191e72f): layer's WorldHooks filled with public `vigla` API alone — `root`, `effect`, `cell`, `untrack`; upstream 5.57.3 has no such entry, so the sample cannot run there"
 		},
 		"teardown-flush-closing-branch": {
 			"status": "difference",

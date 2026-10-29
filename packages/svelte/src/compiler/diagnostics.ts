@@ -1,4 +1,4 @@
-import { CompileError as Fault, type Diagnostic } from 'dromon/compiler';
+import { CompileError as Fault, type Diagnostic } from 'vigla/compiler';
 import { locator, type Locator } from '../front/index.ts';
 
 export interface Location {

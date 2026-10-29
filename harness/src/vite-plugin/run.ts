@@ -79,9 +79,9 @@ for (const run of runs) {
 			env: {
 				...process.env,
 				...run.env,
-				DROMON_WORK: work,
-				DROMON_TREE: `${run.tree.project}/${run.tree.name}`,
-				DROMON_MODE: run.mode ?? '',
+				VIGLA_WORK: work,
+				VIGLA_TREE: `${run.tree.project}/${run.tree.name}`,
+				VIGLA_MODE: run.mode ?? '',
 				NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${force}`].filter(Boolean).join(' ')
 			}
 		}

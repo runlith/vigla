@@ -11,14 +11,14 @@ interface Info {
 	skip(condition: boolean, description?: string): void;
 }
 
-const tree = treeNamed('kit', process.env.DROMON_TREE ?? '');
+const tree = treeNamed('kit', process.env.VIGLA_TREE ?? '');
 const manifest = tree === undefined ? undefined : load(tree.project, tree.name);
 
 export function gate(info: Info): void {
 	if (tree === undefined || manifest === undefined)
-		throw new Error(`DROMON_TREE names no Kit tree: ${process.env.DROMON_TREE}`);
+		throw new Error(`VIGLA_TREE names no Kit tree: ${process.env.VIGLA_TREE}`);
 	const key = entryOfTree(tree, info.file, info.titlePath.slice(1, -1), info.title);
-	const variant = `${process.env.DROMON_STEP ?? ''}/${info.project.name}`;
+	const variant = `${process.env.VIGLA_STEP ?? ''}/${info.project.name}`;
 	if (key !== null && !selects(`kit/${tree.name}`, entryId(key, variant)))
 		return info.skip(true, 'not selected');
 	const rule = key === null ? undefined : ruling(manifest, key, variant);

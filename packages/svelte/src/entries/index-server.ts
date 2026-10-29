@@ -1,8 +1,8 @@
-import * as core from 'dromon/internal/index-server';
+import * as core from 'vigla/internal/index-server';
 import { guard, project, type Scope } from './context.ts';
 import { failure, phase } from './internal/server.ts';
 
-export * from 'dromon/internal/index-server';
+export * from 'vigla/internal/index-server';
 
 const scope: Scope = { phase, failure };
 

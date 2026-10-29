@@ -6,4 +6,4 @@ export {
 	ReactiveSet as SvelteSet,
 	ReactiveURL as SvelteURL,
 	ReactiveURLSearchParams as SvelteURLSearchParams
-} from 'dromon/internal/reactivity-server';
+} from 'vigla/internal/reactivity-server';

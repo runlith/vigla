@@ -11,7 +11,7 @@ let reporter: Reporter = {
 	},
 	error(code, message) {
 		const error = new Error(message === null ? code : `${code}\n${message}`);
-		error.name = 'DromonError';
+		error.name = 'Vigla error';
 		return error;
 	}
 };

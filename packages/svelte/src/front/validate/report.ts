@@ -1,4 +1,4 @@
-import type { Diagnostic } from 'dromon/compiler';
+import type { Diagnostic } from 'vigla/compiler';
 import { warning, type Args, type At } from '../diagnostics.ts';
 
 export class Report {

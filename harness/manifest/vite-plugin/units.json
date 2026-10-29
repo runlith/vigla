@@ -5,51 +5,51 @@
   "samples": {
     "compile.spec.js > createCompileSvelte > compileSvelte > detects script lang": {
       "status": "covered",
-      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @dromon/vite-plugin"
+      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @vigla/vite-plugin"
     },
     "compile.spec.js > createCompileSvelte > compileSvelte > passes the current environment to dynamicCompileOptions": {
       "status": "covered",
-      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @dromon/vite-plugin"
+      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @vigla/vite-plugin"
     },
     "compile.spec.js > createCompileSvelte > compileSvelte > removes dangling pure annotations": {
       "status": "covered",
-      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @dromon/vite-plugin"
+      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @vigla/vite-plugin"
     },
     "compile.spec.js > createCompileSvelte > returns function": {
       "status": "covered",
-      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @dromon/vite-plugin"
+      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @vigla/vite-plugin"
     },
     "id.spec.js > buildIdFilter > custom filter matches .svx files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildIdFilter > default filter does not match .js files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildIdFilter > default filter does not match \\0 tagged .svelte files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildIdFilter > default filter matches .svelte files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildModuleIdFilter > custom filter matches .svx. files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildModuleIdFilter > default filter does not match \\0 tagged .svelte.*.js/ts files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildModuleIdFilter > default filter does not match files without .svelte.": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "id.spec.js > buildModuleIdFilter > default filter matches .svelte.*.js/ts files": {
       "status": "covered",
-      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @dromon/vite-plugin"
+      "reason": "drives the internals `buildIdFilter` and `buildModuleIdFilter`; covered by the tests of the id module of @vigla/vite-plugin"
     },
     "preprocess.spec.js > vitePreprocess > returns function": {
       "status": "converted",
@@ -93,67 +93,67 @@
     },
     "sourcemaps.spec.js > mapToRelative > accounts for relative sourceRoot": {
       "status": "covered",
-      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @dromon/vite-plugin"
+      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @vigla/vite-plugin"
     },
     "sourcemaps.spec.js > mapToRelative > accounts for sourceRoot": {
       "status": "covered",
-      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @dromon/vite-plugin"
+      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @vigla/vite-plugin"
     },
     "sourcemaps.spec.js > mapToRelative > converts absolute to relative": {
       "status": "covered",
-      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @dromon/vite-plugin"
+      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @vigla/vite-plugin"
     },
     "sourcemaps.spec.js > removeLangSuffix > removes suffix": {
       "status": "covered",
-      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @dromon/vite-plugin"
+      "reason": "drives the internals `removeLangSuffix`, `mapToRelative` and `lang_sep`; covered by the tests of the sourcemaps module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns false for smaller major": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns false for smaller minor": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns false for smaller patch": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns false for smaller tag": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns false for tag vs no tag": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for equal": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for equal without tag": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for larger major": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for larger minor": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for larger patch": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for larger tag": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     },
     "svelte-version.spec.js > gte > returns true for no tag vs tag": {
       "status": "covered",
-      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @dromon/vite-plugin"
+      "reason": "drives the internal `gte`; covered by the tests of the svelte-version module of @vigla/vite-plugin"
     }
   }
 }

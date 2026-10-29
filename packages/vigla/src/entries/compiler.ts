@@ -82,7 +82,7 @@ export interface Output {
 	readonly warnings: readonly Diagnostic[];
 }
 
-const runtimes: Runtime = { client: 'dromon/internal/client', server: 'dromon/internal/server' };
+const runtimes: Runtime = { client: 'vigla/internal/client', server: 'vigla/internal/server' };
 
 function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit): Code {
 	const { code, map } = print(program as never, ts(), {

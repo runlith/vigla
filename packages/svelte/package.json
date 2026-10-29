@@ -1,5 +1,5 @@
 {
-	"name": "@dromon/svelte",
+	"name": "@vigla/svelte",
 	"version": "5.57.3",
 	"type": "module",
 	"exports": {
@@ -34,7 +34,7 @@
 		"@jridgewell/sourcemap-codec": "^1.6.0",
 		"@sveltejs/acorn-typescript": "^1.0.13",
 		"acorn": "^8.18.0",
-		"dromon": "workspace:*",
+		"vigla": "workspace:*",
 		"esrap": "^2.3.6"
 	},
 	"devDependencies": {

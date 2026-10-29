@@ -16,7 +16,7 @@ let read: Scope | null | undefined;
 
 function scope(): Scope | null {
 	if (read === undefined) {
-		const file = process.env.DROMON_SCOPE;
+		const file = process.env.VIGLA_SCOPE;
 		read = file ? (JSON.parse(readFileSync(file, 'utf8')) as Scope) : null;
 	}
 	return read;

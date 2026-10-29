@@ -1,4 +1,4 @@
-import { CompileError, type Diagnostic } from 'dromon/compiler';
+import { CompileError, type Diagnostic } from 'vigla/compiler';
 import { errors, warnings } from './messages.ts';
 
 export type At = number | { readonly start?: number | null; readonly end?: number | null };

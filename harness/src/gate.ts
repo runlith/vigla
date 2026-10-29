@@ -16,11 +16,11 @@ interface Context {
 
 type Hook = (body: (context: Context) => void) => void;
 
-const [project = '', name = ''] = (process.env.DROMON_TREE ?? '').split('/');
+const [project = '', name = ''] = (process.env.VIGLA_TREE ?? '').split('/');
 const tree = treeNamed(project, name);
-if (tree === undefined) throw new Error(`DROMON_TREE names no tree: ${process.env.DROMON_TREE}`);
+if (tree === undefined) throw new Error(`VIGLA_TREE names no tree: ${process.env.VIGLA_TREE}`);
 const manifest = load(tree.project, tree.name);
-const mode = process.env.DROMON_MODE || undefined;
+const mode = process.env.VIGLA_MODE || undefined;
 
 function ancestors(task: Task): string[] {
 	const names: string[] = [];

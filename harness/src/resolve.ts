@@ -122,7 +122,7 @@ export function targetFile(
 	return null;
 }
 
-export const targetPackages = ['svelte', 'dromon'];
+export const targetPackages = ['svelte', 'vigla'];
 
 export function borrowed(work: string, anchor: string): Plugin {
 	const prefix = `${work.replaceAll('\\', '/')}/`;

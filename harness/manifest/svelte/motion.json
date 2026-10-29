@@ -5,23 +5,23 @@
   "samples": {
     "motion > spring > handles initially undefined values": {
       "status": "dropped",
-      "reason": "asserts spring(), an import Dromon rejects; the Spring class stays"
+      "reason": "asserts spring(), an import Vigla rejects; the Spring class stays"
     },
     "motion > tweened > handles initially undefined values": {
       "status": "dropped",
-      "reason": "asserts tweened(), an import Dromon rejects; the Tween class stays"
+      "reason": "asserts tweened(), an import Vigla rejects; the Tween class stays"
     },
     "motion > tweened > sets immediately when duration is 0": {
       "status": "dropped",
-      "reason": "asserts tweened(), an import Dromon rejects; the Tween class stays"
+      "reason": "asserts tweened(), an import Vigla rejects; the Tween class stays"
     },
     "motion > tweened > updates correctly when initialized with a `null`-ish value": {
       "status": "dropped",
-      "reason": "asserts tweened(), an import Dromon rejects; the Tween class stays"
+      "reason": "asserts tweened(), an import Vigla rejects; the Tween class stays"
     },
     "motion > tweened > updates non-numeric values immediately": {
       "status": "dropped",
-      "reason": "asserts tweened(), an import Dromon rejects; the Tween class stays"
+      "reason": "asserts tweened(), an import Vigla rejects; the Tween class stays"
     },
     "motion > Tween > sets immediately when duration is 0": {
       "status": "converted",

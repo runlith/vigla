@@ -1,1 +1,1 @@
-export * from 'dromon/internal/window-client';
+export * from 'vigla/internal/window-client';

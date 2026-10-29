@@ -16,18 +16,18 @@ export default defineConfig({
 		'core-names-no-svelte': mentions(
 			{
 				packages: ['svelte'],
-				fix: 'Keep what names svelte in @dromon/svelte; the core is reached through its front-end port and published entries.'
+				fix: 'Keep what names svelte in @vigla/svelte; the core is reached through its front-end port and published entries.'
 			},
 			{
 				files: [
-					'packages/dromon/**/*.ts',
-					'packages/dromon/**/*.mts',
-					'packages/dromon/**/*.cts',
-					'packages/dromon/**/*.tsx',
-					'packages/dromon/**/*.js',
-					'packages/dromon/**/*.mjs',
-					'packages/dromon/**/*.cjs',
-					'packages/dromon/**/*.json'
+					'packages/vigla/**/*.ts',
+					'packages/vigla/**/*.mts',
+					'packages/vigla/**/*.cts',
+					'packages/vigla/**/*.tsx',
+					'packages/vigla/**/*.js',
+					'packages/vigla/**/*.mjs',
+					'packages/vigla/**/*.cjs',
+					'packages/vigla/**/*.json'
 				]
 			}
 		),
@@ -48,11 +48,11 @@ export default defineConfig({
 			},
 			{
 				files: [
-					'packages/dromon/src/runtime/**/*.ts',
-					'packages/dromon/src/shared/**/*.ts',
-					'packages/dromon/src/entries/index.ts',
-					'packages/dromon/src/entries/server.ts',
-					'packages/dromon/src/entries/internal/*.ts'
+					'packages/vigla/src/runtime/**/*.ts',
+					'packages/vigla/src/shared/**/*.ts',
+					'packages/vigla/src/entries/index.ts',
+					'packages/vigla/src/entries/server.ts',
+					'packages/vigla/src/entries/internal/*.ts'
 				]
 			}
 		)

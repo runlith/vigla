@@ -1,12 +1,12 @@
 {
-	"name": "@dromon/target-upstream",
+	"name": "@vigla/target-upstream",
 	"private": true,
 	"type": "module",
 	"scripts": {
 		"test": "node ../../harness/src/cli.ts ."
 	},
 	"dependencies": {
-		"@dromon/harness": "workspace:*",
+		"@vigla/harness": "workspace:*",
 		"svelte": "5.57.3",
 		"vitest": "4.1.7"
 	}

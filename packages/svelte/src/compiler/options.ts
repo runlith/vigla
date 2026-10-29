@@ -1,4 +1,4 @@
-import { CompileError } from 'dromon/compiler';
+import { CompileError } from 'vigla/compiler';
 
 export interface Notice {
 	readonly code: string;

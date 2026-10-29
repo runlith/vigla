@@ -1,4 +1,4 @@
-import type { Diagnostic } from 'dromon/compiler';
+import type { Diagnostic } from 'vigla/compiler';
 import { warning, warningCodes } from './diagnostics.ts';
 import { closest } from './fuzzy.ts';
 

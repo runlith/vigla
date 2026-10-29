@@ -160,8 +160,8 @@ for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 				NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${force}`].filter(Boolean).join(' '),
 				KIT_E2E_RETRIES: '2',
 				pnpm_config_verify_deps_before_run: 'false',
-				DROMON_TREE: unit.tree,
-				DROMON_STEP: step.label ?? ''
+				VIGLA_TREE: unit.tree,
+				VIGLA_STEP: step.label ?? ''
 			},
 			report: (label) => join(results, reportName(unit, label))
 		});
