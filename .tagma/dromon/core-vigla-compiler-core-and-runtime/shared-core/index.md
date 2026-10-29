@@ -20,6 +20,9 @@ fields:
       },
       {
         "at": "diagnostics.ts"
+      },
+      {
+        "at": "hash.ts"
       }
     ],
     "id": "shared",

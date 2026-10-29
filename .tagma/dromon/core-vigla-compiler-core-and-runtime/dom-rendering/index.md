@@ -44,6 +44,9 @@ fields:
       },
       {
         "at": "styles.ts"
+      },
+      {
+        "at": "html.ts"
       }
     ],
     "id": "dom",
