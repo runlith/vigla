@@ -10,6 +10,13 @@ import { front, legacy, parseComponent, parseStylesheet, type AST } from '../fro
 import { validate, type Notice } from './options.ts';
 
 export { print, type PrintOptions, type Printed } from '../front/index.ts';
+export {
+	preprocess,
+	type MarkupPreprocessor,
+	type Preprocessor,
+	type PreprocessorGroup,
+	type Processed
+} from './preprocess/index.ts';
 export type { AST };
 
 export interface Experimental {

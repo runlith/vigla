@@ -43,6 +43,8 @@
       "name": "@dromon/svelte",
       "version": "5.57.3",
       "dependencies": {
+        "@jridgewell/remapping": "^2.3.5",
+        "@jridgewell/sourcemap-codec": "^1.6.0",
         "@sveltejs/acorn-typescript": "^1.0.13",
         "acorn": "^8.18.0",
         "dromon": "workspace:*",

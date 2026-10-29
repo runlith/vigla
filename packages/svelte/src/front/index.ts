@@ -5,6 +5,7 @@ import { Resolution } from './runes.ts';
 
 export type * as AST from './ast.ts';
 export { legacy } from './legacy.ts';
+export { locator, type Locator } from './locate.ts';
 export { parseComponent, parseStylesheet, type Parsed } from './parse/index.ts';
 export { print, type PrintOptions, type Printed } from './print/index.ts';
 
