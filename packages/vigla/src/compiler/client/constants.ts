@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { hasAwait, patternNames, spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Constant, Node } from '../ir/nodes.ts';
+import type { Constant, Declaration, Node } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
 import type { TemplateContext } from './template.ts';
 
@@ -40,12 +40,66 @@ function constantDeclaration(context: TemplateContext, node: Constant): ES.State
 	return [b.constant(holder.name, runtime(context, 'derived', b.arrow([], body)))];
 }
 
+function renamedPattern(pattern: ES.Pattern, names: ReadonlyMap<string, string>): ES.Pattern {
+	switch (pattern.type) {
+		case 'Identifier':
+			return { ...pattern, name: names.get(pattern.name) ?? pattern.name };
+		case 'AssignmentPattern':
+			return { ...pattern, left: renamedPattern(pattern.left, names) };
+		case 'ObjectPattern':
+			return {
+				...pattern,
+				properties: pattern.properties.map((property) =>
+					property.type === 'RestElement'
+						? { ...property, argument: renamedPattern(property.argument, names) }
+						: { ...property, value: renamedPattern(property.value, names), shorthand: false }
+				)
+			};
+		case 'ArrayPattern':
+			return {
+				...pattern,
+				elements: pattern.elements.map((element) =>
+					element === null ? null : renamedPattern(element, names)
+				)
+			};
+		case 'RestElement':
+			return { ...pattern, argument: renamedPattern(pattern.argument, names) };
+		default:
+			return pattern;
+	}
+}
+
+function nestedDeclaration(context: TemplateContext, node: Declaration): ES.Statement {
+	const names = new Map<string, string>();
+	for (const declarator of node.declaration.declarations) {
+		for (const name of patternNames(declarator.id)) {
+			const binding = context.analysis.declarations.get(name);
+			const fresh = context.names.unique(name.name);
+			names.set(name.name, fresh);
+			if (binding !== undefined) context.renamed?.set(binding, fresh);
+		}
+	}
+	const declaration = rewrite(context, node.declaration);
+	return {
+		...declaration,
+		declarations: declaration.declarations.map((declarator) => ({
+			...declarator,
+			id: renamedPattern(declarator.id, names)
+		}))
+	};
+}
+
 export function constantDeclarations(
 	context: TemplateContext,
-	nodes: readonly Node[]
+	nodes: readonly Node[],
+	own: ReadonlySet<Node> = new Set(nodes)
 ): ES.Statement[] {
 	const result: ES.Statement[] = [];
-	for (const node of nodes)
+	for (const node of nodes) {
 		if (node.kind === 'constant') result.push(...constantDeclaration(context, node));
+		else if (node.kind !== 'declaration') continue;
+		else if (own.has(node)) result.push(rewrite(context, node.declaration));
+		else result.push(nestedDeclaration(context, node));
+	}
 	return result;
 }

@@ -1,6 +1,6 @@
 import type * as ES from 'estree';
 import { escapeContent } from '../../shared/escape.ts';
-import { dynamic, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
+import { dynamic, hoisted, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Expression, Fragment, Namespace, Node, RawHtml, Text } from '../ir/nodes.ts';
 import type { Host, Scoping } from '../css/index.ts';
@@ -253,6 +253,7 @@ export function parts(
 			}
 			case 'snippet':
 			case 'constant':
+			case 'declaration':
 				break;
 			default:
 				throw unsupported(node, `The ${node.kind} node`);
@@ -273,7 +274,7 @@ function withElementChildren(context: TemplateContext, nodes: readonly Node[]): 
 }
 
 function standalone(context: TemplateContext, nodes: readonly Node[]): Node | null {
-	const regular = nodes.filter((node) => node.kind !== 'snippet' && node.kind !== 'constant');
+	const regular = nodes.filter((node) => !hoisted(node));
 	if (regular.length !== 1) return null;
 	const [only] = regular;
 	if (only === undefined || awaiting(context, [only]).length > 0) return null;
@@ -363,9 +364,10 @@ export function render(
 	namespace: Namespace,
 	textFirst: boolean
 ): ES.Statement[] {
+	const within = withElementChildren(context, nodes);
 	const declarations = [
-		...snippetDeclarations(context, withElementChildren(context, nodes)),
-		...constantDeclarations(context, nodes)
+		...snippetDeclarations(context, within),
+		...constantDeclarations(context, within, new Set(nodes))
 	];
 	const alone = standalone(context, nodes);
 	if (alone?.kind === 'component')

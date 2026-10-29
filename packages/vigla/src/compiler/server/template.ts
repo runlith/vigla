@@ -2,7 +2,13 @@ import type * as ES from 'estree';
 import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
 import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
 import { empty } from '../../shared/markers.ts';
-import { hasAwait, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
+import {
+	declaring,
+	hasAwait,
+	hoisted,
+	unsupported,
+	type ComponentAnalysis
+} from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
 	Attribute,
@@ -334,6 +340,12 @@ function element(
 		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
 		buffer.flush(context, statements);
 		statements.push(b.statement(runtime(context, 'popSelect')));
+	} else if (cleaned(context, node.body).some(declaring)) {
+		buffer.flush(context, statements);
+		const scoped: ES.Statement[] = [];
+		fragmentCode(context, cleaned(context, node.body), scoped, buffer, false, true);
+		buffer.flush(context, scoped);
+		statements.push({ type: 'BlockStatement', body: scoped });
 	} else {
 		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
 	}
@@ -348,10 +360,11 @@ export function fragmentCode(
 	textFirst: boolean,
 	children = false
 ): void {
-	const first = nodes.find((node) => node.kind !== 'snippet' && node.kind !== 'constant');
+	const first = nodes.find((node) => !hoisted(node));
 	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
 	statements.push(...snippetDeclarations(context, nodes));
 	for (const node of nodes) {
+		if (node.kind === 'declaration') statements.push(rewrite(context, node.declaration));
 		if (node.kind !== 'constant') continue;
 		const { id, init } = node.declarator;
 		if (init == null) throw unsupported(node, 'A {@const} without a value');
@@ -383,7 +396,7 @@ export function fragmentCode(
 			continue;
 		}
 		flushRun();
-		if (node.kind === 'constant') continue;
+		if (declaring(node)) continue;
 		const pending = node.kind === 'snippet' ? [] : awaiting(context, [node]);
 		if (pending.length > 0) {
 			asyncChild(context, [node], pending, statements, buffer, fragmentCode);

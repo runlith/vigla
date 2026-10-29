@@ -164,8 +164,12 @@ function dynamicNamespace(node: DynamicElement, parent: Namespace): Namespace {
 	return parent;
 }
 
-function hoisted(node: Node): boolean {
-	return node.kind === 'snippet' || node.kind === 'constant';
+export function declaring(node: Node): boolean {
+	return node.kind === 'constant' || node.kind === 'declaration';
+}
+
+export function hoisted(node: Node): boolean {
+	return node.kind === 'snippet' || declaring(node);
 }
 
 function apart(node: Node): node is Special | Title {
@@ -330,9 +334,7 @@ export class Template {
 		if (separate.length > 0) this.separate.set(fragment, separate);
 		const lifted = given.filter(hoisted);
 		const regular = { nodes: lifted.length === 0 ? given : given.filter((node) => !hoisted(node)) };
-		const scope = lifted.some((node) => node.kind === 'constant')
-			? this.scopes.child(outer)
-			: outer;
+		const scope = lifted.some(declaring) ? this.scopes.child(outer) : outer;
 		const nodes = [
 			...lifted,
 			...clean(
@@ -533,6 +535,13 @@ export class Template {
 				this.pattern(declarator.id, scope, 'template-constant');
 				return;
 			}
+			case 'declaration':
+				for (const declarator of node.declaration.declarations) {
+					if (declarator.init != null && hasAwait(declarator.init))
+						throw unsupported(spanOf(declarator.init), 'An await in a declaration tag');
+				}
+				this.expression(node.declaration as unknown as ES.Expression, scope);
+				return;
 			case 'special':
 				for (const attribute of node.attributes) this.attribute(attribute, scope);
 				if (node.target === 'head') this.fragment(node.body, null, scope, kept, 'html', false);

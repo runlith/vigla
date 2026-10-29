@@ -27,6 +27,12 @@ export interface Context {
 	readonly saved?: ReadonlySet<ES.Node>;
 	readonly dev?: boolean;
 	readonly aliases?: Map<Binding, ES.Expression>;
+	readonly renamed?: Map<Binding, string>;
+}
+
+function named(context: Context, node: ES.Identifier, binding: Binding): ES.Identifier {
+	const name = context.renamed?.get(binding);
+	return name === undefined ? node : { ...node, name };
 }
 
 const declaring = new Set<Rune>(['$state', '$state.raw', '$derived', '$derived.by', '$props.id']);
@@ -346,7 +352,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			case 'Identifier': {
 				const binding = references.get(current);
 				if (binding === undefined) return undefined;
-				return read(context, current, binding);
+				const node = named(context, current, binding);
+				return read(context, node, binding) ?? (node === current ? undefined : node);
 			}
 			case 'Property': {
 				if (current.computed || current.kind !== 'init') return undefined;
@@ -376,7 +383,12 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (binding.kind === 'prop' && accessor(binding))
 					return assign(context, current, binding, next);
 				if (!stateful(binding) && binding.kind !== 'derived') return undefined;
-				return assign(context, current, binding, next);
+				return assign(
+					context,
+					{ ...current, left: named(context, current.left, binding) },
+					binding,
+					next
+				);
 			}
 			case 'UpdateExpression': {
 				if (current.argument.type === 'MemberExpression') {
@@ -391,7 +403,11 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (binding === undefined || context.plain.has(binding)) return undefined;
 				if (binding.kind === 'prop' && accessor(binding)) return update(context, current, binding);
 				if (!stateful(binding) && binding.kind !== 'derived') return undefined;
-				return update(context, current, binding);
+				return update(
+					context,
+					{ ...current, argument: named(context, current.argument, binding) },
+					binding
+				);
 			}
 			case 'ExpressionStatement': {
 				const expression = current.expression;

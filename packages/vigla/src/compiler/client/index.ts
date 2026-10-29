@@ -89,7 +89,8 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		instance: [],
 		scoping: options.scoping,
 		dev: options.dev,
-		aliases: new Map()
+		aliases: new Map(),
+		renamed: new Map()
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const level: (ES.Statement | ES.ModuleDeclaration)[] = [];
