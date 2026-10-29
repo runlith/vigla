@@ -8,11 +8,11 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9fac9d5e3831
 sources:
   - kind: file
+    ref: packages/dromon/src/runtime/dom/blocks.ts
+  - kind: file
     ref: packages/dromon/src/runtime/reactivity/batch.ts
   - kind: file
     ref: packages/dromon/src/runtime/reactivity/effects.ts
-  - kind: file
-    ref: packages/dromon/src/runtime/dom/blocks.ts
 ---
 A batch is the unit of commit: the writes made since the last flush, the effects they dirtied, the structure changes its blocks register for commit and, once async work exists, the work still pending in it. Writes made outside a flush go to the one open batch, created by the first write and flushed at the next microtask or by `flushSync`.
 
@@ -24,7 +24,7 @@ A batch is the unit of commit: the writes made since the last flush, the effects
 1. *Structure* — the roots holding queued effects are traversed in creation order; a block whose dependencies changed runs and decides which branches stand. A leaving branch is marked inert, so this traversal, later passes and the content phase skip it; an entering branch or row is built off-screen with its own effects run. Dirty template effects met on the way are collected.
 2. *Commit* — the registered structure changes apply: leaving branches lose their nodes and are destroyed, their teardowns running; entering ones are inserted and rows moved.
 3. *Content* — the collected template effects run in collection order, each only if it is still alive, not inert and still stale; one re-dirtied while running is queued again after its run, never re-entered.
-4. *Effects* — user effects run after content, in tree order.
+4. *Effects* — user effects run after content: those the traversal met, in tree order, and those created during structure or commit, in creation order. One created during content or effects is queued in the next batch. `$effect.pre` effects are content effects: they run at creation and rerun among the template effects in tree order.
 
 Writes made during structure or commit — a teardown's included — join the batch being processed, and the flush repeats structure and commit until nothing is queued, bounded at 1000 passes, before content runs. A value a teardown writes thus deselects its branches before any content of them runs (invariant 2). Upstream 5.57.3 sends writes made after traversal, commit-time teardowns included, to a new batch processed after the current batch's effects have run (`batch.js`, `#process`): the shape of the passed-guard and seat-release traps, where a guard a teardown cleared still let the deselected branch's effects run.
 
@@ -38,4 +38,4 @@ Writes made during content or effects belong to the next batch, which the same f
 
 **No state of unmounted trees.** The runtime keeps no registry of trees: a batch is dropped once processed, a root is reachable only from its mount, effects and deriveds unsubscribe from their sources when destroyed, and `mount` keeps instances in a `WeakMap`. Once an unmounted tree's flush settled nothing in the runtime references it, so a target resets nothing between samples (invariant 5).
 
-Not built yet: held batches and their views, merging, rebase, `settled()`, forks and user effects. The single-batch path above — queueing, the structure and commit loop, content, nested `flushSync` and roots — is what the code runs.
+Not built yet: held batches and their views, merging, rebase and forks. The single-batch path above — queueing, the structure and commit loop, content, user effects, nested `flushSync` and roots — is what the code runs, and `settled()` resolves at the end of the first flush that leaves no batch open.
