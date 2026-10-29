@@ -26,6 +26,9 @@ fields:
       },
       {
         "at": "props.ts"
+      },
+      {
+        "at": "swap.ts"
       }
     ],
     "id": "dom",
