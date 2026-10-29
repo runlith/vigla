@@ -38,8 +38,14 @@ export {
 	type Stylesheet
 } from '../compiler/css/index.ts';
 export {
+	closest,
+	errorMessage,
 	validateComponent,
 	validateModule,
+	warningCodes,
+	warningMessage,
+	type Anchored,
+	type Front,
 	type ValidateOptions
 } from '../compiler/analysis/validate/index.ts';
 

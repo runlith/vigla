@@ -2,6 +2,11 @@ import type * as ES from 'estree';
 import type * as IR from '../../ir/nodes.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../../ir/port.ts';
 import { Context, type Settings } from './context.ts';
+import { Anchors, type Front } from './front.ts';
+
+export type { Anchored, Front } from './front.ts';
+export { closest } from './a11y/fuzzy.ts';
+export { errorMessage, warningCodes, warningMessage } from './report.ts';
 import { Order, type Phased } from './order.ts';
 import { fail, Report } from './report.ts';
 import { typeOf, type Reference, type Scope } from './scope.ts';
@@ -13,6 +18,8 @@ export interface ValidateOptions {
 	readonly customElement?: boolean;
 	readonly async?: boolean;
 	readonly namespace?: IR.Namespace;
+	readonly stores?: readonly string[];
+	readonly front?: Front;
 	readonly warnings?: Phased;
 }
 
@@ -44,7 +51,12 @@ function nested(
 	return null;
 }
 
-function stores(context: Context, unit: ComponentUnit, instance: Scope): void {
+function stores(
+	context: Context,
+	unit: ComponentUnit,
+	instance: Scope,
+	modules: ReadonlySet<unknown>
+): void {
 	const module = context.module;
 	const runes = context.runes;
 	for (const [name, references] of [...module.references]) {
@@ -53,11 +65,7 @@ function stores(context: Context, unit: ComponentUnit, instance: Scope): void {
 		const store = name.slice(1);
 		const declaration = instance.get(store);
 		const initial = declaration?.initial as ES.Node | null | undefined;
-		const kind = declaration?.kind;
-		const rune =
-			kind === 'prop' || kind === 'rest_prop' || kind === 'bindable_prop'
-				? '$props'
-				: runeOf(runes, initial);
+		const rune = runeOf(runes, initial);
 		const subscribes =
 			!runeNames.has(name) ||
 			(declaration !== null &&
@@ -65,7 +73,7 @@ function stores(context: Context, unit: ComponentUnit, instance: Scope): void {
 				!(
 					name === '$derived' &&
 					initial?.type === 'ImportDeclaration' &&
-					initial.source.value === 'svelte/store'
+					modules.has(initial.source.value)
 				));
 		if (!subscribes) continue;
 		const inner = nested(context.scopes, references, store, [module, instance]);
@@ -196,14 +204,18 @@ export function validateComponent(
 		customProps: (unit.options?.customElement?.props ?? null) !== null,
 		async: options.async ?? true
 	};
-	const context = new Context(unit, report, scopes, settings, module, instance, visit);
+	const front = options.front ?? {};
+	const anchors = new Anchors(front, report.warnings);
+	const context = new Context(unit, report, scopes, settings, module, instance, visit, anchors);
 	const order = new Order(report.warnings);
-	stores(context, unit, instance);
+	stores(context, unit, instance, new Set(options.stores ?? []));
+	report.warnings.push(...(front.before ?? []));
 	const program = unit.module;
 	if (program !== null) {
 		order.phase('module', () => {
 			context.start('module', module);
 			context.es(program);
+			anchors.rest(program);
 		});
 	}
 	const script = unit.instance;
@@ -211,6 +223,7 @@ export function validateComponent(
 		order.phase('instance', () => {
 			context.start('instance', instance);
 			context.es(script);
+			anchors.rest(script);
 		});
 	}
 	order.phase('template', () => {
@@ -218,6 +231,7 @@ export function validateComponent(
 		new Template(context, unit.options?.namespace ?? options.namespace ?? 'html').fragment(
 			unit.template
 		);
+		anchors.rest(null);
 	});
 	nonReactive(context, [module, instance]);
 	if (program !== null) exports(context, program, unit);
@@ -235,7 +249,9 @@ export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}):
 		customProps: false,
 		async: options.async ?? true
 	};
-	const context = new Context(unit, report, scopes, settings, scope, null, visit);
+	const front = options.front ?? {};
+	const anchors = new Anchors(front, report.warnings);
+	const context = new Context(unit, report, scopes, settings, scope, null, visit, anchors);
 	for (const [name, references] of scope.references) {
 		if (name[0] !== '$' || reserved.has(name)) continue;
 		invalidGlobal(name, references);
@@ -243,10 +259,12 @@ export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}):
 			fail('store_invalid_subscription_module', references[0]!.node);
 		}
 	}
+	report.warnings.push(...(front.before ?? []));
 	const order = new Order(report.warnings);
 	order.phase('module', () => {
 		context.start(null, scope);
 		context.es(unit.program);
+		anchors.rest(null);
 	});
 	return order.result(options.warnings ?? {});
 }

@@ -24,8 +24,18 @@ function span(at: At): { start: number; end: number } {
 	return { start, end: located.end ?? start };
 }
 
+export const warningCodes: readonly string[] = Object.keys(warnings);
+
+export function errorMessage(code: string, args: Args = {}): string {
+	return format(errors[code], code, args);
+}
+
+export function warningMessage(code: string, args: Args = {}): string {
+	return format(warnings[code], code, args);
+}
+
 export function fail(code: string, at: At, args: Args = {}): never {
-	throw new CompileError({ code, message: format(errors[code], code, args), ...span(at) });
+	throw new CompileError({ code, message: errorMessage(code, args), ...span(at) });
 }
 
 export class Report {
@@ -61,6 +71,6 @@ export class Report {
 
 	warn(code: string, at: At, args: Args = {}): void {
 		if (this.ignored(code, typeof at === 'object' ? at : undefined)) return;
-		this.warnings.push({ code, message: format(warnings[code], code, args), ...span(at) });
+		this.warnings.push({ code, message: warningMessage(code, args), ...span(at) });
 	}
 }

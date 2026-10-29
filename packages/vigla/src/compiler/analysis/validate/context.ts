@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import { children } from '../../ir/estree.ts';
 import type * as IR from '../../ir/nodes.ts';
 import type { Runes, Unit } from '../../ir/port.ts';
+import type { Anchors } from './front.ts';
 import type { Report } from './report.ts';
 import type { Scope, PathNode } from './scope.ts';
 import type { Scopes } from './scopes.ts';
@@ -32,6 +33,7 @@ export class Context {
 	readonly elements: IR.Node[] = [];
 	readonly snippets: IR.Snippet[] = [];
 	readonly #visit: Visit;
+	readonly anchors: Anchors;
 	scope: Scope;
 	depth = 0;
 	program: Program = null;
@@ -47,8 +49,10 @@ export class Context {
 		settings: Settings,
 		module: Scope,
 		instance: Scope | null,
-		visit: Visit
+		visit: Visit,
+		anchors: Anchors
 	) {
+		this.anchors = anchors;
 		this.unit = unit;
 		this.report = report;
 		this.scopes = scopes;
@@ -84,6 +88,7 @@ export class Context {
 		const saved = this.scope;
 		const scope = this.scopes.map.get(node);
 		if (scope !== undefined) this.scope = scope;
+		this.anchors.emit(node);
 		this.#visit(this, node);
 		this.scope = saved;
 		this.report.leave(entered);

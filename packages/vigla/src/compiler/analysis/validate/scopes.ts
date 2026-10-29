@@ -30,6 +30,63 @@ export function runeOf(runes: Runes, node: ES.Node | null | undefined): string |
 	return runes.get(node.callee) ?? null;
 }
 
+function settleProps(pattern: ES.Pattern, scope: Scope, runes: Runes): void {
+	if (pattern.type === 'Identifier') {
+		const binding = scope.get(pattern.name);
+		if (binding !== null) {
+			binding.initial = null;
+			binding.kind = 'rest_prop';
+		}
+		return;
+	}
+	if (pattern.type !== 'ObjectPattern') return;
+	for (const property of pattern.properties) {
+		if (property.type === 'RestElement') {
+			for (const id of identifiers(property)) {
+				const binding = scope.get(id.name);
+				if (binding !== null) binding.kind = 'rest_prop';
+			}
+			continue;
+		}
+		const value =
+			property.value.type === 'AssignmentPattern' ? property.value.left : property.value;
+		if (value.type !== 'Identifier') continue;
+		const binding = scope.get(value.name);
+		if (binding === null) continue;
+		const initial = property.value.type === 'AssignmentPattern' ? property.value.right : null;
+		if (initial?.type === 'CallExpression' && runes.get(initial.callee) === '$bindable') {
+			binding.initial = (initial.arguments[0] as ES.Expression | undefined) ?? null;
+			binding.kind = 'bindable_prop';
+		} else {
+			binding.initial = initial;
+		}
+	}
+}
+
+export function settle(
+	declarator: ES.VariableDeclarator,
+	scope: Scope,
+	runes: Runes,
+	rune: string | null
+): void {
+	const kind =
+		rune === '$state'
+			? 'state'
+			: rune === '$state.raw'
+				? 'raw_state'
+				: rune === '$derived' || rune === '$derived.by'
+					? 'derived'
+					: rune === '$props'
+						? 'prop'
+						: null;
+	if (kind === null) return;
+	for (const id of identifiers(declarator.id)) {
+		const binding = scope.get(id.name);
+		if (binding !== null) binding.kind = kind;
+	}
+	if (rune === '$props') settleProps(declarator.id, scope, runes);
+}
+
 export class Scopes {
 	readonly map = new Map<object, Scope>();
 	readonly runes: Runes;
@@ -77,8 +134,6 @@ export class Scopes {
 		kind: ES.VariableDeclaration['kind'],
 		template: boolean
 	): void {
-		const rune = runeOf(this.runes, declarator.init);
-		const props = rune === '$props';
 		for (const id of identifiers(declarator.id)) {
 			const binding = scope.declare(
 				id,
@@ -87,44 +142,6 @@ export class Scopes {
 				declarator.init ?? null
 			);
 			binding.templateDeclaration = true;
-			if (rune === '$state') binding.kind = 'state';
-			else if (rune === '$state.raw') binding.kind = 'raw_state';
-			else if (rune === '$derived' || rune === '$derived.by') binding.kind = 'derived';
-			else if (props) binding.kind = 'prop';
-		}
-		if (props) this.#props(declarator.id, scope);
-	}
-
-	#props(pattern: ES.Pattern, scope: Scope): void {
-		if (pattern.type === 'Identifier') {
-			const binding = scope.declarations.get(pattern.name);
-			if (binding !== undefined) {
-				binding.initial = null;
-				binding.kind = 'rest_prop';
-			}
-			return;
-		}
-		if (pattern.type !== 'ObjectPattern') return;
-		for (const property of pattern.properties) {
-			if (property.type === 'RestElement') {
-				for (const id of identifiers(property)) {
-					const binding = scope.declarations.get(id.name);
-					if (binding !== undefined) binding.kind = 'rest_prop';
-				}
-				continue;
-			}
-			const value =
-				property.value.type === 'AssignmentPattern' ? property.value.left : property.value;
-			if (value.type !== 'Identifier') continue;
-			const binding = scope.declarations.get(value.name);
-			if (binding === undefined) continue;
-			const initial = property.value.type === 'AssignmentPattern' ? property.value.right : null;
-			if (initial?.type === 'CallExpression' && this.runes.get(initial.callee) === '$bindable') {
-				binding.initial = (initial.arguments[0] as ES.Expression | undefined) ?? null;
-				binding.kind = 'bindable_prop';
-			} else {
-				binding.initial = initial;
-			}
 		}
 	}
 

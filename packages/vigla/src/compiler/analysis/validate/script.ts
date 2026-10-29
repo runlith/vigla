@@ -4,6 +4,7 @@ import { fail } from './report.ts';
 import { classBody, propertyDefinition } from './classes.ts';
 import { identifiers, isReference, typeOf, type Binding } from './scope.ts';
 import { assignment } from './assignment.ts';
+import { settle } from './scopes.ts';
 
 export const runeNames = new Set([
 	'$state',
@@ -86,7 +87,7 @@ function call(context: Context, node: ES.CallExpression): void {
 		}
 		case '$host':
 			if (count > 0) fail('rune_invalid_arguments', node, { rune });
-			else if (context.program !== 'instance' || !context.settings.customElement) {
+			else if (context.program === 'module' || !context.settings.customElement) {
 				fail('host_invalid_placement', node);
 			}
 			break;
@@ -347,6 +348,7 @@ function declarator(context: Context, node: ES.VariableDeclarator): void {
 	}
 	for (const id of identifiers(node.id)) validName(context.scope.get(id.name));
 	const rune = context.rune(node.init);
+	settle(node, context.scope, context.runes, rune);
 	if (rune !== '$props') {
 		context.next(node);
 		return;
@@ -414,18 +416,6 @@ function exportSpecifier(context: Context, node: ES.ExportSpecifier): void {
 		if (binding !== null) binding.reassigned = true;
 	} else {
 		exportValue(context, node, name);
-	}
-}
-
-function importDeclaration(node: ES.ImportDeclaration): void {
-	const source = String(node.source.value);
-	if (source.startsWith('svelte/internal')) fail('import_svelte_internal_forbidden', node);
-	if (source !== 'svelte') return;
-	for (const specifier of node.specifiers) {
-		if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier') continue;
-		const name = specifier.imported.name;
-		if (name === 'beforeUpdate' || name === 'afterUpdate')
-			fail('runes_mode_invalid_import', specifier, { name });
 	}
 }
 
@@ -502,7 +492,6 @@ export function visit(context: Context, node: ES.Node): void {
 			exportSpecifier(context, node);
 			return;
 		case 'ImportDeclaration':
-			importDeclaration(node);
 			return;
 		case 'ExpressionStatement':
 			expressionStatement(context, node);

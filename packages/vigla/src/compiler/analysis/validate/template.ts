@@ -41,6 +41,7 @@ export class Template {
 
 	fragment(fragment: IR.Fragment): void {
 		this.#scoped(fragment, () => {
+			this.context.anchors.emit(fragment);
 			this.context.within(fragment, () => {
 				for (const node of fragment.nodes) this.node(node);
 			});
@@ -64,6 +65,7 @@ export class Template {
 	attribute(attribute: IR.Attribute, host: Host | null): void {
 		const context = this.context;
 		const entered = context.report.enter(attribute);
+		context.anchors.emit(attribute);
 		context.within(attribute, () => {
 			switch (attribute.kind) {
 				case 'attribute':
@@ -104,6 +106,7 @@ export class Template {
 		const entered = context.report.enter(node);
 		this.#scoped(node, () => {
 			this.#check(node);
+			context.anchors.emit(node);
 			this.#ancestors.push(node);
 			context.within(node, () => this.#children(node));
 			this.#ancestors.pop();
@@ -120,15 +123,16 @@ export class Template {
 				textPlacement(context, node);
 				return;
 			case 'element':
+			case 'dynamic-element': {
+				const from = context.report.warnings.length;
 				validateElement(context, node);
+				context.anchors.emit(node, from);
 				checkElement(node, { path: this.#ancestors, namespace: this.namespace }, context.report);
+				if (node.kind === 'dynamic-element') return;
 				lowercaseComponent(context, node);
 				placement(context, node);
 				return;
-			case 'dynamic-element':
-				validateElement(context, node);
-				checkElement(node, { path: this.#ancestors, namespace: this.namespace }, context.report);
-				return;
+			}
 			case 'special':
 				if (node.target === 'head') return;
 				for (const attribute of node.attributes) {
