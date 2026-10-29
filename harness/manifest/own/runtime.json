@@ -42,6 +42,10 @@
 			"reason": "Scheduler invariant 5: green on upstream 5.57.3"
 		},
 		"leading-nested-block": "contract",
+		"owner-world-hooks": {
+			"status": "difference",
+			"reason": "Application primitives (spec 8191e72f): layer's WorldHooks filled with public `dromon` API alone — `root`, `effect`, `cell`, `untrack`; upstream 5.57.3 has no such entry, so the sample cannot run there"
+		},
 		"teardown-flush-closing-branch": {
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 10 (nested eager flush): on upstream 5.57.3 a flushSync in the teardown of a branch an effect closed throws — TypeError reading `clear` of null"
