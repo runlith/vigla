@@ -13,6 +13,7 @@ import {
 } from './graph.ts';
 import { offscreen, run } from './effects.ts';
 import { depthExceeded } from './errors.ts';
+import { drain } from './tasks.ts';
 import {
 	absorb,
 	finish,
@@ -578,10 +579,12 @@ export function flushSync<T = void>(fn?: () => T): T {
 	}
 	if (!joins(processing)) {
 		let rounds = 0;
+		drain();
 		for (let batch = next(); batch !== null; batch = next()) {
 			if (++rounds > limit) depthExceeded();
 			if (batch === open) open = null;
 			process(batch);
+			drain();
 		}
 		if (idle() && waiting.length > 0) {
 			const resolved = waiting;
