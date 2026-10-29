@@ -75,6 +75,10 @@ export function ownExpressions(node: Node): ES.Expression[] {
 					case 'attachment':
 						found.push(attribute.expression);
 						break;
+					case 'action':
+						found.push(attribute.action);
+						if (attribute.argument !== null) found.push(attribute.argument);
+						break;
 					default:
 						break;
 				}
@@ -206,7 +210,12 @@ export class Template {
 				return;
 			case 'spread':
 			case 'class':
+			case 'attachment':
 				this.expression(attribute.expression, scope);
+				return;
+			case 'action':
+				this.expression(attribute.action, scope);
+				if (attribute.argument !== null) this.expression(attribute.argument, scope);
 				return;
 			case 'binding':
 				this.expression(attribute.expression, scope);
@@ -228,6 +237,7 @@ export class Template {
 					this.value(attribute.value, scope);
 					break;
 				case 'spread':
+				case 'attachment':
 					this.expression(attribute.expression, scope);
 					break;
 				case 'binding':

@@ -107,6 +107,24 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 				if (attribute.name === 'this') break;
 				push(...bindingProperties(context, attribute.name, attribute.expression));
 				break;
+			case 'attachment': {
+				let value = rewrite(context, attribute.expression);
+				if (isDynamic(context, attribute.expression)) {
+					const target = b.id(context.names.unique('$$node'));
+					const fn = b.logical('||', value, b.member(context.runtime, 'noop'));
+					value = b.arrow([target], b.call(fn, target));
+				}
+				push({
+					type: 'Property',
+					key: runtime(context, 'attachment'),
+					value,
+					kind: 'init',
+					method: false,
+					shorthand: false,
+					computed: true
+				});
+				break;
+			}
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive on a component`);
 		}

@@ -9,6 +9,8 @@
 			"default": "./src/entries/index-server.ts"
 		},
 		"./package.json": "./package.json",
+		"./action": "./src/entries/action.ts",
+		"./attachments": "./src/entries/attachments.ts",
 		"./compiler": "./src/compiler/index.ts",
 		"./internal/client": "./src/entries/internal/client.ts",
 		"./internal/server": "./src/entries/internal/server.ts",

@@ -8,6 +8,8 @@
 			"default": "./src/entries/index-server.ts"
 		},
 		"./server": "./src/entries/server.ts",
+		"./attachments": "./src/entries/attachments.ts",
+		"./action": "./src/entries/action.ts",
 		"./reactivity": {
 			"browser": "./src/entries/reactivity.ts",
 			"default": "./src/entries/reactivity-server.ts"

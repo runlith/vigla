@@ -6,6 +6,7 @@ import {
 	type Styles
 } from '../../shared/attributes.ts';
 import { isCapture, isDelegated, namespaces, propertyName } from '../../shared/html.ts';
+import { spreadAttachments } from './attachments.ts';
 import { delegated, delegate, listen } from './events.ts';
 import { hydrating } from './hydration.ts';
 
@@ -423,5 +424,6 @@ export function attributes(
 		}
 		if (typeof value !== 'function') attr(element, name, value);
 	}
+	spreadAttachments(element, current, next);
 	return current;
 }

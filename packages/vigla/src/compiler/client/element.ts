@@ -16,6 +16,7 @@ import type {
 } from '../ir/nodes.ts';
 import { awaiting } from './asynchronous.ts';
 import { binding } from './bindings.ts';
+import { actionCall, attachCall } from './directives.ts';
 import { rewrite, runtime } from './script.ts';
 import {
 	cleaned,
@@ -272,6 +273,8 @@ function spread(
 				styles.push(attribute);
 				break;
 			case 'binding':
+			case 'action':
+			case 'attachment':
 				break;
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive`);
@@ -444,6 +447,11 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const hasSpread = node.attributes.some((attribute) => attribute.kind === 'spread');
 	for (const attribute of node.attributes) {
 		if (attribute.kind === 'binding') setups.push(binding(context, node, attribute));
+		else if (attribute.kind === 'action') {
+			setups.push((element, emit) => emit.init.push(actionCall(context, element, attribute)));
+		} else if (attribute.kind === 'attachment') {
+			setups.push((element, emit) => emit.init.push(attachCall(context, element, attribute)));
+		}
 	}
 	if (hasSpread) {
 		setups.push((element, emit) => spread(context, node, element, emit));
@@ -466,7 +474,13 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 				styles.push(attribute);
 				continue;
 			}
-			if (attribute.kind === 'binding') continue;
+			if (
+				attribute.kind === 'binding' ||
+				attribute.kind === 'action' ||
+				attribute.kind === 'attachment'
+			) {
+				continue;
+			}
 			if (attribute.kind !== 'attribute') {
 				throw unsupported(attribute, `The ${attribute.kind} directive`);
 			}

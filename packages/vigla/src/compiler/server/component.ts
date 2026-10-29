@@ -122,6 +122,8 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 				if (attribute.name === 'this') break;
 				push(...bindingProperties(context, attribute.name, attribute.expression));
 				break;
+			case 'attachment':
+				break;
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive on a component`);
 		}

@@ -159,6 +159,12 @@ function isEvent(attribute: Attribute): boolean {
 	);
 }
 
+function ignored(attribute: Attribute): boolean {
+	return (
+		attribute.kind === 'binding' || attribute.kind === 'action' || attribute.kind === 'attachment'
+	);
+}
+
 const NAMESPACED = 1;
 const PRESERVE_CASE = 2;
 const INPUT = 4;
@@ -182,7 +188,7 @@ function spreadAttributes(
 			toggles.push(attribute);
 		} else if (attribute.kind === 'style') {
 			list.push(attribute);
-		} else if (attribute.kind !== 'binding') {
+		} else if (!ignored(attribute)) {
 			throw unsupported(attribute, `The ${attribute.kind} directive`);
 		}
 	}
@@ -224,7 +230,7 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 			list.push(attribute);
 			continue;
 		}
-		if (attribute.kind === 'binding') continue;
+		if (ignored(attribute)) continue;
 		if (attribute.kind !== 'attribute')
 			throw unsupported(attribute, `The ${attribute.kind} directive`);
 		if (isEvent(attribute)) continue;
