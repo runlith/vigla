@@ -1,6 +1,7 @@
 import { realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { clock } from '@dromon/harness/clock';
 
 const svelte = dirname(realpathSync(createRequire(import.meta.url).resolve('svelte/package.json')));
 
@@ -18,7 +19,7 @@ const timing = await internal<{
 timing.raf.tick = (callback) => {
 	requestAnimationFrame(callback);
 };
-timing.raf.now = () => performance.now();
+timing.raf.now = () => clock.now();
 
 interface Disclosed {
 	__svelte?: { h?: unknown; uid?: number };

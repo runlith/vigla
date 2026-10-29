@@ -5,6 +5,7 @@
 	"exports": {
 		"./vitest": "./src/vitest.ts",
 		"./helpers": "./src/helpers.ts",
+		"./clock": "./src/clock.ts",
 		"./target": "./src/target.ts"
 	},
 	"scripts": {

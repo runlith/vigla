@@ -130,11 +130,6 @@ export class Clock {
 		globalThis.cancelAnimationFrame = (handle) => {
 			this.#frames.delete(handle);
 		};
-		Object.defineProperty(globalThis.performance, 'now', {
-			configurable: true,
-			writable: true,
-			value: () => this.time
-		});
 		const clock = this;
 		Object.defineProperty(HTMLElement.prototype, 'animate', {
 			configurable: true,
@@ -152,6 +147,10 @@ export class Clock {
 				return [...clock.animations].filter((animation) => animation.target === this);
 			}
 		});
+	}
+
+	now(): number {
+		return this.time;
 	}
 
 	reset(): void {
