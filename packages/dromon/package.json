@@ -8,9 +8,27 @@
 			"default": "./src/entries/index-server.ts"
 		},
 		"./server": "./src/entries/server.ts",
+		"./reactivity": {
+			"browser": "./src/entries/reactivity.ts",
+			"default": "./src/entries/reactivity-server.ts"
+		},
+		"./reactivity/window": {
+			"browser": "./src/entries/window.ts",
+			"default": "./src/entries/window-server.ts"
+		},
+		"./motion": {
+			"browser": "./src/entries/motion.ts",
+			"default": "./src/entries/motion-server.ts"
+		},
 		"./compiler": "./src/entries/compiler.ts",
 		"./internal/index-client": "./src/entries/index.ts",
 		"./internal/index-server": "./src/entries/index-server.ts",
+		"./internal/reactivity-client": "./src/entries/reactivity.ts",
+		"./internal/reactivity-server": "./src/entries/reactivity-server.ts",
+		"./internal/window-client": "./src/entries/window.ts",
+		"./internal/window-server": "./src/entries/window-server.ts",
+		"./internal/motion-client": "./src/entries/motion.ts",
+		"./internal/motion-server": "./src/entries/motion-server.ts",
 		"./internal/client": "./src/entries/internal/client.ts",
 		"./internal/server": "./src/entries/internal/server.ts"
 	},
@@ -20,7 +38,8 @@
 		"axobject-query": "^4.1.0",
 		"clsx": "^2.1.1",
 		"esm-env": "^1.2.1",
-		"esrap": "^2.3.6"
+		"esrap": "^2.3.6",
+		"magic-string": "^0.30.21"
 	},
 	"devDependencies": {
 		"@types/aria-query": "^5.0.4",

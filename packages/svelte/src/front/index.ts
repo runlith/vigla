@@ -35,6 +35,7 @@ export function lowerComponent(
 			module,
 			instance,
 			template,
+			style: ast.css ?? null,
 			options: lowering.options(ast.options),
 			runes: lowering.resolution.runes,
 			ignores: lowering.ignores

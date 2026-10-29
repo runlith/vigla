@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import type { Fragment, Options, Span } from './nodes.ts';
+import type { StyleSheet } from './style.ts';
 
 export type Rune =
 	| '$state'
@@ -46,6 +47,7 @@ export interface ComponentUnit {
 	readonly module: ES.Program | null;
 	readonly instance: ES.Program | null;
 	readonly template: Fragment;
+	readonly style: StyleSheet | null;
 	readonly options: Options | null;
 	readonly runes: Runes;
 	readonly ignores: Ignores;

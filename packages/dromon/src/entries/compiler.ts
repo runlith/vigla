@@ -8,6 +8,7 @@ import {
 	type ValidateOptions
 } from '../compiler/analysis/validate/index.ts';
 import { client, clientModule } from '../compiler/client/index.ts';
+import { analyzeStyle, injected, renderStyle, type Stylesheet } from '../compiler/css/index.ts';
 import type { Namespace } from '../compiler/ir/nodes.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../compiler/ir/port.ts';
 import { server, serverModule } from '../compiler/server/index.ts';
@@ -27,6 +28,15 @@ export type {
 } from '../compiler/ir/port.ts';
 export { CompileError } from '../compiler/ir/port.ts';
 export { parseExpression, parseProgram } from '../compiler/ir/script.ts';
+export type * as Style from '../compiler/ir/style.ts';
+export {
+	analyzeStyle,
+	hash,
+	type Scoping,
+	type StyleAnalysis,
+	type StyleOptions,
+	type Stylesheet
+} from '../compiler/css/index.ts';
 export {
 	validateComponent,
 	validateModule,
@@ -52,6 +62,13 @@ export interface CompileOptions extends ModuleOptions {
 	readonly preserveWhitespace?: boolean;
 	readonly preserveComments?: boolean;
 	readonly namespace?: Namespace;
+	readonly css?: CssOptions;
+}
+
+export interface CssOptions {
+	readonly hash: string;
+	readonly inject: boolean;
+	readonly outputFilename?: string;
 }
 
 export interface Code {
@@ -61,6 +78,7 @@ export interface Code {
 
 export interface Output {
 	readonly js: Code;
+	readonly css: Stylesheet | null;
 	readonly warnings: readonly Diagnostic[];
 }
 
@@ -75,7 +93,18 @@ function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit): Code {
 }
 
 export function compile(unit: ComponentUnit, options: CompileOptions): Output {
-	const warnings = validateComponent(unit, { ...options.validation, namespace: options.namespace });
+	const validated = validateComponent(unit, {
+		...options.validation,
+		namespace: options.namespace
+	});
+	const style = analyzeStyle(unit, { hash: options.css?.hash ?? '' });
+	const warnings = [...validated, ...style.warnings];
+	const inject = injected(style, options.css?.inject ?? false);
+	const css = renderStyle(style, {
+		dev: options.dev ?? false,
+		inject,
+		outputFilename: options.css?.outputFilename ?? null
+	});
 	const analysis = analyzeComponent(
 		unit,
 		{
@@ -89,7 +118,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		options.generate === 'server'
 			? server(analysis, { runtime: runtime.server, name: options.name })
 			: client(analysis, { runtime: runtime.client, name: options.name });
-	return { js: printed(program, unit), warnings };
+	return { js: printed(program, unit), css: inject ? null : css, warnings };
 }
 
 export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output {
@@ -100,5 +129,5 @@ export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output 
 		options.generate === 'server'
 			? serverModule(analysis, { runtime: runtime.server })
 			: clientModule(analysis, { runtime: runtime.client });
-	return { js: printed(program, unit), warnings };
+	return { js: printed(program, unit), css: null, warnings };
 }
