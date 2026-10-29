@@ -1160,7 +1160,10 @@
       "reason": "on:click on elements replaced by onclick attributes"
     },
     "props-alias-weird": "contract",
-    "props-and-slots": "contract",
+    "props-and-slots": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
     "props-array-each": "contract",
     "props-assignment-tracking": "contract",
     "props-bound": {
@@ -1278,7 +1281,10 @@
       "status": "dropped",
       "reason": "asserts <slot> outside a custom element, a compile error in Dromon"
     },
-    "slot-svelte-fragment-render-tag": "contract",
+    "slot-svelte-fragment-render-tag": {
+      "status": "dropped",
+      "reason": "its subject is `<svelte:fragment>`, which Dromon rejects"
+    },
     "snippet": "contract",
     "snippet-access-in-script": "contract",
     "snippet-after-text": "contract",
@@ -1364,8 +1370,14 @@
     "snippet-ref": "contract",
     "snippet-scope": "contract",
     "snippet-select": "contract",
-    "snippet-slot-let-error": "contract",
-    "snippet-slot-let-renamed-children-error": "contract",
+    "snippet-slot-let-error": {
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
+    },
+    "snippet-slot-let-renamed-children-error": {
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
+    },
     "snippet-slot-no-error": "contract",
     "snippet-spread": {
       "status": "converted",

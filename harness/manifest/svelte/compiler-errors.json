@@ -13,18 +13,45 @@
     "class-state-field-static": "contract",
     "comment-unclosed": "contract",
     "component-invalid-name": "contract",
-    "component-slot-duplicate-error": "contract",
-    "component-slot-duplicate-error-2": "contract",
-    "component-slot-duplicate-error-3": "contract",
-    "component-slot-duplicate-error-4": "contract",
-    "component-slot-duplicate-error-5": "contract",
-    "component-slot-duplicate-error-6": "contract",
-    "component-slot-nested-error": "contract",
-    "component-slot-nested-error-2": "contract",
-    "component-slot-nested-error-3": "contract",
+    "component-slot-duplicate-error": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "component-slot-duplicate-error-2": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "component-slot-duplicate-error-3": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "component-slot-duplicate-error-4": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "component-slot-duplicate-error-5": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "component-slot-duplicate-error-6": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "component-slot-nested-error": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
+    "component-slot-nested-error-2": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
+    "component-slot-nested-error-3": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
     "const-tag-cyclical": {
-      "status": "difference",
-      "reason": "upstream raises `const_tag_cycle` only in legacy mode; with runes forced it compiles the cycle"
+      "status": "dropped",
+      "reason": "its subject is `const_tag_cycle`, a legacy-mode diagnostic; Dromon follows runes mode, which compiles the cycle"
     },
     "const-tag-sequence": "contract",
     "const-tag-snippet-invalid-reference-1": "contract",
@@ -82,8 +109,14 @@
     "invalid-snippet-mutation": "contract",
     "legacy-no-const-assignment": "contract",
     "legacy-no-const-update": "contract",
-    "let-directive-children-snippet": "contract",
-    "let-directive-children-snippet-expression": "contract",
+    "let-directive-children-snippet": {
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
+    },
+    "let-directive-children-snippet-expression": {
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
+    },
     "malformed-snippet": "contract",
     "malformed-snippet-2": "contract",
     "multiple-styles": "contract",

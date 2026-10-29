@@ -145,7 +145,10 @@
     "binding-invalid-on-element-2": "contract",
     "binding-invalid-value": "contract",
     "binding-invalid-value-global": "contract",
-    "binding-let": "contract",
+    "binding-let": {
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
+    },
     "binding-radio-input-checked": "contract",
     "binding-select-multiple-dynamic": "contract",
     "binding-this-input-type-dynamic": "contract",
@@ -165,7 +168,10 @@
     "class-state-constructor-8": "contract",
     "class-state-constructor-9": "contract",
     "comment-before-function-binding": "contract",
-    "component-event-modifiers-invalid": "contract",
+    "component-event-modifiers-invalid": {
+      "status": "dropped",
+      "reason": "its subject is `on:` on a component, which Dromon rejects"
+    },
     "component-invalid-style-directive": "contract",
     "component-legacy-instantiation": "contract",
     "component-name-lowercase": "contract",
@@ -178,11 +184,23 @@
       "status": "dropped",
       "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
     },
-    "component-slot-dynamic-attribute": "contract",
+    "component-slot-dynamic-attribute": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
     "component-slotted-custom-element": "contract",
-    "component-slotted-custom-element-2": "contract",
-    "component-slotted-each-block": "contract",
-    "component-slotted-if-block": "contract",
+    "component-slotted-custom-element-2": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
+    "component-slotted-each-block": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
+    "component-slotted-if-block": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
     "const-tag-conflict-1": "contract",
     "const-tag-conflict-2": "contract",
     "const-tag-inside-key-block": "contract",
@@ -316,7 +334,7 @@
     "ignore-warnings-stacked": "contract",
     "illegal-attribute-character": {
       "status": "converted",
-      "reason": "`on:` directives on elements replaced by event attributes"
+      "reason": "`on:` directives on elements replaced by event attributes; `on:` on a component replaced by a callback prop"
     },
     "illegal-variable-declaration": "contract",
     "illegal_spread_element-document": "contract",
@@ -342,8 +360,8 @@
     "invalid-self-closing-tag": "contract",
     "js-scope-catch-clause": "contract",
     "let-directive": {
-      "status": "converted",
-      "reason": "the `let:` case on `<svelte:self>` replaced by one on a component"
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
     },
     "logic-block-in-attribute": "contract",
     "logic-block-in-textarea": "contract",
@@ -358,8 +376,8 @@
     "namespace-invalid": "contract",
     "namespace-non-literal": "contract",
     "no-missing-declarations-for-same-node-let-variable": {
-      "status": "converted",
-      "reason": "`on:` directives on elements replaced by event attributes"
+      "status": "dropped",
+      "reason": "its subject is the `let:` directive, which Dromon rejects"
     },
     "no-runes-mode": {
       "status": "dropped",
@@ -440,19 +458,25 @@
       "status": "dropped",
       "reason": "its subject is a `$:` statement, which runes mode rejects"
     },
-    "slot-attribute-component": "contract",
-    "slot-attribute-invalid": "contract",
+    "slot-attribute-component": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
+    "slot-attribute-invalid": {
+      "status": "dropped",
+      "reason": "its subject is upstream's placement check for the `slot` attribute, which exists for component slots Dromon rejects"
+    },
     "slot-warning": {
-      "status": "converted",
-      "reason": "`on:` directives on elements replaced by event attributes"
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
     },
     "slot-warning-ignore": {
-      "status": "converted",
-      "reason": "`on:` directives on elements replaced by event attributes"
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
     },
     "slot-warning2": {
-      "status": "converted",
-      "reason": "`on:` directives on elements replaced by event attributes; the ignored unknown code `unrelated_warning`, which runes mode reports, replaced by the unrelated known code `a11y_autofocus`"
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
     },
     "snippet-already-declared": "contract",
     "snippet-shadowing-prop": "contract",
@@ -475,8 +499,14 @@
       "status": "difference",
       "reason": "expects the runes-mode deprecation warning for `<svelte:component>`, a compile error in Dromon"
     },
-    "svelte-fragment-placement": "contract",
-    "svelte-fragment-placement-2": "contract",
+    "svelte-fragment-placement": {
+      "status": "dropped",
+      "reason": "its subject is `<svelte:fragment>`, which Dromon rejects"
+    },
+    "svelte-fragment-placement-2": {
+      "status": "dropped",
+      "reason": "its subject is `<svelte:fragment>`, which Dromon rejects"
+    },
     "svelte-head-attributes": "contract",
     "svelte-ignore-export-let-unused": {
       "status": "dropped",

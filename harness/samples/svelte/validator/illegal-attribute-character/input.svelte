@@ -6,7 +6,7 @@
 <button xml:click>click me</button>
 <button xmlns:click>click me</button>
 <button xlink:click>click me</button>
-<C on:click />
+<C onclick={() => {}} />
 <C xml:click />
 <C xmlns:click />
 <C xlink:click />

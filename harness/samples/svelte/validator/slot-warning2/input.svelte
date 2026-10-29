@@ -3,7 +3,7 @@
 </script>
 
 <Component>
-	<!-- svelte-ignore a11y_autofocus -->
+	<!-- svelte-ignore unrelated_warning -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div slot='foo' onclick={() => {}}>hi!</div>
+	<div slot='foo' on:click>hi!</div>
 </Component>

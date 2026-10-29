@@ -73,7 +73,10 @@
       "status": "dropped",
       "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
     },
-    "general-siblings-combinator-slot": "contract",
+    "general-siblings-combinator-slot": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
     "general-siblings-combinator-slot-global": {
       "status": "dropped",
       "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
@@ -203,7 +206,10 @@
       "status": "dropped",
       "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"
     },
-    "siblings-combinator-slot": "contract",
+    "siblings-combinator-slot": {
+      "status": "dropped",
+      "reason": "its subject is the `slot` attribute assigning content to a component's slot, which Dromon rejects"
+    },
     "siblings-combinator-slot-named-between-default": {
       "status": "dropped",
       "reason": "its subject is `<slot>`, which Dromon rejects outside custom elements"

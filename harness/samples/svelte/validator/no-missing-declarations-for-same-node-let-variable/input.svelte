@@ -3,5 +3,5 @@
 </script>
 
 <Bla>
-	<button slot="foo" class:bar onclick={clickFn} let:bar let:clickFn>{bar}</button>
+	<button slot="foo" class:bar on:click={clickFn} let:bar let:clickFn>{bar}</button>
 </Bla>
