@@ -15,4 +15,4 @@ sources:
   - kind: dir
     ref: targets
 ---
-The install trees the harness runs against: in each, `svelte` resolves to one implementation — upstream Svelte 5.57.3, later Dromon's packages under alias — so samples and runners import the target by its public name. A target carries its test configuration and its fresh-state hook, the only code allowed to touch that target's internals.
+The install trees the harness runs against: in each, `svelte` resolves to one implementation — upstream Svelte 5.57.3, later Vigla's packages under alias — so samples and runners import the target by its public name. A target carries its test configuration and its fresh-state hook, the only code allowed to touch that target's internals.

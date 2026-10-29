@@ -9,6 +9,6 @@ Frozen at the fork base, shallow, ignored by git:
 - `.external/kit` — `sveltejs/kit` at tag `@sveltejs/kit@3.1.0`; tests in `packages/kit/test`;
 - `.external/vite-plugin-svelte` — `sveltejs/vite-plugin-svelte` at tag `@sveltejs/vite-plugin-svelte@7.3.1`.
 
-Before writing a behaviour, read how upstream does it and which edge cases it handles. Upstream tests outside legacy mode are ported as Dromon's compatibility contract. Dromon's code is written anew in TypeScript with its own architecture; whether anything beyond tests is carried over is decided per module in its spec.
+Before writing a behaviour, read how upstream does it and which edge cases it handles. Upstream tests outside legacy mode are ported as Vigla's compatibility contract. Vigla's code is written anew in TypeScript with its own architecture; whether anything beyond tests is carried over is decided per module in its spec.
 
 Never edit, build, commit in or move them to another ref. A missing one is restored with `python3 ~/.agents/skills/ag-external-refs/scripts/fetch.py <repo url> --name <dir> --ref <tag>`.
