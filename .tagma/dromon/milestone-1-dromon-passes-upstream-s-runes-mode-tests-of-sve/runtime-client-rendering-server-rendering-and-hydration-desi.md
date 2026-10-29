@@ -14,9 +14,9 @@ fields:
 
 **Kit's contract on the runtime**, designed now: the server `render(Root, { props, context, csp: { nonce } | { hash }, transformError })` returning `head`, `body` and `hashes.script`, as Kit's `runtime/server/page/render.js` calls it; the client `hydrate`, `mount`, `fork`, `settled`, `tick` and `onMount`, as Kit's `runtime/client/client.js` imports them.
 
-**Hydration markers keep upstream's format** (`<!--[-->`, `<!--]-->` and the rest): the hydration samples feed hand-written upstream markers through `_override.html`, some samples compare HTML with comments kept, and nothing outside Dromon reads the markers to argue for another format.
+**Formats the contract pins keep upstream's form**: hydration markers (`<!--[-->`, `<!--]-->` and the rest — the hydration samples feed hand-written ones through `_override.html`, some samples compare HTML with comments kept); the hydration-data script `(window.__svelte ??= {}).h` (the `csp-*` samples pin its text and the harness finds the script by it); the dev metadata `__svelte_meta`, the `$props.id()` text and the HMR symbol, which devtools and tooling read. Nothing outside Dromon argues for other forms.
 
-**Lazy environment reads.** The runtime reads `requestAnimationFrame`, `performance.now` and the microtask queue at each use, never captured at module load, so tests and embedders can replace them.
+**Animation time comes from `requestAnimationFrame`.** The runtime reads `requestAnimationFrame` at each use, never captured at module load, and takes animation time from the timestamps it passes — an animation starts at its first frame's — never from `performance.now`. Faking `requestAnimationFrame` alone fakes animation time, while `performance.now` stays real for code measuring real durations.
 
 **Acceptance.**
 - The runtime-runes, hydration, server-side-rendering, runtime-browser (custom elements and `test-ssr.ts` included), runtime-production, runtime-xhtml and motion entries pass.
