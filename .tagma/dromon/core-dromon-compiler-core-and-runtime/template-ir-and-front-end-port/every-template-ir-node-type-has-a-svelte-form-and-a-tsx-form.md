@@ -34,6 +34,7 @@ The IR names what a template means, so every front end lowers to the same nodes 
 | `Attachment` | `{@attach fn}` on an element | none yet |
 | `RawHtml` | `{@html expr}` | none yet |
 | `Constant` | `{@const x = expr}` | none yet |
+| `Declaration` | `{let x = expr}`, `{const x = expr}` | none yet |
 | `Debug` | `{@debug a, b}` | none yet |
 | `Title` | `<title>` inside `<svelte:head>` | none yet |
 | `Special` | `<svelte:head>`, `<svelte:window>`, `<svelte:document>`, `<svelte:body>` | none yet |
