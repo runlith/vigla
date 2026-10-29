@@ -5,7 +5,8 @@ ord: 4
 tags: ["task"]
 fields:
   {
-    "status": "open"
+    "holder": "tagma:01a1861f-b38e-725d-8300-9ca3c6617dfc",
+    "status": "in_work"
   }
 ---
 Kit's unit specs, `test/apps` (each app's Playwright and vitest steps, dev and build, its variant scripts), `test/build-errors`, `test/prerendering`, `test/types`, the node and static adapters' tests, and vite-plugin-svelte's unit specs and e2e projects outside the inspector in each run mode, with manifest entries and statuses as [[658ccea4]] orders them — Kit apps converted to runes and compiled with async on. `targets/upstream` gains `@sveltejs/kit` 3.1.0 and `@sveltejs/vite-plugin-svelte` 7.3.1. Done when, for each, the harness passes exactly the contract entries upstream's own runners pass in the reference configuration, checked by `compare.ts`.
