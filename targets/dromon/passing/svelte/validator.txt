@@ -136,6 +136,7 @@ debug-invalid-args
 declaration-tag-invalid-function
 declaration-tag-invalid-type
 declaration-tag-invalid-type-2
+declaration-tag-maybe-runes
 default-export
 default-export-anonymous-class
 default-export-anonymous-function

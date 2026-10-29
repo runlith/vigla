@@ -444,8 +444,11 @@ export class Lowering {
 				};
 			case 'RenderTag':
 				return { kind: 'render', ...span, call: this.expression(node.expression) };
-			case 'DeclarationTag':
-				unsupported('A declaration tag', node);
+			case 'DeclarationTag': {
+				const declaration = this.clean(node.declaration);
+				this.resolution.expression(declaration);
+				return { kind: 'declaration', ...span, declaration };
+			}
 			case 'IfBlock':
 				return this.branch(node);
 			case 'EachBlock':

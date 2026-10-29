@@ -143,25 +143,24 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			filename: options.filename
 		});
 		const reading = lowerComponent(parsed, source, options.filename ?? null);
-		const phase = phases(parsed.root);
-		const own = merge(syntax.walk, reading.warnings, phase);
+		const own = merge(syntax.walk, reading.warnings, phases(parsed.root));
+		const validation = {
+			customElement: options.customElement === true,
+			namespace: options.namespace,
+			warnings: phased(parsed.root, syntax.before, own)
+		};
+		const reported = (core: readonly Diagnostic[]): Warning[] => [
+			...notices,
+			...diagnostics.warnings([...syntax.parse, ...core])
+		];
 		if (options.generate === false) {
-			const core = validateUnit(reading.unit, {
-				customElement: options.customElement === true,
-				namespace: options.namespace,
-				warnings: phased(parsed.root, syntax.before, own)
-			});
 			return {
 				js: null,
 				css: null,
-				warnings: [...notices, ...diagnostics.warnings([...syntax.parse, ...core])],
+				warnings: reported(validateUnit(reading.unit, validation)),
 				metadata: { runes: true }
 			};
 		}
-		const reported = (core: readonly Diagnostic[]): Warning[] => [
-			...notices,
-			...diagnostics.warnings([...syntax.parse, ...syntax.before, ...merge(own, core, phase)])
-		];
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
@@ -169,7 +168,8 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			dev: options.dev,
 			namespace: options.namespace,
 			preserveWhitespace: options.preserveWhitespace,
-			preserveComments: options.preserveComments
+			preserveComments: options.preserveComments,
+			validation
 		});
 		return {
 			js: output.js,
