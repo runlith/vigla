@@ -8,6 +8,12 @@ fields:
     "entries": [
       {
         "at": "index.ts"
+      },
+      {
+        "at": "validate/index.ts"
+      },
+      {
+        "at": "validate/report.ts"
       }
     ],
     "id": "analysis",
