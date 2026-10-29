@@ -1,3 +1,4 @@
+/// <reference path="./axobject-query.d.ts" />
 import { elementRoles, roles, type ARIARoleDefinitionKey } from 'aria-query';
 import { AXObjectRoles, AXObjects, elementAXObjects } from 'axobject-query';
 import { staticText, staticValue, type Facts } from './facts.ts';
