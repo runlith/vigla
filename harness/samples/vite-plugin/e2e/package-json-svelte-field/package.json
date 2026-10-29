@@ -1,0 +1,21 @@
+{
+  "name": "e2e-tests-package-json-svelte-field",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "e2e-test-dep-svelte-hybrid": "file:../_test_dependencies/svelte-hybrid",
+    "e2e-test-dep-svelte-nested": "file:../_test_dependencies/svelte-nested"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "workspace:^",
+    "sass": "^1.94.2",
+    "svelte": "^5.45.4",
+    "vite": "catalog:"
+  },
+  "type": "module"
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		%sveltekit.head%
+	</head>
+	<body>
+		<div>%sveltekit.body%</div>
+		<script>
+			// used for testing hydration
+			function markInitialNode(id) {
+				const el = document.getElementById(id);
+				if (el) {
+					el.__initialNode = true;
+				}
+			}
+			['load', 'mount'].forEach(markInitialNode);
+		</script>
+	</body>
+</html>

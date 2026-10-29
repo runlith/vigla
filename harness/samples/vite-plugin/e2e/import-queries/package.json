@@ -1,0 +1,17 @@
+{
+  "name": "e2e-tests-import-queries",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --force",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "workspace:^",
+    "sass": "^1.94.2",
+    "svelte": "^5.45.4",
+    "vite": "catalog:"
+  }
+}

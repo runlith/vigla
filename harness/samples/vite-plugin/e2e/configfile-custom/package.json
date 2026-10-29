@@ -1,0 +1,19 @@
+{
+  "name": "e2e-tests-configfile-custom",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "NODE_OPTIONS=\"--experimental-strip-types\" vite",
+    "build": "NODE_OPTIONS=\"--experimental-strip-types\" vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "e2e-test-dep-svelte-simple": "file:../_test_dependencies/svelte-simple"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "workspace:^",
+    "svelte": "^5.45.4",
+    "vite": "catalog:"
+  },
+  "type": "module"
+}

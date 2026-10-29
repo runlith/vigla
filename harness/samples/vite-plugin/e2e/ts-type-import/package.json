@@ -1,0 +1,19 @@
+{
+  "name": "e2e-tests-ts-type-import",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "workspace:^",
+    "@tsconfig/svelte": "^5.0.6",
+    "@types/node": "^22.19.1",
+    "svelte": "^5.45.4",
+    "svelte-preprocess": "^6.0.3",
+    "vite": "catalog:"
+  },
+  "type": "module"
+}

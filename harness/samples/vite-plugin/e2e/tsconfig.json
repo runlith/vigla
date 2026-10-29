@@ -1,0 +1,24 @@
+{
+	"include": ["."],
+	"exclude": ["**/dist/**", "**/build/**", "**/node_modules/**"],
+	"compilerOptions": {
+		// TODO: we should enable strict type checking at some point
+		// "strict": true,
+		"target": "ESNext",
+		"module": "ESNext",
+		"outDir": "dist",
+		"checkJs": true,
+		"allowJs": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"moduleResolution": "Bundler",
+		"skipLibCheck": true,
+		"noUnusedLocals": true,
+		"jsx": "preserve",
+		"types": ["vite/client", "vitest/globals", "node"],
+		"paths": {
+			"~utils": ["./testUtils.ts"]
+		}
+	}
+}
