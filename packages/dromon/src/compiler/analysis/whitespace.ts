@@ -38,7 +38,12 @@ function dropPreNewline(nodes: Node[], parent: string | null): Node[] {
 	return nodes;
 }
 
-export function clean(fragment: Fragment, parent: string | null, preserve: Preserve): Node[] {
+export function clean(
+	fragment: Fragment,
+	parent: string | null,
+	preserve: Preserve,
+	foreign = false
+): Node[] {
 	const nodes = fragment.nodes.filter((node) => node.kind !== 'comment' || preserve.comments);
 	if (preserve.whitespace) return dropPreNewline(nodes, parent);
 
@@ -69,7 +74,9 @@ export function clean(fragment: Fragment, parent: string | null, preserve: Prese
 			data = data.replace(leading, joined ? '' : ' ');
 		}
 		if (next?.kind !== 'expression') data = data.replace(trailing, ' ');
-		if (data === '' || (data === ' ' && parent !== null && removable.has(parent))) continue;
+		if (data === '' || (data === ' ' && (foreign || (parent !== null && removable.has(parent))))) {
+			continue;
+		}
 		result.push(text(node, data));
 	}
 	return result;

@@ -1,166 +1,187 @@
 import type * as ES from 'estree';
-import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
-import { isVoid } from '../../shared/html.ts';
-import { unsupported, type ComponentAnalysis } from '../analysis/index.ts';
+import { escapeContent } from '../../shared/escape.ts';
+import { dynamic, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
 	Branch,
-	Element,
 	Expression,
 	Fragment,
 	KeyedList,
+	Namespace,
 	Node,
 	Text,
 	UnkeyedList
 } from '../ir/nodes.ts';
+import { elementPart } from './element.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
 export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
+	readonly events: Set<string>;
 }
 
-interface Dom {
+export interface Emit {
+	readonly init: ES.Statement[];
+	readonly update: ES.Statement[];
+	readonly thunks: ES.Expression[];
+	readonly params: ES.Identifier[];
+}
+
+export interface Part {
 	readonly html: string;
 	readonly hint: string;
+	readonly text: boolean;
 	readonly referenced: boolean;
-	readonly children: readonly Dom[];
-	readonly setup: ((node: ES.Identifier) => ES.Statement[]) | null;
+	readonly children: readonly Part[];
+	readonly setup: ((node: ES.Identifier, emit: Emit) => void) | null;
 }
 
-function needed(dom: Dom): boolean {
-	return dom.referenced || dom.children.some(needed);
+export const SINGLE = 1;
+export const SVG = 2;
+export const MATHML = 4;
+
+function needed(part: Part): boolean {
+	return part.referenced || part.children.some(needed);
 }
 
-function cleaned(context: TemplateContext, fragment: Fragment): readonly Node[] {
+export function cleaned(context: TemplateContext, fragment: Fragment): readonly Node[] {
 	const nodes = context.component.fragments.get(fragment);
 	if (nodes === undefined) throw new Error('fragment was not analyzed');
 	return nodes;
 }
 
-function textValue(context: TemplateContext, run: readonly (Text | Expression)[]): ES.Expression {
+function hasCall(expression: ES.Node): boolean {
+	let found = false;
+	b.walk(expression, (node) => {
+		if (found) return false;
+		if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') return false;
+		if (node.type === 'CallExpression' || node.type === 'NewExpression') {
+			found = true;
+			return false;
+		}
+	});
+	return found;
+}
+
+export function memo(
+	context: TemplateContext,
+	emit: Emit,
+	source: ES.Expression,
+	value: ES.Expression
+): ES.Expression {
+	if (!hasCall(source)) return value;
+	const param = b.id(context.names.unique('$value'));
+	emit.thunks.push(b.arrow([], value));
+	emit.params.push(param);
+	return param;
+}
+
+export function isDynamic(context: TemplateContext, expression: ES.Node): boolean {
+	return dynamic(context.component, expression);
+}
+
+function textValue(
+	context: TemplateContext,
+	emit: Emit,
+	run: readonly (Text | Expression)[]
+): ES.Expression {
 	const [only] = run;
-	if (run.length === 1 && only?.kind === 'expression') return rewrite(context, only.expression);
+	if (run.length === 1 && only?.kind === 'expression') {
+		return memo(context, emit, only.expression, rewrite(context, only.expression));
+	}
 	const quasis: string[] = [''];
 	const expressions: ES.Expression[] = [];
 	for (const part of run) {
 		if (part.kind === 'text') {
 			quasis[quasis.length - 1] += part.data;
 		} else {
-			expressions.push(b.logical('??', rewrite(context, part.expression), b.literal('')));
+			const value = memo(context, emit, part.expression, rewrite(context, part.expression));
+			expressions.push(b.logical('??', value, b.literal('')));
 			quasis.push('');
 		}
 	}
 	return b.template(quasis, expressions);
 }
 
-function textDom(context: TemplateContext, run: readonly (Text | Expression)[]): Dom {
+function textPart(context: TemplateContext, run: readonly (Text | Expression)[]): Part {
 	if (run.every((part) => part.kind === 'text')) {
 		const data = run.map((part) => (part as Text).data).join('');
 		return {
 			html: escapeContent(data),
 			hint: 'text',
+			text: false,
 			referenced: false,
 			children: [],
 			setup: null
 		};
 	}
+	const reactive = run.some(
+		(part) => part.kind === 'expression' && isDynamic(context, part.expression)
+	);
+	const empty = run.every((part) => part.kind === 'expression' || part.data === '');
 	return {
 		html: ' ',
 		hint: 'text',
+		text: empty,
 		referenced: true,
 		children: [],
-		setup: (node) => [
-			b.statement(
-				runtime(
-					context,
-					'template',
-					b.arrow([], runtime(context, 'text', node, textValue(context, run)))
-				)
-			)
-		]
-	};
-}
-
-function handler(context: TemplateContext, expression: ES.Expression): ES.Expression {
-	const value = rewrite(context, expression);
-	if (value.type === 'ArrowFunctionExpression' || value.type === 'FunctionExpression') return value;
-	const args = b.id(context.names.unique('args'));
-	const callee: ES.MemberExpression = { ...b.member(value, 'apply'), optional: true };
-	return {
-		type: 'FunctionExpression',
-		id: null,
-		params: [{ type: 'RestElement', argument: args }],
-		body: {
-			type: 'BlockStatement',
-			body: [
-				{
-					type: 'ReturnStatement',
-					argument: {
-						type: 'ChainExpression',
-						expression: b.call(callee, { type: 'ThisExpression' }, args)
-					}
-				}
-			]
-		},
-		async: false,
-		generator: false
-	};
-}
-
-function elementDom(context: TemplateContext, node: Element): Dom {
-	let html = `<${node.name}`;
-	const listeners: ((element: ES.Identifier) => ES.Statement)[] = [];
-	for (const attribute of node.attributes) {
-		if (attribute.kind !== 'attribute')
-			throw unsupported(attribute, `The ${attribute.kind} directive`);
-		const { value } = attribute;
-		if (value.kind === 'boolean') {
-			html += ` ${attribute.name}`;
-		} else if (value.kind === 'text') {
-			const text = value.parts.map((part) => (part as Text).data).join('');
-			html += ` ${attribute.name}="${escapeAttribute(text)}"`;
-		} else {
-			const type = attribute.name.slice(2);
-			const listener = value.expression;
-			listeners.push((element) =>
-				b.statement(runtime(context, 'on', element, b.literal(type), handler(context, listener)))
-			);
+		setup: (node, emit) => {
+			if (reactive) {
+				emit.update.push(
+					b.statement(runtime(context, 'text', node, textValue(context, emit, run)))
+				);
+			} else {
+				const value = textValue(context, { init: [], update: [], thunks: [], params: [] }, run);
+				emit.init.push(b.statement(runtime(context, 'text', node, value)));
+			}
 		}
-	}
-	html += '>';
-	const children = sequence(context, cleaned(context, node.body));
-	for (const child of children) html += child.html;
-	if (!isVoid(node.name)) html += `</${node.name}>`;
-	return {
-		html,
-		hint: node.name,
-		referenced: listeners.length > 0,
-		children,
-		setup: listeners.length > 0 ? (element) => listeners.map((listener) => listener(element)) : null
 	};
 }
 
-function arm(context: TemplateContext, fragment: Fragment): ES.ArrowFunctionExpression {
+function arm(
+	context: TemplateContext,
+	fragment: Fragment,
+	textFirst: boolean,
+	params: readonly ES.Pattern[] = []
+): ES.ArrowFunctionExpression {
 	const anchor = b.id(context.names.unique('$$anchor'));
-	return b.arrow([anchor], render(context, cleaned(context, fragment), anchor));
+	const namespace = context.component.fragmentNamespaces.get(fragment) ?? 'html';
+	return b.arrow(
+		[anchor, ...params],
+		render(context, cleaned(context, fragment), anchor, namespace, textFirst)
+	);
 }
 
 function branchCode(context: TemplateContext, node: Branch, anchor: ES.Identifier): ES.Statement[] {
 	const statements: ES.Statement[] = [];
 	const arms = node.arms.map((entry) => {
 		const name = context.names.unique('arm');
-		statements.push(b.constant(name, arm(context, entry.body)));
-		return { test: rewrite(context, entry.test), name };
+		statements.push(b.constant(name, arm(context, entry.body, false)));
+		return b.id(name);
 	});
-	let select: ES.Expression = b.literal(null);
+	let fallback: ES.Expression = b.literal(null);
 	if (node.fallback !== null) {
 		const name = context.names.unique('fallback');
-		statements.push(b.constant(name, arm(context, node.fallback)));
-		select = b.id(name);
+		statements.push(b.constant(name, arm(context, node.fallback, false)));
+		fallback = b.id(name);
 	}
-	for (const entry of [...arms].reverse())
-		select = b.conditional(entry.test, b.id(entry.name), select);
-	statements.push(b.statement(runtime(context, 'branch', anchor, b.arrow([], select))));
+	let select: ES.Expression = b.literal(-1);
+	for (let index = node.arms.length - 1; index >= 0; index--) {
+		const entry = node.arms[index] as (typeof node.arms)[number];
+		select = b.conditional(rewrite(context, entry.test), b.literal(index), select);
+	}
+	statements.push(
+		b.statement(
+			runtime(
+				context,
+				'branch',
+				anchor,
+				b.arrow([], select),
+				{ type: 'ArrayExpression', elements: arms },
+				fallback
+			)
+		)
+	);
 	return statements;
 }
 
@@ -169,31 +190,38 @@ function listCode(
 	node: KeyedList | UnkeyedList,
 	anchor: ES.Identifier
 ): ES.Statement[] {
-	const binding = context.component.items.get(node);
-	if (binding === undefined) throw new Error('each block was not analyzed');
-	const item = b.id(binding.name);
+	const facts = context.component.lists.get(node);
+	if (facts === undefined) throw new Error('each block was not analyzed');
+	const item = b.id(facts.item.name);
+	const index = b.id(facts.index?.name ?? context.names.unique('$$index'));
 	const collection = b.arrow([], rewrite(context, node.collection));
+	const plain = new Set([...context.plain, facts.item]);
+	if (facts.index !== null) plain.add(facts.index);
 	const key =
 		node.kind === 'keyed-list'
-			? b.arrow(
-					[item],
-					rewrite({ ...context, plain: new Set([...context.plain, binding]) }, node.key)
-				)
+			? b.arrow([item, index], rewrite({ ...context, plain }, node.key))
 			: b.literal(null);
-	const row = b.id(context.names.unique('$$anchor'));
-	const body = b.arrow([row, item], render(context, cleaned(context, node.body), row));
-	return [b.statement(runtime(context, 'list', anchor, collection, key, body))];
+	const statements: ES.Statement[] = [];
+	const body = arm(context, node.body, true, [item, index]);
+	const args: ES.Expression[] = [anchor, collection, key, body];
+	if (node.fallback !== null) args.push(arm(context, node.fallback, true));
+	statements.push(b.statement(runtime(context, 'list', ...args)));
+	return statements;
 }
 
-function anchorDom(setup: (node: ES.Identifier) => ES.Statement[], hint: string): Dom {
-	return { html: '<!>', hint, referenced: true, children: [], setup };
+function anchorPart(setup: (node: ES.Identifier, emit: Emit) => void): Part {
+	return { html: '<!>', hint: 'node', text: false, referenced: true, children: [], setup };
 }
 
-function sequence(context: TemplateContext, nodes: readonly Node[]): Dom[] {
-	const doms: Dom[] = [];
+export function parts(
+	context: TemplateContext,
+	nodes: readonly Node[],
+	namespace: Namespace
+): Part[] {
+	const result: Part[] = [];
 	let run: (Text | Expression)[] = [];
 	const flush = (): void => {
-		if (run.length > 0) doms.push(textDom(context, run));
+		if (run.length > 0) result.push(textPart(context, run));
 		run = [];
 	};
 	for (const node of nodes) {
@@ -204,81 +232,143 @@ function sequence(context: TemplateContext, nodes: readonly Node[]): Dom[] {
 		flush();
 		switch (node.kind) {
 			case 'element':
-				doms.push(elementDom(context, node));
+				result.push(elementPart(context, node, namespace));
 				break;
 			case 'comment':
-				doms.push({
+				result.push({
 					html: `<!--${node.data}-->`,
 					hint: 'comment',
+					text: false,
 					referenced: false,
 					children: [],
 					setup: null
 				});
 				break;
 			case 'branch':
-				doms.push(anchorDom((anchor) => branchCode(context, node, anchor), 'node'));
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(...branchCode(context, node, anchor)))
+				);
 				break;
 			case 'keyed-list':
 			case 'unkeyed-list':
-				doms.push(anchorDom((anchor) => listCode(context, node, anchor), 'node'));
+				result.push(
+					anchorPart((anchor, emit) => emit.init.push(...listCode(context, node, anchor)))
+				);
 				break;
 			default:
 				throw unsupported(node, `The ${node.kind} node`);
 		}
 	}
 	flush();
-	return doms;
+	return result;
 }
 
-function navigate(
+export function navigate(
 	context: TemplateContext,
-	doms: readonly Dom[],
-	parent: ES.Identifier,
-	statements: ES.Statement[]
-): void {
-	let previous: ES.Identifier | null = null;
-	let gap = 0;
-	for (const dom of doms) {
-		if (!needed(dom)) {
-			gap++;
+	list: readonly Part[],
+	initial: (text: boolean) => ES.Expression,
+	emit: Emit
+): boolean {
+	let previous = initial;
+	let skipped = 0;
+	let moved = false;
+	for (const part of list) {
+		if (!needed(part)) {
+			skipped++;
 			continue;
 		}
-		const name = b.id(context.names.unique(dom.hint));
-		let init: ES.Expression;
-		if (previous === null) {
-			const first = runtime(context, 'child', parent);
-			init = gap === 0 ? first : runtime(context, 'sibling', first, b.literal(gap));
+		const from = previous;
+		const expression =
+			skipped === 0
+				? from(part.text)
+				: runtime(
+						context,
+						'sibling',
+						from(false),
+						...(part.text || skipped !== 1 ? [b.literal(skipped)] : []),
+						...(part.text ? [b.literal(true)] : [])
+					);
+		let id: ES.Identifier;
+		if (expression.type === 'Identifier') {
+			id = expression;
 		} else {
-			init =
-				gap === 0
-					? runtime(context, 'sibling', previous)
-					: runtime(context, 'sibling', previous, b.literal(gap + 1));
+			id = b.id(context.names.unique(part.hint.replace(/[^\w$]/g, '_')));
+			emit.init.push(b.constant(id.name, expression));
 		}
-		statements.push(b.constant(name.name, init));
-		previous = name;
-		gap = 0;
-		navigate(context, dom.children, name, statements);
-		if (dom.setup !== null) statements.push(...dom.setup(name));
+		moved = true;
+		previous = () => id;
+		skipped = 1;
+		if (part.children.some(needed)) {
+			const node = id;
+			const descended = navigate(
+				context,
+				part.children,
+				(text) => runtime(context, 'child', node, ...(text ? [b.literal(true)] : [])),
+				emit
+			);
+			if (descended) emit.init.push(b.statement(runtime(context, 'reset', node)));
+		}
+		part.setup?.(id, emit);
 	}
+	if (skipped > 1) {
+		emit.init.push(
+			b.statement(runtime(context, 'next', ...(skipped - 1 !== 1 ? [b.literal(skipped - 1)] : [])))
+		);
+	}
+	return moved;
+}
+
+export function flush(context: TemplateContext, emit: Emit): ES.Statement[] {
+	if (emit.update.length === 0) return emit.init;
+	const fn = b.arrow(emit.params, emit.update);
+	const args: ES.Expression[] = [fn];
+	if (emit.thunks.length > 0) args.push({ type: 'ArrayExpression', elements: emit.thunks });
+	return [...emit.init, b.statement(runtime(context, 'content', ...args))];
+}
+
+function flags(namespace: Namespace, single: boolean): number {
+	let result = single ? SINGLE : 0;
+	if (namespace === 'svg') result |= SVG;
+	if (namespace === 'mathml') result |= MATHML;
+	return result;
+}
+
+function isElement(part: Part | undefined): boolean {
+	return part !== undefined && part.html.startsWith('<') && !part.html.startsWith('<!');
 }
 
 export function render(
 	context: TemplateContext,
 	nodes: readonly Node[],
-	anchor: ES.Identifier
+	anchor: ES.Identifier,
+	namespace: Namespace,
+	textFirst: boolean
 ): ES.Statement[] {
-	const doms = sequence(context, nodes);
-	if (doms.length === 0) return [];
+	const list = parts(context, nodes, namespace);
+	if (list.length === 0) return [];
+	const emit: Emit = { init: [], update: [], thunks: [], params: [] };
+	const html = list.map((part) => part.html).join('');
+	const startsWithText = textFirst && list[0]?.hint === 'text';
+	if (startsWithText) emit.init.push(b.statement(runtime(context, 'next')));
+	const [head] = list;
+	const single = list.length === 1 && isElement(head);
 	const template = context.names.unique('root');
-	context.hoisted.push(
-		b.constant(
-			template,
-			runtime(context, 'fragment', b.literal(doms.map((dom) => dom.html).join('')))
-		)
-	);
-	const fragment = b.id(context.names.unique('fragment'));
-	const statements: ES.Statement[] = [b.constant(fragment.name, b.call(b.id(template)))];
-	navigate(context, doms, fragment, statements);
-	statements.push(b.statement(runtime(context, 'append', anchor, fragment)));
-	return statements;
+	const flagged = flags(namespace, single);
+	const args: ES.Expression[] = [b.literal(html)];
+	if (flagged !== 0) args.push(b.literal(flagged));
+	context.hoisted.push(b.constant(template, runtime(context, 'fragment', ...args)));
+	const hint = single && head !== undefined ? head.hint.replace(/[^\w$]/g, '_') : 'fragment';
+	const root = b.id(context.names.unique(hint));
+	emit.init.push(b.constant(root.name, b.call(b.id(template))));
+	if (single) {
+		navigate(context, list, () => root, emit);
+	} else {
+		navigate(
+			context,
+			list,
+			(text) => runtime(context, 'first', root, ...(text ? [b.literal(true)] : [])),
+			emit
+		);
+	}
+	return [...flush(context, emit), b.statement(runtime(context, 'append', anchor, root))];
 }

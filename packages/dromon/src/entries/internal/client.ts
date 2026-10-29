@@ -1,6 +1,49 @@
+export { clsx } from '../../shared/attributes.ts';
+export { failure, setReporter } from '../../shared/diagnostics.ts';
+export type { Reporter } from '../../shared/diagnostics.ts';
+export {
+	attr,
+	attributes,
+	checked,
+	className,
+	CLASS,
+	customProp,
+	defaultChecked,
+	defaultValue,
+	removeInputDefaults,
+	removeTextareaChild,
+	selected,
+	style,
+	STYLE,
+	value,
+	xlink
+} from '../../runtime/dom/attributes.ts';
 export { branch, list } from '../../runtime/dom/blocks.ts';
-export { append, child, fragment, on, sibling, text } from '../../runtime/dom/template.ts';
-export { template } from '../../runtime/reactivity/effects.ts';
-export { proxy } from '../../runtime/reactivity/proxy.ts';
-export { derived, set, state } from '../../runtime/reactivity/sources.ts';
+export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
+export type { Phase } from '../../runtime/dom/context.ts';
+export { delegate, delegated, listen } from '../../runtime/dom/events.ts';
+export { prop, propsId, rest, updateProp, updatePropPre } from '../../runtime/dom/props.ts';
+export {
+	append,
+	child,
+	content,
+	first,
+	fragment,
+	next,
+	reset,
+	sibling,
+	text
+} from '../../runtime/dom/template.ts';
+export { asyncDerived, pending, work } from '../../runtime/reactivity/async.ts';
+export { resumed, suspend } from '../../runtime/reactivity/batch.ts';
+export {
+	effect,
+	effectRoot,
+	pre,
+	teardown,
+	template,
+	tracking
+} from '../../runtime/reactivity/effects.ts';
+export { proxy, snapshot } from '../../runtime/reactivity/proxy.ts';
+export { derived, set, state, update, updatePre } from '../../runtime/reactivity/sources.ts';
 export { get } from '../../runtime/reactivity/tracking.ts';

@@ -1,5 +1,6 @@
 import { branch, destroy } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
+import { cursor, hydrating } from './hydration.ts';
 import type { Render } from './template.ts';
 
 export interface Built {
@@ -9,7 +10,26 @@ export interface Built {
 	fragment: DocumentFragment | null;
 }
 
+function adopt(render: Render, create: (fn: () => void) => Effect): Built {
+	const start = cursor;
+	const before = start.previousSibling as ChildNode;
+	const effect = create(() => render(start));
+	const end = cursor;
+	if (before.nextSibling === end) {
+		const marker = document.createTextNode('');
+		end.before(marker);
+		return { effect, first: marker, last: marker, fragment: null };
+	}
+	return {
+		effect,
+		first: before.nextSibling as ChildNode,
+		last: end.previousSibling as ChildNode,
+		fragment: null
+	};
+}
+
 export function build(render: Render, create: (fn: () => void) => Effect = branch): Built {
+	if (hydrating) return adopt(render, create);
 	const fragment = document.createDocumentFragment();
 	const first = document.createTextNode('');
 	const anchor = document.createTextNode('');

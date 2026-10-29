@@ -1,0 +1,53 @@
+import { failure } from '../shared/diagnostics.ts';
+
+export {
+	getAllContexts,
+	getContext,
+	hasContext,
+	onDestroy,
+	setContext
+} from '../runtime/server/context.ts';
+export type {
+	Component,
+	Exports,
+	HydrateOptions,
+	MountOptions,
+	Props
+} from '../runtime/dom/mount.ts';
+
+function unavailable(name: string): never {
+	throw failure(
+		'lifecycle_function_unavailable',
+		`\`${name}(...)\` is not available on the server`
+	);
+}
+
+export function onMount(): void {}
+
+export function flushSync<T = void>(fn?: () => T): T {
+	return fn?.() as T;
+}
+
+export function untrack<T>(fn: () => T): T {
+	return fn();
+}
+
+export function mount(): never {
+	return unavailable('mount');
+}
+
+export function hydrate(): never {
+	return unavailable('hydrate');
+}
+
+export function unmount(): never {
+	return unavailable('unmount');
+}
+
+export function fork(): never {
+	return unavailable('fork');
+}
+
+export async function tick(): Promise<void> {}
+
+export async function settled(): Promise<void> {}

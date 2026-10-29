@@ -6,7 +6,7 @@ import {
 	type ModuleAnalysis
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import { rewrite, type Context } from './script.ts';
+import { rewrite, runtime, type Context } from './script.ts';
 import { render, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
@@ -19,38 +19,57 @@ export interface ClientOptions extends ModuleOptions {
 
 export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.Program {
 	const names = new b.Names(analysis.names);
-	const runtime = b.id(names.unique('$'));
+	const id = b.id(names.unique('$'));
 	const anchor = b.id(names.unique('$$anchor'));
 	const props = b.id(names.unique('$$props'));
 	const context: TemplateContext = {
 		analysis,
 		component: analysis,
 		names,
-		runtime,
+		runtime: id,
 		plain: new Set(),
-		hoisted: []
+		hoisted: [],
+		props,
+		events: new Set()
 	};
 	const imports: ES.ImportDeclaration[] = [];
-	const body: ES.Statement[] = [];
+	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
 	for (const statement of analysis.unit.instance?.body ?? []) {
 		if (statement.type === 'ImportDeclaration') imports.push(statement);
 		else if (statement.type.startsWith('Export'))
 			throw unsupported(spanOf(statement), 'An export from a component');
 		else body.push(rewrite(context, statement as ES.Statement));
 	}
-	body.push(...render(context, analysis.root, anchor));
+	body.push(...render(context, analysis.root, anchor, analysis.namespace, true));
+	body.push(b.statement(runtime(context, 'pop')));
+	const trailer: ES.Statement[] = [];
+	if (context.events.size > 0) {
+		trailer.push(
+			b.statement(
+				runtime(context, 'delegate', ...[...context.events].map((type) => b.literal(type)))
+			)
+		);
+	}
 	return b.program([
-		b.namespaceImport(runtime.name, options.runtime),
+		b.namespaceImport(id.name, options.runtime),
 		...imports,
 		...context.hoisted,
-		b.exportDefaultFunction(options.name, [anchor, props], body)
+		b.exportDefaultFunction(options.name, [anchor, props], body),
+		...trailer
 	]);
 }
 
 export function clientModule(analysis: ModuleAnalysis, options: ModuleOptions): ES.Program {
 	const names = new b.Names(analysis.names);
-	const runtime = b.id(names.unique('$'));
-	const context: Context = { analysis, names, runtime, plain: new Set(), hoisted: [] };
+	const id = b.id(names.unique('$'));
+	const context: Context = {
+		analysis,
+		names,
+		runtime: id,
+		plain: new Set(),
+		hoisted: [],
+		props: null
+	};
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));
-	return b.program([b.namespaceImport(runtime.name, options.runtime), ...context.hoisted, ...body]);
+	return b.program([b.namespaceImport(id.name, options.runtime), ...context.hoisted, ...body]);
 }

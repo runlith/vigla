@@ -3,6 +3,7 @@ import { print } from 'esrap';
 import ts from 'esrap/languages/ts';
 import { analyzeComponent, analyzeModule } from '../compiler/analysis/index.ts';
 import { client, clientModule } from '../compiler/client/index.ts';
+import type { Namespace } from '../compiler/ir/nodes.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../compiler/ir/port.ts';
 import { server, serverModule } from '../compiler/server/index.ts';
 
@@ -32,12 +33,14 @@ export interface Runtime {
 export interface ModuleOptions {
 	readonly generate: Generate;
 	readonly runtime?: Runtime;
+	readonly dev?: boolean;
 }
 
 export interface CompileOptions extends ModuleOptions {
 	readonly name: string;
 	readonly preserveWhitespace?: boolean;
 	readonly preserveComments?: boolean;
+	readonly namespace?: Namespace;
 }
 
 export interface Code {
@@ -61,10 +64,14 @@ function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit): Code {
 }
 
 export function compile(unit: ComponentUnit, options: CompileOptions): Output {
-	const analysis = analyzeComponent(unit, {
-		whitespace: options.preserveWhitespace ?? false,
-		comments: options.preserveComments ?? false
-	});
+	const analysis = analyzeComponent(
+		unit,
+		{
+			whitespace: options.preserveWhitespace ?? false,
+			comments: options.preserveComments ?? false
+		},
+		options.namespace ?? 'html'
+	);
 	const runtime = options.runtime ?? runtimes;
 	const program =
 		options.generate === 'server'

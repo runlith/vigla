@@ -3,7 +3,11 @@
 	"version": "5.57.3",
 	"type": "module",
 	"exports": {
-		".": "./src/entries/index.ts",
+		".": {
+			"worker": "./src/entries/index-server.ts",
+			"browser": "./src/entries/index.ts",
+			"default": "./src/entries/index-server.ts"
+		},
 		"./package.json": "./package.json",
 		"./compiler": "./src/compiler/index.ts",
 		"./internal/client": "./src/entries/internal/client.ts",

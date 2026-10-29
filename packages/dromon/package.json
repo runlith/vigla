@@ -3,9 +3,14 @@
 	"version": "0.0.0",
 	"type": "module",
 	"exports": {
-		".": "./src/entries/index.ts",
+		".": {
+			"browser": "./src/entries/index.ts",
+			"default": "./src/entries/index-server.ts"
+		},
 		"./server": "./src/entries/server.ts",
 		"./compiler": "./src/entries/compiler.ts",
+		"./internal/index-client": "./src/entries/index.ts",
+		"./internal/index-server": "./src/entries/index-server.ts",
 		"./internal/client": "./src/entries/internal/client.ts",
 		"./internal/server": "./src/entries/internal/server.ts"
 	},

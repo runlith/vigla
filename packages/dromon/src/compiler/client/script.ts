@@ -15,7 +15,14 @@ export interface Context {
 	readonly runtime: ES.Identifier;
 	readonly plain: ReadonlySet<Binding>;
 	readonly hoisted: ES.Statement[];
+	readonly props: ES.Identifier | null;
 }
+
+const declaring = new Set<Rune>(['$state', '$state.raw', '$derived', '$derived.by', '$props.id']);
+
+export const PROP_BINDABLE = 1;
+export const PROP_LAZY = 2;
+export const PROP_UPDATED = 4;
 
 export function runtime(
 	context: Context,
@@ -26,15 +33,108 @@ export function runtime(
 }
 
 function primitive(node: ES.Expression): boolean {
-	return node.type === 'Literal' && !('regex' in node);
+	return (
+		(node.type === 'Literal' && !('regex' in node)) ||
+		(node.type === 'Identifier' && node.name === 'undefined') ||
+		(node.type === 'TemplateLiteral' && node.expressions.length === 0)
+	);
 }
 
-function argument(node: ES.CallExpression): ES.Expression | null {
+function single(node: ES.CallExpression): ES.Expression | null {
 	const [first, ...rest] = node.arguments;
 	if (rest.length > 0 || first?.type === 'SpreadElement') {
 		throw unsupported(spanOf(node), 'A rune with more than one argument');
 	}
 	return first ?? null;
+}
+
+export function accessor(binding: Binding): boolean {
+	const prop = binding.prop;
+	if (binding.kind !== 'prop' || prop === null) return false;
+	return binding.reassigned || prop.bindable || prop.fallback !== null;
+}
+
+function key(name: string): ES.Expression | string {
+	return /^[A-Za-z_$][\w$]*$/.test(name) ? name : b.literal(name);
+}
+
+function propsMember(context: Context, name: string): ES.MemberExpression {
+	const props = context.props ?? b.id('$$props');
+	const property = key(name);
+	return typeof property === 'string'
+		? b.member(props, property)
+		: { type: 'MemberExpression', object: props, property, computed: true, optional: false };
+}
+
+function read(context: Context, node: ES.Identifier, binding: Binding): ES.Expression | undefined {
+	if (context.plain.has(binding)) return undefined;
+	if (binding.kind === 'prop') {
+		if (accessor(binding)) return b.call(node);
+		return propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
+	}
+	if (binding.kind === 'index') return runtime(context, 'get', node);
+	if (!isSignal(binding)) return undefined;
+	return runtime(context, 'get', node);
+}
+
+function stateful(binding: Binding): boolean {
+	return (binding.kind === 'state' || binding.kind === 'raw-state') && binding.reassigned;
+}
+
+function wrap(context: Context, binding: Binding, value: ES.Expression): ES.Expression {
+	return binding.kind === 'state' && !primitive(value) ? runtime(context, 'proxy', value) : value;
+}
+
+function writeTo(
+	context: Context,
+	target: ES.Identifier,
+	binding: Binding,
+	value: ES.Expression
+): ES.Expression {
+	if (binding.kind === 'prop') return b.call(target, value);
+	return runtime(context, 'set', target, wrap(context, binding, value));
+}
+
+function current(context: Context, target: ES.Identifier, binding: Binding): ES.Expression {
+	return binding.kind === 'prop' ? b.call(target) : runtime(context, 'get', target);
+}
+
+function assign(
+	context: Context,
+	node: ES.AssignmentExpression,
+	binding: Binding,
+	next: <T extends ES.Node>(node: T) => T
+): ES.Expression {
+	if (binding.kind === 'derived' || binding.kind === 'item' || binding.kind === 'index') {
+		throw unsupported(spanOf(node), `Assigning to a ${binding.kind} binding`);
+	}
+	const target = node.left as ES.Identifier;
+	const right = next(node.right);
+	if (node.operator === '=') return writeTo(context, target, binding, right);
+	if (node.operator === '&&=' || node.operator === '||=' || node.operator === '??=') {
+		const operator = node.operator.slice(0, -1) as ES.LogicalOperator;
+		return b.logical(
+			operator,
+			current(context, target, binding),
+			writeTo(context, target, binding, right)
+		);
+	}
+	const operator = node.operator.slice(0, -1) as ES.BinaryOperator;
+	return writeTo(
+		context,
+		target,
+		binding,
+		b.binary(operator, current(context, target, binding), right)
+	);
+}
+
+function update(context: Context, node: ES.UpdateExpression, binding: Binding): ES.Expression {
+	const target = node.argument as ES.Identifier;
+	const delta = b.literal(node.operator === '++' ? 1 : -1);
+	if (binding.kind === 'prop') {
+		return runtime(context, node.prefix ? 'updatePropPre' : 'updateProp', target, delta);
+	}
+	return runtime(context, node.prefix ? 'updatePre' : 'update', target, delta);
 }
 
 function declare(
@@ -44,7 +144,7 @@ function declare(
 	init: ES.CallExpression,
 	next: <T extends ES.Node>(node: T) => T
 ): ES.Expression {
-	const given = argument(init);
+	const given = single(init);
 	const value = given === null ? b.id('undefined') : next(given);
 	const source = binding !== undefined && isSignal(binding);
 	switch (rune) {
@@ -58,37 +158,87 @@ function declare(
 			return runtime(context, 'derived', b.arrow([], value));
 		case '$derived.by':
 			return runtime(context, 'derived', value);
+		case '$props.id':
+			return runtime(context, 'propsId');
 		default:
 			throw unsupported(spanOf(init), `The ${rune} rune`);
 	}
 }
 
-function assign(
+function propDeclarators(
 	context: Context,
-	node: ES.AssignmentExpression,
-	binding: Binding,
+	declarator: ES.VariableDeclarator,
 	next: <T extends ES.Node>(node: T) => T
-): ES.Expression {
-	if (binding.kind !== 'state' && binding.kind !== 'raw-state') {
-		throw unsupported(spanOf(node), `Assigning to a ${binding.kind} binding`);
+): ES.VariableDeclarator[] {
+	const { declarations } = context.analysis;
+	const props = context.props ?? b.id('$$props');
+	const pattern = declarator.id;
+	if (pattern.type === 'Identifier') {
+		return [{ type: 'VariableDeclarator', id: pattern, init: props }];
 	}
-	const target = node.left as ES.Identifier;
-	const right = next(node.right);
-	let value: ES.Expression;
-	if (node.operator === '=') {
-		value = right;
-	} else if (node.operator === '&&=' || node.operator === '||=' || node.operator === '??=') {
-		throw unsupported(spanOf(node), 'A logical assignment to state');
-	} else {
-		const operator = node.operator.slice(0, -1) as ES.BinaryOperator;
-		value = b.binary(operator, runtime(context, 'get', target), right);
+	const result: ES.VariableDeclarator[] = [];
+	const seen: ES.Expression[] = [];
+	for (const property of (pattern as ES.ObjectPattern).properties) {
+		if (property.type === 'RestElement') {
+			const name = property.argument as ES.Identifier;
+			result.push({
+				type: 'VariableDeclarator',
+				id: name,
+				init: runtime(context, 'rest', props, { type: 'ArrayExpression', elements: seen })
+			});
+			continue;
+		}
+		const value =
+			property.value.type === 'AssignmentPattern' ? property.value.left : property.value;
+		const binding = declarations.get(value as ES.Identifier);
+		const prop = binding?.prop;
+		if (binding === undefined || prop == null) continue;
+		seen.push(b.literal(prop.key));
+		if (!accessor(binding)) continue;
+		let flags = 0;
+		if (prop.bindable) flags |= PROP_BINDABLE;
+		if (binding.reassigned || prop.bindable) flags |= PROP_UPDATED;
+		const args: ES.Expression[] = [props, b.literal(prop.key), b.literal(flags)];
+		if (prop.fallback !== null) {
+			const fallback = next(prop.fallback);
+			if (primitive(fallback)) {
+				args.push(fallback);
+			} else {
+				args[2] = b.literal(flags | PROP_LAZY);
+				args.push(b.arrow([], fallback));
+			}
+		}
+		result.push({
+			type: 'VariableDeclarator',
+			id: value as ES.Identifier,
+			init: runtime(context, 'prop', ...args)
+		});
 	}
-	return runtime(
-		context,
-		'set',
-		target,
-		binding.kind === 'state' ? runtime(context, 'proxy', value) : value
-	);
+	return result;
+}
+
+function effectCall(
+	context: Context,
+	rune: Rune,
+	call: ES.CallExpression
+): ES.Expression | undefined {
+	switch (rune) {
+		case '$effect':
+			return {
+				...call,
+				callee: b.member(context.runtime, context.props === null ? 'effect' : 'userEffect')
+			};
+		case '$effect.pre':
+			return { ...call, callee: b.member(context.runtime, 'pre') };
+		case '$effect.root':
+			return { ...call, callee: b.member(context.runtime, 'effectRoot') };
+		case '$effect.tracking':
+			return { ...call, callee: b.member(context.runtime, 'tracking') };
+		case '$state.snapshot':
+			return { ...call, callee: b.member(context.runtime, 'snapshot') };
+		default:
+			return undefined;
+	}
 }
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
@@ -97,29 +247,65 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 		switch (current.type) {
 			case 'Identifier': {
 				const binding = references.get(current);
-				if (binding === undefined || context.plain.has(binding) || !isSignal(binding))
-					return undefined;
-				return runtime(context, 'get', current);
+				if (binding === undefined) return undefined;
+				return read(context, current, binding);
 			}
 			case 'Property': {
 				if (current.computed || current.kind !== 'init') return undefined;
 				const value = next(current.value);
+				const key = current.shorthand ? { ...current.key } : current.key;
 				if (value === current.value) return current;
-				return { ...current, shorthand: false, value };
+				return { ...current, key, shorthand: false, value };
 			}
 			case 'AssignmentExpression': {
 				if (current.left.type !== 'Identifier') return undefined;
 				const binding = references.get(current.left);
-				if (binding === undefined || !isSignal(binding)) return undefined;
+				if (binding === undefined || context.plain.has(binding)) return undefined;
+				if (binding.kind === 'prop' && accessor(binding))
+					return assign(context, current, binding, next);
+				if (!stateful(binding) && binding.kind !== 'derived') return undefined;
 				return assign(context, current, binding, next);
 			}
-			case 'VariableDeclarator': {
-				const init = current.init;
-				if (init?.type !== 'CallExpression') return undefined;
-				const rune = runes.get(init.callee);
+			case 'UpdateExpression': {
+				if (current.argument.type !== 'Identifier') return undefined;
+				const binding = references.get(current.argument);
+				if (binding === undefined || context.plain.has(binding)) return undefined;
+				if (binding.kind === 'prop' && accessor(binding)) return update(context, current, binding);
+				if (!stateful(binding)) return undefined;
+				return update(context, current, binding);
+			}
+			case 'CallExpression': {
+				const rune = runes.get(current.callee);
 				if (rune === undefined) return undefined;
-				const binding = current.id.type === 'Identifier' ? declarations.get(current.id) : undefined;
-				return { ...current, init: declare(context, rune, binding, init, next) };
+				const replaced = effectCall(context, rune, current);
+				if (replaced === undefined) return undefined;
+				return { ...replaced, arguments: current.arguments.map((argument) => next(argument)) };
+			}
+			case 'VariableDeclaration': {
+				let changed = false;
+				const declarators: ES.VariableDeclarator[] = [];
+				for (const declarator of current.declarations) {
+					const init = declarator.init;
+					const rune = init?.type === 'CallExpression' ? runes.get(init.callee) : undefined;
+					if (rune === '$props') {
+						changed = true;
+						declarators.push(...propDeclarators(context, declarator, next));
+						continue;
+					}
+					if (rune === undefined || init?.type !== 'CallExpression' || !declaring.has(rune)) {
+						const rewritten = next(declarator);
+						if (rewritten !== declarator) changed = true;
+						declarators.push(rewritten);
+						continue;
+					}
+					changed = true;
+					const binding =
+						declarator.id.type === 'Identifier' ? declarations.get(declarator.id) : undefined;
+					declarators.push({ ...declarator, init: declare(context, rune, binding, init, next) });
+				}
+				if (!changed) return current;
+				if (declarators.length === 0) return { type: 'EmptyStatement' } as ES.EmptyStatement;
+				return { ...current, declarations: declarators };
 			}
 			default:
 				return undefined;

@@ -1,11 +1,26 @@
 import type * as ES from 'estree';
+import { isMathml, isSvg } from '../../shared/html.ts';
 import { walk } from '../ir/estree.ts';
-import type { Attribute, Fragment, KeyedList, Node, UnkeyedList } from '../ir/nodes.ts';
-import { CompileError, type ComponentUnit, type ModuleUnit, type Runes } from '../ir/port.ts';
+import type {
+	Attribute,
+	Element,
+	Fragment,
+	KeyedList,
+	Namespace,
+	Node,
+	UnkeyedList
+} from '../ir/nodes.ts';
+import {
+	CompileError,
+	type ComponentUnit,
+	type ModuleUnit,
+	type Rune,
+	type Runes
+} from '../ir/port.ts';
 import { Scopes, spanOf, unsupported, type Binding, type Scope } from './scope.ts';
 import { clean, preserving, type Preserve } from './whitespace.ts';
 
-export type { Binding, BindingKind } from './scope.ts';
+export type { Binding, BindingKind, Prop } from './scope.ts';
 export type { Preserve } from './whitespace.ts';
 export { patternNames, spanOf, unsupported } from './scope.ts';
 
@@ -14,13 +29,22 @@ export interface ScriptAnalysis {
 	readonly declarations: ReadonlyMap<ES.Identifier, Binding>;
 	readonly runes: Runes;
 	readonly names: ReadonlySet<string>;
+	readonly functions: ReadonlySet<Binding>;
+}
+
+export interface ListFacts {
+	readonly item: Binding;
+	readonly index: Binding | null;
 }
 
 export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly unit: ComponentUnit;
-	readonly items: ReadonlyMap<KeyedList | UnkeyedList, Binding>;
+	readonly lists: ReadonlyMap<KeyedList | UnkeyedList, ListFacts>;
 	readonly fragments: ReadonlyMap<Fragment, readonly Node[]>;
+	readonly namespaces: ReadonlyMap<Element, Namespace>;
+	readonly fragmentNamespaces: ReadonlyMap<Fragment, Namespace>;
 	readonly root: readonly Node[];
+	readonly namespace: Namespace;
 }
 
 export interface ModuleAnalysis extends ScriptAnalysis {
@@ -38,6 +62,33 @@ export function isSignal(binding: Binding): boolean {
 		default:
 			return false;
 	}
+}
+
+export function dynamic(analysis: ScriptAnalysis, expression: ES.Node): boolean {
+	let found = false;
+	walk(expression, (node) => {
+		if (found) return false;
+		switch (node.type) {
+			case 'CallExpression':
+			case 'NewExpression':
+			case 'TaggedTemplateExpression':
+			case 'AwaitExpression':
+			case 'ImportExpression':
+				found = true;
+				return false;
+			case 'Identifier': {
+				const binding = analysis.references.get(node);
+				if (binding === undefined) return;
+				if (binding.constant && !binding.reassigned) return;
+				if (analysis.functions.has(binding)) return;
+				found = true;
+				return false;
+			}
+			default:
+				return;
+		}
+	});
+	return found;
 }
 
 function collectNames(node: ES.Node, names: Set<string>): void {
@@ -61,21 +112,52 @@ function synchronous(node: ES.Node, where: string): void {
 	});
 }
 
-const supportedRunes = new Set(['$state', '$state.raw', '$derived', '$derived.by']);
+const declaring = new Set<Rune>([
+	'$state',
+	'$state.raw',
+	'$derived',
+	'$derived.by',
+	'$props',
+	'$props.id'
+]);
 
-function checkRunes(runes: Runes, program: ES.Program | null): void {
+const supported = new Set<Rune>([
+	...declaring,
+	'$bindable',
+	'$effect',
+	'$effect.pre',
+	'$effect.root',
+	'$effect.tracking',
+	'$state.snapshot'
+]);
+
+function checkRunes(runes: Runes, program: ES.Program | null, component: boolean): void {
 	const placed = new Set<ES.Node>();
+	const statements = new Set<ES.Node>();
 	if (program !== null) {
-		walk(program, (node) => {
+		walk(program, (node, parent) => {
 			if (node.type === 'VariableDeclarator' && node.init?.type === 'CallExpression') {
 				placed.add(node.init.callee);
+			}
+			if (
+				node.type === 'CallExpression' &&
+				parent?.type === 'ExpressionStatement' &&
+				parent.expression === node
+			) {
+				statements.add(node.callee);
 			}
 		});
 	}
 	for (const [callee, rune] of runes) {
-		if (!supportedRunes.has(rune)) throw unsupported(spanOf(callee), `The ${rune} rune`);
-		if (!placed.has(callee))
+		if (!supported.has(rune)) throw unsupported(spanOf(callee), `The ${rune} rune`);
+		if ((rune === '$props' || rune === '$props.id') && !component) {
+			throw unsupported(spanOf(callee), `The ${rune} rune outside a component`);
+		}
+		if (declaring.has(rune) && !placed.has(callee))
 			throw unsupported(spanOf(callee), 'A rune outside a variable declaration');
+		if ((rune === '$effect' || rune === '$effect.pre') && !statements.has(callee)) {
+			throw unsupported(spanOf(callee), `The ${rune} rune outside an expression statement`);
+		}
 	}
 }
 
@@ -121,7 +203,7 @@ function checkExports(program: ES.Program, scopes: Scopes): void {
 }
 
 export function analyzeModule(unit: ModuleUnit): ModuleAnalysis {
-	checkRunes(unit.runes, unit.program);
+	checkRunes(unit.runes, unit.program, false);
 	const scopes = new Scopes(unit.runes);
 	const scope = scopes.root(null);
 	scopes.owned.set(unit.program, scope);
@@ -135,18 +217,41 @@ export function analyzeModule(unit: ModuleUnit): ModuleAnalysis {
 		references: scopes.references,
 		declarations: scopes.declarations,
 		runes: unit.runes,
-		names
+		names,
+		functions: scopes.functions
 	};
 }
 
-const foreign = new Set(['svg', 'math']);
+function childNamespace(element: Element, namespace: Namespace): Namespace {
+	if (element.name === 'foreignObject') return 'html';
+	return namespace;
+}
+
+function elementNamespace(name: string, parent: Namespace): Namespace {
+	if (name === 'svg') return 'svg';
+	if (name === 'math') return 'mathml';
+	return parent;
+}
+
+function inferred(nodes: readonly Node[], fallback: Namespace): Namespace {
+	let found: Namespace | null = null;
+	for (const node of nodes) {
+		if (node.kind !== 'element') continue;
+		const guessed = isSvg(node.name) ? 'svg' : isMathml(node.name) ? 'mathml' : 'html';
+		if (guessed === 'html') return 'html';
+		found = found === null || found === guessed ? guessed : 'html';
+	}
+	return found ?? fallback;
+}
 
 class Template {
 	readonly scopes: Scopes;
 	readonly preserve: Preserve;
 	readonly names: Set<string>;
-	readonly items = new Map<KeyedList | UnkeyedList, Binding>();
+	readonly lists = new Map<KeyedList | UnkeyedList, ListFacts>();
 	readonly fragments = new Map<Fragment, readonly Node[]>();
+	readonly namespaces = new Map<Element, Namespace>();
+	readonly fragmentNamespaces = new Map<Fragment, Namespace>();
 
 	constructor(scopes: Scopes, preserve: Preserve, names: Set<string>) {
 		this.scopes = scopes;
@@ -163,37 +268,64 @@ class Template {
 
 	fragment(
 		fragment: Fragment,
-		parent: string | null,
+		parent: Element | null,
 		scope: Scope,
-		inherited: boolean
+		inherited: boolean,
+		namespace: Namespace,
+		infer = parent === null
 	): readonly Node[] {
-		const kept = inherited || (parent !== null && preserving.has(parent));
-		const nodes = clean(fragment, parent, {
-			whitespace: this.preserve.whitespace || kept,
-			comments: this.preserve.comments
-		});
+		const name = parent?.name ?? null;
+		const kept = inherited || (name !== null && preserving.has(name));
+		const own = infer ? inferred(fragment.nodes, namespace) : namespace;
+		const foreign = own === 'svg' && name !== 'text' && !this.inText;
+		const nodes = clean(
+			fragment,
+			name,
+			{ whitespace: this.preserve.whitespace || kept, comments: this.preserve.comments },
+			foreign
+		);
 		this.fragments.set(fragment, nodes);
-		for (const node of nodes) this.node(node, scope, kept);
+		this.fragmentNamespaces.set(fragment, own);
+		for (const node of nodes) this.node(node, scope, kept, own);
 		return nodes;
 	}
 
+	inText = false;
+
 	attribute(attribute: Attribute, scope: Scope): void {
-		if (attribute.kind !== 'attribute')
-			throw unsupported(attribute, `The ${attribute.kind} directive`);
-		const { value } = attribute;
-		if (value.kind === 'boolean') return;
-		if (value.kind === 'text') {
-			if (value.parts.some((part) => part.kind === 'expression')) {
-				throw unsupported(attribute, 'An attribute value with expressions');
+		switch (attribute.kind) {
+			case 'attribute': {
+				const { value } = attribute;
+				if (value.kind === 'expression') this.expression(value.expression, scope);
+				else if (value.kind === 'text') {
+					for (const part of value.parts) {
+						if (part.kind === 'expression') this.expression(part.expression, scope);
+					}
+				}
+				return;
 			}
-			return;
+			case 'spread':
+				this.expression(attribute.expression, scope);
+				return;
+			case 'class':
+				this.expression(attribute.expression, scope);
+				return;
+			case 'style': {
+				const { value } = attribute;
+				if (value.kind === 'expression') this.expression(value.expression, scope);
+				else if (value.kind === 'text') {
+					for (const part of value.parts) {
+						if (part.kind === 'expression') this.expression(part.expression, scope);
+					}
+				}
+				return;
+			}
+			default:
+				throw unsupported(attribute, `The ${attribute.kind} directive`);
 		}
-		if (!/^on[a-z]/.test(attribute.name)) throw unsupported(attribute, 'An expression attribute');
-		if (/capture$/.test(attribute.name)) throw unsupported(attribute, 'A capture event handler');
-		this.expression(value.expression, scope);
 	}
 
-	node(node: Node, scope: Scope, kept: boolean): void {
+	node(node: Node, scope: Scope, kept: boolean, namespace: Namespace): void {
 		switch (node.kind) {
 			case 'text':
 			case 'comment':
@@ -201,32 +333,41 @@ class Template {
 			case 'expression':
 				this.expression(node.expression, scope);
 				return;
-			case 'element':
-				if (foreign.has(node.name.toLowerCase()))
-					throw unsupported(node, 'An SVG or MathML element');
+			case 'element': {
+				const own = elementNamespace(node.name, namespace);
+				this.namespaces.set(node, own);
 				for (const attribute of node.attributes) this.attribute(attribute, scope);
-				this.fragment(node.body, node.name, scope, kept);
+				const text = this.inText;
+				if (node.name === 'text') this.inText = true;
+				this.fragment(node.body, node, scope, kept, childNamespace(node, own));
+				this.inText = text;
 				return;
+			}
 			case 'branch':
 				for (const arm of node.arms) {
 					this.expression(arm.test, scope);
-					this.fragment(arm.body, null, scope, kept);
+					this.fragment(arm.body, null, scope, kept, namespace);
 				}
-				if (node.fallback !== null) this.fragment(node.fallback, null, scope, kept);
+				if (node.fallback !== null) this.fragment(node.fallback, null, scope, kept, namespace);
 				return;
 			case 'keyed-list':
 			case 'unkeyed-list': {
-				if (node.index !== null) throw unsupported(node, 'An each block index');
-				if (node.fallback !== null) throw unsupported(node, 'An each block fallback');
 				if (node.item === null || node.item.type !== 'Identifier') {
 					throw unsupported(node, 'An each block without a single item name');
 				}
 				this.expression(node.collection, scope);
 				const inner = this.scopes.child(scope);
 				this.names.add(node.item.name);
-				this.items.set(node, this.scopes.bind(inner, node.item, 'item'));
+				const item = this.scopes.bind(inner, node.item, { kind: 'item' });
+				let index: Binding | null = null;
+				if (node.index !== null) {
+					this.names.add(node.index.name);
+					index = this.scopes.bind(inner, node.index, { kind: 'index' });
+				}
+				this.lists.set(node, { item, index });
 				if (node.kind === 'keyed-list') this.expression(node.key, inner);
-				this.fragment(node.body, null, inner, kept);
+				this.fragment(node.body, null, inner, kept, namespace);
+				if (node.fallback !== null) this.fragment(node.fallback, null, scope, kept, namespace);
 				return;
 			}
 			default:
@@ -235,10 +376,14 @@ class Template {
 	}
 }
 
-export function analyzeComponent(unit: ComponentUnit, preserve: Preserve): ComponentAnalysis {
+export function analyzeComponent(
+	unit: ComponentUnit,
+	preserve: Preserve,
+	defaultNamespace: Namespace = 'html'
+): ComponentAnalysis {
 	if (unit.module !== null) throw unsupported(spanOf(unit.module), 'A module script');
-	if (unit.options !== null) throw unsupported(unit.options, 'Component options');
-	checkRunes(unit.runes, unit.instance);
+	if (unit.options?.customElement) throw unsupported(unit.options, 'A custom element');
+	checkRunes(unit.runes, unit.instance, true);
 	const scopes = new Scopes(unit.runes);
 	const scope = scopes.root(null);
 	const names = new Set<string>();
@@ -248,8 +393,16 @@ export function analyzeComponent(unit: ComponentUnit, preserve: Preserve): Compo
 		scopes.declare(unit.instance, scope);
 		collectNames(unit.instance, names);
 	}
+	const namespace = unit.options?.namespace ?? defaultNamespace;
 	const template = new Template(scopes, preserve, names);
-	const root = template.fragment(unit.template, null, scope, false);
+	const root = template.fragment(
+		unit.template,
+		null,
+		scope,
+		unit.options?.preserveWhitespace ?? false,
+		namespace,
+		namespace === 'html'
+	);
 	if (unit.instance !== null) scopes.resolve(unit.instance, scope);
 	return {
 		unit,
@@ -257,8 +410,12 @@ export function analyzeComponent(unit: ComponentUnit, preserve: Preserve): Compo
 		declarations: scopes.declarations,
 		runes: unit.runes,
 		names,
-		items: template.items,
+		functions: scopes.functions,
+		lists: template.lists,
 		fragments: template.fragments,
-		root
+		namespaces: template.namespaces,
+		fragmentNamespaces: template.fragmentNamespaces,
+		root,
+		namespace
 	};
 }

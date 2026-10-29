@@ -1,4 +1,19 @@
+import { failure, warn } from '../../shared/diagnostics.ts';
+import { OPEN } from '../../shared/markers.ts';
 import { root } from '../reactivity/effects.ts';
+import { delegateRoot } from './events.ts';
+import {
+	claim,
+	COMMENT,
+	cursor,
+	hydrating,
+	isClose,
+	MISMATCH,
+	mismatch,
+	setHydrating
+} from './hydration.ts';
+import { withContext } from './context.ts';
+import { entry } from './props.ts';
 import { build, discard, type Built } from './range.ts';
 
 export type Props = Record<string, unknown>;
@@ -14,30 +29,94 @@ export interface MountOptions<P extends Props> {
 	readonly target: ParentNode;
 	readonly props?: P;
 	readonly anchor?: ChildNode | null;
+	readonly intro?: boolean;
+	readonly context?: Map<unknown, unknown>;
 }
 
-const mounted = new WeakMap<object, Built>();
+export interface HydrateOptions<P extends Props> extends MountOptions<P> {
+	readonly recover?: boolean;
+}
+
+interface Mounted {
+	readonly built: Built;
+	readonly release: () => void;
+}
+
+const mounted = new WeakMap<object, Mounted>();
+
+function start<P extends Props, E extends Exports>(
+	component: Component<P, E>,
+	options: MountOptions<P>
+): { instance: E; built: Built } {
+	let exports: E | void = undefined;
+	const props = options.props ?? ({} as P);
+	entry(props);
+	const built = build((anchor) => {
+		exports = withContext(options.context, () => component(anchor, props));
+	}, root);
+	return { instance: (exports ?? {}) as E, built };
+}
+
+function finish(instance: object, built: Built, target: ParentNode): void {
+	mounted.set(instance, { built, release: delegateRoot(target) });
+}
 
 export function mount<P extends Props, E extends Exports>(
 	component: Component<P, E>,
 	options: MountOptions<P>
 ): E {
-	let exports: E | void = undefined;
-	const built = build((anchor) => {
-		exports = component(anchor, options.props ?? ({} as P));
-	}, root);
-	const instance = (exports ?? {}) as E;
-	mounted.set(instance, built);
+	const { instance, built } = start(component, options);
 	options.target.insertBefore(built.fragment as DocumentFragment, options.anchor ?? null);
 	built.fragment = null;
+	finish(instance, built, options.target);
 	return instance;
+}
+
+function opening(target: ParentNode): ChildNode | null {
+	let node = target.firstChild;
+	while (node !== null && (node.nodeType !== COMMENT || (node as Comment).data !== OPEN)) {
+		node = node.nextSibling;
+	}
+	return node;
+}
+
+export function hydrate<P extends Props, E extends Exports>(
+	component: Component<P, E>,
+	options: HydrateOptions<P>
+): E {
+	const target = options.target;
+	const previous = hydrating ? cursor : null;
+	const was = setHydrating(true);
+	try {
+		const open = opening(target);
+		if (open === null) throw MISMATCH;
+		claim(open.nextSibling);
+		const { instance, built } = start(component, options);
+		if (!isClose(cursor)) mismatch();
+		finish(instance, built, target);
+		return instance;
+	} catch (error) {
+		if (error !== MISMATCH) throw error;
+		if (options.recover === false) {
+			throw failure('hydration_failed', 'Failed to hydrate the application');
+		}
+		setHydrating(false);
+		(target as Element).textContent = '';
+		return mount(component, options);
+	} finally {
+		setHydrating(was);
+		if (previous !== null) claim(previous);
+	}
 }
 
 export function unmount(instance: object): Promise<void> {
 	const found = mounted.get(instance);
-	if (found !== undefined) {
-		mounted.delete(instance);
-		discard(found);
+	if (found === undefined) {
+		warn('lifecycle_double_unmount', 'Tried to unmount a component that was not mounted');
+		return Promise.resolve();
 	}
+	mounted.delete(instance);
+	found.release();
+	discard(found.built);
 	return Promise.resolve();
 }
