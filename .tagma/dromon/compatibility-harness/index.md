@@ -17,6 +17,12 @@ fields:
         "for": [
           "e3f1d060"
         ]
+      },
+      {
+        "at": "src/clock.ts",
+        "for": [
+          "e3f1d060"
+        ]
       }
     ],
     "id": "harness",
