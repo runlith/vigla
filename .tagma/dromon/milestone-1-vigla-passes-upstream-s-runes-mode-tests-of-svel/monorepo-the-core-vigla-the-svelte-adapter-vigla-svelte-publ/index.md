@@ -15,7 +15,7 @@ fields:
 
 The compiler core and the runtime stay one package, as upstream's: compiled components import the runtime of the package and version that compiled them.
 
-**The core knows no Svelte.** No module of `vigla` imports a `svelte` specifier, declares a `svelte` module or depends on the `svelte` package. Data formats the contract keeps from upstream (`__svelte_meta`, `window.__svelte`) and the parser's npm scope (`@sveltejs/acorn-typescript`) are not Svelte as a module and stay. A front end fills the core's port, turning one source form into the template IR, the script ESTree and its syntax-bound diagnostics ([[9ca8ebb2]]); the core has no relation to any front end. Runes are named exports of `vigla` for its native format ([[8cd5da81]]).
+**The core knows no Svelte.** No module of `vigla` imports a `svelte` specifier, declares a `svelte` module or depends on the `svelte` package. Data formats upstream's tests and tools read under Svelte's name are named by the core in its own words and given upstream's names by the adapter ([[ec26636a]]); the parser's npm scope (`@sveltejs/acorn-typescript`) is a dependency, not a name the product shows, and stays. A front end fills the core's port, turning one source form into the template IR, the script ESTree and its syntax-bound diagnostics ([[9ca8ebb2]]); the core has no relation to any front end. Runes are named exports of `vigla` for its native format ([[8cd5da81]]).
 
 **The adapter carries what Svelte's world reads** — `svelte-check` 4.7.7, vite-plugin-svelte, SvelteKit and third-party libraries:
 - the `.svelte` front end, global runes in `.svelte` and `.svelte.js`/`.svelte.ts`, and `svelte/compiler` over the core;
