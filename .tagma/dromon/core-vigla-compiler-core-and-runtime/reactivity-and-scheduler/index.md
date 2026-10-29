@@ -32,6 +32,9 @@ fields:
       },
       {
         "at": "owners.ts"
+      },
+      {
+        "at": "tasks.ts"
       }
     ],
     "id": "reactivity",
