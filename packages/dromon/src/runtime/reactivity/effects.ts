@@ -122,6 +122,12 @@ export function root(fn: () => void): Effect {
 	return start(create(ROOT, fn, null));
 }
 
+export function detached(fn: (() => void | (() => void)) | null, parent: Effect | null): Effect {
+	const effect = create(ROOT, fn, parent);
+	if (fn === null) effect.status = CLEAN;
+	return start(effect);
+}
+
 export function effectRoot(fn: () => void | (() => void)): () => void {
 	const effect = create(ROOT, fn, null);
 	if (owner !== null) {

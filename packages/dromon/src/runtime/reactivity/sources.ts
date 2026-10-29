@@ -25,6 +25,22 @@ export function updatePre<T extends number | bigint>(source: Source<T>, delta = 
 	return set(source, step(get(source), delta));
 }
 
+export interface Cell<T> {
+	current: T;
+}
+
+export function cell<T>(value: T): Cell<T> {
+	const source = state(value);
+	return {
+		get current() {
+			return get(source);
+		},
+		set current(next) {
+			set(source, next);
+		}
+	};
+}
+
 export function derived<T>(fn: () => T): Derived<T> {
 	const created: Derived<T> = {
 		fn,
