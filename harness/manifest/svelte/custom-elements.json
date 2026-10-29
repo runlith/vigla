@@ -1,0 +1,97 @@
+{
+  "samples": {
+    "$$props": {
+      "status": "dropped",
+      "reason": "asserts $$props and $$restProps, compile errors in Dromon"
+    },
+    "$$slot": "contract",
+    "$$slot-dynamic-content": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "action": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "camel-case-attribute": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "ce-options-valid": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "closed-shadow-dom": "contract",
+    "custom-class": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "custom-method": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "deferred-nested-styles": "contract",
+    "effect-sequence": "contract",
+    "element-effect-context": "contract",
+    "escaped-css": "contract",
+    "events": {
+      "status": "converted",
+      "reason": "createEventDispatcher replaced by dispatching a CustomEvent on $host(), on:click by onclick"
+    },
+    "events-slotted": "contract",
+    "extend-with-ts": "contract",
+    "extended-builtin": "contract",
+    "host-rune": "contract",
+    "host-rune-access-injected-css": "contract",
+    "html": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "html-slots": "contract",
+    "late-ce-mount": "contract",
+    "nested": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), the bound count given its child fallback 0 since runes rejects binding undefined over a fallback, the child count made $bindable, on:click replaced by onclick"
+    },
+    "new-styled": "contract",
+    "no-shadow-dom": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "no-tag": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "no-tag-ce-options": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "oncreate": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), the props set in onMount made $bindable"
+    },
+    "ondestroy": "contract",
+    "propagate-prop-changes": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "props": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "props-rune-attributes": "contract",
+    "reflect-attributes": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), on:click by onclick, the bare `red;` statements removed since runes warns state_referenced_locally on them"
+    },
+    "reflect-attributes-add-remove": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), on:click by onclick"
+    },
+    "set-property-before-mounted": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "shadow-root-init-options": "contract"
+  }
+}

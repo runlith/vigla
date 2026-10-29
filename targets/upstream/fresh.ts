@@ -12,6 +12,7 @@ function internal<T>(path: string): Promise<T> {
 const batch = await internal<{ clear(): void }>('client/reactivity/batch.js');
 const hydration = await internal<{ readonly hydrating: boolean }>('client/dom/hydration.js');
 const context = await internal<{ readonly ssr_context: unknown }>('server/context.js');
+const dev = await internal<{ readonly seen: Set<string> | undefined }>('server/dev.js');
 const timing = await internal<{
 	raf: { tick(callback: FrameRequestCallback): void; now(): number; tasks: Set<unknown> };
 }>('client/timing.js');
@@ -30,6 +31,7 @@ export function before(): void {
 	delete global.__svelte?.h;
 	(global.__svelte ??= {}).uid = 1;
 	timing.raf.tasks.clear();
+	dev.seen?.clear();
 }
 
 export function after(): void {

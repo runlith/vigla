@@ -1,0 +1,10 @@
+{
+  "samples": {
+    "async-eager-derived": "contract",
+    "keyed-each-unique": "contract",
+    "keyed-each-unique-2": "contract",
+    "keyed-each-unique-3": "contract",
+    "production": "contract",
+    "production-internals": "contract"
+  }
+}

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { dirname, join, relative } from 'node:path';
 import { parseArgs } from 'node:util';
 import { load, root } from './manifest.ts';
+import { suiteNamed } from './suites.ts';
 
 const sources: Record<string, string> = {
 	svelte: join(root, '..', '.external', 'svelte', 'packages', 'svelte', 'tests')
@@ -58,13 +59,30 @@ if (suite === undefined || base === undefined) {
 	process.exit(2);
 }
 
-const from = join(base, suite, 'samples');
+const { kind, source } = suiteNamed(suite);
+const from = join(base, source);
 const to = join(root, 'samples', project, suite);
+const problems: string[] = [];
+
+if (kind === 'units') {
+	const wanted = expected(from);
+	const changes = differs(to, wanted);
+	if (changes.length > 0 && values.check) problems.push(`${suite}: ${changes.join(', ')}`);
+	else if (changes.length > 0) {
+		rmSync(to, { recursive: true, force: true });
+		for (const [file, text] of wanted) {
+			mkdirSync(dirname(join(to, file)), { recursive: true });
+			writeFileSync(join(to, file), text);
+		}
+	}
+	for (const problem of problems) console.error(problem);
+	process.exit(problems.length > 0 ? 1 : 0);
+}
+
 const manifest = load(project, suite);
 const upstream = readdirSync(from)
 	.filter((name) => !name.startsWith('.'))
 	.sort();
-const problems: string[] = [];
 
 for (const name of upstream) {
 	const entry = manifest.samples[name];

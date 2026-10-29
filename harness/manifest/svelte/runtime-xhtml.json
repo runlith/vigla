@@ -1,0 +1,17 @@
+{
+  "samples": {
+    "attribute-quotes": "contract",
+    "autoclosed-tags": "contract",
+    "bind-value-input-type-dynamic": "contract",
+    "boolean-attributes": "contract",
+    "comment-marker": "contract",
+    "form-default-value-spread": "contract",
+    "ignore-mismatched-href": "contract",
+    "is-xhtml": "contract",
+    "lowercase-tags": "contract",
+    "select-falsy-value": "contract",
+    "select-multiple-spread": "contract",
+    "spread-element-input-select-multiple": "contract",
+    "void-tags": "contract"
+  }
+}

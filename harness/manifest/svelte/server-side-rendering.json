@@ -1,0 +1,241 @@
+{
+  "samples": {
+    "async-children": "contract",
+    "async-context-throws-after-await": "contract",
+    "async-directive-with-spreading": "contract",
+    "async-each-fallback-hoisting": "contract",
+    "async-each-hoisting": "contract",
+    "async-head-multiple-title-order-preserved": "contract",
+    "async-html-tag": "contract",
+    "async-if-alternate-hoisting": "contract",
+    "async-if-const": "contract",
+    "async-if-hoisting": "contract",
+    "async-multiple-attrs": "contract",
+    "async-nullish-pending-snippet": "contract",
+    "async-option-implicit-complex-value": "contract",
+    "async-option-implicit-simple-value": "contract",
+    "async-select-value-component": "contract",
+    "async-select-value-implicit-value": "contract",
+    "async-select-value-implicit-value-complex": "contract",
+    "async-snippet": "contract",
+    "async-svelte-boundary": "contract",
+    "attribute-boolean": "contract",
+    "attribute-dynamic": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "attribute-escape-quotes-spread-2": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "attribute-escaped-quotes": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "attribute-escaped-quotes-spread": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "attribute-spread-hidden": "contract",
+    "attribute-spread-with-null": {
+      "status": "converted",
+      "reason": "export let and $$restProps replaced by $props() with a rest element"
+    },
+    "attribute-static": "contract",
+    "attribute-strip-svg-mathml-ce": "contract",
+    "attribute-template-literal-sanitization": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "bindings": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "bindings-empty-string": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "bindings-group": "contract",
+    "bindings-readonly": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "bindings-zero": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "boundary-duplicate-failed-snippets": "contract",
+    "boundary-error-failed-prop": "contract",
+    "boundary-error-html-comment-close-bang-escape": "contract",
+    "boundary-error-html-comment-escape": "contract",
+    "boundary-error-html-comment-open-escape": "contract",
+    "boundary-error-html-comment-overlap-escape": "contract",
+    "boundary-error-no-failed-snippet": "contract",
+    "boundary-error-no-onerror": "contract",
+    "boundary-error-with-onerror": "contract",
+    "boundary-pending-prop-async": "contract",
+    "comment": "contract",
+    "comment-preserve": "contract",
+    "component": "contract",
+    "component-binding": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), the bound child prop made $bindable"
+    },
+    "component-binding-renamed": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), the bound child prop made $bindable"
+    },
+    "component-data-dynamic": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "component-data-empty": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "component-refs": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "component-refs-and-attributes": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "component-with-different-extension": "contract",
+    "component-yield": {
+      "status": "dropped",
+      "reason": "asserts <slot> content (yield), a compile error outside custom elements in Dromon"
+    },
+    "computed": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "constructor-prefer-passed-context": "contract",
+    "contenteditable-bindings-escaped": "contract",
+    "context": "contract",
+    "context-not-set-throws": "contract",
+    "csp-config-error": "contract",
+    "csp-hash": "contract",
+    "csp-nonce": "contract",
+    "css": "contract",
+    "css-empty": "contract",
+    "css-injected-options": "contract",
+    "css-injected-options-minify": "contract",
+    "css-injected-options-nested": "contract",
+    "declaration-tags-transform": "contract",
+    "default-data": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "default-data-override": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "destructure-state": "contract",
+    "destructure-state-iterable": "contract",
+    "directives": {
+      "status": "dropped",
+      "reason": "asserts on: directive output, a compile error on elements in Dromon"
+    },
+    "dynamic-element-string": "contract",
+    "dynamic-element-variable": "contract",
+    "dynamic-element-xss-prevention": "contract",
+    "dynamic-text": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "dynamic-text-escaped": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "each-block": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "each-body-async": "contract",
+    "empty-boolean-attribute-object": "contract",
+    "empty-elements-closed": "contract",
+    "entities": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "falsy-dynamic-component": "contract",
+    "head-component-props-id": "contract",
+    "head-html-and-component": "contract",
+    "head-meta-hydrate-duplicate": "contract",
+    "head-multiple-title": "contract",
+    "head-no-duplicates-with-binding": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), the bound child prop made $bindable"
+    },
+    "head-raw-elements-content": "contract",
+    "head-svelte-components-raw-content": "contract",
+    "head-title": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "head-with-multiple-binding-components": "contract",
+    "helpers": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "hydratable-clobbering": "contract",
+    "hydratable-clobbering-but-ok": "contract",
+    "hydratable-clobbering-complicated": "contract",
+    "hydratable-unserializable": "contract",
+    "if-block-false": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "if-block-true": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "import-non-component": "contract",
+    "input-default-value": "contract",
+    "invalid-nested-svelte-element": "contract",
+    "legacy-imports": {
+      "status": "dropped",
+      "reason": "asserts svelte/legacy imports, an entry Dromon does not have"
+    },
+    "option-body-escaped": "contract",
+    "option-scoped-class": "contract",
+    "raw-mustaches": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "reactivity-window": "contract",
+    "sanitize-name": "contract",
+    "select-default-value": "contract",
+    "select-multiple-value": "contract",
+    "select-option-store-implicit-value": "contract",
+    "select-option-store-text-content": "contract",
+    "select-value": "contract",
+    "select-value-bind-store": "contract",
+    "select-value-component": "contract",
+    "select-value-implicit-value": "contract",
+    "select-value-implicit-value-complex": "contract",
+    "select-value-scoped-class": "contract",
+    "spread-attributes": "contract",
+    "spread-attributes-boolean": "contract",
+    "spread-attributes-event-handler-xss": "contract",
+    "spread-attributes-white-space": "contract",
+    "state-eager": "contract",
+    "static-div": "contract",
+    "static-text": "contract",
+    "store-init-props": "contract",
+    "text-area-bind": "contract",
+    "textarea-children": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "textarea-value": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "triple": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    }
+  }
+}

@@ -41,17 +41,65 @@ export interface ServerArgs {
 	variant: 'ssr' | 'async-ssr';
 }
 
-export interface Config {
+export interface Base {
 	skip?: boolean;
 	solo?: boolean;
 	timeout?: number;
+	compileOptions?: Partial<CompileOptions>;
+	load_compiled?: boolean;
+}
+
+export interface HydrationConfig extends Base {
+	props?: Record<string, unknown>;
+	server_props?: Record<string, unknown>;
+	id_prefix?: string;
+	expect_hydration_error?: boolean;
+	errors?: unknown[];
+	snapshot?: (target: HTMLElement) => Record<string, unknown>;
+	before_test?: () => void;
+	after_test?: () => void;
+	test?: (
+		assert: Assert,
+		target: HTMLElement,
+		snapshot: unknown,
+		component: Record<string, unknown>,
+		window: Window & typeof globalThis
+	) => void | Promise<void>;
+}
+
+export interface SsrConfig extends Base {
+	mode?: ('sync' | 'async')[];
+	props?: Record<string, unknown>;
+	id_prefix?: string;
+	withoutNormalizeHtml?: boolean;
+	error?: string;
+	csp?: { nonce: string } | { hash: true };
+	script_hashes?: string[];
+	transformError?: (error: unknown) => unknown;
+}
+
+export interface BrowserConfig extends Base {
+	mode?: ('server' | 'client' | 'hydrate')[];
+	skip_mode?: ('server' | 'client' | 'hydrate')[];
+	html?: string;
+	ssrHtml?: string;
+	id_prefix?: string;
+	props?: Record<string, unknown>;
+	intro?: boolean;
+	error?: string;
+	warnings?: unknown[];
+	before_test?: () => void;
+	after_test?: () => void;
+	test?: (args: Record<string, unknown>) => void | Promise<void>;
+}
+
+export interface Config extends Base {
 	mode?: Mode[];
 	skip_mode?: Mode[];
 	skip_no_async?: boolean;
 	skip_async?: boolean;
 	html?: string;
 	ssrHtml?: string;
-	compileOptions?: Partial<CompileOptions>;
 	props?: Record<string, unknown>;
 	server_props?: Record<string, unknown>;
 	id_prefix?: string;
@@ -62,7 +110,6 @@ export interface Config {
 	test?: (args: ClientArgs) => void | Promise<void>;
 	test_ssr?: (args: ServerArgs) => void | Promise<void>;
 	intro?: boolean;
-	load_compiled?: boolean;
 	error?: string;
 	runtime_error?: string;
 	warnings?: unknown[];

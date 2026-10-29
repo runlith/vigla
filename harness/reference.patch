@@ -1,0 +1,72 @@
+--- a/packages/svelte/tests/hydration/test.ts
++++ b/packages/svelte/tests/hydration/test.ts
+@@ -58,13 +58,18 @@
+ 
+ const { test, run } = suite<HydrationTest>(async (config, cwd) => {
+ 	if (!config.load_compiled) {
++		const reference = {
++			experimental: { async: true },
++			...config.compileOptions,
++			runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true
++		};
+ 		await compile_directory(cwd, 'client', {
+ 			accessors: true,
+ 			fragments,
+-			...config.compileOptions
++			...reference
+ 		});
+ 
+-		await compile_directory(cwd, 'server', config.compileOptions);
++		await compile_directory(cwd, 'server', reference);
+ 	}
+ 
+ 	config.before_test?.();
+--- a/packages/svelte/tests/server-side-rendering/test.ts
++++ b/packages/svelte/tests/server-side-rendering/test.ts
+@@ -59,7 +59,8 @@
+ 				async: true,
+ 				...config.compileOptions?.experimental
+ 			},
+-			...config.compileOptions
++			...config.compileOptions,
++			runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true
+ 		};
+ 
+ 		if (!config.load_compiled) {
+--- a/packages/svelte/tests/runtime-browser/test.ts
++++ b/packages/svelte/tests/runtime-browser/test.ts
+@@ -88,7 +88,9 @@
+ 						const compiled = compile(fs.readFileSync(args.path, 'utf-8').replace(/\r/g, ''), {
+ 							generate: 'client',
+ 							fragments,
++							experimental: { async: true },
+ 							...config.compileOptions,
++							runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true,
+ 							immutable: config.immutable,
+ 							customElement: test_dir.includes('custom-elements-samples'),
+ 							accessors: 'accessors' in config ? config.accessors : true
+@@ -149,7 +151,9 @@
+ 						build.onLoad({ filter: /\.svelte$/ }, (args) => {
+ 							const compiled = compile(fs.readFileSync(args.path, 'utf-8').replace(/\r/g, ''), {
+ 								generate: 'server',
++								experimental: { async: true },
+ 								...config.compileOptions,
++								runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true,
+ 								immutable: config.immutable,
+ 								customElement: test_dir.includes('custom-elements-samples'),
+ 								accessors: 'accessors' in config ? config.accessors : true
+--- a/packages/svelte/tests/runtime-browser/test-ssr.ts
++++ b/packages/svelte/tests/runtime-browser/test-ssr.ts
+@@ -17,7 +17,11 @@
+ 	test_dir: string
+ ) {
+ 	try {
+-		await compile_directory(test_dir, 'server', config.compileOptions);
++		await compile_directory(test_dir, 'server', {
++			experimental: { async: true },
++			...config.compileOptions,
++			runes: config.compileOptions && 'runes' in config.compileOptions ? config.compileOptions.runes : true
++		});
+ 
+ 		const Component = (await import(`${test_dir}/_output/server/main.svelte.js`)).default;
+ 		const { body } = render(Component, { props: config.props || {}, idPrefix: config.id_prefix });

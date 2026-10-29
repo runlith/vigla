@@ -1,21 +1,16 @@
-import { basename, dirname } from 'node:path';
 import type { Reporter, TestModule, TestState, Vitest } from 'vitest/node';
 import { load, ruling, statuses, type Manifest } from './manifest.ts';
-import type { Variant } from './runtime/config.ts';
 import { variants } from './runtime/variants.ts';
-
-const title = /^(.*) \((dom|hydrate|ssr|async-ssr)\)$/;
+import { entryOf, suiteOfFile, type Suite } from './suites.ts';
 
 const states: readonly TestState[] = ['passed', 'failed', 'skipped', 'pending'];
 
-function manifestOf(module: TestModule): { name: string; manifest: Manifest } | null {
-	const suite = basename(module.moduleId, '.test.ts');
-	const project = basename(dirname(module.moduleId));
-	try {
-		return { name: `${project}/${suite}`, manifest: load(project, suite) };
-	} catch {
-		return null;
-	}
+const columns = [...variants, 'test'];
+
+interface Tally {
+	suite: Suite;
+	manifest: Manifest;
+	counts: Map<string, number>;
 }
 
 export class Report implements Reporter {
@@ -26,27 +21,34 @@ export class Report implements Reporter {
 	}
 
 	onTestRunEnd(modules: ReadonlyArray<TestModule>): void {
+		const tallies = new Map<string, Tally>();
 		for (const module of modules) {
-			const found = manifestOf(module);
-			if (found === null) continue;
-			const counts = new Map<string, number>();
-			for (const test of module.children.allTests()) {
-				const match = title.exec(test.name);
-				if (match === null) continue;
-				const sample = match[1] ?? '';
-				const variant = match[2] as Variant;
-				const status = ruling(found.manifest, sample, variant)?.status ?? 'unruled';
-				const key = `${status} ${variant} ${test.result().state}`;
-				counts.set(key, (counts.get(key) ?? 0) + 1);
+			const suite = suiteOfFile(module.moduleId);
+			if (suite === undefined) continue;
+			let tally = tallies.get(suite.name);
+			if (tally === undefined) {
+				tally = { suite, manifest: load(suite.project, suite.name), counts: new Map() };
+				tallies.set(suite.name, tally);
 			}
-			this.#log(`\n${found.name}`);
+			for (const test of module.children.allTests()) {
+				if (test.name === 'manifest' && test.parent.type === 'module') continue;
+				const entry = suite.kind === 'units' ? { sample: test.fullName } : entryOf(test.name);
+				if (entry === null) continue;
+				const variant = 'variant' in entry ? entry.variant : undefined;
+				const status = ruling(tally.manifest, entry.sample, variant)?.status ?? 'unruled';
+				const key = `${status} ${variant ?? 'test'} ${test.result().state}`;
+				tally.counts.set(key, (tally.counts.get(key) ?? 0) + 1);
+			}
+		}
+		for (const { suite, counts } of tallies.values()) {
+			this.#log(`\n${suite.project}/${suite.name}`);
 			for (const status of [...statuses, 'unruled']) {
-				for (const variant of variants) {
+				for (const column of columns) {
 					const cells = states
-						.map((state) => [state, counts.get(`${status} ${variant} ${state}`) ?? 0] as const)
+						.map((state) => [state, counts.get(`${status} ${column} ${state}`) ?? 0] as const)
 						.filter(([, count]) => count > 0)
 						.map(([state, count]) => `${count} ${state}`);
-					if (cells.length > 0) this.#log(`  ${status} ${variant}: ${cells.join(', ')}`);
+					if (cells.length > 0) this.#log(`  ${status} ${column}: ${cells.join(', ')}`);
 				}
 			}
 		}

@@ -2,46 +2,84 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { load, ruling } from './manifest.ts';
 import type { Variant } from './runtime/config.ts';
+import { entryOf, suiteNamed, suiteOfFile, suites, type Suite } from './suites.ts';
 
 interface Results {
-	testResults: { assertionResults: { title: string; status: string }[] }[];
+	testResults: {
+		name: string;
+		assertionResults: { ancestorTitles: string[]; title: string; status: string }[];
+	}[];
 }
 
-const title = /^(.*) \((dom|hydrate|ssr|async-ssr)\)$/;
+type Entry = { sample: string; variant?: Variant };
 
-function passed(file: string, contract: (name: string) => boolean): Set<string> {
+function key(entry: Entry): string {
+	return entry.variant === undefined ? entry.sample : `${entry.sample} (${entry.variant})`;
+}
+
+function contractual(suite: Suite): (entry: Entry) => boolean {
+	const manifest = load(suite.project, suite.name);
+	return (entry) => ruling(manifest, entry.sample, entry.variant)?.status === 'contract';
+}
+
+function upstreamPassed(file: string, suite: Suite): Set<string> {
 	const results = JSON.parse(readFileSync(file, 'utf8')) as Results;
+	const contract = contractual(suite);
 	const found = new Set<string>();
 	for (const module of results.testResults) {
+		const path = module.name.replaceAll('\\', '/');
+		for (const source of suite.upstream) {
+			if (!path.endsWith(`/tests/${source.file}`)) continue;
+			for (const test of module.assertionResults) {
+				if (test.status !== 'passed') continue;
+				const [outer, ...inner] = test.ancestorTitles;
+				if (source.describe !== undefined && outer !== source.describe) continue;
+				const titles = source.describe === undefined ? test.ancestorTitles : inner;
+				const title = suite.kind === 'units' ? [...titles, test.title].join(' > ') : test.title;
+				const entry = source.entry(title);
+				if (entry !== null && contract(entry)) found.add(key(entry));
+			}
+		}
+	}
+	return found;
+}
+
+function harnessPassed(file: string, suite: Suite): Set<string> {
+	const results = JSON.parse(readFileSync(file, 'utf8')) as Results;
+	const contract = contractual(suite);
+	const found = new Set<string>();
+	for (const module of results.testResults) {
+		if (suiteOfFile(module.name)?.name !== suite.name) continue;
 		for (const test of module.assertionResults) {
-			if (test.status === 'passed' && contract(test.title)) found.add(test.title);
+			if (test.status !== 'passed') continue;
+			const entry: Entry | null =
+				suite.kind === 'units'
+					? { sample: [...test.ancestorTitles, test.title].join(' > ') }
+					: entryOf(test.title);
+			if (entry !== null && contract(entry)) found.add(key(entry));
 		}
 	}
 	return found;
 }
 
 const { positionals } = parseArgs({ allowPositionals: true });
-const [upstreamFile, harnessFile, project = 'svelte', suite = 'runtime-runes'] = positionals;
+const [upstreamFile, harnessFile, ...names] = positionals;
 if (upstreamFile === undefined || harnessFile === undefined) {
-	console.error('usage: compare.ts <upstream.json> <harness.json> [project] [suite]');
+	console.error('usage: compare.ts <upstream.json> <harness.json> [suite...]');
 	process.exit(2);
 }
 
-const manifest = load(project, suite);
-const contract = (name: string): boolean => {
-	const match = title.exec(name);
-	if (match === null) return false;
-	return ruling(manifest, match[1] ?? '', match[2] as Variant)?.status === 'contract';
-};
-
-const upstream = passed(upstreamFile, contract);
-const harness = passed(harnessFile, contract);
-const onlyUpstream = [...upstream].filter((name) => !harness.has(name));
-const onlyHarness = [...harness].filter((name) => !upstream.has(name));
-
-console.log(
-	`${project}/${suite}: ${upstream.size} contract entries pass upstream's runner, ${harness.size} the harness`
-);
-for (const name of onlyUpstream) console.log(`  only upstream: ${name}`);
-for (const name of onlyHarness) console.log(`  only harness: ${name}`);
-process.exit(onlyUpstream.length + onlyHarness.length > 0 ? 1 : 0);
+let differences = 0;
+for (const suite of names.length > 0 ? names.map(suiteNamed) : suites) {
+	const upstream = upstreamPassed(upstreamFile, suite);
+	const harness = harnessPassed(harnessFile, suite);
+	const onlyUpstream = [...upstream].filter((name) => !harness.has(name));
+	const onlyHarness = [...harness].filter((name) => !upstream.has(name));
+	console.log(
+		`${suite.project}/${suite.name}: ${upstream.size} contract entries pass upstream's runner, ${harness.size} the harness`
+	);
+	for (const name of onlyUpstream) console.log(`  only upstream: ${name}`);
+	for (const name of onlyHarness) console.log(`  only harness: ${name}`);
+	differences += onlyUpstream.length + onlyHarness.length;
+}
+process.exit(differences > 0 ? 1 : 0);

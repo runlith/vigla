@@ -172,5 +172,6 @@ export class Clock {
 export const clock = new Clock();
 
 export const raf = {
-	tick: (time: number): void => clock.tick(time)
+	tick: (time: number): void => clock.tick(time),
+	reset: (): void => clock.reset()
 };

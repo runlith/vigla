@@ -26,7 +26,7 @@ export interface Session {
 	reactive: (value: Props) => Props;
 }
 
-const asserts: Assert = Object.assign(Object.create(assert) as typeof assert, {
+export const asserts: Assert = Object.assign(Object.create(assert) as typeof assert, {
 	htmlEqual,
 	htmlEqualWithOptions
 });
@@ -45,6 +45,7 @@ function onRejection(error: unknown): void {
 
 export function listen(): void {
 	process.prependListener('unhandledRejection', onRejection);
+	if (typeof window === 'undefined') return;
 	const bridge = (
 		window as unknown as {
 			_virtualConsole?: { on(kind: string, listener: (...args: unknown[]) => void): void };

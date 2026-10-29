@@ -1,0 +1,103 @@
+{
+  "samples": {
+    "bind-active-element-remove-focused": "contract",
+    "bind-muted": "contract",
+    "bind-playbackrate": "contract",
+    "bind-volume": "contract",
+    "binding-files": {
+      "status": "converted",
+      "reason": "the bound let made $state; runes mode has no implicit reactivity"
+    },
+    "binding-width-height-initialize": {
+      "status": "converted",
+      "reason": "export let replaced by $bindable props, $: by $effect.pre, the bound props given initial props keys so their values are written back"
+    },
+    "binding-width-height-this-timing": {
+      "status": "converted",
+      "reason": "bound lets made $state, $: by $effect.pre"
+    },
+    "browser-events-ending-with-capture": "contract",
+    "component-css-custom-properties": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "component-css-custom-properties-dynamic": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), prop assignments flushed with flushSync"
+    },
+    "component-css-custom-properties-dynamic-svg": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), prop assignments flushed with flushSync"
+    },
+    "component-event-handler-contenteditable-false": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), prop assignments flushed with flushSync, on:input replaced by oninput"
+    },
+    "component-slot-binding-dimensions": {
+      "status": "dropped",
+      "reason": "asserts bindings on <slot> content, a compile error outside custom elements in Dromon"
+    },
+    "css-props-dynamic-component": "contract",
+    "dom-clobbering-cache-symbols-spread": "contract",
+    "dynamic-element-custom-element": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), prop assignments flushed with flushSync"
+    },
+    "dynamic-element-hydration-preserves-connection": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "fine-grained-hydration-clean-attr": "contract",
+    "head-script": "contract",
+    "head-scripts": "contract",
+    "html-tag-script": "contract",
+    "html-tag-script-2": "contract",
+    "hydrate-large-text-node": "contract",
+    "hydration-attribute-custom-elements": {
+      "status": "converted",
+      "reason": "component.$set replaced by an assignment to the props object"
+    },
+    "inline-style-directive-important": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), prop assignments flushed with flushSync"
+    },
+    "inline-style-directive-precedence": {
+      "status": "converted",
+      "reason": "export let replaced by $props(), prop assignments flushed with flushSync"
+    },
+    "inline-style-directive-update-with-spread": {
+      "status": "converted",
+      "reason": "export let and $$restProps replaced by $props() with a rest element, prop assignments flushed with flushSync"
+    },
+    "mount-in-iframe": "contract",
+    "selectedcontent-oninput-interfere": "contract",
+    "sole-script-tag": "contract",
+    "spread-input-number-incomplete-value": "contract",
+    "svelte-component-css-custom-properties": {
+      "status": "dropped",
+      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Dromon"
+    },
+    "svelte-component-css-custom-properties-dynamic": {
+      "status": "dropped",
+      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Dromon"
+    },
+    "svelte-component-css-custom-properties2": {
+      "status": "dropped",
+      "reason": "asserts CSS custom properties on <svelte:component>, a compile error in Dromon"
+    },
+    "svelte-self-css-custom-properties": {
+      "status": "dropped",
+      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Dromon"
+    },
+    "svelte-self-css-custom-properties-dynamic": {
+      "status": "dropped",
+      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Dromon"
+    },
+    "svelte-self-css-custom-properties2": {
+      "status": "dropped",
+      "reason": "asserts CSS custom properties on <svelte:self>, a compile error in Dromon"
+    },
+    "transition-nested-measure": "contract",
+    "transition-slide-hidden-parent": "contract"
+  }
+}

@@ -12,7 +12,9 @@
 		"copy": "node src/copy.ts"
 	},
 	"dependencies": {
+		"esbuild": "0.28.1",
 		"jsdom": "25.0.1",
+		"playwright": "1.62.1",
 		"vite": "7.3.5",
 		"vitest": "4.1.7"
 	}

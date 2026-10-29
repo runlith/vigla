@@ -37,12 +37,12 @@ export function load(project: string, suite: string): Manifest {
 	return JSON.parse(readFileSync(manifestPath(project, suite), 'utf8')) as Manifest;
 }
 
-export function ruling(manifest: Manifest, sample: string, variant: Variant): Ruling | undefined {
+export function ruling(manifest: Manifest, sample: string, variant?: Variant): Ruling | undefined {
 	const entry = manifest.samples[sample];
 	if (entry === undefined) return undefined;
 	if (entry === 'contract') return { status: 'contract' };
 	return (
-		entry.variants?.[variant] ?? {
+		(variant === undefined ? undefined : entry.variants?.[variant]) ?? {
 			status: entry.status,
 			...(entry.reason === undefined ? {} : { reason: entry.reason })
 		}

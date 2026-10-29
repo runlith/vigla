@@ -1,5 +1,8 @@
 {
 	"../../test": "@dromon/harness/helpers",
+	"../../assert": "@dromon/harness/helpers",
+	"../helpers.js": "@dromon/harness/helpers",
+	"../animation-helpers.js": "@dromon/harness/helpers",
 	"../../../helpers": "@dromon/harness/helpers",
 	"../../../helpers.js": "@dromon/harness/helpers",
 	"../../../animation-helpers": "@dromon/harness/helpers",

@@ -1,0 +1,8 @@
+<script>
+	let { foo, baz, qux, quux } = $props();
+</script>
+
+<p>foo: {foo}</p>
+<p>baz: {baz} ({typeof baz})</p>
+<p>qux: {qux}</p>
+<p>quux: {quux}</p>

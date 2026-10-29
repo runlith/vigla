@@ -1,0 +1,159 @@
+{
+  "samples": {
+    "basic": "contract",
+    "binding-input": {
+      "status": "converted",
+      "reason": "export let replaced by a $bindable prop"
+    },
+    "boundary-mismatch-recovery": "contract",
+    "boundary-nested-extra-node": "contract",
+    "boundary-pending-attribute": "contract",
+    "claim-comment": "contract",
+    "claim-static": "contract",
+    "claim-text": {
+      "status": "converted",
+      "reason": "<slot> replaced by children"
+    },
+    "cloudflare-mirage-borking": "contract",
+    "cloudflare-mirage-borking-2": "contract",
+    "component": "contract",
+    "component-in-element": "contract",
+    "css-props-hmr": "contract",
+    "custom-element-with-settable-only-property": "contract",
+    "dynamic-element-child-mismatch": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "dynamic-text": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "dynamic-text-changed": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "dynamic-text-nil": "contract",
+    "each-block": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "each-block-0-on-server-more-on-client": "contract",
+    "each-block-arg-clash": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "each-block-fallback-mismatch": "contract",
+    "each-block-less-nodes-on-client": "contract",
+    "each-block-more-nodes-on-client": "contract",
+    "each-else": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "each-preserve-whitespace": "contract",
+    "each-text-only": "contract",
+    "element-attribute-added": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "element-attribute-changed": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "element-attribute-primitives": {
+      "status": "converted",
+      "reason": "component.$set replaced by assignments to the props object"
+    },
+    "element-attribute-removed": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "element-attribute-unchanged": "contract",
+    "element-attribute-unchanged-2": "contract",
+    "element-dir-attribute-sibling": "contract",
+    "element-nested": "contract",
+    "element-nested-sibling": "contract",
+    "element-ref": {
+      "status": "converted",
+      "reason": "accessors option removed, export let replaced by a $bindable prop, h1 given an initial props key so the bound element is written back"
+    },
+    "event-handler": {
+      "status": "converted",
+      "reason": "export let replaced by a $bindable prop, on:click by onclick"
+    },
+    "expression-sibling": "contract",
+    "head-css-no-class": "contract",
+    "head-html-and-component": "contract",
+    "head-meta-hydrate-duplicate": "contract",
+    "head-missing": "contract",
+    "html-tag-hydration": "contract",
+    "if-block": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "if-block-anchor": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "if-block-empty": "contract",
+    "if-block-false": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "if-block-mismatch": "contract",
+    "if-block-mismatch-2": {
+      "status": "converted",
+      "reason": "<slot> replaced by children"
+    },
+    "if-block-update": {
+      "status": "converted",
+      "reason": "accessors option removed, export let replaced by $props(), prop assignments flushed with flushSync"
+    },
+    "ignore-mismatched-href": "contract",
+    "img-src-mismatch": "contract",
+    "input-checked-attribute-sibling": "contract",
+    "input-value-changed": "contract",
+    "no-reset-debug": "contract",
+    "no-reset-snippet": "contract",
+    "noscript": {
+      "status": "converted",
+      "reason": "top-level let made $state; runes mode has no implicit reactivity"
+    },
+    "optgroup-rich-content": "contract",
+    "option-rich-content-continues": "contract",
+    "option-rich-content-static": "contract",
+    "pre-first-node-newline": "contract",
+    "raw": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "raw-empty": "contract",
+    "raw-mismatch": "contract",
+    "raw-mismatch-static": "contract",
+    "raw-repair": {
+      "status": "converted",
+      "reason": "export let replaced by $props()"
+    },
+    "raw-svg": "contract",
+    "raw-with-empty-line-at-top": "contract",
+    "removes-undefined-attributes": "contract",
+    "repair-mismatched-a-href": "contract",
+    "repairs-apparent-static-content": "contract",
+    "rich-select": "contract",
+    "safari-borking": "contract",
+    "safari-borking-2": "contract",
+    "script": "contract",
+    "snippet-raw-hydrate": "contract",
+    "standalone-component": "contract",
+    "standalone-snippet": "contract",
+    "surrounding-whitespace": "contract",
+    "svelte-head-dynamic-style": "contract",
+    "text-empty": "contract",
+    "text-empty-2": "contract",
+    "text-fallback": {
+      "status": "dropped",
+      "reason": "asserts <slot> fallback content, a compile error outside custom elements in Dromon"
+    },
+    "top-level-text": "contract",
+    "whitespace-at-block-start": "contract"
+  }
+}
