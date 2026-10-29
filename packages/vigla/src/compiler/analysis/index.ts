@@ -27,7 +27,16 @@ import type { Preserve } from './whitespace.ts';
 export type { ClassFields, FieldRune, StateField } from './classes.ts';
 export type { Binding, BindingKind, Prop } from './scope.ts';
 export type { ListFacts } from './template.ts';
-export { declaring, hasAwait, hoisted, ownExpressions } from './template.ts';
+export {
+	asyncStep,
+	awaits,
+	declaring,
+	hasAwait,
+	hoisted,
+	ownExpressions,
+	pendingAwaits
+} from './template.ts';
+export type { AsyncStep, Settled } from './template.ts';
 export type { Preserve } from './whitespace.ts';
 export { patternNames, spanOf, unsupported } from './scope.ts';
 

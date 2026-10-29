@@ -179,7 +179,7 @@ export function declare(
 		case '$state.raw':
 			return source ? runtime(context, 'state', value) : value;
 		case '$derived': {
-			if (given !== null && hasAwait(given)) {
+			if (given !== null && hasAwait(given, context.awaited)) {
 				const thunk = { ...b.arrow([], value), async: true };
 				const pending = runtime(context, 'save', runtime(context, 'asyncDerived', thunk));
 				return b.call({ type: 'AwaitExpression', argument: pending });

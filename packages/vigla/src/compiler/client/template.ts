@@ -1,6 +1,12 @@
 import type * as ES from 'estree';
 import { escapeContent } from '../../shared/escape.ts';
-import { dynamic, hoisted, unsupported, type ComponentAnalysis } from '../analysis/index.ts';
+import {
+	asyncStep,
+	dynamic,
+	hoisted,
+	unsupported,
+	type ComponentAnalysis
+} from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Expression, Fragment, Namespace, Node, RawHtml, Text } from '../ir/nodes.ts';
 import type { Host, Scoping } from '../css/index.ts';
@@ -364,16 +370,20 @@ export function render(
 	namespace: Namespace,
 	textFirst: boolean
 ): ES.Statement[] {
-	const within = withElementChildren(context, nodes);
+	const step = asyncStep(nodes, context.awaited);
+	const within = step === null ? withElementChildren(context, nodes) : step.before;
 	const declarations = [
 		...snippetDeclarations(context, within),
 		...constantDeclarations(context, within, new Set(nodes))
 	];
-	const alone = standalone(context, nodes);
+	const alone = step === null ? standalone(context, nodes) : null;
 	if (alone?.kind === 'component')
 		return [...declarations, ...componentCall(context, alone, anchor)];
 	if (alone?.kind === 'render') return [...declarations, ...renderCall(context, alone, anchor)];
-	const list = parts(context, nodes, namespace);
+	const list =
+		step === null
+			? parts(context, nodes, namespace)
+			: [anchorPart(asyncSetup(context, step.rest, step.pending, namespace, render))];
 	if (list.length === 0) return declarations;
 	const emit: Emit = { init: [...declarations], update: [], thunks: [], params: [] };
 	const html = list.map((part) => part.html).join('');

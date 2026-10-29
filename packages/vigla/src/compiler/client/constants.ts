@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import { hasAwait, patternNames, spanOf, unsupported } from '../analysis/index.ts';
+import { hasAwait, patternNames, pendingAwaits, spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Constant, Declaration, Node } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
@@ -8,7 +8,7 @@ import type { TemplateContext } from './template.ts';
 function constantDeclaration(context: TemplateContext, node: Constant): ES.Statement[] {
 	const { id, init } = node.declarator;
 	if (init == null) throw unsupported(node, 'A {@const} without a value');
-	if (hasAwait(init)) throw unsupported(spanOf(init), 'An await in {@const}');
+	if (hasAwait(init, context.awaited)) throw unsupported(spanOf(init), 'An await in {@const}');
 	if (id.type === 'Identifier') {
 		const value = runtime(context, 'derived', b.arrow([], rewrite(context, init)));
 		return [b.constant(id.name, value)];
@@ -70,6 +70,8 @@ function renamedPattern(pattern: ES.Pattern, names: ReadonlyMap<string, string>)
 }
 
 function nestedDeclaration(context: TemplateContext, node: Declaration): ES.Statement {
+	if (pendingAwaits(node, context.awaited).length > 0)
+		throw unsupported(node, 'An await in a declaration tag inside an element');
 	const names = new Map<string, string>();
 	for (const declarator of node.declaration.declarations) {
 		for (const name of patternNames(declarator.id)) {

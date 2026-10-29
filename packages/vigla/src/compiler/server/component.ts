@@ -190,7 +190,9 @@ export function boundary(
 ): void {
 	buffer.flush(context, statements);
 	const nodes = context.component.fragments.get(node.body) ?? [];
-	statements.push(...snippetDeclarations(context, nodes));
+	const handed = (child: Node): boolean =>
+		child.kind === 'snippet' && (child.name.name === 'failed' || child.name.name === 'pending');
+	statements.push(...snippetDeclarations(context, nodes.filter(handed)));
 	const snippet = (name: string): ES.Expression | null => {
 		if (nodes.some((child) => child.kind === 'snippet' && child.name.name === name))
 			return b.id(name);
@@ -201,10 +203,7 @@ export function boundary(
 	};
 	const pending = snippet('pending');
 	const failed = snippet('failed');
-	const regular = nodes.filter(
-		(child) =>
-			child.kind !== 'snippet' || (child.name.name !== 'failed' && child.name.name !== 'pending')
-	);
+	const regular = nodes.filter((child) => !handed(child));
 	const out = failed === null ? context.out : b.id(context.names.unique('$$out'));
 	const inner: TemplateContext = { ...context, out };
 	const body: ES.Statement[] = [];
@@ -217,13 +216,7 @@ export function boundary(
 	} else {
 		const children = new Buffer();
 		children.text(open);
-		fragmentCode(
-			inner,
-			regular.filter((child) => child.kind !== 'snippet'),
-			body,
-			children,
-			true
-		);
+		fragmentCode(inner, regular, body, children, true);
 		children.text(close);
 		children.flush(inner, body);
 	}

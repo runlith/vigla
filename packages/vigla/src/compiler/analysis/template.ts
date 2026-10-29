@@ -38,10 +38,33 @@ export function collectNames(node: ES.Node, names: Set<string>): void {
 	});
 }
 
-export function hasAwait(node: ES.Node): boolean {
+export interface Settled {
+	has(node: ES.Node): boolean;
+}
+
+export function awaits(node: ES.Node): ES.AwaitExpression[] {
+	const found: ES.AwaitExpression[] = [];
+	walk(node, (child) => {
+		if (
+			child.type === 'FunctionDeclaration' ||
+			child.type === 'FunctionExpression' ||
+			child.type === 'ArrowFunctionExpression' ||
+			child.type === 'ClassBody'
+		) {
+			return false;
+		}
+		if (child.type === 'AwaitExpression') {
+			found.push(child);
+			return false;
+		}
+	});
+	return found;
+}
+
+export function hasAwait(node: ES.Node, settled?: Settled): boolean {
 	let found = false;
 	walk(node, (child) => {
-		if (found) return false;
+		if (found || settled?.has(child)) return false;
 		if (
 			child.type === 'FunctionDeclaration' ||
 			child.type === 'FunctionExpression' ||
@@ -166,6 +189,40 @@ function dynamicNamespace(node: DynamicElement, parent: Namespace): Namespace {
 
 export function declaring(node: Node): boolean {
 	return node.kind === 'constant' || node.kind === 'declaration';
+}
+
+export function pendingAwaits(node: Node, settled: Settled | undefined): ES.AwaitExpression[] {
+	const inits =
+		node.kind === 'constant'
+			? [node.declarator.init]
+			: node.kind === 'declaration'
+				? node.declaration.declarations.map((declarator) => declarator.init)
+				: [];
+	return inits.flatMap((init) =>
+		init == null ? [] : awaits(init).filter((found) => settled?.has(found) !== true)
+	);
+}
+
+export interface AsyncStep {
+	readonly before: readonly Node[];
+	readonly rest: readonly Node[];
+	readonly pending: readonly ES.AwaitExpression[];
+}
+
+export function asyncStep(nodes: readonly Node[], settled: Settled | undefined): AsyncStep | null {
+	for (let index = 0; index < nodes.length; index++) {
+		const node = nodes[index] as Node;
+		if (!declaring(node)) continue;
+		const pending = pendingAwaits(node, settled);
+		if (pending.length === 0) continue;
+		const earlier = nodes.slice(0, index);
+		return {
+			before: earlier.filter(declaring),
+			rest: [...earlier.filter((other) => !declaring(other)), ...nodes.slice(index)],
+			pending
+		};
+	}
+	return null;
 }
 
 export function hoisted(node: Node): boolean {
@@ -542,10 +599,6 @@ export class Template {
 				return;
 			}
 			case 'declaration':
-				for (const declarator of node.declaration.declarations) {
-					if (declarator.init != null && hasAwait(declarator.init))
-						throw unsupported(spanOf(declarator.init), 'An await in a declaration tag');
-				}
 				this.expression(node.declaration as unknown as ES.Expression, scope);
 				return;
 			case 'special':

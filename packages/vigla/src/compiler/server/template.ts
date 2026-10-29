@@ -3,6 +3,7 @@ import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
 import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
 import { empty } from '../../shared/markers.ts';
 import {
+	asyncStep,
 	declaring,
 	hasAwait,
 	hoisted,
@@ -364,15 +365,17 @@ export function fragmentCode(
 	textFirst: boolean,
 	children = false
 ): void {
-	const first = nodes.find((node) => !hoisted(node));
+	const step = asyncStep(nodes, context.awaited);
+	const first = step === null ? nodes.find((node) => !hoisted(node)) : undefined;
 	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
-	statements.push(...snippetDeclarations(context, nodes));
-	for (const node of nodes) {
+	const declared = step === null ? nodes : step.before;
+	statements.push(...snippetDeclarations(context, declared));
+	for (const node of declared) {
 		if (node.kind === 'declaration') statements.push(rewrite(context, node.declaration));
 		if (node.kind !== 'constant') continue;
 		const { id, init } = node.declarator;
 		if (init == null) throw unsupported(node, 'A {@const} without a value');
-		if (hasAwait(init)) throw unsupported(node, 'An await in {@const}');
+		if (hasAwait(init, context.awaited)) throw unsupported(node, 'An await in {@const}');
 		statements.push({
 			type: 'VariableDeclaration',
 			kind: 'const',
@@ -380,6 +383,10 @@ export function fragmentCode(
 				{ type: 'VariableDeclarator', id: rewrite(context, id), init: rewrite(context, init) }
 			]
 		});
+	}
+	if (step !== null) {
+		asyncChild(context, step.rest, step.pending, statements, buffer, fragmentCode);
+		return;
 	}
 	const alone = !children && standalone(context, nodes);
 	let run: Node[] = [];

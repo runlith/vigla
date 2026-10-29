@@ -198,18 +198,20 @@ export function boundaryCall(
 	anchor: ES.Expression
 ): ES.Statement[] {
 	const nodes = cleaned(context, node.body);
-	const declarations = snippetDeclarations(context, nodes);
 	const properties: ES.Property[] = [];
 	const named = new Set<string>();
+	const handed: Node[] = [];
 	for (const child of nodes) {
 		if (
 			child.kind === 'snippet' &&
 			(child.name.name === 'failed' || child.name.name === 'pending')
 		) {
 			named.add(child.name.name);
+			handed.push(child);
 			properties.push(plain(child.name.name, b.id(child.name.name)));
 		}
 	}
+	const declarations = snippetDeclarations(context, handed);
 	for (const attribute of node.attributes) {
 		if (attribute.kind !== 'attribute' || named.has(attribute.name)) continue;
 		const value = valueOf(context, null, attribute.value);
@@ -220,13 +222,7 @@ export function boundaryCall(
 	);
 	const inner = b.id(context.names.unique('$$anchor'));
 	const namespace = context.component.fragmentNamespaces.get(node.body) ?? 'html';
-	const body = render(
-		context,
-		regular.filter((child) => child.kind !== 'snippet'),
-		inner,
-		namespace,
-		true
-	);
+	const body = render(context, regular, inner, namespace, true);
 	return [
 		...declarations,
 		b.statement(

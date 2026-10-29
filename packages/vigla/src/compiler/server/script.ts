@@ -293,7 +293,7 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						return { ...current, init: next(single(init)) };
 					case '$derived': {
 						const given = single(init);
-						if (hasAwait(given)) {
+						if (hasAwait(given, context.awaited)) {
 							const saved = new Set(context.saved ?? []);
 							b.walk(given, (node) => {
 								if (
