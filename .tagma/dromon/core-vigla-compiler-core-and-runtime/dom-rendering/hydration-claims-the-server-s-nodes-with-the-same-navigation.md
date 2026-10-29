@@ -26,6 +26,8 @@ The cursor obeys three positional rules the generated code depends on:
 
 `{#key}` has a single arm, so it carries no arm marker: the server writes its content between `<!---->` and `<!---->`, as upstream does, and the trailing comment becomes the block's anchor.
 
+`<svelte:element>` is a block keyed by its tag with no arm marker either: the server writes `<!---->`, the element, `<!---->`, and inside the element its children followed by `<!---->` (none in `textarea`, `script`, `style` and `title`, whose content is raw text, so the client appends a temporary end comment while claiming them). The client's `<!>` claims the leading comment, the element is adopted as the block's content, and the trailing comment becomes its anchor; with no tag, only the two comments stand.
+
 `{@html}` stands between `<!---->` (in `DEV`, `<!--<hash of the value>-->`) and `<!---->`: hydration adopts whatever the server wrote between them and never repairs it, warning `hydration_html_changed` in `DEV` when the client's value hashes differently, unless a `svelte-ignore` covers it. As an element's only child it sets `innerHTML` on that element instead of standing at an anchor.
 
 A server arm or `{#each}` branch other than the client's choice is not a mismatch: the block removes the server's content up to its close marker and renders its own. Anything else — a missing node, a wrong node type, leftover nodes — warns `hydration_mismatch` and throws; `hydrate` then clears the target and mounts fresh, or throws `hydration_failed` under `recover: false`.

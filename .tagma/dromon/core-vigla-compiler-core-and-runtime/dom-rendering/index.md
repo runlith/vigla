@@ -62,6 +62,9 @@ fields:
       },
       {
         "at": "targets.ts"
+      },
+      {
+        "at": "element.ts"
       }
     ],
     "id": "dom",
