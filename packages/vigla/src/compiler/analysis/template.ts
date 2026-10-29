@@ -175,6 +175,8 @@ export class Template {
 	readonly fragmentNamespaces = new Map<Fragment, Namespace>();
 	readonly ignored = new Map<Node, ReadonlySet<string>>();
 	readonly separate = new Map<Fragment, readonly (Special | Title)[]>();
+	readonly placed = new Set<ES.Node>();
+	readonly statements = new Set<ES.Node>();
 	readonly #ignores: Ignores;
 	#ignoring: ReadonlySet<string> | null = null;
 	readonly #snippets = new Map<Binding, Snippet>();
@@ -195,11 +197,19 @@ export class Template {
 		this.scopes.declare(expression, scope);
 		this.scopes.resolve(expression, scope);
 		const used = this.#used;
-		if (used === null) return;
-		walk(expression, (node) => {
-			if (node.type !== 'Identifier') return;
-			const binding = this.scopes.references.get(node);
-			if (binding !== undefined) used.add(binding);
+		walk(expression, (node, parent) => {
+			if (node.type === 'Identifier') {
+				const binding = used === null ? undefined : this.scopes.references.get(node);
+				if (binding !== undefined) used?.add(binding);
+			} else if (node.type === 'VariableDeclarator' && node.init?.type === 'CallExpression') {
+				this.placed.add(node.init.callee);
+			} else if (
+				node.type === 'CallExpression' &&
+				parent?.type === 'ExpressionStatement' &&
+				parent.expression === node
+			) {
+				this.statements.add(node.callee);
+			}
 		});
 	}
 

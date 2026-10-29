@@ -122,11 +122,11 @@ const supported = new Set<Rune>([
 function checkRunes(
 	runes: Runes,
 	programs: readonly (ES.Program | null)[],
-	component: boolean
+	component: boolean,
+	placed = new Set<ES.Node>(),
+	statements = new Set<ES.Node>()
 ): ClassFields {
-	const placed = new Set<ES.Node>();
 	const classes = new Map<ES.ClassBody, ReadonlyMap<string, StateField>>();
-	const statements = new Set<ES.Node>();
 	for (const program of programs) {
 		if (program === null) continue;
 		for (const [body, fields] of classFields(runes, program, placed)) classes.set(body, fields);
@@ -225,7 +225,6 @@ export function analyzeComponent(
 	defaultNamespace: Namespace = 'html'
 ): ComponentAnalysis {
 	if (unit.options?.customElement) throw unsupported(unit.options, 'A custom element');
-	const classes = checkRunes(unit.runes, [unit.module, unit.instance], true);
 	const scopes = new Scopes(unit.runes);
 	const top = scopes.root(null);
 	const scope = scopes.root(top);
@@ -249,6 +248,13 @@ export function analyzeComponent(
 		unit.options?.preserveWhitespace ?? false,
 		namespace,
 		namespace === 'html'
+	);
+	const classes = checkRunes(
+		unit.runes,
+		[unit.module, unit.instance],
+		true,
+		template.placed,
+		template.statements
 	);
 	if (unit.module !== null) scopes.resolve(unit.module, top);
 	if (unit.instance !== null) scopes.resolve(unit.instance, scope);
