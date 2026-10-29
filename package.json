@@ -12,6 +12,7 @@
 		"harness:upstream": "node harness/src/cli.ts targets/upstream",
 		"harness:vigla": "node harness/src/cli.ts targets/vigla",
 		"harness:passing": "node harness/src/cli.ts targets/vigla --passing",
+		"harness:differential": "node harness/src/differential.ts",
 		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/vigla --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p targets/vigla --noEmit"
 	},
 	"devDependencies": {
