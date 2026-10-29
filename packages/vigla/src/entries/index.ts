@@ -1,4 +1,5 @@
 export {
+	createContext,
 	getAllContexts,
 	getContext,
 	hasContext,
@@ -6,6 +7,7 @@ export {
 	onMount,
 	setContext
 } from '../runtime/dom/context.ts';
+export type { Context } from '../shared/context.ts';
 export { hydrate, mount, unmount } from '../runtime/dom/mount.ts';
 export type {
 	Component,

@@ -1,12 +1,14 @@
 import { failure } from '../shared/diagnostics.ts';
 
 export {
+	createContext,
 	getAllContexts,
 	getContext,
 	hasContext,
 	onDestroy,
 	setContext
 } from '../runtime/server/context.ts';
+export type { Context } from '../shared/context.ts';
 export type {
 	Component,
 	Exports,

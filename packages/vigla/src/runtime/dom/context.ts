@@ -1,8 +1,9 @@
 import { DEV } from 'esm-env';
+import { keyed, type Context } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { effect, teardown } from '../reactivity/effects.ts';
+import { detached, effect, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import { owner, untrack } from '../reactivity/tracking.ts';
+import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
 
 export interface Layer {
 	readonly parent: Layer | null;
@@ -14,7 +15,7 @@ export interface Layer {
 interface Initializing {
 	readonly layer: Layer;
 	readonly outer: Initializing | null;
-	readonly saved: unknown;
+	readonly caller: Effect | null;
 	readonly deferred: (() => void)[];
 }
 
@@ -41,24 +42,27 @@ export function phase(): Phase {
 }
 
 export function push(map?: Map<unknown, unknown>): void {
-	const held = owner;
-	const layer: Layer = { parent: current(), owner: held, component: true, map: map ?? null };
-	initializing = { layer, outer: initializing, saved: held?.context, deferred: [] };
-	if (held !== null) held.context = layer;
+	const caller = owner;
+	const parent = current();
+	const instance = caller === null ? null : detached(null, caller);
+	const layer: Layer = { parent, owner: instance, component: true, map: map ?? null };
+	initializing = { layer, outer: initializing, caller, deferred: [] };
+	if (instance === null) return;
+	instance.context = layer;
+	setOwner(instance);
 }
 
 export function pop<T>(exports?: T): T {
 	const done = initializing as Initializing;
 	for (const create of done.deferred) create();
 	initializing = done.outer;
-	if (done.layer.owner !== null) done.layer.owner.context = done.saved;
+	if (done.layer.owner !== null) setOwner(done.caller);
 	return (exports ?? {}) as T;
 }
 
 export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () => T): T {
 	const saved = initializing;
-	const held = owner;
-	const before = held?.context;
+	const caller = owner;
 	push(map);
 	try {
 		const result = fn();
@@ -66,7 +70,7 @@ export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () =>
 		return result;
 	} finally {
 		initializing = saved;
-		if (held !== null) held.context = before;
+		setOwner(caller);
 	}
 }
 
@@ -109,6 +113,10 @@ export function hasContext(key: unknown): boolean {
 		if (layer.map?.has(key)) return true;
 	}
 	return false;
+}
+
+export function createContext<T>(): Context<T> {
+	return keyed<T>({ getContext, setContext, hasContext });
 }
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {

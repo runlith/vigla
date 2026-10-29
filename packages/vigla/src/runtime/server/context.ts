@@ -1,3 +1,4 @@
+import { keyed, type Context } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
 
 interface Layer {
@@ -81,6 +82,10 @@ export function hasContext(key: unknown): boolean {
 		if (layer.map?.has(key)) return true;
 	}
 	return false;
+}
+
+export function createContext<T>(): Context<T> {
+	return keyed<T>({ getContext, setContext, hasContext });
 }
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {

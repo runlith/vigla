@@ -1,8 +1,11 @@
+import type { Context } from 'vigla/internal/index-client';
+
 export interface Contexts {
 	getContext<T>(key: unknown): T;
 	setContext<T>(key: unknown, value: T): T;
 	hasContext(key: unknown): boolean;
 	getAllContexts<T extends Map<unknown, unknown>>(): T;
+	createContext<T>(): Context<T>;
 }
 
 export interface Scope {
@@ -21,6 +24,16 @@ export function guard(scope: Scope, name: string): void {
 	if (scope.phase() === null) throw outside(scope, name);
 }
 
+function initializing(scope: Scope): void {
+	guard(scope, 'setContext');
+	if (scope.phase() !== 'initializing') {
+		throw scope.failure(
+			'set_context_after_init',
+			'`setContext` must be called when a component first initializes, not in a subsequent effect or after an `await` expression'
+		);
+	}
+}
+
 export function project(core: Contexts, scope: Scope): Contexts {
 	return {
 		getContext(key) {
@@ -28,13 +41,7 @@ export function project(core: Contexts, scope: Scope): Contexts {
 			return core.getContext(key);
 		},
 		setContext(key, value) {
-			guard(scope, 'setContext');
-			if (scope.phase() !== 'initializing') {
-				throw scope.failure(
-					'set_context_after_init',
-					'`setContext` must be called when a component first initializes, not in a subsequent effect or after an `await` expression'
-				);
-			}
+			initializing(scope);
 			return core.setContext(key, value);
 		},
 		hasContext(key) {
@@ -44,6 +51,23 @@ export function project(core: Contexts, scope: Scope): Contexts {
 		getAllContexts<T extends Map<unknown, unknown>>() {
 			guard(scope, 'getAllContexts');
 			return core.getAllContexts<T>();
+		},
+		createContext<T>(): Context<T> {
+			const [get, set, has] = core.createContext<T>();
+			return [
+				() => {
+					guard(scope, 'getContext');
+					return get();
+				},
+				(value) => {
+					initializing(scope);
+					return set(value);
+				},
+				() => {
+					guard(scope, 'hasContext');
+					return has();
+				}
+			];
 		}
 	};
 }

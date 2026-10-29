@@ -6,7 +6,10 @@ export * from 'vigla/internal/index-client';
 
 const scope: Scope = { phase, failure };
 
-export const { getContext, setContext, hasContext, getAllContexts } = project(core, scope);
+export const { getContext, setContext, hasContext, getAllContexts, createContext } = project(
+	core,
+	scope
+);
 
 export function onMount(fn: () => unknown): void {
 	guard(scope, 'onMount');
