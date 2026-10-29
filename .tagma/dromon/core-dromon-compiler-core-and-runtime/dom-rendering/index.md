@@ -38,6 +38,9 @@ fields:
       },
       {
         "at": "boundary.ts"
+      },
+      {
+        "at": "async.ts"
       }
     ],
     "id": "dom",
