@@ -1,0 +1,26 @@
+---
+id: 01a1852f-ba89-7089-9ac3-30ea8cd5da81
+title: "Two inputs into one template IR: frozen .svelte for compatibility, TSX with runes as the native format"
+ord: 4
+tags: ["idea"]
+fields:
+  {
+    "status": "open"
+  }
+edges:
+  - kind: relates
+    to: 01a1852f-ba89-7089-9ac3-30e788b9f5b3
+---
+The compiler reads two source forms into one template IR, with asymmetric roles: `.svelte` is the compatibility input, TSX with runes is Dromon's own format.
+
+**`.svelte`, runes mode only, syntax frozen at upstream.** It carries the drop-in promise for runes code (an alias in the package manager), the runes part of the library ecosystem (Svelte libraries ship `.svelte` sources and are compiled by the app's compiler), upstream's runtime tests as the oracle for the scheduler, and Tagma's 807 `.svelte` files. A component without runes is a compile error: legacy mode and its syntax are out by default, so a library still written without runes does not build on Dromon until its authors migrate it. A compat layer for such components, as `preact/compat` is for React, is considered only if Dromon finds users and they ask for it. Because its syntax never grows, upstream tooling — `svelte-check`, the language server, the prettier plugin — keeps working on it. One condition: `svelte-check` loads the compiler from the package named `svelte` and svelte2tsx builds its TSX from `parse()` ([[88b9f5b3]]), so Dromon's `svelte/compiler` must keep `parse()` answering the upstream AST.
+
+**TSX with runes, the native format.** Every new syntax and API lands here. TypeScript parses and checks it with no tooling of ours: runes are plain calls typed by ambient declarations, directives are namespaced attributes (`bind:value`, `on:click`) typed through the JSX namespace, and control flow is ordinary expressions — ternary, `&&`, `.map()` — that the compiler turns into branches and keyed each. The compiler also rewrites the script, so a rune is read and written as a plain variable, unlike Solid's getter calls. Probe on 2026-10-29, tsc 6.0.3 strict (probe file not kept): a component using `$props`, `$state`, `$derived`, `bind:value` and `on:click` checked clean; `bind:value={count}` with a number and the typo `bind:valeu` were both reported.
+
+**What TSX does not take.** Svelte's blocks (`{#if}`, `{#each}`, `{#snippet}`) are replaced by expressions; scoped `<style>` has no place yet — the open question of this path.
+
+**Semantics are runes, not React.** No hooks, no re-render, no React libraries; the documentation needs a page on how this JSX differs from React. The story that can carry it: an app moves from `.svelte` to `.tsx` file by file inside one runtime, both forms importing each other, as TypeScript's `allowJs` let projects leave JS gradually.
+
+**No language of our own.** An extended `.svelte` (the earlier `.dro` idea) would need its own svelte2tsx, language server, formatter and linter parser for nothing once new syntax goes into TSX.
+
+**The IR is two-input from day one.** Upstream's compiler keys its 62 analysis visitors and 54 client and 35 server transform visitors on Svelte's node types; JSX added to such a compiler later is a second compiler. Order of work: runtime and scheduler with their server side, the `.svelte` input (it brings the oracle) and Kit, the TSX input, native tooling last; server rendering, hydration and Kit are designed from the start, not after the client.
