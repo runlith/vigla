@@ -7,24 +7,24 @@ import {
 	validateModule as validateModuleUnit,
 	type Code,
 	type Diagnostic,
-	type Runtime
+	type Runtime,
+	type ValidateOptions
 } from 'vigla/compiler';
 import {
 	front,
 	legacy,
 	lowerComponent,
-	merge,
 	parseComponent,
 	parseStylesheet,
-	phased,
-	phases,
 	validateComponent,
-	type AST
+	validateModuleSyntax,
+	type AST,
+	type Parsed
 } from '../front/index.ts';
-import { Diagnostics, type Warning } from './diagnostics.ts';
+import { Diagnostics, relativeFilename, type Warning } from './diagnostics.ts';
 import { validate } from './options.ts';
 
-export { CompileError, type Location, type Warning } from './diagnostics.ts';
+export { CompileError, CompileWarning, type Location, type Warning } from './diagnostics.ts';
 export { print, type PrintOptions, type Printed } from '../front/index.ts';
 export {
 	preprocess,
@@ -88,6 +88,7 @@ export interface CompileResult {
 	css: CssResult | null;
 	warnings: Warning[];
 	metadata: Metadata;
+	ast?: AST.Root | Record<string, any>;
 }
 
 export interface ParseOptions {
@@ -97,31 +98,25 @@ export interface ParseOptions {
 	loose?: boolean;
 }
 
+const stores = ['svelte/store'];
+
 const runtime: Runtime = { client: 'svelte/internal/client', server: 'svelte/internal/server' };
 
 function generated(options: ModuleCompileOptions): 'client' | 'server' {
 	return options.generate === 'server' ? 'server' : 'client';
 }
 
-function componentName(filename: string | undefined): string {
-	const parts = (filename ?? '').split(/[/\\]/);
-	let base = parts.pop() ?? '';
-	if (base.replace(/\.[^.]+$/, '') === 'index' && parts.length > 0) base = parts.pop() ?? base;
-	const name = base
-		.replace(/\.[^.]+$/, '')
-		.replace(/[^a-zA-Z_$0-9]+/g, '_')
-		.replace(/^_/, '')
-		.replace(/_$/, '');
-	if (name === '') return 'Component';
-	const capital = name[0]?.toUpperCase() + name.slice(1);
-	return /^[0-9]/.test(capital) ? `_${capital}` : capital;
+function sourceName(filename: string | undefined): string {
+	const parts = (filename ?? '(unknown)').split(/[/\\]/);
+	const base = parts.pop() as string;
+	const directory = parts.at(-1);
+	let name = base.replace('.svelte', '');
+	if (name === 'index' && directory && directory !== 'src') name = directory;
+	return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-function relativeFilename(options: CompileOptions): string {
-	const filename = (options.filename ?? '(unknown)').replace(/\\/g, '/');
-	const root = options.rootDir?.replace(/\\/g, '/');
-	if (root === undefined || !filename.startsWith(root)) return filename;
-	return filename.replace(root, '').replace(/^[/\\]/, '');
+function functionName(preferred: string): string {
+	return preferred.replace(/[^a-zA-Z0-9_$]/g, '_').replace(/^[0-9]/, '_');
 }
 
 function styleHash(root: AST.Root, options: CompileOptions, name: string): string {
@@ -130,6 +125,14 @@ function styleHash(root: AST.Root, options: CompileOptions, name: string): strin
 	const filename = relativeFilename(options);
 	if (options.cssHash) return options.cssHash({ name, filename, css, hash });
 	return `svelte-${hash(filename === '(unknown)' ? css : filename)}`;
+}
+
+function publicAst(
+	source: string,
+	parsed: Parsed,
+	modern: boolean | undefined
+): AST.Root | Record<string, any> {
+	return modern ? parsed.root : legacy(source, parsed.root, parsed.options);
 }
 
 function withoutBom(source: string): string {
@@ -144,7 +147,7 @@ export function parse(
 ): AST.Root | Record<string, any> {
 	if (typeof input !== 'string') throw new TypeError('Template must be a string');
 	const source = withoutBom(input);
-	return new Diagnostics(source, undefined).guard(() => {
+	return new Diagnostics(source, {}).guard(() => {
 		const parsed = parseComponent(source, loose);
 		return modern ? parsed.root : legacy(source, parsed.root, parsed.options);
 	});
@@ -152,33 +155,38 @@ export function parse(
 
 export function parseCss(input: string): AST.Css.StyleSheetFile {
 	const source = withoutBom(input);
-	return new Diagnostics(source, undefined).guard(() => parseStylesheet(source));
+	return new Diagnostics(source, {}).guard(() => parseStylesheet(source));
 }
 
 export function compile(input: string, options: CompileOptions = {}): CompileResult {
 	const source = withoutBom(input);
-	const diagnostics = new Diagnostics(source, options.filename, options.warningFilter);
+	const diagnostics = new Diagnostics(source, options, options.warningFilter);
 	return diagnostics.guard(() => {
 		const notices = diagnostics.notices(validate(options, 'component'));
 		const parsed = parseComponent(source);
+		diagnostics.analysing();
+		const reading = lowerComponent(parsed, source, options.filename ?? null);
 		const syntax = validateComponent(parsed, source, {
 			customElement: options.customElement === true,
 			filename: options.filename
 		});
-		const reading = lowerComponent(parsed, source, options.filename ?? null);
-		const own = merge(syntax.walk, reading.warnings, phases(parsed.root));
-		const validation = {
+		const validation: ValidateOptions = {
 			customElement: options.customElement === true,
 			namespace: options.namespace,
-			warnings: phased(parsed.root, syntax.before, own)
+			stores,
+			front: {
+				before: syntax.before,
+				at: syntax.anchors.translated(reading.lowered, reading.anchored)
+			}
 		};
 		const reported = (core: readonly Diagnostic[]): Warning[] => [
 			...notices,
 			...diagnostics.warnings([...syntax.parse, ...core])
 		];
-		const name = options.name ?? componentName(options.filename);
+		const named = sourceName(options.filename);
+		const name = functionName(options.name ?? named);
 		const css = {
-			hash: styleHash(parsed.root, options, name),
+			hash: styleHash(parsed.root, options, named),
 			inject: options.css === 'injected',
 			outputFilename: options.cssOutputFilename
 		};
@@ -189,7 +197,8 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 				js: null,
 				css: null,
 				warnings: reported([...core, ...style.warnings]),
-				metadata: { runes: true }
+				metadata: { runes: true },
+				ast: publicAst(source, parsed, options.modernAst)
 			};
 		}
 		const output = compileUnit(reading.unit, {
@@ -207,19 +216,26 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			js: output.js,
 			css: output.css,
 			warnings: reported(output.warnings),
-			metadata: { runes: true }
+			metadata: { runes: true },
+			ast: publicAst(source, parsed, options.modernAst)
 		};
 	});
 }
 
 export function compileModule(input: string, options: ModuleCompileOptions = {}): CompileResult {
 	const source = withoutBom(input);
-	const diagnostics = new Diagnostics(source, options.filename, options.warningFilter);
+	const diagnostics = new Diagnostics(source, options, options.warningFilter);
 	return diagnostics.guard(() => {
 		const notices = diagnostics.notices(validate(options, 'module'));
+		diagnostics.analysing();
 		const reading = front.module({ source, filename: options.filename ?? null });
+		const program = reading.unit.program;
+		const validation: ValidateOptions = {
+			stores,
+			front: { at: validateModuleSyntax(program).translated(new Map(), new Map()) }
+		};
 		if (options.generate === false) {
-			const core = validateModuleUnit(reading.unit);
+			const core = validateModuleUnit(reading.unit, validation);
 			return {
 				js: null,
 				css: null,
@@ -230,7 +246,8 @@ export function compileModule(input: string, options: ModuleCompileOptions = {})
 		const output = compileModuleUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
-			dev: options.dev
+			dev: options.dev,
+			validation
 		});
 		return {
 			js: output.js,

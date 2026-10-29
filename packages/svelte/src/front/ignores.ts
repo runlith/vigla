@@ -1,6 +1,6 @@
 import type { Diagnostic } from 'vigla/compiler';
 import { warning, warningCodes } from './diagnostics.ts';
-import { closest } from './fuzzy.ts';
+import { closest } from 'vigla/compiler';
 
 const runtimeCodes = [
 	'await_waterfall',

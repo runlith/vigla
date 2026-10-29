@@ -203,8 +203,17 @@ class Converter {
 					children: this.nodes(element.fragment.nodes, node)
 				};
 			}
-			case 'SlotElement':
-				return this.element(node as unknown as AST.ElementLike, 'Slot', node.name as string);
+			case 'SlotElement': {
+				const element = node as unknown as AST.ElementLike;
+				return {
+					type: 'Slot',
+					start: element.start,
+					end: element.end,
+					name: element.name,
+					attributes: this.attributes(element),
+					children: this.nodes(element.fragment.nodes, node)
+				};
+			}
 			case 'TitleElement':
 				return this.element(node as unknown as AST.ElementLike, 'Title', 'title');
 			case 'SvelteOptions': {

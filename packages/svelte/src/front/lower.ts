@@ -2,7 +2,6 @@ import type * as ES from 'estree';
 import type * as IR from 'vigla/compiler';
 import type * as AST from './ast.ts';
 import type { Diagnostic } from 'vigla/compiler';
-import { unsupported } from './diagnostics.ts';
 import { extractIgnores } from './ignores.ts';
 import { Resolution } from './runes.ts';
 import { stripTypes } from './typescript.ts';
@@ -75,11 +74,19 @@ export class Lowering {
 	readonly resolution: Resolution;
 	readonly ts: boolean;
 	readonly ignores = new Map<object, ReadonlySet<string>>();
-	readonly warnings: Diagnostic[] = [];
+	readonly anchored = new Map<object, Diagnostic[]>();
+	readonly lowered = new Map<object, object>();
 
 	constructor(ts: boolean) {
 		this.ts = ts;
 		this.resolution = new Resolution((node) => this.commented(node));
+	}
+
+	anchor(node: object, diagnostics: readonly Diagnostic[]): void {
+		if (diagnostics.length === 0) return;
+		const list = this.anchored.get(node);
+		if (list === undefined) this.anchored.set(node, [...diagnostics]);
+		else list.push(...diagnostics);
 	}
 
 	commented(node: Commented): void {
@@ -89,7 +96,7 @@ export class Lowering {
 		for (const comment of comments) {
 			const extracted = extractIgnores((comment.start ?? Number.NaN) + 2, comment.value);
 			codes.push(...extracted.codes);
-			this.warnings.push(...extracted.warnings);
+			this.anchor(node, extracted.warnings);
 		}
 		if (codes.length > 0) this.ignores.set(node, new Set(codes));
 	}
@@ -173,6 +180,7 @@ export class Lowering {
 			if (node.type === 'Comment') comments.push(node);
 			const lowered = this.node(node);
 			if (lowered === null) continue;
+			this.lowered.set(node, lowered);
 			nodes.push(lowered);
 			if (node.type === 'Comment' || node.type === 'Text') continue;
 			if (comments.length > 0) this.templateIgnores(lowered, comments.splice(0));
@@ -186,7 +194,7 @@ export class Lowering {
 			const comment = comments[index] as AST.Comment;
 			const extracted = extractIgnores(comment.start + 4, comment.data);
 			codes.push(...extracted.codes);
-			this.warnings.push(...extracted.warnings);
+			this.anchor(node, extracted.warnings);
 		}
 		if (codes.length > 0) this.ignores.set(node, new Set(codes));
 	}
@@ -212,7 +220,7 @@ export class Lowering {
 		return { kind: 'text', parts: parts.map((part) => this.part(part)) };
 	}
 
-	attribute(attribute: AST.AttributeLike): IR.Attribute {
+	attribute(attribute: AST.AttributeLike): IR.Attribute | null {
 		const span = { start: attribute.start, end: attribute.end };
 		switch (attribute.type) {
 			case 'Attribute':
@@ -279,12 +287,17 @@ export class Lowering {
 				};
 			case 'OnDirective':
 			case 'LetDirective':
-				unsupported(`The ${attribute.type}`, attribute);
+				return null;
 		}
 	}
 
 	attributes(node: AST.ElementLike): IR.Attribute[] {
-		return node.attributes.map((attribute) => this.attribute(attribute));
+		const lowered: IR.Attribute[] = [];
+		for (const attribute of node.attributes) {
+			const one = this.attribute(attribute);
+			if (one !== null) lowered.push(one);
+		}
+		return lowered;
 	}
 
 	branch(block: AST.IfBlock): IR.Branch {
@@ -413,7 +426,7 @@ export class Lowering {
 			case 'SvelteComponent':
 			case 'SvelteSelf':
 			case 'SvelteFragment':
-				unsupported(`<${node.name}>`, node);
+				return null;
 		}
 	}
 

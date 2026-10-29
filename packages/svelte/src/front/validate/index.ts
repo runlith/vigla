@@ -2,7 +2,9 @@ import type { Diagnostic } from 'vigla/compiler';
 import type * as AST from '../ast.ts';
 import { bidirectionalChar } from '../parse/characters.ts';
 import type { Parsed } from '../parse/index.ts';
-import { fail } from '../diagnostics.ts';
+import type * as ES from 'estree';
+import { diagnostic, fail } from '../diagnostics.ts';
+import { Anchors } from './anchors.ts';
 import { rejectLegacy } from './legacy.ts';
 import { Report } from './report.ts';
 import { Template } from './template.ts';
@@ -16,25 +18,24 @@ const bidirectional = bidirectionalChar;
 
 type Node = { type: string; [key: string]: unknown };
 
-function literals(node: unknown, report: Report): void {
+function literals(node: unknown, report: Report, anchors: Anchors): void {
 	if (node === null || typeof node !== 'object') return;
 	if (Array.isArray(node)) {
-		for (const item of node) literals(item, report);
+		for (const item of node) literals(item, report, anchors);
 		return;
 	}
 	const record = node as Node;
 	if (typeof record.type !== 'string') return;
-	if (
-		record.type === 'Literal' &&
-		typeof record.value === 'string' &&
-		bidirectional.test(record.value)
-	) {
+	const text =
+		record.type === 'Literal' && typeof record.value === 'string'
+			? record.value
+			: record.type === 'TemplateElement'
+				? ((record.value as { cooked?: string | null }).cooked ?? '')
+				: null;
+	if (text !== null && bidirectional.test(text)) {
+		const before = report.warnings.length;
 		report.warn('bidirectional_control_characters', record as never);
-	}
-	if (record.type === 'TemplateElement') {
-		const cooked = (record.value as { cooked?: string | null }).cooked ?? '';
-		if (bidirectional.test(cooked))
-			report.warn('bidirectional_control_characters', record as never);
+		anchors.warn(record, report.warnings.slice(before));
 	}
 	for (const key in record) {
 		if (
@@ -43,43 +44,45 @@ function literals(node: unknown, report: Report): void {
 			key !== 'leadingComments' &&
 			key !== 'trailingComments'
 		) {
-			literals(record[key], report);
+			literals(record[key], report, anchors);
 		}
 	}
 }
 
-export function phases(root: AST.Root): (diagnostic: Diagnostic) => number {
-	const inside = (part: AST.Located | null | undefined, at: number): boolean =>
-		part !== null && part !== undefined && at >= part.start && at < part.end;
-	return (diagnostic) => {
-		if (inside(root.module, diagnostic.start)) return 1;
-		if (inside(root.instance, diagnostic.start)) return 2;
-		if (inside(root.css, diagnostic.start)) return 4;
-		return 3;
-	};
-}
+const forbiddenUpdates = new Set(['beforeUpdate', 'afterUpdate']);
 
-export function merge(
-	first: readonly Diagnostic[],
-	second: readonly Diagnostic[],
-	phase: (diagnostic: Diagnostic) => number
-): Diagnostic[] {
-	const merged: Diagnostic[] = [];
-	let left = 0;
-	let right = 0;
-	while (left < first.length && right < second.length) {
-		const a = first[left] as Diagnostic;
-		const b = second[right] as Diagnostic;
-		const order = phase(a) - phase(b) || a.start - b.start;
-		if (order <= 0) {
-			merged.push(a);
-			left++;
-		} else {
-			merged.push(b);
-			right++;
+function imports(
+	program: AST.Script['content'] | ES.Program | null | undefined,
+	anchors: Anchors
+): void {
+	for (const statement of program?.body ?? []) {
+		if (statement.type !== 'ImportDeclaration') continue;
+		const source = String(statement.source.value);
+		const at = statement as unknown as AST.Located;
+		if (source.startsWith('svelte/internal')) {
+			anchors.fail(statement, diagnostic('import_svelte_internal_forbidden', at));
+			continue;
+		}
+		if (source !== 'svelte') continue;
+		for (const specifier of statement.specifiers) {
+			if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier')
+				continue;
+			const name = specifier.imported.name;
+			if (forbiddenUpdates.has(name)) {
+				anchors.fail(
+					statement,
+					diagnostic('runes_mode_invalid_import', specifier as unknown as AST.Located, { name })
+				);
+				break;
+			}
 		}
 	}
-	return merged.concat(first.slice(left), second.slice(right));
+}
+
+export function validateModuleSyntax(program: ES.Program): Anchors {
+	const anchors = new Anchors();
+	imports(program, anchors);
+	return anchors;
 }
 
 function firstReference(node: unknown, name: string, parent: Node | null): Node | null {
@@ -130,31 +133,7 @@ function rejectLegacyProps(root: AST.Root): void {
 export interface Validated {
 	readonly parse: readonly Diagnostic[];
 	readonly before: readonly Diagnostic[];
-	readonly walk: readonly Diagnostic[];
-}
-
-export interface Phased {
-	readonly before: readonly Diagnostic[];
-	readonly module: readonly Diagnostic[];
-	readonly instance: readonly Diagnostic[];
-	readonly template: readonly Diagnostic[];
-}
-
-export function phased(
-	root: AST.Root,
-	before: readonly Diagnostic[],
-	walk: readonly Diagnostic[]
-): Phased {
-	const phase = phases(root);
-	const lists: Diagnostic[][] = [[], [], [], [], []];
-	for (const diagnostic of walk) (lists[phase(diagnostic)] as Diagnostic[]).push(diagnostic);
-	const byStart = (list: Diagnostic[]): Diagnostic[] => list.sort((a, b) => a.start - b.start);
-	return {
-		before,
-		module: byStart(lists[1] as Diagnostic[]),
-		instance: byStart(lists[2] as Diagnostic[]),
-		template: byStart([...(lists[3] as Diagnostic[]), ...(lists[4] as Diagnostic[])])
-	};
+	readonly anchors: Anchors;
 }
 
 export function validateComponent(
@@ -163,7 +142,8 @@ export function validateComponent(
 	options: ValidateOptions
 ): Validated {
 	const root = parsed.root;
-	rejectLegacy(root, options);
+	const anchors = new Anchors();
+	rejectLegacy(root, { ...options, anchors });
 	const early = new Report();
 	for (const attribute of root.options?.attributes ?? []) {
 		if (
@@ -175,12 +155,20 @@ export function validateComponent(
 		}
 	}
 	rejectLegacyProps(root);
-	const report = new Report();
-	literals(root.module, report);
-	literals(root.instance, report);
-	new Template(source, report).fragment(root.fragment, root);
-	literals(root.fragment, report);
-	const phase = phases(root);
-	const walk = [...report.warnings].sort((a, b) => phase(a) - phase(b) || a.start - b.start);
-	return { parse: parsed.warnings, before: early.warnings, walk };
+	imports(root.module?.content, anchors);
+	imports(root.instance?.content, anchors);
+	for (const statement of root.instance?.content.body ?? []) {
+		if (statement.type === 'LabeledStatement' && statement.label.name === '$') {
+			anchors.fail(
+				statement,
+				diagnostic('legacy_reactive_statement_invalid', statement as unknown as AST.Located)
+			);
+		}
+	}
+	const scripts = new Report();
+	literals(root.module, scripts, anchors);
+	literals(root.instance, scripts, anchors);
+	new Template(source, new Report(), anchors).walk(root);
+	literals(root.fragment, new Report(), anchors);
+	return { parse: parsed.warnings, before: early.warnings, anchors };
 }

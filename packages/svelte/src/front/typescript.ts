@@ -2,7 +2,13 @@ import { fail } from './diagnostics.ts';
 
 type Node = { type: string; [key: string]: unknown };
 
-const empty = (): Node => ({ type: 'EmptyStatement' });
+const erasedStatements = new WeakSet<Node>();
+
+const empty = (): Node => {
+	const statement: Node = { type: 'EmptyStatement' };
+	erasedStatements.add(statement);
+	return statement;
+};
 
 const unwrapped = new Set([
 	'TSAsExpression',
@@ -152,7 +158,7 @@ class Stripper {
 				this.path.push(node);
 				const cleaned = (body.body as Node[]).map((entry) => this.visit(entry));
 				this.path.pop();
-				if (cleaned.some((entry) => entry.type !== 'EmptyStatement')) {
+				if (cleaned.some((entry) => !erasedStatements.has(entry))) {
 					fail('typescript_invalid_feature', node as never, {
 						feature: 'namespaces with non-type nodes'
 					});

@@ -1,4 +1,10 @@
-import { parseProgram, type ComponentUnit, type FrontEnd, type Reading } from 'vigla/compiler';
+import {
+	parseProgram,
+	type ComponentUnit,
+	type Diagnostic,
+	type FrontEnd,
+	type Reading
+} from 'vigla/compiler';
 import { Lowering } from './lower.ts';
 import { parseComponent, type Parsed } from './parse/index.ts';
 import { Resolution } from './runes.ts';
@@ -9,19 +15,19 @@ export { locator, type Locator } from './locate.ts';
 export { parseComponent, parseStylesheet, type Parsed } from './parse/index.ts';
 export { print, type PrintOptions, type Printed } from './print/index.ts';
 export {
-	merge,
-	phased,
-	phases,
 	validateComponent,
-	type Phased,
-	type ValidateOptions
+	validateModuleSyntax,
+	type ValidateOptions,
+	type Validated
 } from './validate/index.ts';
+export type { Anchor, Anchors } from './validate/anchors.ts';
 
-export function lowerComponent(
-	parsed: Parsed,
-	source: string,
-	filename: string | null
-): Reading<ComponentUnit> {
+export interface Lowered extends Reading<ComponentUnit> {
+	readonly anchored: ReadonlyMap<object, readonly Diagnostic[]>;
+	readonly lowered: ReadonlyMap<object, object>;
+}
+
+export function lowerComponent(parsed: Parsed, source: string, filename: string | null): Lowered {
 	const ast = parsed.root;
 	const lowering = new Lowering(parsed.ts);
 	const module = ast.module === undefined ? null : lowering.program(ast.module.content);
@@ -42,7 +48,9 @@ export function lowerComponent(
 			runes: lowering.resolution.runes,
 			ignores: lowering.ignores
 		},
-		warnings: lowering.warnings
+		warnings: [],
+		anchored: lowering.anchored,
+		lowered: lowering.lowered
 	};
 }
 

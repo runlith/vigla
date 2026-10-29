@@ -1,9 +1,12 @@
 import type * as AST from '../ast.ts';
+import { CompileError } from 'vigla/compiler';
 import { legacy } from '../diagnostics.ts';
+import { stopped, type Anchors } from './anchors.ts';
 
 export interface LegacyContext {
 	readonly customElement: boolean;
 	readonly filename: string | undefined;
+	readonly anchors: Anchors;
 }
 
 const components = new Set(['Component', 'SvelteComponent', 'SvelteSelf']);
@@ -72,7 +75,15 @@ function fragment(
 ): void {
 	for (const node of nodes?.nodes ?? []) {
 		const isElement = 'attributes' in node && 'name_loc' in node;
-		if (isElement) element(node, parent, context);
+		if (isElement) {
+			try {
+				element(node, parent, context);
+			} catch (error) {
+				if (!(error instanceof CompileError)) throw error;
+				context.anchors.fail(node, error.diagnostic);
+				throw stopped;
+			}
+		}
 		const owner = isElement ? node : parent;
 		for (const child of children(node)) fragment(child, owner, context);
 	}
@@ -95,8 +106,12 @@ export function rejectLegacy(root: AST.Root, context: LegacyContext): void {
 		(attribute) => attribute.type === 'Attribute' && attribute.name === 'context'
 	);
 	if (contextAttribute !== undefined) legacy('script_context_deprecated', contextAttribute);
-	fragment(root.fragment, null, {
-		...context,
-		customElement: context.customElement || options?.customElement !== undefined
-	});
+	try {
+		fragment(root.fragment, null, {
+			...context,
+			customElement: context.customElement || options?.customElement !== undefined
+		});
+	} catch (error) {
+		if (error !== stopped) throw error;
+	}
 }

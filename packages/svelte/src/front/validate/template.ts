@@ -1,7 +1,9 @@
 import type * as AST from '../ast.ts';
 import { fail } from '../diagnostics.ts';
 import { extractIgnores } from '../ignores.ts';
+import { CompileError } from 'vigla/compiler';
 import { bidirectionalRun } from '../parse/characters.ts';
+import { stopped, type Anchors } from './anchors.ts';
 import { isVoid } from '../parse/html.ts';
 import type { Report } from './report.ts';
 
@@ -174,29 +176,67 @@ function customElement(node: AST.ElementLike): boolean {
 export class Template {
 	readonly source: string;
 	readonly report: Report;
+	readonly anchors: Anchors;
+	#claimed = 0;
 
-	constructor(source: string, report: Report) {
+	constructor(source: string, report: Report, anchors: Anchors) {
 		this.source = source;
 		this.report = report;
+		this.anchors = anchors;
+	}
+
+	claim(owner: object): void {
+		const warnings = this.report.warnings;
+		if (this.#claimed === warnings.length) return;
+		this.anchors.warn(owner, warnings.slice(this.#claimed));
+		this.#claimed = warnings.length;
+	}
+
+	walk(root: AST.Root): void {
+		try {
+			this.fragment(root.fragment, root);
+		} catch (error) {
+			if (error !== stopped) throw error;
+		}
+	}
+
+	visit(node: AST.TemplateNode, owner: Parent): void {
+		try {
+			this.node(node, owner);
+		} catch (error) {
+			if (error !== stopped) {
+				if (!(error instanceof CompileError)) throw error;
+				this.claim(node);
+				this.anchors.fail(node, error.diagnostic);
+			}
+			throw stopped;
+		}
+		this.claim(node);
 	}
 
 	fragment(fragment: AST.Fragment | null | undefined, owner: Parent): void {
 		if (!fragment) return;
+		this.claim(owner);
 		const comments: AST.Comment[] = [];
+		let bidiIgnored = false;
 		for (const node of fragment.nodes) {
 			if (node.type === 'Comment') {
 				comments.push(node);
+				bidiIgnored ||= extractIgnores(node.start + 4, node.data).codes.includes(
+					'bidirectional_control_characters'
+				);
 				continue;
 			}
 			if (node.type === 'Text') {
-				this.text(node, fragment);
+				if (!bidiIgnored) this.text(node);
+				this.claim(node);
 				continue;
 			}
 			const codes = comments
 				.splice(0)
 				.flatMap((comment) => extractIgnores(comment.start + 4, comment.data).codes);
 			if (codes.length > 0) this.report.push(codes);
-			this.node(node, owner);
+			this.visit(node, owner);
 			if (codes.length > 0) this.report.pop();
 		}
 	}
@@ -218,18 +258,8 @@ export class Template {
 		}
 	}
 
-	text(node: AST.Text, fragment: AST.Fragment): void {
+	text(node: AST.Text): void {
 		for (const match of node.data.matchAll(bidirectional)) {
-			let ignored = false;
-			for (const child of fragment.nodes) {
-				if (child === node) break;
-				if (child.type === 'Comment') {
-					ignored ||= extractIgnores(child.start + 4, child.data).codes.includes(
-						'bidirectional_control_characters'
-					);
-				}
-			}
-			if (ignored) continue;
 			const start = match.index + node.start;
 			this.report.warn('bidirectional_control_characters', { start, end: start + match[0].length });
 		}
@@ -490,6 +520,9 @@ export class Template {
 
 	attribute(attribute: AST.Attribute, owner: AST.ElementLike): void {
 		const value = attribute.value;
+		if (Array.isArray(value)) {
+			for (const part of value) if (part.type === 'Text') this.text(part);
+		}
 		const component =
 			owner.type === 'Component' || owner.type === 'SvelteComponent' || owner.type === 'SvelteSelf';
 		if (

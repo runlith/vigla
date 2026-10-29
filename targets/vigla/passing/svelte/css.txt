@@ -46,8 +46,12 @@ general-siblings-combinator-render-tag
 general-siblings-combinator-rendertag-global
 general-siblings-combinator-star
 global
+global-block
 global-keyframes
 global-keyframes-with-no-elements
+global-local
+global-local-nested
+global-nested-block
 global-with-child-combinator
 global-with-child-combinator-2
 global-with-class

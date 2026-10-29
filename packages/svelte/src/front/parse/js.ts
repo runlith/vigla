@@ -118,37 +118,42 @@ class Comments {
 
 	attach(ast: Node): void {
 		if (this.into.length === 0) return;
+		let first = this.into.length;
+		while (first > 0 && (this.into[first - 1] as JSComment).start >= this.from) first--;
 		const queue: Attached[] = [];
-		for (const comment of this.into) {
-			if (comment.start >= this.from) {
-				queue.push({
-					type: comment.type,
-					value: comment.value,
-					start: comment.start,
-					end: comment.end
-				});
-			}
+		for (let index = first; index < this.into.length; index++) {
+			const comment = this.into[index] as JSComment;
+			queue.push({
+				type: comment.type,
+				value: comment.value,
+				start: comment.start,
+				end: comment.end
+			});
 		}
 		let head = 0;
 		const source = this.source;
 		const path: Node[] = [];
 
-		const visit = (node: Node): void => {
+		const visit = (node: Node, final: boolean): void => {
 			while (head < queue.length && (queue[head] as Attached).start < node.start) {
 				(node.leadingComments ??= []).push(queue[head++] as Attached);
 			}
 			path.push(node);
+			const listed = lists[node.type];
 			for (const key in node) {
 				if (key === 'type') continue;
 				const child = node[key];
 				if (child === null || typeof child !== 'object') continue;
 				if (Array.isArray(child)) {
-					for (const item of child) {
-						if (item !== null && typeof item === 'object' && (item as Node).type)
-							visit(item as Node);
+					const tracked = key === listed;
+					for (let index = 0; index < child.length; index++) {
+						const item = child[index] as Node | null;
+						if (item !== null && typeof item === 'object' && item.type) {
+							visit(item, tracked && index === child.length - 1);
+						}
 					}
 				} else if ((child as Node).type) {
-					visit(child as Node);
+					visit(child as Node, false);
 				}
 			}
 			path.pop();
@@ -157,7 +162,7 @@ class Comments {
 			const parent = path.at(-1) as (Node & Record<string, unknown>) | undefined;
 			if (parent !== undefined && node.end === parent.end) return;
 			const gap = source.slice(node.end, next.start);
-			if (last(parent, node)) {
+			if (final) {
 				while (head < queue.length) {
 					const comment = queue[head] as Attached;
 					if (parent !== undefined && comment.start >= parent.end) break;
@@ -170,7 +175,7 @@ class Comments {
 			}
 		};
 
-		visit(ast);
+		visit(ast, false);
 		if (head < queue.length) {
 			const rest = queue[head] as Attached;
 			if (rest.start >= ast.end || ast.type === 'Program') {
@@ -180,18 +185,12 @@ class Comments {
 	}
 }
 
-function last(parent: Record<string, unknown> | undefined, node: Node): boolean {
-	if (parent === undefined) return false;
-	const list =
-		parent.type === 'BlockStatement' || parent.type === 'Program'
-			? parent.body
-			: parent.type === 'ArrayExpression'
-				? parent.elements
-				: parent.type === 'ObjectExpression'
-					? parent.properties
-					: null;
-	return Array.isArray(list) && list.indexOf(node) === list.length - 1;
-}
+const lists: Readonly<Record<string, string>> = {
+	BlockStatement: 'body',
+	Program: 'body',
+	ArrayExpression: 'elements',
+	ObjectExpression: 'properties'
+};
 
 function startLocation(context: Context, index: number): acorn.Position | undefined {
 	if (!lfLineBreaksOnly(context.template)) return undefined;
