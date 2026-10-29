@@ -120,6 +120,7 @@ unmatched-closing-tag
 unmatched-closing-tag-autoclose
 unmatched-closing-tag-autoclose-2
 void-closing
+window-children
 window-duplicate
 window-inside-block
 window-inside-element

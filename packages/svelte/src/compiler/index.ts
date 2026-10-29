@@ -14,6 +14,7 @@ import {
 	merge,
 	parseComponent,
 	parseStylesheet,
+	phased,
 	phases,
 	validateComponent,
 	type AST
@@ -144,17 +145,23 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		const reading = lowerComponent(parsed, source, options.filename ?? null);
 		const phase = phases(parsed.root);
 		const own = merge(syntax.walk, reading.warnings, phase);
-		const reported = (core: readonly Diagnostic[]): Warning[] => [
-			...notices,
-			...diagnostics.warnings([...syntax.before, ...merge(own, core, phase)])
-		];
 		if (options.generate === false) {
 			const core = validateUnit(reading.unit, {
 				customElement: options.customElement === true,
-				namespace: options.namespace
+				namespace: options.namespace,
+				warnings: phased(parsed.root, syntax.before, own)
 			});
-			return { js: null, css: null, warnings: reported(core), metadata: { runes: true } };
+			return {
+				js: null,
+				css: null,
+				warnings: [...notices, ...diagnostics.warnings([...syntax.parse, ...core])],
+				metadata: { runes: true }
+			};
 		}
+		const reported = (core: readonly Diagnostic[]): Warning[] => [
+			...notices,
+			...diagnostics.warnings([...syntax.parse, ...syntax.before, ...merge(own, core, phase)])
+		];
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,

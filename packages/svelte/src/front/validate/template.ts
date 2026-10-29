@@ -384,6 +384,7 @@ export class Template {
 				}
 				break;
 			case 'SvelteBody':
+				this.childless(node);
 				for (const attribute of node.attributes) {
 					const event =
 						attribute.type === 'Attribute' &&
@@ -396,6 +397,7 @@ export class Template {
 				break;
 			case 'SvelteWindow':
 			case 'SvelteDocument':
+				this.childless(node);
 				for (const attribute of node.attributes) {
 					const event =
 						attribute.type === 'Attribute' &&
@@ -410,6 +412,19 @@ export class Template {
 				break;
 		}
 		this.fragment(node.fragment, node);
+	}
+
+	childless(node: AST.ElementLike): void {
+		const nodes = node.fragment.nodes;
+		const first = nodes[0];
+		const last = nodes.at(-1);
+		if (first !== undefined && last !== undefined) {
+			fail(
+				'svelte_meta_invalid_content',
+				{ start: first.start, end: last.end },
+				{ name: node.name }
+			);
+		}
 	}
 
 	colon(attribute: AST.Attribute): void {

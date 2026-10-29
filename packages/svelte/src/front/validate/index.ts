@@ -128,8 +128,33 @@ function rejectLegacyProps(root: AST.Root): void {
 }
 
 export interface Validated {
+	readonly parse: readonly Diagnostic[];
 	readonly before: readonly Diagnostic[];
 	readonly walk: readonly Diagnostic[];
+}
+
+export interface Phased {
+	readonly before: readonly Diagnostic[];
+	readonly module: readonly Diagnostic[];
+	readonly instance: readonly Diagnostic[];
+	readonly template: readonly Diagnostic[];
+}
+
+export function phased(
+	root: AST.Root,
+	before: readonly Diagnostic[],
+	walk: readonly Diagnostic[]
+): Phased {
+	const phase = phases(root);
+	const lists: Diagnostic[][] = [[], [], [], [], []];
+	for (const diagnostic of walk) (lists[phase(diagnostic)] as Diagnostic[]).push(diagnostic);
+	const byStart = (list: Diagnostic[]): Diagnostic[] => list.sort((a, b) => a.start - b.start);
+	return {
+		before,
+		module: byStart(lists[1] as Diagnostic[]),
+		instance: byStart(lists[2] as Diagnostic[]),
+		template: byStart([...(lists[3] as Diagnostic[]), ...(lists[4] as Diagnostic[])])
+	};
 }
 
 export function validateComponent(
@@ -157,5 +182,5 @@ export function validateComponent(
 	literals(root.fragment, report);
 	const phase = phases(root);
 	const walk = [...report.warnings].sort((a, b) => phase(a) - phase(b) || a.start - b.start);
-	return { before: [...parsed.warnings, ...early.warnings], walk };
+	return { parse: parsed.warnings, before: early.warnings, walk };
 }

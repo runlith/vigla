@@ -238,6 +238,9 @@ svelte-head-attributes
 svelte-ignore-non-reactive-update
 svg-child-component-declared-namespace
 tag-custom-element-options-missing
+tag-custom-element-options-true
+tag-emoji
+tag-hyphen
 tag-invalid
 tag-non-string
 tag-reserved
