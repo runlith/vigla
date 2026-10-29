@@ -303,8 +303,8 @@ export class Scopes {
 						continue;
 					}
 					const kind = kindOf(rune);
-					if (kind !== 'normal' && declarator.id.type !== 'Identifier') {
-						throw unsupported(spanOf(declarator.id), `Destructuring a ${rune ?? ''} declaration`);
+					if (rune === '$props.id' && declarator.id.type !== 'Identifier') {
+						throw unsupported(spanOf(declarator.id), `Destructuring a ${rune} declaration`);
 					}
 					const binding = {
 						kind,

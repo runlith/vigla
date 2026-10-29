@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import {
 	hasAwait,
 	inspection,
+	patternNames,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -77,6 +78,83 @@ function propsPattern(
 }
 
 const noop: ES.ArrowFunctionExpression = b.arrow([], []);
+
+function leaves(pattern: ES.Pattern, next: <T extends ES.Node>(node: T) => T): ES.Pattern {
+	switch (pattern.type) {
+		case 'AssignmentPattern':
+			return { ...pattern, left: leaves(pattern.left, next), right: next(pattern.right) };
+		case 'ObjectPattern':
+			return {
+				...pattern,
+				properties: pattern.properties.map((property) =>
+					property.type === 'RestElement'
+						? { ...property, argument: leaves(property.argument, next) }
+						: {
+								...property,
+								key: property.computed ? next(property.key) : property.key,
+								value: leaves(property.value, next),
+								shorthand: false
+							}
+				)
+			};
+		case 'ArrayPattern':
+			return {
+				...pattern,
+				elements: pattern.elements.map((element) =>
+					element === null
+						? null
+						: element.type === 'RestElement'
+							? { ...element, argument: leaves(element.argument, next) }
+							: leaves(element, next)
+				)
+			};
+		default:
+			return pattern;
+	}
+}
+
+function destructuredDerived(
+	context: Context,
+	declarator: ES.VariableDeclarator,
+	next: <T extends ES.Node>(node: T) => T
+): ES.VariableDeclarator[] {
+	const holder = b.id(context.names.unique('$$d'));
+	const values = b.id(context.names.unique('$$v'));
+	const names = patternNames(declarator.id);
+	const body: ES.Statement[] = [
+		{
+			type: 'VariableDeclaration',
+			kind: 'const',
+			declarations: [
+				{ type: 'VariableDeclarator', id: leaves(declarator.id, next), init: b.call(holder) }
+			]
+		},
+		{
+			type: 'ReturnStatement',
+			argument: b.object(Object.fromEntries(names.map((name) => [name.name, b.id(name.name)])))
+		}
+	];
+	return [
+		next({ type: 'VariableDeclarator', id: holder, init: declarator.init }),
+		{
+			type: 'VariableDeclarator',
+			id: values,
+			init: runtime(context, 'derived', b.arrow([], body))
+		},
+		...names.map((name): ES.VariableDeclarator => ({
+			type: 'VariableDeclarator',
+			id: name,
+			init: runtime(context, 'derived', b.arrow([], b.member(b.call(values), name.name)))
+		}))
+	];
+}
+
+function derivedPattern(context: Context, declarator: ES.VariableDeclarator): boolean {
+	const init = declarator.init;
+	if (declarator.id.type === 'Identifier' || init?.type !== 'CallExpression') return false;
+	const rune = context.analysis.runes.get(init.callee);
+	return rune === '$derived' || rune === '$derived.by';
+}
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 	const { references, runes } = context.analysis;
@@ -191,6 +269,18 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					default:
 						return undefined;
 				}
+			}
+			case 'VariableDeclaration': {
+				if (!current.declarations.some((declarator) => derivedPattern(context, declarator)))
+					return undefined;
+				return {
+					...current,
+					declarations: current.declarations.flatMap((declarator) =>
+						derivedPattern(context, declarator)
+							? destructuredDerived(context, declarator, next)
+							: [next(declarator)]
+					)
+				};
 			}
 			case 'VariableDeclarator': {
 				const init = current.init;

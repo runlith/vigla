@@ -13,6 +13,7 @@ import {
 import * as b from '../ir/estree.ts';
 import type { Rune } from '../ir/port.ts';
 import { classBody, fieldValue, privateField } from './classes.ts';
+import { destructured } from './patterns.ts';
 
 export interface Context {
 	readonly analysis: ScriptAnalysis;
@@ -42,7 +43,7 @@ export function runtime(
 	return b.call(b.member(context.runtime, name), ...args);
 }
 
-function primitive(node: ES.Expression): boolean {
+export function primitive(node: ES.Expression): boolean {
 	return (
 		(node.type === 'Literal' && !('regex' in node)) ||
 		(node.type === 'Identifier' && node.name === 'undefined') ||
@@ -154,7 +155,7 @@ function update(context: Context, node: ES.UpdateExpression, binding: Binding): 
 	return runtime(context, node.prefix ? 'updatePre' : 'update', target, delta);
 }
 
-function declare(
+export function declare(
 	context: Context,
 	rune: Rune,
 	binding: Binding | undefined,
@@ -429,8 +430,11 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						continue;
 					}
 					changed = true;
-					const binding =
-						declarator.id.type === 'Identifier' ? declarations.get(declarator.id) : undefined;
+					if (declarator.id.type !== 'Identifier') {
+						declarators.push(...destructured(context, rune, declarator.id, init, next));
+						continue;
+					}
+					const binding = declarations.get(declarator.id);
 					declarators.push({ ...declarator, init: declare(context, rune, binding, init, next) });
 				}
 				if (!changed) return current;
