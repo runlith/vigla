@@ -28,4 +28,4 @@ sources:
   - kind: dir
     ref: packages/dromon/src/compiler/analysis
 ---
-Decides what a unit's code means before any output exists: scopes and bindings, which bindings are reactive and how — state, raw state, derived, props, each item and index — which identifiers reference them, which template expressions can change, each element's namespace, and the template's whitespace as HTML keeps it. Client and server generation read only its result, so both agree on meaning; a construct it does not support yet fails here with an `unsupported` diagnostic.
+Judges a unit's validity with upstream's diagnostics, then decides what its code means before any output exists: scopes and bindings, which bindings are reactive and how — state, raw state, derived, props, each item and index — which identifiers reference them, which template expressions can change, each element's namespace, and the template's whitespace as HTML keeps it. Client and server generation read only its result, so both agree on meaning; a construct it does not support yet fails here with an `unsupported` diagnostic.
