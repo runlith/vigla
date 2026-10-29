@@ -1,5 +1,6 @@
 import * as vitest from 'vitest';
 import { ruling, runs, type Manifest } from '../manifest.ts';
+import { selects } from '../scope.ts';
 
 export * from 'vitest';
 
@@ -30,8 +31,9 @@ export function it(name: string, body: Body): void {
 	const key = [...path, name].join(' > ');
 	registered.push(key);
 	if (governed === null) throw new Error(`${key} registered outside a governed suite`);
-	const rule = ruling(governed.manifest, key);
 	const suite = governed.suite;
+	if (!selects(`svelte/${suite}`, key)) return;
+	const rule = ruling(governed.manifest, key);
 	if (rule === undefined) {
 		vitest.it(name, () => vitest.assert.fail(`${suite}/${key} has no status in the manifest`));
 	} else if (runs(rule.status)) {

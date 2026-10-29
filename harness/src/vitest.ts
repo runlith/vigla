@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 import { defineConfig, type ViteUserConfig } from 'vitest/config';
 import { root } from './manifest.ts';
-import { Report } from './report.ts';
 import { borrowed, directory, locate, production, resolver } from './resolve.ts';
 import { suites } from './suites.ts';
 import type { Target } from './target.ts';
@@ -43,7 +42,6 @@ export function harness(target: Target): ViteUserConfig {
 			dir: root,
 			setupFiles: [join(root, 'src', 'setup.ts')],
 			testTimeout: 30_000,
-			reporters: ['default', new Report()],
 			provide: { target },
 			server: { deps: { inline } },
 			projects: [

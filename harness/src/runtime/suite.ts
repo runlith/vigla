@@ -4,8 +4,9 @@ import { compileModule, type CompileOptions } from 'svelte/compiler';
 import { afterAll, assert, beforeAll, inject, it } from 'vitest';
 import { root, ruling, runs } from '../manifest.ts';
 import { forced } from '../reference.ts';
-import { workspace, type Sample } from '../samples.ts';
-import { suiteNamed } from '../suites.ts';
+import { unloadable, workspace, type Sample } from '../samples.ts';
+import { selects } from '../scope.ts';
+import { entryId, suiteNamed } from '../suites.ts';
 import type { Fresh } from '../target.ts';
 import { compileDirectory } from './compile.ts';
 import type { Base, Config, Variant } from './config.ts';
@@ -57,7 +58,8 @@ async function reactive(work: string): Promise<Session['reactive']> {
 
 export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>): Promise<void> {
 	const target = inject('target');
-	const { run, manifest, samples } = await workspace<C>(suite);
+	const { id, run, manifest, samples } = await workspace<C>(suite);
+	if (samples.length === 0) return;
 	const session: Session = {
 		fresh: (await import(target.fresh)) as Fresh,
 		reactive: await reactive(run)
@@ -69,13 +71,15 @@ export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>):
 		await kind.close?.();
 	});
 
-	for (const { name, cwd, config } of samples) {
+	for (const sample of samples) {
+		const { name, cwd, config } = sample;
 		let setup: Promise<CompileOptions> | undefined;
 
 		for (const variant of kind.variants) {
 			const present = kind.presence(variant, config, name);
 			if (present === 'absent') continue;
-			const title = `${name} (${variant})`;
+			const title = entryId(name, variant);
+			if (!selects(id, title)) continue;
 			const rule = ruling(manifest, name, variant);
 			if (rule === undefined) {
 				it(title, () => assert.fail(`${suite}/${name}/${variant} has no status in the manifest`));
@@ -84,6 +88,10 @@ export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>):
 			const skipped = config.skip || present === 'skipped' || !runs(rule.status);
 			const test = kind.concurrent ? it.concurrent : it;
 			const register = skipped ? test.skip : config.solo ? test.only : test;
+			if (sample.broken !== undefined) {
+				register(title, unloadable(sample));
+				continue;
+			}
 			register(title, { timeout: config.timeout }, async () => {
 				setup ??= (async () => {
 					const options = reference(kind.root === 'sample' ? cwd : run, config.compileOptions);

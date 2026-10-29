@@ -1,11 +1,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { modeOf, outcomes } from './summary.ts';
-import { treeNamed, trees, type Tree } from './trees.ts';
 import { load, ruling } from './manifest.ts';
+import { modeOf, outcomes } from './reports.ts';
 import type { Variant } from './runtime/config.ts';
-import { entryOfTest, suiteNamed, suiteOfFile, suites, type Suite } from './suites.ts';
+import { entryId, entryOfTest, suiteNamed, suiteOfFile, suites, type Suite } from './suites.ts';
+import { treeNamed, trees, type Tree } from './trees.ts';
 
 interface Results {
 	testResults: {
@@ -17,7 +17,7 @@ interface Results {
 type Entry = { sample: string; variant?: Variant };
 
 function key(entry: Entry): string {
-	return entry.variant === undefined ? entry.sample : `${entry.sample} (${entry.variant})`;
+	return entryId(entry.sample, entry.variant);
 }
 
 function contractual(suite: Suite): (entry: Entry) => boolean {
@@ -67,7 +67,7 @@ function treePassed(tree: Tree, file: string, mode: string | undefined): Set<str
 	const found = new Set<string>();
 	for (const { key, state, variant } of outcomes(tree, file, mode) ?? []) {
 		if (state === 'passed' && ruling(manifest, key, variant)?.status === 'contract')
-			found.add(variant === undefined ? key : `${key} (${variant})`);
+			found.add(entryId(key, variant));
 	}
 	return found;
 }

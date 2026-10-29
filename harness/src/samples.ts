@@ -3,15 +3,18 @@ import { join } from 'node:path';
 import { afterAll, assert, inject, it } from 'vitest';
 import { faults, load, root, ruling, runs, type Manifest } from './manifest.ts';
 import type { Base } from './runtime/config.ts';
-import { suiteNamed } from './suites.ts';
+import { reaches, selects } from './scope.ts';
+import { suiteId, suiteNamed } from './suites.ts';
 
 export interface Sample<C extends Base> {
 	name: string;
 	cwd: string;
 	config: C;
+	broken?: unknown;
 }
 
 export interface Workspace<C extends Base> {
+	id: string;
 	run: string;
 	manifest: Manifest;
 	samples: Sample<C>[];
@@ -19,7 +22,9 @@ export interface Workspace<C extends Base> {
 
 export async function workspace<C extends Base>(suite: string): Promise<Workspace<C>> {
 	const target = inject('target');
-	const { project, source, tests = [] } = suiteNamed(suite);
+	const named = suiteNamed(suite);
+	const { project, source, tests = [] } = named;
+	const id = suiteId(named);
 	const run = join(target.root, '.work', `${suite}-${process.pid}`);
 	const dir = join(run, 'packages', 'svelte', 'tests', source);
 
@@ -47,12 +52,21 @@ export async function workspace<C extends Base>(suite: string): Promise<Workspac
 
 	const samples: Sample<C>[] = [];
 	for (const name of names) {
+		if (!reaches(id, name)) continue;
 		const cwd = join(dir, name);
 		const file = join(cwd, '_config.js');
-		const config = (existsSync(file) ? ((await import(file)) as { default: C }).default : {}) as C;
-		samples.push({ name, cwd, config });
+		if (!existsSync(file)) {
+			samples.push({ name, cwd, config: {} as C });
+			continue;
+		}
+		try {
+			const config = ((await import(file)) as { default: C }).default;
+			samples.push({ name, cwd, config });
+		} catch (error) {
+			samples.push({ name, cwd, config: {} as C, broken: error });
+		}
 	}
-	return { run, manifest, samples };
+	return { id, run, manifest, samples };
 }
 
 export interface Inline {
@@ -66,15 +80,15 @@ export interface Plain<C extends Base> {
 }
 
 function register(
-	suite: string,
-	manifest: Manifest,
+	{ id, manifest }: Workspace<Base>,
 	title: string,
 	config: Base,
 	body: () => void | Promise<void>
 ): void {
+	if (!selects(id, title)) return;
 	const rule = ruling(manifest, title);
 	if (rule === undefined) {
-		it(title, () => assert.fail(`${suite}/${title} has no status in the manifest`));
+		it(title, () => assert.fail(`${id}/${title} has no status in the manifest`));
 		return;
 	}
 	const skipped = config.skip || !runs(rule.status);
@@ -82,17 +96,29 @@ function register(
 	test(title, { timeout: config.timeout }, body);
 }
 
+export function unloadable(sample: Sample<Base>): () => never {
+	return () => {
+		throw sample.broken;
+	};
+}
+
 export async function plainSuite<C extends Base>(suite: string, kind: Plain<C>): Promise<void> {
-	const { run, manifest, samples } = await workspace<C>(suite);
-	for (const sample of samples) {
-		register(suite, manifest, sample.name, sample.config, () => kind.run(sample, run));
+	const space = await workspace<C>(suite);
+	for (const sample of space.samples) {
+		register(
+			space,
+			sample.name,
+			sample.config,
+			sample.broken === undefined ? () => kind.run(sample, space.run) : unloadable(sample)
+		);
 	}
 	for (const title of suiteNamed(suite).tests ?? []) {
+		if (!selects(space.id, title)) continue;
 		const inline = kind.tests?.[title];
 		if (inline === undefined) {
 			it(title, () => assert.fail(`${suite} has no implementation of "${title}"`));
 			continue;
 		}
-		register(suite, manifest, title, { skip: inline.skip }, inline.run);
+		register(space, title, { skip: inline.skip }, inline.run);
 	}
 }

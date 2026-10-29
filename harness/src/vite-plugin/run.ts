@@ -2,13 +2,14 @@ import { spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { root } from '../manifest.ts';
+import { resultsDir, writeRuns, type Run } from '../reports.ts';
+import { covers } from '../scope.ts';
 import { install, read, store } from '../store.ts';
-import { summarize, type Run } from '../summary.ts';
 import { samplesOf, treeNamed, type Tree } from '../trees.ts';
 
 const target = process.cwd();
 const work = join(target, '.work', `vite-plugin-${process.pid}`);
-const results = join(target, '.results');
+const results = resultsDir(target);
 const force = join(root, 'src', 'force.ts');
 
 function tree(name: string): Tree {
@@ -42,7 +43,7 @@ function prepare(): void {
 	}
 }
 
-const runs: Run[] = [
+const planned: Run[] = [
 	{ tree: tree('units'), file: 'units.json', env: {} },
 	{ tree: tree('e2e'), mode: 'serve', file: 'e2e.serve.json', env: { CI: '1' } },
 	{ tree: tree('e2e'), mode: 'build', file: 'e2e.build.json', env: { CI: '1', TEST_BUILD: '1' } },
@@ -53,8 +54,10 @@ const runs: Run[] = [
 		env: { CI: '1', TEST_BUILD_WATCH: '1' }
 	}
 ];
+const runs = planned.filter((run) => covers(`vite-plugin/${run.tree.name}`));
 
 prepare();
+rmSync(results, { recursive: true, force: true });
 mkdirSync(results, { recursive: true });
 const vitest = join(target, 'node_modules', '.bin', 'vitest');
 for (const run of runs) {
@@ -85,4 +88,4 @@ for (const run of runs) {
 	);
 }
 rmSync(work, { recursive: true, force: true });
-process.exit(summarize(runs, results));
+writeRuns(results, runs);

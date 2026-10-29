@@ -9,8 +9,9 @@
 		"targets/*/kit"
 	],
 	"scripts": {
-		"harness:upstream": "node harness/src/all.ts targets/upstream",
-		"harness:dromon": "node harness/src/all.ts targets/dromon",
+		"harness:upstream": "node harness/src/cli.ts targets/upstream",
+		"harness:dromon": "node harness/src/cli.ts targets/dromon",
+		"harness:passing": "node harness/src/cli.ts targets/dromon --passing",
 		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/dromon --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p targets/dromon --noEmit"
 	},
 	"devDependencies": {

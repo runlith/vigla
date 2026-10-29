@@ -1,4 +1,6 @@
 import { load, ruling, runs } from './manifest.ts';
+import { selects } from './scope.ts';
+import { entryId } from './suites.ts';
 import { entryOfTree, treeNamed } from './trees.ts';
 
 interface Task {
@@ -35,6 +37,8 @@ function ancestors(task: Task): string[] {
 		context.task.name
 	);
 	const rule = key === null ? undefined : ruling(manifest, key, mode);
+	if (key !== null && !selects(`${tree.project}/${tree.name}`, entryId(key, mode)))
+		return context.skip('not selected');
 	if (rule === undefined)
 		throw new Error(`${tree.project}/${tree.name}/${key} has no status in the manifest`);
 	if (!runs(rule.status)) context.skip(rule.reason);

@@ -28,6 +28,14 @@ export interface Suite {
 
 const variant = /^(.*) \((dom|hydrate|ssr|async-ssr)\)$/;
 
+export function entryId(sample: string, variant?: string): string {
+	return variant === undefined ? sample : `${sample} (${variant})`;
+}
+
+export function suiteId(suite: { project: string; name: string }): string {
+	return `${suite.project}/${suite.name}`;
+}
+
 export function entryOf(title: string): { sample: string; variant: Variant } | null {
 	const match = variant.exec(title);
 	return match === null ? null : { sample: match[1] ?? '', variant: match[2] as Variant };

@@ -3,7 +3,10 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "vitest run"
+		"test": "node ../../harness/src/cli.ts . --passing"
+	},
+	"harness": {
+		"passing": "passing"
 	},
 	"dependencies": {
 		"@dromon/harness": "workspace:*",

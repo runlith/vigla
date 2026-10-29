@@ -1,6 +1,8 @@
 import { cpus } from 'node:os';
 import { join } from 'node:path';
 import { load, ruling, runs } from '../manifest.ts';
+import { selects } from '../scope.ts';
+import { entryId } from '../suites.ts';
 import { samplesOf, treeFiles, treeNamed, type Tree } from '../trees.ts';
 
 const gate = join(import.meta.dirname, '..', 'gate.ts');
@@ -11,7 +13,11 @@ function idle(tree: Tree, mode: string | undefined): string[] {
 	for (const key of Object.keys(manifest.samples)) {
 		const file = key.split(' > ')[0] ?? '';
 		const rule = ruling(manifest, key, mode);
-		byFile.set(file, (byFile.get(file) ?? false) || (rule !== undefined && runs(rule.status)));
+		const running =
+			rule !== undefined &&
+			runs(rule.status) &&
+			selects(`${tree.project}/${tree.name}`, entryId(key, mode));
+		byFile.set(file, (byFile.get(file) ?? false) || running);
 	}
 	return [...byFile].filter(([, running]) => !running).map(([file]) => file);
 }

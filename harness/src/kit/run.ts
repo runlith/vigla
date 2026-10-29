@@ -9,16 +9,18 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { load, root, ruling, runs as running } from '../manifest.ts';
+import { resultsDir, writeRuns, type Run } from '../reports.ts';
+import { covers, selectors, selects } from '../scope.ts';
 import { install, store } from '../store.ts';
-import { summarize, type Run } from '../summary.ts';
+import { entryId } from '../suites.ts';
 import { samplesOf, treeNamed, trees, type Tree } from '../trees.ts';
 import { execute, plan, type Step } from './steps.ts';
 import { checkTypes } from './types.ts';
-import { reportName, selected, units } from './units.ts';
+import { reportName, selected, units, type Unit } from './units.ts';
 
 const target = process.cwd();
 const work = join(target, '.work', `kit-${process.pid}`);
-const results = join(target, '.results');
+const results = resultsDir(target);
 const bin = join(target, 'node_modules', '.bin');
 const force = join(root, 'src', 'force.ts');
 
@@ -63,7 +65,12 @@ function specs(tree: Tree): Step {
 	const files = new Set<string>();
 	for (const key of Object.keys(manifest.samples)) {
 		const rule = ruling(manifest, key);
-		if (rule !== undefined && running(rule.status)) files.add(key.split(' > ')[0] ?? '');
+		if (
+			rule !== undefined &&
+			running(rule.status) &&
+			selects(`kit/${tree.name}`, entryId(key, 'test-unit-1'))
+		)
+			files.add(key.split(' > ')[0] ?? '');
 	}
 	const config = join(work, tree.source, '..', `vitest.${tree.name}.config.js`);
 	const setup = join(work, 'packages', 'kit', 'test', 'matchers.js');
@@ -115,7 +122,17 @@ function types(dir: string, report: string): void {
 	);
 }
 
-for (const unit of selected(units(work), process.argv.slice(2))) {
+const all = units(work);
+
+function chosen(unit: Unit): boolean {
+	const id = `kit/${unit.tree}`;
+	if (!covers(id)) return false;
+	const picks = selectors(id);
+	if (picks === null || all.filter((other) => other.tree === unit.tree).length === 1) return true;
+	return picks.some((pick) => pick === unit.app || pick.startsWith(`${unit.app}/`));
+}
+
+for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 	const tree = treeNamed('kit', unit.tree);
 	if (tree === undefined) throw new Error(`no kit tree ${unit.tree}`);
 	const dir = join(work, unit.dir);
@@ -152,4 +169,4 @@ for (const unit of selected(units(work), process.argv.slice(2))) {
 	}
 }
 rmSync(work, { recursive: true, force: true });
-process.exit(summarize(runs, results));
+writeRuns(results, runs);
