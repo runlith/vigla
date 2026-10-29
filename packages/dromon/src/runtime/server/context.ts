@@ -33,6 +33,27 @@ export function end(saved: Render | null): void {
 	for (const fn of done?.destroys ?? []) fn();
 }
 
+export function capture(): () => void {
+	const captured = render;
+	const layer = captured?.layer ?? null;
+	return () => {
+		render = captured;
+		if (captured !== null) captured.layer = layer;
+		queueMicrotask(() => {
+			if (render === captured) render = null;
+		});
+	};
+}
+
+export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
+	const restore = capture();
+	const resolved = await value;
+	return () => {
+		restore();
+		return resolved;
+	};
+}
+
 export type Phase = 'initializing' | null;
 
 export function phase(): Phase {

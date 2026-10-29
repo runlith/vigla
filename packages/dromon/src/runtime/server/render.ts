@@ -17,10 +17,21 @@ class Global {
 	uid(): string {
 		return `${this.prefix}s${this.#uid++}`;
 	}
+
+	readonly pending: Promise<unknown>[] = [];
+
+	track(promise: Promise<unknown>): void {
+		promise.catch(() => {});
+		this.pending.push(promise);
+	}
+
+	async settle(): Promise<void> {
+		while (this.pending.length > 0) await Promise.all(this.pending.splice(0));
+	}
 }
 
 export class Output {
-	readonly #parts: string[] = [];
+	readonly #parts: (string | Output)[] = [];
 	readonly global: Global;
 
 	constructor(global: Global) {
@@ -29,6 +40,13 @@ export class Output {
 
 	push(html: string): void {
 		this.#parts.push(html);
+	}
+
+	child(fn: (out: Output) => void | Promise<void>): void {
+		const inner = new Output(this.global);
+		this.#parts.push(inner);
+		const result = fn(inner);
+		if (result instanceof Promise) this.global.track(result);
 	}
 
 	mark(): number {
@@ -40,7 +58,9 @@ export class Output {
 	}
 
 	toString(): string {
-		return this.#parts.join('');
+		let html = '';
+		for (const part of this.#parts) html += typeof part === 'string' ? part : part.toString();
+		return html;
 	}
 }
 
@@ -73,7 +93,8 @@ export function render<P extends Props>(
 	if (prefix?.includes('--')) {
 		throw failure('invalid_id_prefix', 'The `idPrefix` option cannot include `--`.');
 	}
-	const out = new Output(new Global(prefix ? `${prefix}-` : '', options.transformError));
+	const global = new Global(prefix ? `${prefix}-` : '', options.transformError);
+	const out = new Output(global);
 	const saved = begin();
 	try {
 		push(options.context);
@@ -83,11 +104,32 @@ export function render<P extends Props>(
 	} finally {
 		end(saved);
 	}
-	const rendered: Rendered = { head: '', body: out.toString(), hashes: { script: [] } };
+	const result = (): Rendered => ({ head: '', body: out.toString(), hashes: { script: [] } });
+	if (global.pending.length === 0) {
+		const rendered = result();
+		return {
+			...rendered,
+			then(fulfilled, rejected) {
+				return Promise.resolve(rendered).then(fulfilled, rejected);
+			}
+		};
+	}
+	const settled = global.settle().then(result);
+	const synchronous = (): never => {
+		throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
+	};
 	return {
-		...rendered,
+		get head(): string {
+			return synchronous();
+		},
+		get body(): string {
+			return synchronous();
+		},
+		get hashes(): Hashes {
+			return synchronous();
+		},
 		then(fulfilled, rejected) {
-			return Promise.resolve(rendered).then(fulfilled, rejected);
+			return settled.then(fulfilled, rejected);
 		}
 	};
 }
@@ -143,6 +185,10 @@ export function derived<T>(fn: () => T): (value?: T) => T {
 		}
 		return value;
 	};
+}
+
+export function held<T>(value: T): (next?: T) => T {
+	return derived(() => value);
 }
 
 export function iterate<T>(

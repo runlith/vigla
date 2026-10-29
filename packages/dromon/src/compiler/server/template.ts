@@ -15,6 +15,7 @@ import type {
 	Text,
 	Value
 } from '../ir/nodes.ts';
+import { asyncChild, awaiting } from './asynchronous.ts';
 import { bindings, type Bound } from './bindings.ts';
 import { boundary, component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
@@ -316,7 +317,42 @@ export function fragmentCode(
 	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
 	statements.push(...snippetDeclarations(context, nodes));
 	const alone = standalone(context, nodes);
+	let run: Node[] = [];
+	const flushRun = (): void => {
+		if (run.length === 0) return;
+		const group = run;
+		run = [];
+		const pending = awaiting(context, group);
+		if (pending.length > 0) {
+			asyncChild(context, group, pending, statements, buffer, fragmentCode);
+			return;
+		}
+		for (const node of group) single(context, node, statements, buffer, alone);
+	};
 	for (const node of nodes) {
+		if (node.kind === 'text' || node.kind === 'expression') {
+			run.push(node);
+			continue;
+		}
+		flushRun();
+		const pending = node.kind === 'snippet' ? [] : awaiting(context, [node]);
+		if (pending.length > 0) {
+			asyncChild(context, [node], pending, statements, buffer, fragmentCode);
+			continue;
+		}
+		single(context, node, statements, buffer, alone);
+	}
+	flushRun();
+}
+
+function single(
+	context: TemplateContext,
+	node: Node,
+	statements: ES.Statement[],
+	buffer: Buffer,
+	alone: boolean
+): void {
+	{
 		switch (node.kind) {
 			case 'snippet':
 				break;

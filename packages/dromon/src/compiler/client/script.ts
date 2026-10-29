@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import {
+	hasAwait,
 	isSignal,
 	spanOf,
 	unsupported,
@@ -19,6 +20,8 @@ export interface Context {
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
 	readonly fields?: ReadonlyMap<string, StateField>;
+	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
+	readonly saved?: ReadonlySet<ES.Node>;
 }
 
 const declaring = new Set<Rune>(['$state', '$state.raw', '$derived', '$derived.by', '$props.id']);
@@ -162,8 +165,14 @@ function declare(
 		}
 		case '$state.raw':
 			return source ? runtime(context, 'state', value) : value;
-		case '$derived':
+		case '$derived': {
+			if (given !== null && hasAwait(given)) {
+				const thunk = { ...b.arrow([], value), async: true };
+				const pending = runtime(context, 'save', runtime(context, 'asyncDerived', thunk));
+				return b.call({ type: 'AwaitExpression', argument: pending });
+			}
 			return runtime(context, 'derived', b.arrow([], value));
+		}
 		case '$derived.by':
 			return runtime(context, 'derived', value);
 		case '$props.id':
@@ -242,6 +251,8 @@ function effectCall(
 			return { ...call, callee: b.member(context.runtime, 'effectRoot') };
 		case '$effect.tracking':
 			return { ...call, callee: b.member(context.runtime, 'tracking') };
+		case '$effect.pending':
+			return { ...call, callee: b.member(context.runtime, 'pending') };
 		case '$state.snapshot':
 			return { ...call, callee: b.member(context.runtime, 'snapshot') };
 		default:
@@ -293,6 +304,14 @@ function assignField(
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 	const { references, declarations, runes } = context.analysis;
 	return b.rewrite(node, (current, next) => {
+		const awaited = context.awaited?.get(current);
+		if (awaited !== undefined) return runtime(context, 'get', awaited);
+		if (current.type === 'AwaitExpression' && context.saved?.has(current)) {
+			return b.call({
+				type: 'AwaitExpression',
+				argument: runtime(context, 'save', next(current.argument))
+			});
+		}
 		switch (current.type) {
 			case 'Identifier': {
 				const binding = references.get(current);

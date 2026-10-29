@@ -12,6 +12,7 @@ import type {
 	Text,
 	UnkeyedList
 } from '../ir/nodes.ts';
+import { asyncSetup, awaiting } from './asynchronous.ts';
 import {
 	boundaryCall,
 	componentCall,
@@ -231,7 +232,14 @@ export function parts(
 	const result: Part[] = [];
 	let run: (Text | Expression)[] = [];
 	const flush = (): void => {
-		if (run.length > 0) result.push(textPart(context, run));
+		if (run.length > 0) {
+			const pending = awaiting(context, run);
+			result.push(
+				pending.length > 0
+					? anchorPart(asyncSetup(context, run, pending, namespace, render))
+					: textPart(context, run)
+			);
+		}
 		run = [];
 	};
 	for (const node of nodes) {
@@ -240,6 +248,11 @@ export function parts(
 			continue;
 		}
 		flush();
+		const pending = node.kind === 'snippet' ? [] : awaiting(context, [node]);
+		if (pending.length > 0) {
+			result.push(anchorPart(asyncSetup(context, [node], pending, namespace, render)));
+			continue;
+		}
 		switch (node.kind) {
 			case 'element':
 				result.push(elementPart(context, node, namespace));
@@ -304,6 +317,7 @@ function standalone(context: TemplateContext, nodes: readonly Node[]): Node | nu
 	const regular = nodes.filter((node) => node.kind !== 'snippet');
 	if (regular.length !== 1) return null;
 	const [only] = regular;
+	if (only === undefined || awaiting(context, [only]).length > 0) return null;
 	if (only?.kind === 'component' && !isDynamicComponent(context, only)) return only;
 	if (only?.kind === 'render' && isStaticRender(context, only)) return only;
 	return null;

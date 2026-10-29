@@ -9,7 +9,8 @@ import type {
 	KeyedList,
 	Namespace,
 	Node,
-	UnkeyedList
+	UnkeyedList,
+	Value
 } from '../ir/nodes.ts';
 import { spanOf, unsupported, type Binding, type Scope, type Scopes } from './scope.ts';
 import { clean, preserving, type Preserve } from './whitespace.ts';
@@ -25,19 +26,79 @@ export function collectNames(node: ES.Node, names: Set<string>): void {
 	});
 }
 
-export function synchronous(node: ES.Node, where: string): void {
+export function hasAwait(node: ES.Node): boolean {
+	let found = false;
 	walk(node, (child) => {
+		if (found) return false;
 		if (
 			child.type === 'FunctionDeclaration' ||
 			child.type === 'FunctionExpression' ||
-			child.type === 'ArrowFunctionExpression'
+			child.type === 'ArrowFunctionExpression' ||
+			child.type === 'ClassBody'
 		) {
 			return false;
 		}
 		if (child.type === 'AwaitExpression' || (child.type === 'ForOfStatement' && child.await)) {
-			throw unsupported(spanOf(child), `An await ${where}`);
+			found = true;
+			return false;
 		}
 	});
+	return found;
+}
+
+export function ownExpressions(node: Node): ES.Expression[] {
+	const found: ES.Expression[] = [];
+	const value = (given: Value): void => {
+		if (given.kind === 'expression') found.push(given.expression);
+		else if (given.kind === 'text') {
+			for (const part of given.parts) if (part.kind === 'expression') found.push(part.expression);
+		}
+	};
+	switch (node.kind) {
+		case 'expression':
+			found.push(node.expression);
+			break;
+		case 'element':
+		case 'component':
+		case 'boundary':
+			if (node.kind === 'component') found.push(node.reference);
+			for (const attribute of node.attributes) {
+				switch (attribute.kind) {
+					case 'attribute':
+					case 'style':
+						value(attribute.value);
+						break;
+					case 'spread':
+					case 'class':
+					case 'attachment':
+						found.push(attribute.expression);
+						break;
+					default:
+						break;
+				}
+			}
+			break;
+		case 'branch':
+			for (const arm of node.arms) found.push(arm.test);
+			break;
+		case 'keyed-list':
+		case 'unkeyed-list':
+			found.push(node.collection);
+			break;
+		case 'render': {
+			const call = (
+				node.call.type === 'ChainExpression' ? node.call.expression : node.call
+			) as ES.SimpleCallExpression;
+			found.push(call.callee as ES.Expression);
+			for (const argument of call.arguments) {
+				if (argument.type !== 'SpreadElement') found.push(argument);
+			}
+			break;
+		}
+		default:
+			break;
+	}
+	return found;
 }
 
 function childNamespace(element: Element, namespace: Namespace): Namespace {
@@ -82,7 +143,6 @@ export class Template {
 	}
 
 	expression(expression: ES.Expression, scope: Scope): void {
-		synchronous(expression, 'in the template');
 		collectNames(expression, this.names);
 		this.scopes.declare(expression, scope);
 		this.scopes.resolve(expression, scope);

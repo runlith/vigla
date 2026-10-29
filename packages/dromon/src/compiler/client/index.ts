@@ -18,6 +18,28 @@ export interface ClientOptions extends ModuleOptions {
 	readonly name: string;
 }
 
+function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
+	const found = new Set<ES.Node>();
+	const program = analysis.unit.instance;
+	if (program === null) return found;
+	b.walk(program, (node) => {
+		if (
+			node.type === 'FunctionDeclaration' ||
+			node.type === 'FunctionExpression' ||
+			node.type === 'ArrowFunctionExpression' ||
+			node.type === 'ClassBody'
+		) {
+			return false;
+		}
+		if (node.type === 'CallExpression') {
+			const rune = analysis.runes.get(node.callee);
+			if (rune === '$derived' || rune === '$derived.by') return false;
+		}
+		if (node.type === 'AwaitExpression') found.add(node);
+	});
+	return found;
+}
+
 function declaredNames(declaration: ES.Declaration): ES.Identifier[] {
 	if (declaration.type === 'VariableDeclaration') {
 		return declaration.declarations.flatMap((declarator) => patternNames(declarator.id));
@@ -61,12 +83,16 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
+	const script: ES.Statement[] = [];
 	const exported: ES.Property[] = [];
+	const saving: Context = analysis.asynchronous
+		? { ...context, saved: topLevelAwaits(analysis) }
+		: context;
 	for (const statement of analysis.unit.instance?.body ?? []) {
 		if (statement.type === 'ImportDeclaration') imports.push(statement);
 		else if (statement.type === 'ExportNamedDeclaration' && statement.source == null) {
 			if (statement.declaration != null) {
-				body.push(rewrite(context, statement.declaration));
+				script.push(rewrite(saving, statement.declaration));
 				for (const name of declaredNames(statement.declaration)) {
 					exported.push(exportProperty(context, name.name, name));
 				}
@@ -81,10 +107,23 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			}
 		} else if (statement.type.startsWith('Export'))
 			throw unsupported(spanOf(statement), 'This export from a component');
-		else body.push(rewrite(context, statement as ES.Statement));
+		else script.push(rewrite(saving, statement as ES.Statement));
 	}
-	const template = render(context, analysis.root, anchor, analysis.namespace, true);
-	body.push(...context.instance, ...template);
+	if (analysis.asynchronous) {
+		const inner = b.id(names.unique('$$anchor'));
+		const template = render(context, analysis.root, inner, analysis.namespace, true);
+		const fn = b.arrow(
+			[],
+			[
+				...script,
+				{ type: 'ReturnStatement', argument: b.arrow([inner], [...context.instance, ...template]) }
+			]
+		);
+		body.push(b.statement(runtime(context, 'script', anchor, { ...fn, async: true })));
+	} else {
+		const template = render(context, analysis.root, anchor, analysis.namespace, true);
+		body.push(...script, ...context.instance, ...template);
+	}
 	body.push({
 		type: 'ReturnStatement',
 		argument: runtime(

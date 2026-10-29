@@ -1,0 +1,145 @@
+import { asyncDerived, work } from '../reactivity/async.ts';
+import { resumed, suspend } from '../reactivity/batch.ts';
+import { fail } from '../reactivity/effects.ts';
+import type { Effect, Source } from '../reactivity/graph.ts';
+import { get, owner } from '../reactivity/tracking.ts';
+import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';
+import { claim, COMMENT, cursor, hydrating, setHydrating } from './hydration.ts';
+import type { Render } from './template.ts';
+
+function matchingClose(open: ChildNode): ChildNode {
+	let depth = 0;
+	for (let node = open.nextSibling; node !== null; node = node.nextSibling) {
+		if (node.nodeType !== COMMENT) continue;
+		const data = (node as Comment).data;
+		if (data === CLOSE) {
+			if (depth === 0) return node;
+			depth--;
+		} else if (data === OPEN || data === OPEN_ELSE || data.startsWith('[')) {
+			depth++;
+		}
+	}
+	return open;
+}
+
+interface Resume {
+	readonly start: ChildNode | null;
+	readonly end: ChildNode | null;
+}
+
+function park(node: ChildNode): Resume {
+	if (!hydrating) return { start: null, end: null };
+	const end = matchingClose(node);
+	const start = node.nextSibling;
+	claim(end);
+	return { start, end };
+}
+
+function resume<T>(parked: Resume, fn: () => T): T {
+	if (parked.start === null) return fn();
+	const was = setHydrating(true);
+	const saved = cursor;
+	claim(parked.start);
+	try {
+		return fn();
+	} finally {
+		setHydrating(was);
+		claim(saved);
+	}
+}
+
+function settleWith(effect: Effect | null, error: unknown): void {
+	if (effect === null || effect.destroyed) return;
+	fail(effect, error);
+}
+
+export function async(
+	node: ChildNode,
+	thunks: readonly (() => unknown)[],
+	fn: (anchor: ChildNode, ...values: Source[]) => void
+): void {
+	const parked = park(node);
+	const anchor = parked.end ?? node;
+	const at = owner;
+	const done = work();
+	const restore = suspend();
+	Promise.all(thunks.map((thunk) => asyncDerived(thunk))).then(
+		(sources) => {
+			if (at?.destroyed) {
+				done();
+				return;
+			}
+			restore();
+			try {
+				for (const source of sources) get(source);
+				resume(parked, () => fn(anchor, ...sources));
+			} catch (error) {
+				settleWith(at, error);
+			} finally {
+				resumed();
+				done();
+			}
+		},
+		(error: unknown) => {
+			restore();
+			try {
+				settleWith(at, error);
+			} finally {
+				resumed();
+				done();
+			}
+		}
+	);
+}
+
+export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
+	const restore = suspend();
+	const resolved = await value;
+	return () => {
+		restore();
+		queueMicrotask(resumed);
+		return resolved;
+	};
+}
+
+export function script(node: ChildNode, fn: () => Promise<Render>): void {
+	const parked = park(hydrating ? cursor : node);
+	if (parked.end !== null) claim(parked.end.nextSibling);
+	const anchor = parked.end ?? node;
+	const at = owner;
+	const done = work();
+	const restore = suspend();
+	let promise: Promise<Render>;
+	try {
+		promise = fn();
+	} catch (error) {
+		promise = Promise.reject(error);
+	}
+	resumed();
+	promise.then(
+		(render) => {
+			if (at?.destroyed) {
+				done();
+				return;
+			}
+			restore();
+			try {
+				resume(parked, () => render(anchor));
+			} catch (error) {
+				settleWith(at, error);
+			} finally {
+				resumed();
+				done();
+			}
+		},
+		(error: unknown) => {
+			restore();
+			try {
+				settleWith(at, error);
+			} finally {
+				resumed();
+				done();
+			}
+		}
+	);
+}

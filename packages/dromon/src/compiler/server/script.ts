@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import {
+	hasAwait,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -22,6 +23,8 @@ export interface Context {
 	readonly props: ES.Identifier | null;
 	readonly out: ES.Identifier | null;
 	readonly fields?: ReadonlyMap<string, StateField>;
+	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
+	readonly saved?: ReadonlySet<ES.Node>;
 }
 
 export function runtime(
@@ -76,6 +79,14 @@ const noop: ES.ArrowFunctionExpression = b.arrow([], []);
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 	const { references, runes } = context.analysis;
 	return b.rewrite(node, (current, next) => {
+		const awaited = context.awaited?.get(current);
+		if (awaited !== undefined) return { ...awaited };
+		if (current.type === 'AwaitExpression' && context.saved?.has(current)) {
+			return b.call({
+				type: 'AwaitExpression',
+				argument: runtime(context, 'save', next(current.argument))
+			});
+		}
 		switch (current.type) {
 			case 'Identifier':
 				return derived(references.get(current)) ? b.call(current) : undefined;
@@ -147,6 +158,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						return noop;
 					case '$effect.tracking':
 						return b.literal(false);
+					case '$effect.pending':
+						return b.literal(0);
 					case '$state.snapshot':
 						return runtime(
 							context,
@@ -166,11 +179,18 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					case '$state':
 					case '$state.raw':
 						return { ...current, init: next(single(init)) };
-					case '$derived':
+					case '$derived': {
+						const given = single(init);
+						if (hasAwait(given)) {
+							const pending = runtime(context, 'save', next(given));
+							const value = b.call({ type: 'AwaitExpression', argument: pending });
+							return { ...current, init: runtime(context, 'held', value) };
+						}
 						return {
 							...current,
-							init: runtime(context, 'derived', b.arrow([], next(single(init))))
+							init: runtime(context, 'derived', b.arrow([], next(given)))
 						};
+					}
 					case '$derived.by':
 						return { ...current, init: runtime(context, 'derived', next(single(init))) };
 					case '$props':

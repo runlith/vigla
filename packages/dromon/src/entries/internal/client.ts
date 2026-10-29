@@ -32,6 +32,7 @@ export {
 	bindThis,
 	bindValue
 } from '../../runtime/dom/bindings.ts';
+export { async, save, script } from '../../runtime/dom/async.ts';
 export { branch, list } from '../../runtime/dom/blocks.ts';
 export { boundary } from '../../runtime/dom/boundary.ts';
 export { bindSelect, initSelect, selectValue } from '../../runtime/dom/select.ts';

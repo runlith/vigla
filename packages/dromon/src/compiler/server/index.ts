@@ -5,6 +5,7 @@ import {
 	type ComponentAnalysis,
 	type ModuleAnalysis
 } from '../analysis/index.ts';
+import { close, open } from '../../shared/markers.ts';
 import * as b from '../ir/estree.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
@@ -15,6 +16,28 @@ export interface ModuleOptions {
 
 export interface ServerOptions extends ModuleOptions {
 	readonly name: string;
+}
+
+function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
+	const found = new Set<ES.Node>();
+	const program = analysis.unit.instance;
+	if (program === null) return found;
+	b.walk(program, (node) => {
+		if (
+			node.type === 'FunctionDeclaration' ||
+			node.type === 'FunctionExpression' ||
+			node.type === 'ArrowFunctionExpression' ||
+			node.type === 'ClassBody'
+		) {
+			return false;
+		}
+		if (node.type === 'CallExpression') {
+			const rune = analysis.runes.get(node.callee);
+			if (rune === '$derived' || rune === '$derived.by') return false;
+		}
+		if (node.type === 'AwaitExpression') found.add(node);
+	});
+	return found;
 }
 
 export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.Program {
@@ -32,17 +55,32 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const body: ES.Statement[] = [b.statement(runtime(context, 'push'))];
+	const inner = analysis.asynchronous ? b.id(names.unique('$$out')) : out;
+	const scripted: TemplateContext = analysis.asynchronous
+		? { ...context, out: inner, saved: topLevelAwaits(analysis) }
+		: context;
+	const script: ES.Statement[] = [];
 	for (const statement of analysis.unit.instance?.body ?? []) {
 		if (statement.type === 'ImportDeclaration') imports.push(statement);
 		else if (statement.type === 'ExportNamedDeclaration' && statement.source == null) {
-			if (statement.declaration != null) body.push(rewrite(context, statement.declaration));
+			if (statement.declaration != null) script.push(rewrite(scripted, statement.declaration));
 		} else if (statement.type.startsWith('Export'))
 			throw unsupported(spanOf(statement), 'This export from a component');
-		else body.push(rewrite(context, statement as ES.Statement));
+		else script.push(rewrite(scripted, statement as ES.Statement));
 	}
+	const template: TemplateContext = { ...context, out: inner };
+	const content: ES.Statement[] = [];
 	const buffer = new Buffer();
-	fragmentCode(context, analysis.root, body, buffer, true);
-	buffer.flush(context, body);
+	if (analysis.asynchronous) buffer.text(open);
+	fragmentCode(template, analysis.root, content, buffer, true);
+	if (analysis.asynchronous) buffer.text(close);
+	buffer.flush(template, content);
+	if (analysis.asynchronous) {
+		const fn = { ...b.arrow([inner], [...script, ...content]), async: true };
+		body.push(b.statement(b.call(b.member(out, 'child'), fn)));
+	} else {
+		body.push(...script, ...content);
+	}
 	body.push(b.statement(runtime(context, 'pop')));
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),

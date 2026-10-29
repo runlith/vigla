@@ -10,12 +10,13 @@ import {
 } from '../ir/port.ts';
 import { classFields, type ClassFields } from './classes.ts';
 import { Scopes, spanOf, unsupported, type Binding } from './scope.ts';
-import { collectNames, synchronous, Template, type ListFacts } from './template.ts';
+import { collectNames, hasAwait, Template, type ListFacts } from './template.ts';
 import type { Preserve } from './whitespace.ts';
 
 export type { ClassFields, FieldRune, StateField } from './classes.ts';
 export type { Binding, BindingKind, Prop } from './scope.ts';
 export type { ListFacts } from './template.ts';
+export { hasAwait, ownExpressions } from './template.ts';
 export type { Preserve } from './whitespace.ts';
 export { patternNames, spanOf, unsupported } from './scope.ts';
 
@@ -36,6 +37,7 @@ export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly fragmentNamespaces: ReadonlyMap<Fragment, Namespace>;
 	readonly root: readonly Node[];
 	readonly namespace: Namespace;
+	readonly asynchronous: boolean;
 }
 
 export interface ModuleAnalysis extends ScriptAnalysis {
@@ -99,6 +101,7 @@ const supported = new Set<Rune>([
 	'$effect.pre',
 	'$effect.root',
 	'$effect.tracking',
+	'$effect.pending',
 	'$state.snapshot'
 ]);
 
@@ -208,7 +211,6 @@ export function analyzeComponent(
 	const scope = scopes.root(null);
 	const names = new Set<string>();
 	if (unit.instance !== null) {
-		synchronous(unit.instance, 'at the top level of a component script');
 		scopes.owned.set(unit.instance, scope);
 		scopes.declare(unit.instance, scope);
 		collectNames(unit.instance, names);
@@ -237,6 +239,7 @@ export function analyzeComponent(
 		namespaces: template.namespaces,
 		fragmentNamespaces: template.fragmentNamespaces,
 		root,
-		namespace
+		namespace,
+		asynchronous: unit.instance !== null && hasAwait(unit.instance)
 	};
 }

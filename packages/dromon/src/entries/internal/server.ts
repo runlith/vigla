@@ -12,10 +12,11 @@ export {
 	popSelect,
 	pushSelect
 } from '../../runtime/server/attributes.ts';
-export { phase, pop, push } from '../../runtime/server/context.ts';
+export { phase, pop, push, save } from '../../runtime/server/context.ts';
 export {
 	boundary,
 	derived,
+	held,
 	iterate,
 	Output,
 	propsId,
