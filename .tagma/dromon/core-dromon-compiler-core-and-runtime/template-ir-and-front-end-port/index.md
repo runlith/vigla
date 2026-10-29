@@ -28,6 +28,6 @@ fields:
   }
 sources:
   - kind: dir
-    ref: packages/dromon/src/compiler/ir
+    ref: packages/vigla/src/compiler/ir
 ---
 The core's input contract: the template IR every front end produces, whose node types name semantics rather than syntax so `.svelte` and TSX lower to the same nodes; the front-end port a front end fills — units, resolved runes, diagnostics, `CompileError`; the JS parser front ends read scripts and expressions with; and the ESTree tooling the compiler shares. It reads no source syntax of its own: that is each front end's work.

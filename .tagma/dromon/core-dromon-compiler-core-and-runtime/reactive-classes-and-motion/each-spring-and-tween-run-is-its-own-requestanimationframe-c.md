@@ -5,7 +5,7 @@ ord: 3
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/classes/frames.ts
+    ref: packages/vigla/src/runtime/classes/frames.ts
 ---
 The runtime spec binds animation time to `requestAnimationFrame`: `loop` reads it at every request and takes time only from the timestamps it passes, so a tween's start is its first frame's timestamp plus its delay, and a spring's first frame measures no elapsed time. A test faking `requestAnimationFrame` alone therefore fakes all motion time; where it does not exist, as on the server, a run never steps and its promise stays pending.
 

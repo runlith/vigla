@@ -27,6 +27,6 @@ edges:
     to: 01a18605-d03d-737c-9a72-8cc4b3360999
 sources:
   - kind: dir
-    ref: packages/dromon
+    ref: packages/vigla
 ---
 No import of `svelte` or `svelte/*` — type imports and type references included — no `declare module 'svelte…'`, and no `svelte` in its manifests. Svelte compatibility lives in `@dromon/svelte`, which reaches the core through its front-end port and published entries.

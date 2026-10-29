@@ -8,7 +8,7 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9faa07b61535
 sources:
   - kind: file
-    ref: packages/dromon/src/entries/compiler.ts
+    ref: packages/vigla/src/entries/compiler.ts
   - kind: file
     ref: packages/svelte/src/compiler/index.ts
 ---

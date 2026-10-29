@@ -27,16 +27,16 @@ edges:
     to: 01a18605-d03d-737c-9a72-8cc4b3360999
 sources:
   - kind: dir
-    ref: packages/dromon/src/runtime
+    ref: packages/vigla/src/runtime
   - kind: dir
-    ref: packages/dromon/src/shared
+    ref: packages/vigla/src/shared
   - kind: file
-    ref: packages/dromon/src/entries/index.ts
+    ref: packages/vigla/src/entries/index.ts
   - kind: file
-    ref: packages/dromon/src/entries/server.ts
+    ref: packages/vigla/src/entries/internal/client.ts
   - kind: file
-    ref: packages/dromon/src/entries/internal/client.ts
+    ref: packages/vigla/src/entries/internal/server.ts
   - kind: file
-    ref: packages/dromon/src/entries/internal/server.ts
+    ref: packages/vigla/src/entries/server.ts
 ---
 This covers the runtime modules, the shared module beneath them and the runtime entries — everything an application loads from `dromon` in the browser or on the server. A type-only import is no load; compiler code may load other packages.

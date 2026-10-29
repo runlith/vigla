@@ -10,7 +10,7 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9fad9ca8ebb2
 sources:
   - kind: file
-    ref: packages/dromon/src/compiler/ir/nodes.ts
+    ref: packages/vigla/src/compiler/ir/nodes.ts
 ---
 The IR names what a template means, so every front end lowers to the same nodes and analysis and generation never branch on the source form. TSX forms are those [[8cd5da81]] agreed; "none yet" means no TSX spelling is decided.
 

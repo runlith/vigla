@@ -5,7 +5,7 @@ ord: 3
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/reactivity/async.ts
+    ref: packages/vigla/src/runtime/reactivity/async.ts
 ---
 The DOM and compiled code hold a batch through one primitive, `work()`: a unit of pending work in the current batch — the one an async continuation restored, the one in its structure or commit phase, else the open one, as for writes — returning the function that settles it once, in whichever batch the first has since merged into. A unit holds its batch unless the owner's boundary chain has a boundary showing its pending content: content not yet on screen cannot be torn by a commit, so the batch commits and the boundary swaps the content in when its own count returns to zero. Once content is on screen, work under it holds the batch, so the old content stays until the new values arrive. Every unit is counted on the owner's nearest boundary, which `$effect.pending()` reads a microtask later.
 

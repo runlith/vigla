@@ -5,7 +5,7 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: dir
-    ref: packages/dromon/src/compiler/analysis/validate/a11y
+    ref: packages/vigla/src/compiler/analysis/validate/a11y
 ---
 The accessibility checks run over the template IR, not a front end's AST, so `.svelte` and TSX get the same warnings; the template walk calls `checkElement` once per `element` and `dynamic-element`, in pre-order and right after that element's other checks, inside the report's svelte-ignore scope of the element, because upstream emits `check_element` at that point and the suite compares warnings in order.
 

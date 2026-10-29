@@ -69,10 +69,10 @@ edges:
     to: 01a18792-64a4-7342-8c33-c00c6ca88dc0
 sources:
   - kind: dir
-    ref: packages/dromon/src/entries
+    ref: packages/vigla/src/entries
   - kind: file
-    ref: packages/dromon/package.json
+    ref: packages/vigla/package.json
   - kind: file
-    ref: packages/dromon/tsconfig.json
+    ref: packages/vigla/tsconfig.json
 ---
 The published surface of `dromon`: the runtime entries `dromon`, `dromon/server`, `dromon/reactivity`, `dromon/reactivity/window`, `dromon/motion` and `dromon/internal/*`, and `dromon/compiler`, which composes analysis and generation behind the front-end port and prints with `esrap`. What it exports is all an adapter or an application may reach, and the package's `exports` map is this module's.

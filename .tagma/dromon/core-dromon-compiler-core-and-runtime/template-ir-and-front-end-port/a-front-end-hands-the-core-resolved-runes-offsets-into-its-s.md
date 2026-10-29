@@ -8,9 +8,9 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9fad9ca8ebb2
 sources:
   - kind: file
-    ref: packages/dromon/src/compiler/ir/port.ts
+    ref: packages/vigla/src/compiler/ir/port.ts
   - kind: file
-    ref: packages/dromon/src/compiler/ir/script.ts
+    ref: packages/vigla/src/compiler/ir/script.ts
 ---
 The core reads a unit and decides nothing by source syntax; three parts of the port carry what a front end alone can know.
 

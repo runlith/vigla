@@ -10,8 +10,8 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9fac9d5e3831
 sources:
   - kind: file
-    ref: targets/dromon/package.json
+    ref: targets/vigla/fresh.ts
   - kind: file
-    ref: targets/dromon/fresh.ts
+    ref: targets/vigla/package.json
 ---
 `targets/dromon` installs the workspace's `@dromon/svelte` under the name `svelte` (`"svelte": "workspace:@dromon/svelte@*"`) and `dromon` beside it, so samples, runners and compiled output importing `svelte` reach the adapter, and the adapter's entries reach the core through its published entries. Its fresh-state hook is empty on purpose: the runtime keeps no state of a tree once that tree's flush settled, so there is nothing to clear between samples, and a sample failing only after another one is a defect of that rule, not of the hook.

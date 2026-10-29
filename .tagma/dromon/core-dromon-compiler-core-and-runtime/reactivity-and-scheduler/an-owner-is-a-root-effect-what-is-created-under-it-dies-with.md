@@ -8,7 +8,7 @@ edges:
     to: 01a18776-8e37-7bdc-93a5-7dae8191e72f
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/reactivity/owners.ts
+    ref: packages/vigla/src/runtime/reactivity/owners.ts
 ---
 An `Owner` is the public handle of a root effect, so a lifetime an application has — a request, a tab, a session, a service — is the same object the scheduler traverses: what `root(fn, parent)` creates runs in a root linked under `parent` and is destroyed with it, its teardowns running, and with no parent it is a top-level root ordered among the others by creation. The caller's reactive context never adopts it: the root is not linked under the effect or branch that created it, so that branch's teardown or rerun leaves it standing. This is what upstream reaches with `without_reactive_context` around `$effect.root`, which runlith's patch had to export. `$effect.root` itself is such a root without a parent, keeping the caller's context and boundary.
 

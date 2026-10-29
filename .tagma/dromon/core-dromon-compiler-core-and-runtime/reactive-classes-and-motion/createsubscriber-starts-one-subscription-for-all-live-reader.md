@@ -5,7 +5,7 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/classes/subscriber.ts
+    ref: packages/vigla/src/runtime/classes/subscriber.ts
 ---
 A read subscribes only while a reaction tracks it: it reads the subscriber's version and creates a template effect under the current owner whose creation counts a reader and whose teardown uncounts it. A read under `untrack` or from plain code gets the value with no subscription. A derived with no owner — one declared at module level — subscribes under no owner, so its subscription never stops, as upstream's does; without it an effect reading such a derived would never see the source change.
 

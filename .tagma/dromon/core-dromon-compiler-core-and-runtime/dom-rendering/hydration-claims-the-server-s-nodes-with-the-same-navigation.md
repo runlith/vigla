@@ -8,13 +8,13 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9faeec26636a
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/dom/hydration.ts
+    ref: packages/vigla/src/runtime/dom/hydration.ts
   - kind: file
-    ref: packages/dromon/src/runtime/dom/template.ts
+    ref: packages/vigla/src/runtime/dom/template.ts
   - kind: file
-    ref: packages/dromon/src/compiler/client/template.ts
+    ref: packages/vigla/src/compiler/client/template.ts
   - kind: file
-    ref: packages/dromon/src/compiler/server/template.ts
+    ref: packages/vigla/src/compiler/server/template.ts
 ---
 Compiled client code navigates a template with one sequence of calls — `fragment()`, `first`, `child`, `sibling`, `next`, `reset`, `append` — that clones and walks a fresh copy when mounting and claims the server's nodes when hydrating, so client rendering and hydration cannot drift apart. While hydrating, `fragment()` returns the cursor instead of a clone and every navigation call moves the cursor, ignoring the node it was handed.
 

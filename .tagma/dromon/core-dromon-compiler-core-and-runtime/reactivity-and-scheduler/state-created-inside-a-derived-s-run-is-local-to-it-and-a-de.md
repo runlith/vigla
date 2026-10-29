@@ -5,11 +5,11 @@ ord: 5
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/reactivity/tracking.ts
+    ref: packages/vigla/src/runtime/reactivity/tracking.ts
   - kind: file
-    ref: packages/dromon/src/runtime/reactivity/sources.ts
+    ref: packages/vigla/src/runtime/reactivity/sources.ts
   - kind: file
-    ref: packages/dromon/src/runtime/reactivity/proxy.ts
+    ref: packages/vigla/src/runtime/reactivity/proxy.ts
 ---
 A source created with `state` while a derived is computing is local to that run: reading it in the run adds no dependency and writing it there is allowed, so a derived may build and mutate its own state (`side-effect-derived-*`'s `works_*` halves); the next run treats it as any other source. A derived or a block writing any other source through `set` or a `$state` proxy outside `untrack` throws `state_unsafe_mutation`. Template effects and `$effect.pre` are not guarded: upstream 5.57.3 allows a write in a plain template expression (`event-spread-rerun`) and in a pre effect, and throws for a template expression only because it compiles one containing a call into a derived (`side-effect-template`), which the code generator mirrors. Effects never create local sources: in async mode upstream localizes only under deriveds, which keeps an effect that writes state it created and read self-invalidating (the hunk 7 trap).
 

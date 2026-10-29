@@ -5,7 +5,7 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/shared/diagnostics.ts
+    ref: packages/vigla/src/shared/diagnostics.ts
   - kind: file
     ref: packages/svelte/src/entries/report.ts
 ---

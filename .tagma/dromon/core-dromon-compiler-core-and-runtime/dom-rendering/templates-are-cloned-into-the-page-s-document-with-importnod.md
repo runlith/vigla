@@ -5,7 +5,7 @@ ord: 3
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/runtime/dom/template.ts
+    ref: packages/vigla/src/runtime/dom/template.ts
 ---
 A template's master copy is parsed into a `<template>` element's content, which belongs to a separate inert document, while the range markers and text nodes the runtime creates belong to the page's. A `cloneNode` clone stays in the inert document, so every insertion across the two documents adopts the moved subtree node by node, at each nesting level whose parent stands in the other document; Chromium also leaks responsive images through that cross-document assembly (sveltejs/svelte#18834). `fragment()` therefore clones with `document.importNode`, so a clone belongs to the page from the start; an SVG or MathML master unwrapped from its parsing wrapper into a page fragment is cloned the same way.
 

@@ -24,6 +24,6 @@ edges:
     to: 01a1878f-918e-7939-ab43-8548688c49ca
 sources:
   - kind: dir
-    ref: packages/dromon/src/compiler/server
+    ref: packages/vigla/src/compiler/server
 ---
 Generates server code from the analysis: a component becomes a function pushing HTML into an output, with the hydration markers the client reads, state kept as plain values and deriveds computed on first read.

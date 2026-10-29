@@ -14,7 +14,7 @@ sources:
   - kind: file
     ref: harness/src/judge.ts
   - kind: dir
-    ref: targets/dromon/passing
+    ref: targets/vigla/passing
 ---
 A target whose `package.json` names a directory in `harness.passing` is judged by its passing set; a target naming none, as `targets/upstream`, fails on every running entry that does not pass. Dromon passes a fraction of the contract while it is built, and its run must already be a test suite under [[468243f4]]: an entry joins the set in the change that first makes it pass, and from then on its failure fails the run.
 

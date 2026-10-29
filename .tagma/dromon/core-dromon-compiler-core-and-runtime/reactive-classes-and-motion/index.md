@@ -118,6 +118,6 @@ edges:
     to: 01a18680-7dbf-7586-9429-a423940f08ed
 sources:
   - kind: dir
-    ref: packages/dromon/src/runtime/classes
+    ref: packages/vigla/src/runtime/classes
 ---
 The reactive built-ins and animated values an application imports from `dromon/reactivity`, `dromon/reactivity/window` and `dromon/motion`: `ReactiveMap`, `ReactiveSet`, `ReactiveDate`, `ReactiveURL` and `ReactiveURLSearchParams`, whose reads track per key or per field; `MediaQuery` and the window readings, built on `createSubscriber`, which ties an external event source's subscription to the effects reading it; and `Spring` and `Tween`, which step a value on animation frames. It builds only on the reactivity core's public sources, deriveds and effects and works under any owner, never only inside components; on the server the collections are the plain built-ins and no subscription starts.

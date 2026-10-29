@@ -5,9 +5,9 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/entries/index-server.ts
+    ref: packages/vigla/src/entries/index-server.ts
   - kind: file
-    ref: packages/dromon/package.json
+    ref: packages/vigla/package.json
   - kind: file
     ref: packages/svelte/package.json
 ---

@@ -5,7 +5,7 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: dir
-    ref: packages/dromon/src/compiler/analysis/validate
+    ref: packages/vigla/src/compiler/analysis/validate
 ---
 **The split.** `validate/` judges a unit as the port hands it over — the IR template, the module and instance programs, the resolved `runes` and the `ignores` — so `.svelte` and TSX share one set of checks with upstream's codes and messages. A check whose message names `.svelte`-only syntax (`on:`, `let:`, quoted attributes, braces and parentheses around expressions, `<svelte:*>` rules, legacy constructs, `svelte-ignore` codes) reads source the IR no longer carries and stays in the adapter's front end. a11y runs inside the same walk, once per element and dynamic element, right after that element's own checks, so its warnings interleave with the others in upstream's order.
 

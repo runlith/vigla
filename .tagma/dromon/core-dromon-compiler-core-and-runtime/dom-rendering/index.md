@@ -53,6 +53,6 @@ edges:
     to: 01a18680-7dbf-7586-9429-a423940f08ed
 sources:
   - kind: dir
-    ref: packages/dromon/src/runtime/dom
+    ref: packages/vigla/src/runtime/dom
 ---
 Client rendering: cloning compiled templates into the page's document or, while hydrating, claiming the server's nodes with the same navigation; attributes, classes, styles and events, delegated to the mount target where upstream delegates; inserting, moving and removing node ranges; the branch and list blocks that build new content off-screen and swap it in at commit; component props and component context; and mounting, hydrating and unmounting a component tree.

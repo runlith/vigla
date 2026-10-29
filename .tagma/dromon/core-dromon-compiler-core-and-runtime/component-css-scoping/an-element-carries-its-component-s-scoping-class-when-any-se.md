@@ -5,13 +5,13 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/dromon/src/compiler/css/prune.ts
+    ref: packages/vigla/src/compiler/css/prune.ts
   - kind: file
-    ref: packages/dromon/src/compiler/css/relations.ts
+    ref: packages/vigla/src/compiler/css/relations.ts
   - kind: file
-    ref: packages/dromon/src/compiler/css/template.ts
+    ref: packages/vigla/src/compiler/css/template.ts
   - kind: file
-    ref: packages/dromon/src/compiler/css/marks.ts
+    ref: packages/vigla/src/compiler/css/marks.ts
 ---
 Whether an element is scoped is decided by matching every selector of the sheet, right to left, against every element of the component. The match is a "may match": an attribute whose value cannot be enumerated, a spread, a `bind:` of the attribute, a `{@render}` or component whose snippets cannot be resolved, a sibling inside a block that may not render — each counts as a possible match. So the class can land on an element no rule styles at runtime, never the reverse: a selector that could apply is never pruned and an element it could reach always carries the class. Elements inside `<svelte:head>` are never scoped, since head content is not the component's.
 

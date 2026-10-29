@@ -24,6 +24,6 @@ edges:
     to: 01a18680-7db9-7c10-b0ec-c0d1e0e72677
 sources:
   - kind: dir
-    ref: packages/dromon/src/runtime/server
+    ref: packages/vigla/src/runtime/server
 ---
 Server rendering: the output compiled server code pushes HTML into, `render()` with the result Kit reads, the component context a render keeps, and the helpers compiled server code calls, such as attribute serialization.
