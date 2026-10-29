@@ -11,7 +11,11 @@ sources:
     ref: harness/src/resolve.ts
   - kind: file
     ref: harness/src/vitest.ts
+  - kind: file
+    ref: harness/src/runtime/suite.ts
 ---
 The harness package declares no `svelte`: every `svelte` and `svelte/*` import — runner, samples, compiled output — resolves through the target's installed package, so one run can never mix two implementations. Compiled server output gets the `default` export conditions and everything else `browser`, as upstream's test config resolves them. The target's package is inlined into Vite's transform rather than externalized to Node: externalized, its `esm-env` import would resolve under Node's conditions, giving `DEV` false where upstream's runs have `DEV` true.
 
 Samples are copied per test process into the target's `.work` and compiled into `_output` beside their `_config.js`, as upstream does, because a sample may import its own compiled output by a path relative to its config; the per-process copy keeps two runs, of one target or two, from overwriting each other.
+
+The copy keeps upstream's layout, `packages/svelte/tests/<suite>/samples/<sample>` under the run directory, because compiled output depends on the path: the hydration, server-side-rendering and runtime-browser runners compile without `rootDir`, so the compiler makes the filename relative to `process.cwd()`, upstream's repository root, and the default CSS hash is a hash of that relative path. `_expected_head.html` files such as server-side-rendering's `css` pin `svelte-e9omc` literally, and HTML comparison normalizes hashes only in `class` attributes. Those suites therefore compile with the run directory as `rootDir`; the runtime suites keep the sample directory, as upstream's `runtime_suite` passes it.
