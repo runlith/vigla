@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import type * as IR from '../../ir/nodes.ts';
+import { CompileError } from '../../ir/port.ts';
 import { checkElement } from './a11y/index.ts';
 import { binding, type Host } from './bindings.ts';
 import type { Context } from './context.ts';
@@ -125,7 +126,13 @@ export class Template {
 			case 'element':
 			case 'dynamic-element': {
 				const from = context.report.warnings.length;
-				validateElement(context, node);
+				try {
+					validateElement(context, node);
+				} catch (error) {
+					const theirs = context.anchors.error(node);
+					if (!(error instanceof CompileError) || theirs === undefined) throw error;
+					throw theirs.start <= error.diagnostic.start ? new CompileError(theirs) : error;
+				}
 				context.anchors.emit(node, from);
 				checkElement(node, { path: this.#ancestors, namespace: this.namespace }, context.report);
 				if (node.kind === 'dynamic-element') return;

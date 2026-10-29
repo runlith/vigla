@@ -39,6 +39,10 @@ export class Anchors {
 		this.#warnings = warnings;
 	}
 
+	error(node: object): Diagnostic | undefined {
+		return this.#emitted.has(node) ? undefined : this.#at.get(node)?.error;
+	}
+
 	emit(node: object, from = this.#warnings.length): void {
 		const entry = this.#at.get(node);
 		if (entry === undefined || this.#emitted.has(node)) return;
