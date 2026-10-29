@@ -56,10 +56,15 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		runtime: id,
 		out,
 		props,
-		scoping: options.scoping
+		scoping: options.scoping,
+		hoisted: []
 	};
 	const imports: ES.ImportDeclaration[] = [];
-	const hoisted: ES.Statement[] = [];
+	const hoisted = context.hoisted;
+	for (const statement of analysis.unit.module?.body ?? []) {
+		if (statement.type === 'ImportDeclaration') imports.push(statement);
+		else hoisted.push(rewrite({ ...context, props: null, out: null }, statement as ES.Statement));
+	}
 	const body: ES.Statement[] = [];
 	if (options.styles !== null) {
 		const css = names.unique('$$css');

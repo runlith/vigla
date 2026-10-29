@@ -10,6 +10,7 @@ import type {
 	KeyedList,
 	Namespace,
 	Node,
+	Snippet,
 	Special,
 	Title,
 	UnkeyedList,
@@ -176,6 +177,10 @@ export class Template {
 	readonly separate = new Map<Fragment, readonly (Special | Title)[]>();
 	readonly #ignores: Ignores;
 	#ignoring: ReadonlySet<string> | null = null;
+	readonly #snippets = new Map<Binding, Snippet>();
+	readonly #uses = new Map<Snippet, Set<Binding>>();
+	#used: Set<Binding> | null = null;
+	#depth = 0;
 	inText = false;
 
 	constructor(scopes: Scopes, preserve: Preserve, names: Set<string>, ignores: Ignores) {
@@ -189,6 +194,34 @@ export class Template {
 		collectNames(expression, this.names);
 		this.scopes.declare(expression, scope);
 		this.scopes.resolve(expression, scope);
+		const used = this.#used;
+		if (used === null) return;
+		walk(expression, (node) => {
+			if (node.type !== 'Identifier') return;
+			const binding = this.scopes.references.get(node);
+			if (binding !== undefined) used.add(binding);
+		});
+	}
+
+	lifted(instance: Scope): Set<Snippet> {
+		const lifted = new Set<Snippet>();
+		const instanceBinding = (binding: Binding): boolean =>
+			instance.bindings.get(binding.name) === binding;
+		const liftable = (snippet: Snippet, visiting: Set<Snippet>): boolean => {
+			if (lifted.has(snippet)) return true;
+			if (visiting.has(snippet)) return true;
+			visiting.add(snippet);
+			for (const binding of this.#uses.get(snippet) ?? []) {
+				if (!instanceBinding(binding)) continue;
+				const other = this.#snippets.get(binding);
+				if (other === undefined || !liftable(other, visiting)) return false;
+			}
+			return true;
+		};
+		for (const snippet of this.#snippets.values()) {
+			if (liftable(snippet, new Set())) lifted.add(snippet);
+		}
+		return lifted;
 	}
 
 	pattern(pattern: ES.Pattern, scope: Scope): Binding[] {
@@ -256,13 +289,20 @@ export class Template {
 		];
 		this.fragments.set(fragment, nodes);
 		this.fragmentNamespaces.set(fragment, own);
+		const root = this.#depth === 0;
 		for (const node of lifted) {
 			if (node.kind !== 'snippet') continue;
 			this.names.add(node.name.name);
-			this.scopes.bind(scope, node.name, { kind: 'snippet' });
+			const binding = this.scopes.bind(scope, node.name, { kind: 'snippet' });
+			if (root) this.#snippets.set(binding, node);
 		}
-		for (const node of separate) this.node(node, scope, kept, own);
-		for (const node of nodes) this.node(node, scope, kept, own);
+		this.#depth++;
+		try {
+			for (const node of separate) this.node(node, scope, kept, own);
+			for (const node of nodes) this.node(node, scope, kept, own);
+		} finally {
+			this.#depth--;
+		}
 		return nodes;
 	}
 
@@ -369,7 +409,16 @@ export class Template {
 					this.names.add(parameter.name);
 					this.scopes.bind(inner, parameter, { kind: 'argument' });
 				}
-				this.fragment(node.body, null, inner, kept, namespace);
+				const outer = this.#used;
+				if (this.#depth === 1) {
+					this.#used = new Set();
+					this.#uses.set(node, this.#used);
+				}
+				try {
+					this.fragment(node.body, null, inner, kept, namespace);
+				} finally {
+					this.#used = outer;
+				}
 				return;
 			}
 			case 'render':

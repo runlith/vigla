@@ -7,6 +7,7 @@ import type {
 	KeyedList,
 	Namespace,
 	Node,
+	Snippet,
 	Special,
 	Title,
 	UnkeyedList
@@ -18,7 +19,7 @@ import {
 	type Rune,
 	type Runes
 } from '../ir/port.ts';
-import { classFields, type ClassFields } from './classes.ts';
+import { classFields, type ClassFields, type StateField } from './classes.ts';
 import { Scopes, spanOf, unsupported, type Binding } from './scope.ts';
 import { collectNames, hasAwait, Template, type ListFacts } from './template.ts';
 import type { Preserve } from './whitespace.ts';
@@ -47,6 +48,7 @@ export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly fragmentNamespaces: ReadonlyMap<Fragment, Namespace>;
 	readonly ignored: ReadonlyMap<Node, ReadonlySet<string>>;
 	readonly separate: ReadonlyMap<Fragment, readonly (Special | Title)[]>;
+	readonly lifted: ReadonlySet<Snippet>;
 	readonly root: readonly Node[];
 	readonly namespace: Namespace;
 	readonly asynchronous: boolean;
@@ -117,11 +119,17 @@ const supported = new Set<Rune>([
 	'$state.snapshot'
 ]);
 
-function checkRunes(runes: Runes, program: ES.Program | null, component: boolean): ClassFields {
+function checkRunes(
+	runes: Runes,
+	programs: readonly (ES.Program | null)[],
+	component: boolean
+): ClassFields {
 	const placed = new Set<ES.Node>();
-	const classes = classFields(runes, program, placed);
+	const classes = new Map<ES.ClassBody, ReadonlyMap<string, StateField>>();
 	const statements = new Set<ES.Node>();
-	if (program !== null) {
+	for (const program of programs) {
+		if (program === null) continue;
+		for (const [body, fields] of classFields(runes, program, placed)) classes.set(body, fields);
 		walk(program, (node, parent) => {
 			if (node.type === 'VariableDeclarator' && node.init?.type === 'CallExpression') {
 				placed.add(node.init.callee);
@@ -191,7 +199,7 @@ function checkExports(program: ES.Program, scopes: Scopes): void {
 }
 
 export function analyzeModule(unit: ModuleUnit): ModuleAnalysis {
-	const classes = checkRunes(unit.runes, unit.program, false);
+	const classes = checkRunes(unit.runes, [unit.program], false);
 	const scopes = new Scopes(unit.runes);
 	const scope = scopes.root(null);
 	scopes.owned.set(unit.program, scope);
@@ -216,12 +224,17 @@ export function analyzeComponent(
 	preserve: Preserve,
 	defaultNamespace: Namespace = 'html'
 ): ComponentAnalysis {
-	if (unit.module !== null) throw unsupported(spanOf(unit.module), 'A module script');
 	if (unit.options?.customElement) throw unsupported(unit.options, 'A custom element');
-	const classes = checkRunes(unit.runes, unit.instance, true);
+	const classes = checkRunes(unit.runes, [unit.module, unit.instance], true);
 	const scopes = new Scopes(unit.runes);
-	const scope = scopes.root(null);
+	const top = scopes.root(null);
+	const scope = scopes.root(top);
 	const names = new Set<string>();
+	if (unit.module !== null) {
+		scopes.owned.set(unit.module, top);
+		scopes.declare(unit.module, top);
+		collectNames(unit.module, names);
+	}
 	if (unit.instance !== null) {
 		scopes.owned.set(unit.instance, scope);
 		scopes.declare(unit.instance, scope);
@@ -237,7 +250,9 @@ export function analyzeComponent(
 		namespace,
 		namespace === 'html'
 	);
+	if (unit.module !== null) scopes.resolve(unit.module, top);
 	if (unit.instance !== null) scopes.resolve(unit.instance, scope);
+	if (unit.module !== null) checkExports(unit.module, scopes);
 	return {
 		unit,
 		references: scopes.references,
@@ -252,6 +267,7 @@ export function analyzeComponent(
 		fragmentNamespaces: template.fragmentNamespaces,
 		ignored: template.ignored,
 		separate: template.separate,
+		lifted: template.lifted(scope),
 		root,
 		namespace: template.fragmentNamespaces.get(unit.template) ?? namespace,
 		asynchronous: unit.instance !== null && hasAwait(unit.instance)

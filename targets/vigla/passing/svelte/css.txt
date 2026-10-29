@@ -128,6 +128,7 @@ siblings-combinator-if-not-exhaustive-with-each
 siblings-combinator-render-tag
 siblings-combinator-star
 siblings-combinator-with-spread
+snippet-exported
 snippets
 snippets-elements
 special-characters

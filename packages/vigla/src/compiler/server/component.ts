@@ -249,8 +249,14 @@ export function snippetDeclarations(
 	nodes: readonly Node[]
 ): ES.Statement[] {
 	const result: ES.Statement[] = [];
-	for (const node of nodes)
-		if (node.kind === 'snippet') result.push(snippetDeclaration(context, node));
+	for (const node of nodes) {
+		if (node.kind !== 'snippet') continue;
+		if (context.component.lifted.has(node)) {
+			context.hoisted.push(snippetDeclaration({ ...context, props: null }, node));
+		} else {
+			result.push(snippetDeclaration(context, node));
+		}
+	}
 	return result;
 }
 

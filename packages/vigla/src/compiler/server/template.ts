@@ -26,6 +26,7 @@ export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
 	readonly out: ES.Identifier;
 	readonly scoping: Scoping;
+	readonly hoisted: (ES.Statement | ES.ModuleDeclaration)[];
 }
 
 function scopeHash(context: TemplateContext, node: Host): string | null {

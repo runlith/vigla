@@ -229,6 +229,20 @@ function styleDirectives(
 	};
 }
 
+function templated(
+	context: TemplateContext,
+	node: Element | DynamicElement,
+	attribute: Property
+): boolean {
+	return (
+		node.kind === 'element' &&
+		attribute.name === 'is' &&
+		isStatic(attribute.value) &&
+		attribute.value.kind === 'text' &&
+		(context.component.namespaces.get(node) ?? 'html') === 'html'
+	);
+}
+
 export function spread(
 	context: TemplateContext,
 	node: Element | DynamicElement,
@@ -254,6 +268,7 @@ export function spread(
 				});
 				break;
 			case 'attribute': {
+				if (templated(context, node, attribute)) break;
 				const value = isEvent(attribute)
 					? handler(context, (attribute.value as { expression: ES.Expression }).expression)
 					: valueOf(context, emit, attribute.value);
@@ -456,6 +471,11 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		}
 	}
 	if (hasSpread) {
+		for (const attribute of node.attributes) {
+			if (attribute.kind === 'attribute' && templated(context, node, attribute)) {
+				markup += ` is="${escapeAttribute(staticText(attribute.value))}"`;
+			}
+		}
 		setups.push((element, emit) => spread(context, node, element, emit));
 	} else {
 		if (node.name === 'input' || node.name === 'textarea') {

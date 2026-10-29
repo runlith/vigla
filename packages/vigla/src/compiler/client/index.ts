@@ -89,6 +89,11 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		scoping: options.scoping
 	};
 	const imports: ES.ImportDeclaration[] = [];
+	const level: (ES.Statement | ES.ModuleDeclaration)[] = [];
+	for (const statement of analysis.unit.module?.body ?? []) {
+		if (statement.type === 'ImportDeclaration') imports.push(statement);
+		else level.push(rewrite({ ...context, props: null }, statement as ES.Statement));
+	}
 	const body: ES.Statement[] = [];
 	if (options.styles !== null) {
 		const css = names.unique('$$css');
@@ -166,6 +171,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),
 		...imports,
+		...level,
 		...context.hoisted,
 		...(options.hmr
 			? hotComponent(id, options.name, [anchor, props], body, hash)
