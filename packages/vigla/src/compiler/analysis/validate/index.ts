@@ -7,7 +7,6 @@ import { Anchors, type Front } from './front.ts';
 export type { Anchored, Front } from './front.ts';
 export { closest } from './a11y/fuzzy.ts';
 export { errorMessage, warningCodes, warningMessage } from './report.ts';
-import { Order, type Phased } from './order.ts';
 import { fail, Report } from './report.ts';
 import { typeOf, type Reference, type Scope } from './scope.ts';
 import { runeOf, Scopes } from './scopes.ts';
@@ -20,7 +19,6 @@ export interface ValidateOptions {
 	readonly namespace?: IR.Namespace;
 	readonly stores?: readonly string[];
 	readonly front?: Front;
-	readonly warnings?: Phased;
 }
 
 const reserved = new Set(['$$props', '$$restProps', '$$slots']);
@@ -207,35 +205,28 @@ export function validateComponent(
 	const front = options.front ?? {};
 	const anchors = new Anchors(front, report.warnings);
 	const context = new Context(unit, report, scopes, settings, module, instance, visit, anchors);
-	const order = new Order(report.warnings);
 	stores(context, unit, instance, new Set(options.stores ?? []));
 	report.warnings.push(...(front.before ?? []));
 	const program = unit.module;
 	if (program !== null) {
-		order.phase('module', () => {
-			context.start('module', module);
-			context.es(program);
-			anchors.rest(program);
-		});
+		context.start('module', module);
+		context.es(program);
+		anchors.rest(program);
 	}
 	const script = unit.instance;
 	if (script !== null) {
-		order.phase('instance', () => {
-			context.start('instance', instance);
-			context.es(script);
-			anchors.rest(script);
-		});
+		context.start('instance', instance);
+		context.es(script);
+		anchors.rest(script);
 	}
-	order.phase('template', () => {
-		context.start('template', root);
-		new Template(context, unit.options?.namespace ?? options.namespace ?? 'html').fragment(
-			unit.template
-		);
-		anchors.rest(null);
-	});
+	context.start('template', root);
+	new Template(context, unit.options?.namespace ?? options.namespace ?? 'html').fragment(
+		unit.template
+	);
+	anchors.rest(null);
 	nonReactive(context, [module, instance]);
 	if (program !== null) exports(context, program, unit);
-	return order.result(options.warnings ?? {});
+	return report.warnings;
 }
 
 export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}): Diagnostic[] {
@@ -260,11 +251,8 @@ export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}):
 		}
 	}
 	report.warnings.push(...(front.before ?? []));
-	const order = new Order(report.warnings);
-	order.phase('module', () => {
-		context.start(null, scope);
-		context.es(unit.program);
-		anchors.rest(null);
-	});
-	return order.result(options.warnings ?? {});
+	context.start(null, scope);
+	context.es(unit.program);
+	anchors.rest(null);
+	return report.warnings;
 }
