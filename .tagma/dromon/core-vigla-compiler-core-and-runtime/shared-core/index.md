@@ -23,6 +23,9 @@ fields:
       },
       {
         "at": "hash.ts"
+      },
+      {
+        "at": "context.ts"
       }
     ],
     "id": "shared",
@@ -32,4 +35,4 @@ sources:
   - kind: dir
     ref: packages/vigla/src/shared
 ---
-The bottom of the core, below both the compiler and the runtime: what both sides must agree on byte for byte — HTML escaping, the hydration markers server output writes and hydration reads, HTML knowledge such as void and boolean attributes, and how class and style values compose — plus the port runtime diagnostics leave through. It loads no package but `clsx` and holds no state but the installed reporter, so the runtime imports it without carrying compiler code.
+The bottom of the core, below both the compiler and the runtime: what both sides must agree on byte for byte — HTML escaping, the hydration markers server output writes and hydration reads, HTML knowledge such as void and boolean attributes, and how class and style values compose — plus the port runtime diagnostics leave through and the keyed context `createContext` hands out on client and server. It loads no package but `clsx` and holds no state but the installed reporter, so the runtime imports it without carrying compiler code.
