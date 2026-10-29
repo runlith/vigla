@@ -337,7 +337,10 @@ export class Template {
 				for (const attribute of node.attributes) {
 					if (!componentAttributes.has(attribute.type))
 						fail('component_invalid_directive', attribute);
-					if (attribute.type === 'Attribute') this.attribute(attribute, node);
+					if (attribute.type === 'Attribute') {
+						this.attribute(attribute, node);
+						this.colon(attribute);
+					}
 				}
 				break;
 			case 'RegularElement':
@@ -373,19 +376,23 @@ export class Template {
 		this.fragment(node.fragment, node);
 	}
 
+	colon(attribute: AST.Attribute): void {
+		const name = attribute.name;
+		if (
+			name.includes(':') &&
+			!name.startsWith('xmlns:') &&
+			!name.startsWith('xlink:') &&
+			!name.startsWith('xml:')
+		) {
+			this.report.warn('attribute_illegal_colon', attribute);
+		}
+	}
+
 	elementAttributes(node: AST.ElementLike): void {
 		for (const attribute of node.attributes) {
 			if (attribute.type === 'Attribute') {
 				this.attribute(attribute, node);
-				const name = attribute.name;
-				if (
-					name.includes(':') &&
-					!name.startsWith('xmlns:') &&
-					!name.startsWith('xlink:') &&
-					!name.startsWith('xml:')
-				) {
-					this.report.warn('attribute_illegal_colon', attribute);
-				}
+				this.colon(attribute);
 			} else if (attribute.type === 'StyleDirective') {
 				const modifiers = attribute.modifiers;
 				if (modifiers.length > 1 || (modifiers.length > 0 && modifiers[0] !== 'important')) {
@@ -402,11 +409,12 @@ export class Template {
 					fail('textarea_invalid_content', node);
 			}
 		}
+		const local = node.name.replace(/[a-zA-Z-]*:/g, '');
 		if (
 			this.source[node.end - 2] === '/' &&
-			!isVoid(node.name) &&
-			!svgNames.has(node.name) &&
-			!mathmlNames.has(node.name)
+			!isVoid(local) &&
+			!svgNames.has(local) &&
+			!mathmlNames.has(local)
 		) {
 			this.report.warn('element_invalid_self_closing_tag', node, { name: node.name });
 		}
