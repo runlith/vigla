@@ -59,9 +59,13 @@ export function guard(source: Source): void {
 		unsafeMutation();
 }
 
+export const NONE: unique symbol = Symbol('none');
+
+export type Prior = (source: Source) => unknown;
+
 interface Past {
-	readonly before: Map<Source, unknown>;
-	readonly later: Map<Source, unknown> | null;
+	readonly before: Prior;
+	readonly later: Prior | null;
 	written: Set<Source> | null;
 	derived: Map<Derived, unknown> | null;
 }
@@ -206,11 +210,7 @@ export function forget(source: Source): void {
 	clear(source);
 }
 
-export function recalling(
-	before: Map<Source, unknown>,
-	later: Map<Source, unknown> | null,
-	fn: () => void
-): void {
+export function recalling(before: Prior, later: Prior | null, fn: () => void): void {
 	const previousPast = past;
 	const previousFrame = frame;
 	past = { before, later, written: null, derived: null };
@@ -227,7 +227,8 @@ function dated(derived: Derived, given: Past): boolean {
 	if (derived.deps === null) return true;
 	for (const dep of derived.deps) {
 		if (given.written?.has(dep)) continue;
-		if (given.before.has(dep) || given.later?.has(dep)) return true;
+		if (given.before(dep) !== NONE || (given.later !== null && given.later(dep) !== NONE))
+			return true;
 		if (isDerived(dep) && dated(dep, given)) return true;
 	}
 	return false;
@@ -235,8 +236,12 @@ function dated(derived: Derived, given: Past): boolean {
 
 function recall(source: Source, given: Past): unknown {
 	if (given.written === null || !given.written.has(source)) {
-		if (given.before.has(source)) return given.before.get(source);
-		if (given.later !== null && given.later.has(source)) return given.later.get(source);
+		const before = given.before(source);
+		if (before !== NONE) return before;
+		if (given.later !== null) {
+			const later = given.later(source);
+			if (later !== NONE) return later;
+		}
 	}
 	if (!isDerived(source)) return view === null ? source.v : through(source, view);
 	if (given.derived !== null && given.derived.has(source)) return given.derived.get(source);
@@ -263,10 +268,10 @@ export function readDuringRun(source: Source): void {
 	}
 }
 
-function reconcile(target: Reaction, next: Source[]): void {
+function reconcile(target: Reaction, next: Source[], keep: boolean): void {
 	const kept = new Set(next);
 	for (const dep of target.deps ?? []) {
-		if (view !== null) kept.add(dep);
+		if (keep) kept.add(dep);
 		else if (!kept.has(dep)) dep.reactions?.delete(target);
 	}
 	for (const dep of kept) (dep.reactions ??= new Set()).add(target);
@@ -292,7 +297,7 @@ function settleRun(target: Reaction, current: Frame): void {
 		if (isDerived(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep)))
 			invalidated = true;
 	}
-	reconcile(target, current.reads);
+	reconcile(target, current.reads, view !== null && (view.batch.fork || current.hidden !== null));
 	target.rv = now();
 	target.status = invalidated ? DIRTY : CLEAN;
 }

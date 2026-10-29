@@ -11,11 +11,24 @@ import {
 	type Effect,
 	type Kind
 } from './graph.ts';
-import { collect, retire, revisit, schedule } from './batch.ts';
+import { collect, orphaned, retire, revisit, schedule } from './batch.ts';
 import { orphan } from './errors.ts';
 import { disconnect, owner, reading, setOwner, takeHidden, track, untrack } from './tracking.ts';
 
 let created = 0;
+
+export const offscreen = new Set<Effect>();
+
+export function hide(effect: Effect): void {
+	if (effect.destroyed || offscreen.has(effect)) return;
+	offscreen.add(effect);
+	effect.inert = true;
+}
+
+export function show(effect: Effect): void {
+	if (!offscreen.delete(effect)) return;
+	effect.inert = false;
+}
 
 function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effect | null): Effect {
 	const effect: Effect = {
@@ -28,6 +41,7 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		prev: null,
 		next: null,
 		owned: null,
+		units: null,
 		boundary: parent === null ? null : parent.boundary,
 		context: parent === null ? null : parent.context,
 		order: ++created,
@@ -205,5 +219,12 @@ export function destroy(effect: Effect): void {
 	effect.teardown = null;
 	effect.fn = null;
 	unlink(effect);
+	if (offscreen.delete(effect)) effect.inert = false;
 	if (teardown !== null) retire(teardown);
+	if (effect.parent === null) orphaned(effect);
+	const units = effect.units;
+	if (units !== null) {
+		effect.units = null;
+		for (const settle of units) settle();
+	}
 }

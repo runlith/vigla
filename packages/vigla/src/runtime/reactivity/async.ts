@@ -1,4 +1,4 @@
-import { alias, collect, current, request, within, write, type Batch } from './batch.ts';
+import { alias, collect, current, holds, request, within, write, type Batch } from './batch.ts';
 import { block, fail } from './effects.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
 import type { Boundary, Effect, Source } from './graph.ts';
@@ -55,19 +55,36 @@ function count(boundary: Boundary | null, delta: 1 | -1): void {
 
 export function work(): () => void {
 	const batch = current();
-	const boundary = owner === null ? null : owner.boundary;
+	const holder = owner;
+	const boundary = holder === null ? null : holder.boundary;
 	const blocking = !showing(boundary);
 	count(boundary, 1);
-	if (blocking) batch.work += 1;
+	if (blocking) {
+		batch.work += 1;
+		if (holder !== null) {
+			const owners = (batch.owners ??= new Map());
+			owners.set(holder, (owners.get(holder) ?? 0) + 1);
+		}
+	}
 	let unsettled = true;
-	return () => {
+	const settle = (): void => {
 		if (!unsettled) return;
 		unsettled = false;
+		holder?.units?.delete(settle);
 		count(boundary, -1);
 		if (!blocking) return;
 		const target = alias(batch);
-		if (--target.work === 0 && !target.done) request();
+		target.work -= 1;
+		const owners = target.owners;
+		if (holder !== null && owners !== null) {
+			const left = (owners.get(holder) ?? 1) - 1;
+			if (left > 0) owners.set(holder, left);
+			else owners.delete(holder);
+		}
+		if (!target.done && !holds(target)) request();
 	};
+	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
+	return settle;
 }
 
 export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>> {

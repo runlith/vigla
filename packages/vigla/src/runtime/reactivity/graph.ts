@@ -16,6 +16,8 @@ export interface Source<T = unknown> {
 	v: T;
 	wv: number;
 	reactions: Set<Reaction> | null;
+	logged: number;
+	slot: number;
 }
 
 export interface Reaction {
@@ -48,6 +50,7 @@ export interface Effect extends Reaction {
 	prev: Effect | null;
 	next: Effect | null;
 	owned: Derived[] | null;
+	units: Set<() => void> | null;
 	context: unknown;
 	order: number;
 	running: boolean;
