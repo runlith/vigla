@@ -1,5 +1,5 @@
 import { defineProgram, type Finding, type Reading, type Side } from '@runlith/tagma/rules';
-import type { InternalsParams } from './inspections.ts';
+import type { InternalsParams, LoadsParams, MentionsParams } from './inspections.ts';
 
 const specifier = /(?:\bfrom|\bimport\s*\(|\bimport|\brequire\s*\()\s*(['"`])([^'"`]+)\1/g;
 
@@ -64,9 +64,164 @@ async function internals(side: Side, params: InternalsParams): Promise<Reading> 
 	return { findings };
 }
 
-export default defineProgram<{ internals: InternalsParams }>({
+const declared = /\bdeclare\s+module\s*(['"`])([^'"`]+)\1/g;
+
+const referenced = /^\s*\/\/\/\s*<reference\s+types\s*=\s*(['"])([^'"]+)\1/gm;
+
+const dependencyFields = [
+	'dependencies',
+	'devDependencies',
+	'peerDependencies',
+	'optionalDependencies'
+];
+
+function naming(packages: readonly string[]): (target: string) => boolean {
+	return (target) => packages.some((name) => target === name || target.startsWith(`${name}/`));
+}
+
+function strings(value: unknown, into: string[] = []): string[] {
+	if (typeof value === 'string') into.push(value);
+	else if (Array.isArray(value)) for (const item of value) strings(item, into);
+	else if (typeof value === 'object' && value !== null)
+		for (const item of Object.values(value)) strings(item, into);
+	return into;
+}
+
+function manifestFindings(
+	path: string,
+	text: string,
+	names: (target: string) => boolean,
+	fix: string
+): Finding[] {
+	const findings: Finding[] = [];
+	const parsed = JSON.parse(text) as Record<string, unknown>;
+	const at = (needle: string): number => lineOf(text, Math.max(0, text.indexOf(`"${needle}"`)));
+	if (path.endsWith('package.json')) {
+		for (const field of dependencyFields) {
+			const entries = parsed[field];
+			if (typeof entries !== 'object' || entries === null) continue;
+			for (const key of Object.keys(entries)) {
+				if (!names(key)) continue;
+				findings.push({
+					fingerprint: `${field}.${key} @ ${path}`,
+					path,
+					line: at(key),
+					message: `declares ${key} in ${field}`,
+					fix
+				});
+			}
+		}
+	}
+	for (const value of strings(parsed)) {
+		if (!names(value)) continue;
+		findings.push({
+			fingerprint: `"${value}" @ ${path}`,
+			path,
+			line: at(value),
+			message: `names ${value}`,
+			fix
+		});
+	}
+	return findings;
+}
+
+async function mentions(side: Side, params: MentionsParams): Promise<Reading> {
+	const names = naming(params.packages);
+	const { fix } = params;
+	const findings: Finding[] = [];
+	for (const path of side.paths) {
+		const text = await side.read(path);
+		if (text === null) continue;
+		if (path.endsWith('.json')) {
+			findings.push(...manifestFindings(path, text, names, fix));
+			continue;
+		}
+		const source = code(text);
+		const found = (target: string, offset: number, kind: string): void => {
+			findings.push({
+				fingerprint: `${kind} ${target} @ ${path}`,
+				path,
+				line: lineOf(text, offset),
+				message: `${kind} ${target}`,
+				fix
+			});
+		};
+		for (const match of source.matchAll(specifier)) {
+			const target = match[2] ?? '';
+			if (names(target)) found(target, match.index, 'imports');
+		}
+		for (const match of source.matchAll(declared)) {
+			const target = match[2] ?? '';
+			if (names(target)) found(target, match.index, 'declares module');
+		}
+		for (const match of text.matchAll(referenced)) {
+			const target = match[2] ?? '';
+			if (names(target)) found(target, match.index, 'references types of');
+		}
+	}
+	return { findings };
+}
+
+const fromClause = /\b(import|export)\s+([^'"`;]*?)\s*from\s*(['"])([^'"\n]+)\3/g;
+
+const bareLoad = /(?:\bimport\s*|\bimport\s*\(\s*|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g;
+
+function typeOnly(clause: string): boolean {
+	const trimmed = clause.trim();
+	if (/^type\b/.test(trimmed)) return true;
+	const braces = /^\{([^}]*)\}$/.exec(trimmed);
+	if (braces === null) return false;
+	const parts = (braces[1] ?? '')
+		.split(',')
+		.map((part) => part.trim())
+		.filter((part) => part !== '');
+	return parts.length > 0 && parts.every((part) => /^type\b/.test(part));
+}
+
+function bare(target: string): boolean {
+	return !target.startsWith('.') && !target.startsWith('/');
+}
+
+async function loads(side: Side, params: LoadsParams): Promise<Reading> {
+	const allowed = naming(params.allows);
+	const findings: Finding[] = [];
+	for (const path of side.paths) {
+		const text = await side.read(path);
+		if (text === null) continue;
+		const source = code(text);
+		const found = (target: string, offset: number): void => {
+			if (!bare(target) || allowed(target)) return;
+			findings.push({
+				fingerprint: `${target} @ ${path}`,
+				path,
+				line: lineOf(text, offset),
+				message: `loads ${target} at runtime`,
+				fix: params.fix
+			});
+		};
+		for (const match of source.matchAll(fromClause)) {
+			if (!typeOnly(match[2] ?? '')) found(match[4] ?? '', match.index);
+		}
+		for (const match of source.matchAll(bareLoad)) found(match[2] ?? '', match.index);
+	}
+	return { findings };
+}
+
+export default defineProgram<{
+	internals: InternalsParams;
+	mentions: MentionsParams;
+	loads: LoadsParams;
+}>({
+	loads: async ({ params, tree, base }) =>
+		base === null
+			? { tree: await loads(tree, params) }
+			: { tree: await loads(tree, params), base: await loads(base, params) },
 	internals: async ({ params, tree, base }) =>
 		base === null
 			? { tree: await internals(tree, params) }
-			: { tree: await internals(tree, params), base: await internals(base, params) }
+			: { tree: await internals(tree, params), base: await internals(base, params) },
+	mentions: async ({ params, tree, base }) =>
+		base === null
+			? { tree: await mentions(tree, params) }
+			: { tree: await mentions(tree, params), base: await mentions(base, params) }
 });

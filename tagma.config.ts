@@ -1,5 +1,5 @@
 import { defineConfig, Format, Imports } from '@runlith/tagma/rules';
-import { internals } from './checks/inspections.ts';
+import { internals, loads, mentions } from './checks/inspections.ts';
 
 export default defineConfig({
 	inspections: {
@@ -12,6 +12,39 @@ export default defineConfig({
 		internals: internals(
 			{ patterns: ['^svelte/internal(/|$)', '/src/internal/'] },
 			{ files: ['harness/src/**/*.ts', 'harness/src/**/*.js', 'harness/suites/**/*.ts'] }
+		),
+		'core-names-no-svelte': mentions(
+			{
+				packages: ['svelte'],
+				fix: 'Keep what names svelte in @dromon/svelte; the core is reached through its front-end port and published entries.'
+			},
+			{
+				files: [
+					'packages/dromon/**/*.ts',
+					'packages/dromon/**/*.mts',
+					'packages/dromon/**/*.cts',
+					'packages/dromon/**/*.tsx',
+					'packages/dromon/**/*.js',
+					'packages/dromon/**/*.mjs',
+					'packages/dromon/**/*.cjs',
+					'packages/dromon/**/*.json'
+				]
+			}
+		),
+		'runtime-loads': loads(
+			{
+				allows: ['clsx', 'devalue', 'esm-env'],
+				fix: 'Move what needs the package to the compiler side, or reach it through clsx, devalue or esm-env.'
+			},
+			{
+				files: [
+					'packages/dromon/src/runtime/**/*.ts',
+					'packages/dromon/src/shared/**/*.ts',
+					'packages/dromon/src/entries/index.ts',
+					'packages/dromon/src/entries/server.ts',
+					'packages/dromon/src/entries/internal/*.ts'
+				]
+			}
 		)
 	},
 	format: {
