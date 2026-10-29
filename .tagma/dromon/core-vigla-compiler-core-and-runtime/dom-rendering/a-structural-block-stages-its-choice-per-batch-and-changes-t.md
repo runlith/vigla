@@ -11,11 +11,15 @@ sources:
     ref: packages/vigla/src/runtime/dom/branches.ts
   - kind: file
     ref: packages/vigla/src/runtime/dom/list.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/dom/await.ts
 ---
 A block's rerun decides what *its batch* shows, not what the page shows: `{#if}`, `{#key}`, dynamic components and `{@render}` record the chosen key per batch in a `Branches`, `{#each}` the chosen rows in a `List`, and each registers a commit and a discard callback with that batch. The DOM changes only when that batch commits, so a held batch's structure lands with its content and an earlier batch committing meanwhile shows its own choice, never the held one's. A batch that reruns the block again before committing replaces its own staged choice; the same block may hold different choices for several held batches at once.
 
 A branch or row stays alive while it is on screen or some uncommitted batch's choice still names it: a branch a committing batch leaves but a held batch selected is moved into a fragment (`stash`) and reinserted when that batch commits, and the rest are destroyed. A discarded batch prunes what only it needed. Within the batch that stages a choice, the branches and rows it leaves are skipped, so their effects never run for a value that no longer selects them (invariant 2 of [[9d5e3831]]).
 
 Rows are reconciled at commit against the order on screen: a row whose relative order survives stays where it is, and only the rest move, chosen by the longest increasing run of retained positions, so a reorder costs the minimum DOM moves.
+
+`{#await}` stages the same way, but each settled state of a promise is its own batch: the promise's result is written into an internal source and flushed, so the block reruns in that batch and the switch commits with it, never inside the batch that handed over the promise. The pending branch is a deferred `task`: it appears one microtask later only if the promise has not settled by then, or at once when `flushSync` drains the task first. A newer input makes every result of an older promise stale.
 
 A block run outside any batch's structure phase — its first run, or one with no batch being processed — applies at once, since nothing of it can be held.
