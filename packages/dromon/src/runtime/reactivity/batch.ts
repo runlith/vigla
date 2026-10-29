@@ -9,12 +9,13 @@ import {
 	isDerived,
 	stamp,
 	type Effect,
-	type Reaction,
 	type Source
 } from './graph.ts';
 import { run } from './effects.ts';
 import { depthExceeded } from './errors.ts';
+import { absorb, finish, hold, others, rescue, viewOf } from './held.ts';
 import {
+	conceal,
 	forget,
 	owner,
 	readDuringRun,
@@ -24,40 +25,53 @@ import {
 	stale,
 	untrack,
 	view,
-	written,
-	type View
+	written
 } from './tracking.ts';
+
+export { revisit } from './held.ts';
 
 type Phase = 'structure' | 'commit' | 'content' | 'effects';
 
 const limit = 1000;
 
+let batches = 0;
+
 export class Batch {
+	readonly order = ++batches;
 	readonly before = new Map<Source, unknown>();
-	readonly after = new Map<Source, unknown>();
+	after: Map<Source, unknown> | null = null;
 	readonly queued: Effect[] = [];
 	readonly commits: (() => void)[] = [];
-	readonly discards: (() => void)[] = [];
 	readonly effects: Effect[] = [];
-	readonly content: Effect[] = [];
-	readonly deferred: Effect[] = [];
+	discards: (() => void)[] | null = null;
+	content: Effect[] | null = null;
+	deferred: Effect[] | null = null;
 	forced: Set<Effect> | null = null;
 	skipped: Set<Effect> | null = null;
 	waits: Map<Batch, Set<Effect>> | null = null;
 	settles: (() => void)[] | null = null;
+	into: Batch | null = null;
 	work = 0;
 	phase: Phase | null = null;
 	started = false;
 	fork = false;
+	held = false;
 	done = false;
+	discarded = false;
 }
 
-let open: Batch | null = null;
-let processing: Batch | null = null;
-let active: Batch | null = null;
-const pending: Batch[] = [];
+export let open: Batch | null = null;
+export let processing: Batch | null = null;
+export let active: Batch | null = null;
+export const pending: Batch[] = [];
 let waiting: (() => void)[] = [];
 let requested = false;
+
+export function alias(batch: Batch): Batch {
+	let found = batch;
+	while (found.into !== null) found = found.into;
+	return found;
+}
 
 function joins(batch: Batch | null): batch is Batch {
 	return batch !== null && (batch.phase === 'structure' || batch.phase === 'commit');
@@ -72,9 +86,7 @@ export function request(): void {
 	});
 }
 
-function receiving(): Batch {
-	if (active !== null) return active;
-	if (joins(processing)) return processing;
+export function opening(): Batch {
 	if (open === null) {
 		open = new Batch();
 		request();
@@ -82,17 +94,29 @@ function receiving(): Batch {
 	return open;
 }
 
+function receiving(): Batch {
+	if (active !== null) return active;
+	if (joins(processing)) return processing;
+	return opening();
+}
+
 export function current(): Batch {
-	return active ?? processing ?? receiving();
+	return receiving();
 }
 
 export function holds(batch: Batch): boolean {
 	return batch.fork || batch.work > 0;
 }
 
+function live(batch: Batch | null): Batch | null {
+	if (batch === null) return null;
+	const found = alias(batch);
+	return found.done ? null : found;
+}
+
 export function within<T>(batch: Batch, fn: () => T): T {
 	const previous = active;
-	active = batch.done ? null : batch;
+	active = live(batch);
 	try {
 		return fn();
 	} finally {
@@ -118,7 +142,7 @@ export function suspend(): () => void {
 	const batch = active ?? processing;
 	return () => {
 		setOwner(effect);
-		active = batch === null || batch.done ? null : batch;
+		active = live(batch);
 		if (processing === null) setView(active !== null && others(active) ? viewOf(active) : null);
 	};
 }
@@ -131,7 +155,9 @@ export function resumed(): void {
 }
 
 export function schedule(effect: Effect): void {
-	receiving().queued.push(effect);
+	const batch = receiving();
+	batch.queued.push(effect);
+	if (batch !== processing && batch.started) request();
 }
 
 export function collect(effect: Effect): void {
@@ -144,53 +170,66 @@ export function collect(effect: Effect): void {
 	else schedule(effect);
 }
 
-function mark(source: Source, status: typeof DIRTY | typeof MAYBE, seen: Set<Source> | null): void {
+let visits = 0;
+let seen: Set<Source> | null = null;
+
+function mark(source: Source, status: typeof DIRTY | typeof MAYBE, all: boolean): void {
 	const reactions = source.reactions;
 	if (reactions === null) return;
+	if (seen !== null) {
+		if (seen.has(source)) return;
+		seen.add(source);
+	} else if ((visits += reactions.size) > 10_000) seen = new Set([source]);
 	for (const reaction of reactions) {
 		const previous = reaction.status;
 		if (previous < status) reaction.status = status;
-		if (isDerived(reaction)) {
-			if (seen === null ? previous === CLEAN : !seen.has(reaction)) {
-				seen?.add(reaction);
-				mark(reaction, MAYBE, seen);
-			}
-		} else if (seen !== null || previous === CLEAN) schedule(reaction as Effect);
+		if (isDerived(reaction)) mark(reaction, MAYBE, all);
+		else if (all || previous === CLEAN) schedule(reaction as Effect);
 	}
 }
 
 function dirty(source: Source): void {
-	mark(source, DIRTY, pending.length > 0 ? new Set() : null);
+	visits = 0;
+	mark(source, DIRTY, pending.length > 0);
+	seen = null;
+}
+
+function staged<T>(fork: Batch, source: Source<T>, value: T): T {
+	const after = (fork.after ??= new Map());
+	const shown = after.has(source) ? after.get(source) : source.v;
+	if (Object.is(shown, value)) return value;
+	if (!fork.before.has(source)) fork.before.set(source, source.v);
+	after.set(source, value);
+	if (view !== null && view.batch === fork) {
+		forget(source);
+		view.values.set(source, value);
+	}
+	dirty(source);
+	return value;
 }
 
 export function write<T>(source: Source<T>, value: T): T {
-	const batch = receiving();
-	if (batch.fork) {
-		const shown = batch.after.has(source) ? batch.after.get(source) : source.v;
-		if (Object.is(shown, value)) return value;
-		if (!batch.before.has(source)) batch.before.set(source, source.v);
-		batch.after.set(source, value);
-		if (view !== null && view.batch === batch) {
-			forget(source);
-			view.values.set(source, value);
-		}
-		dirty(source);
-		return value;
-	}
-	if (Object.is(source.v, value)) return value;
-	if (!batch.before.has(source)) batch.before.set(source, source.v);
-	batch.after.set(source, value);
+	const target = active ?? (joins(processing) ? processing : null);
+	if (target !== null && target.fork) return staged(target, source, value);
+	const previous = source.v;
+	if (Object.is(previous, value)) return value;
+	const batch = target ?? opening();
+	if (!batch.before.has(source)) batch.before.set(source, previous);
+	if (batch.after !== null) batch.after.set(source, value);
 	source.v = value;
 	source.wv = stamp();
 	written(source);
 	readDuringRun(source);
-	if (view !== null) forget(source);
+	if (view !== null) {
+		if (view.batch === batch) forget(source);
+		else conceal(source, previous, batch);
+	}
 	dirty(source);
 	return value;
 }
 
 export function apply(batch: Batch): void {
-	for (const [source, value] of batch.after) {
+	for (const [source, value] of batch.after ?? []) {
 		batch.before.set(source, source.v);
 		if (Object.is(source.v, value)) continue;
 		source.v = value;
@@ -215,7 +254,8 @@ export function atCommit(apply: () => void): void {
 }
 
 export function atDiscard(fn: () => void): void {
-	if (processing !== null && processing.phase === 'structure') processing.discards.push(fn);
+	if (processing !== null && processing.phase === 'structure')
+		(processing.discards ??= []).push(fn);
 }
 
 export function skip(effect: Effect): void {
@@ -230,73 +270,9 @@ export function processed(): Batch | null {
 	return processing;
 }
 
-function others(batch: Batch): boolean {
-	if (batch.fork || (open !== null && open !== batch)) return true;
-	for (const other of pending) if (other !== batch && !other.fork) return true;
-	return false;
-}
-
-function viewOf(batch: Batch): View {
-	const given: View = {
-		batch,
-		values: new Map(),
-		hidden: new Map(),
-		checked: new Map(),
-		reached: new Map()
-	};
-	const hide = (other: Batch): void => {
-		if (other === batch || other.fork || other.done) return;
-		for (const [source, value] of other.before) {
-			if (batch.after.has(source) || given.values.has(source)) continue;
-			given.values.set(source, value);
-			given.hidden.set(source, other);
-		}
-	};
-	for (const other of pending) hide(other);
-	if (open !== null) hide(open);
-	for (const [source, value] of batch.after)
-		if (!Object.is(source.v, value)) given.values.set(source, value);
-	return given;
-}
-
-export function revisit(effect: Effect, hidden: Set<Batch>): void {
-	const reader = active ?? processing;
-	for (const writer of hidden) {
-		if (writer.done) continue;
-		if (writer.queued.includes(effect)) (writer.forced ??= new Set()).add(effect);
-		if (reader === null || reader === writer) continue;
-		const waits = (reader.waits ??= new Map());
-		let found = waits.get(writer);
-		if (found === undefined) waits.set(writer, (found = new Set()));
-		found.add(effect);
-	}
-}
-
-function intersects(a: Batch, b: Batch): boolean {
-	const [small, large] = a.before.size < b.before.size ? [a, b] : [b, a];
-	for (const source of small.before.keys()) if (large.before.has(source)) return true;
-	return false;
-}
-
-function absorb(batch: Batch): Batch {
-	for (const held of pending) {
-		if (held.fork || held.done || !intersects(batch, held)) continue;
-		for (const [source, value] of batch.before)
-			if (!held.before.has(source)) held.before.set(source, value);
-		for (const [source, value] of batch.after) held.after.set(source, value);
-		held.queued.push(...batch.queued);
-		held.effects.push(...batch.effects);
-		if (batch.settles !== null) (held.settles ??= []).push(...batch.settles);
-		batch.done = true;
-		return held;
-	}
-	return batch;
-}
-
-function resolve(batch: Batch): Effect[] {
+function resolve(pass: readonly Effect[], forced: Set<Effect> | null): Effect[] {
 	const roots = new Set<Effect>();
-	const forced = batch.forced;
-	for (const effect of batch.queued.splice(0)) {
+	for (const effect of pass) {
 		if (effect.destroyed) continue;
 		if (effect.status === CLEAN && (forced === null || !forced.has(effect))) continue;
 		let top = effect;
@@ -344,116 +320,46 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 	}
 }
 
-function settle(effects: readonly Effect[], force: boolean): void {
-	for (let index = 0; index < effects.length; index++) {
-		const effect = effects[index] as Effect;
-		if (effect.destroyed || effect.inert || effect.running) continue;
-		if (force) effect.status = DIRTY;
-		if (stale(effect)) run(effect);
-	}
+function under(effect: Effect, skipped: Set<Effect>): boolean {
+	for (let at: Effect | null = effect; at !== null; at = at.parent)
+		if (skipped.has(at)) return true;
+	return false;
 }
 
-function share(effect: Effect, batch: Batch): void {
-	const pass = (other: Batch | null): void => {
-		if (other === null || other === batch || other.done || !other.queued.includes(effect)) return;
-		(other.forced ??= new Set()).add(effect);
-	};
-	pass(open);
-	for (const other of pending) pass(other);
-}
-
-function defer(effects: readonly Effect[], batch: Batch, into: Effect[]): void {
-	for (const effect of effects) {
-		if (effect.destroyed || into.includes(effect) || !stale(effect)) continue;
-		effect.status = CLEAN;
-		into.push(effect);
-		share(effect, batch);
-	}
-}
-
-function hold(batch: Batch, content: readonly Effect[]): void {
-	defer(content, batch, batch.content);
-	defer(batch.effects.splice(0), batch, batch.deferred);
-	if (!pending.includes(batch)) pending.push(batch);
-}
-
-function depends(
-	reaction: Reaction,
-	sources: Map<Source, unknown>,
-	memo: Map<Reaction, boolean>
-): boolean {
-	const known = memo.get(reaction);
-	if (known !== undefined) return known;
-	memo.set(reaction, false);
-	let found = false;
-	for (const dep of reaction.deps ?? []) {
-		if (sources.has(dep) || (isDerived(dep) && depends(dep, sources, memo))) {
-			found = true;
-			break;
+function settle(
+	effects: readonly Effect[],
+	force: boolean,
+	batch: Batch,
+	leftover: Effect[]
+): void {
+	let index = 0;
+	try {
+		for (; index < effects.length; index++) {
+			const effect = effects[index] as Effect;
+			if (effect.destroyed || effect.inert || effect.running) continue;
+			if (batch.skipped !== null && under(effect, batch.skipped)) continue;
+			if (force) effect.status = DIRTY;
+			if (stale(effect)) run(effect);
 		}
-	}
-	memo.set(reaction, found);
-	return found;
-}
-
-function rebase(batch: Batch, committed: Batch, changed: readonly Source[]): void {
-	const rerun = new Set<Effect>(batch.waits?.get(committed) ?? []);
-	batch.waits?.delete(committed);
-	const memo = new Map<Reaction, boolean>();
-	const seen = new Set<Source>();
-	const visit = (source: Source): void => {
-		if (seen.has(source)) return;
-		seen.add(source);
-		for (const reaction of source.reactions ?? []) {
-			if (isDerived(reaction)) visit(reaction);
-			else if (depends(reaction, batch.before, memo)) rerun.add(reaction as Effect);
+	} catch (error) {
+		for (let rest = index + 1; rest < effects.length; rest++) {
+			const effect = effects[rest] as Effect;
+			if (force) effect.status = DIRTY;
+			leftover.push(effect);
 		}
-	};
-	for (const source of changed) {
-		if (batch.after.has(source) && !Object.is(source.v, batch.after.get(source)) && !batch.fork) {
-			batch.before.delete(source);
-			batch.after.delete(source);
-		}
-		visit(source);
+		throw error;
 	}
-	for (const effect of rerun) {
-		if (effect.destroyed) continue;
-		(batch.forced ??= new Set()).add(effect);
-		batch.queued.push(effect);
+}
+
+function commit(batch: Batch): void {
+	const commits = batch.commits.splice(0);
+	let index = 0;
+	try {
+		for (; index < commits.length; index++) (commits[index] as () => void)();
+	} catch (error) {
+		batch.commits.unshift(...commits.slice(index + 1));
+		throw error;
 	}
-	if (batch.queued.length > 0) request();
-}
-
-function end(batch: Batch): void {
-	batch.done = true;
-	const index = pending.indexOf(batch);
-	if (index !== -1) pending.splice(index, 1);
-	for (const done of batch.settles ?? []) done();
-	batch.settles = null;
-}
-
-function finish(batch: Batch): void {
-	end(batch);
-	const changed: Source[] = [];
-	for (const [source, value] of batch.before)
-		if (!Object.is(value, batch.after.get(source))) changed.push(source);
-	for (const other of [...pending]) rebase(other, batch, changed);
-}
-
-export function discard(batch: Batch): void {
-	if (batch.done) return;
-	for (const fn of batch.discards.splice(0)) fn();
-	end(batch);
-	for (const other of pending) other.waits?.delete(batch);
-}
-
-export function waitFor(batch: Batch): Promise<void> {
-	if (batch.done) return Promise.resolve();
-	return new Promise((done) => (batch.settles ??= []).push(done));
-}
-
-export function adopt(batch: Batch): void {
-	if (!pending.includes(batch)) pending.push(batch);
 }
 
 export function process(given: Batch): void {
@@ -462,29 +368,47 @@ export function process(given: Batch): void {
 	const outerView = setView(others(batch) ? viewOf(batch) : null);
 	processing = batch;
 	batch.started = true;
+	const content: Effect[] = [];
+	const leftover: Effect[] = [];
 	try {
-		const content: Effect[] = [];
 		let passes = 0;
 		while (batch.queued.length > 0 || (batch.commits.length > 0 && !holds(batch))) {
 			if (++passes > limit) depthExceeded();
 			batch.phase = 'structure';
-			for (const root of resolve(batch)) traverse(root, batch, content);
+			const pass = batch.queued.splice(0);
+			const roots = resolve(pass, batch.forced);
+			try {
+				for (const root of roots) traverse(root, batch, content);
+			} catch (error) {
+				for (const root of roots) unmark(root);
+				leftover.push(...pass);
+				throw error;
+			}
 			if (holds(batch)) break;
 			batch.phase = 'commit';
-			for (const fn of batch.commits.splice(0)) fn();
+			commit(batch);
 		}
 		if (holds(batch)) {
 			hold(batch, content);
 			return;
 		}
 		batch.phase = 'content';
-		settle(batch.content.splice(0), true);
-		settle(content, false);
+		const deferred = batch.content;
+		batch.content = null;
+		if (deferred !== null) settle(deferred, true, batch, leftover);
+		settle(content, false, batch, leftover);
 		batch.phase = 'effects';
-		settle(batch.deferred.splice(0), true);
-		settle(batch.effects.splice(0), false);
-		batch.discards.length = 0;
+		const effects = batch.deferred;
+		batch.deferred = null;
+		if (effects !== null) settle(effects, true, batch, leftover);
+		settle(batch.effects.splice(0), false, batch, leftover);
+		batch.discards = null;
 		finish(batch);
+	} catch (error) {
+		batch.phase = null;
+		processing = outerBatch;
+		rescue(batch, [...leftover, ...content]);
+		throw error;
 	} finally {
 		batch.phase = null;
 		processing = outerBatch;
@@ -494,7 +418,8 @@ export function process(given: Batch): void {
 
 function next(): Batch | null {
 	for (const batch of pending)
-		if (!batch.done && (batch.queued.length > 0 || !holds(batch))) return batch;
+		if (!batch.done && batch.phase === null && (batch.queued.length > 0 || !holds(batch)))
+			return batch;
 	return open;
 }
 

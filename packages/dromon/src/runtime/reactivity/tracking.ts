@@ -1,5 +1,7 @@
 import type { Batch } from './batch.ts';
+import { unsafeMutation } from './errors.ts';
 import {
+	BLOCK,
 	CLEAN,
 	DIRTY,
 	MAYBE,
@@ -14,8 +16,47 @@ import {
 
 interface Frame {
 	readonly reads: Source[];
+	readonly derived: boolean;
+	readonly guarded: boolean;
 	invalidated: boolean;
 	hidden: Set<Batch> | null;
+	local: Set<Source> | null;
+}
+
+function opened(target: Reaction): Frame {
+	const derived = isDerived(target);
+	const kind = (target as Effect).kind;
+	const current: Frame = {
+		reads: [],
+		derived,
+		guarded: derived || kind === BLOCK,
+		invalidated: false,
+		hidden: null,
+		local: null
+	};
+	frame = current;
+	frames.push(current);
+	return current;
+}
+
+function closed(previous: Frame | null): void {
+	frames.pop();
+	frame = previous;
+}
+
+export function localize(source: Source): void {
+	const top = frames[frames.length - 1];
+	if (top !== undefined && top.derived) (top.local ??= new Set()).add(source);
+}
+
+export function local(source: Source): boolean {
+	const top = frames[frames.length - 1];
+	return top !== undefined && top.local !== null && top.local.has(source);
+}
+
+export function guard(source: Source): void {
+	if (frame !== null && frame.guarded && (frame.local === null || !frame.local.has(source)))
+		unsafeMutation();
 }
 
 interface Past {
@@ -55,7 +96,8 @@ export function setView(next: View | null): View | null {
 }
 
 export function get<T>(source: Source<T>): T {
-	if (frame !== null) frame.reads.push(source);
+	if (frame !== null && (frame.local === null || !frame.local.has(source)))
+		frame.reads.push(source);
 	if (past !== null) return recall(source, past) as T;
 	if (view !== null) return through(source, view) as T;
 	if (isDerived(source)) refresh(source);
@@ -98,13 +140,12 @@ export function affected(derived: Derived, given: View): boolean {
 
 function compute(derived: Derived, given: View): unknown {
 	const previous = frame;
-	const current: Frame = { reads: [], invalidated: false, hidden: null };
-	frame = current;
+	const current = opened(derived);
 	const previousOwner = setOwner(derived.owner);
 	try {
 		return derived.fn();
 	} finally {
-		frame = previous;
+		closed(previous);
 		setOwner(previousOwner);
 		const deps = (derived.deps ??= []);
 		for (const dep of current.reads) {
@@ -132,11 +173,20 @@ function through(source: Source, given: View): unknown {
 	if (!isDerived(source)) return source.v;
 	if (!affected(source, given)) {
 		refresh(source);
-		return source.v;
+		if (!given.values.has(source)) return source.v;
+		const reached = given.reached.get(source);
+		if (reached !== undefined) note(reached);
+		return given.values.get(source);
 	}
 	const value = compute(source, given);
 	given.values.set(source, value);
 	return value;
+}
+
+export function conceal(source: Source, value: unknown, batch: Batch): void {
+	if (view === null || view.values.has(source)) return;
+	view.values.set(source, value);
+	view.hidden.set(source, batch);
 }
 
 export function forget(source: Source): void {
@@ -225,24 +275,26 @@ function reconcile(target: Reaction, next: Source[]): void {
 
 export function track<T>(target: Reaction, fn: () => T): T {
 	const previous = frame;
-	const current: Frame = { reads: [], invalidated: false, hidden: null };
-	frame = current;
-	frames.push(current);
+	const current = opened(target);
 	try {
 		return fn();
 	} finally {
-		frames.pop();
-		frame = previous;
-		let invalidated = current.invalidated;
-		for (const dep of current.reads) {
-			if (isDerived(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep)))
-				invalidated = true;
-		}
-		reconcile(target, current.reads);
-		target.rv = now();
-		target.status = invalidated ? DIRTY : CLEAN;
+		closed(previous);
 		hiddenByLast = current.hidden;
+		if ((target as Effect).destroyed === true) target.deps = null;
+		else settleRun(target, current);
 	}
+}
+
+function settleRun(target: Reaction, current: Frame): void {
+	let invalidated = current.invalidated;
+	for (const dep of current.reads) {
+		if (isDerived(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep)))
+			invalidated = true;
+	}
+	reconcile(target, current.reads);
+	target.rv = now();
+	target.status = invalidated ? DIRTY : CLEAN;
 }
 
 export function takeHidden(): Set<Batch> | null {
@@ -258,6 +310,7 @@ export function stale(target: Reaction): boolean {
 			if (isDerived(dep)) {
 				if (view !== null && affected(dep, view)) return true;
 				refresh(dep);
+				if (view !== null && view.values.has(dep)) return true;
 			}
 			if (dep.wv > target.rv) return true;
 		}
@@ -272,7 +325,15 @@ export function refresh(derived: Derived): void {
 	const previous = setOwner(derived.owner);
 	try {
 		const value = track(derived, derived.fn);
+		const hidden = hiddenByLast;
 		hiddenByLast = null;
+		if (hidden !== null && view !== null) {
+			derived.status = DIRTY;
+			view.values.set(derived, value);
+			view.reached.set(derived, hidden);
+			view.checked.set(derived, true);
+			return;
+		}
 		if (!derived.computed || !Object.is(value, derived.v)) {
 			derived.v = value;
 			derived.wv = stamp();

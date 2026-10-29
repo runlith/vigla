@@ -1,14 +1,21 @@
 import { write } from './batch.ts';
 import { own } from './effects.ts';
 import { DIRTY, type Derived, type Source } from './graph.ts';
-import { get, owner } from './tracking.ts';
+import { get, guard, localize, owner } from './tracking.ts';
 
-export function state<T>(value: T): Source<T> {
+export function source<T>(value: T): Source<T> {
 	return { v: value, wv: 0, reactions: null };
 }
 
-export function set<T>(source: Source<T>, value: T): T {
-	return write(source, value);
+export function state<T>(value: T): Source<T> {
+	const created = source(value);
+	localize(created);
+	return created;
+}
+
+export function set<T>(target: Source<T>, value: T): T {
+	guard(target);
+	return write(target, value);
 }
 
 function step<T extends number | bigint>(value: T, delta: number): T {
@@ -30,13 +37,13 @@ export interface Cell<T> {
 }
 
 export function cell<T>(value: T): Cell<T> {
-	const source = state(value);
+	const held = state(value);
 	return {
 		get current() {
-			return get(source);
+			return get(held);
 		},
 		set current(next) {
-			set(source, next);
+			set(held, next);
 		}
 	};
 }

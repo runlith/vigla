@@ -1,8 +1,8 @@
-import { collect, current, request, within, write, type Batch } from './batch.ts';
+import { alias, collect, current, request, within, write, type Batch } from './batch.ts';
 import { block, fail } from './effects.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
 import type { Boundary, Effect, Source } from './graph.ts';
-import { state } from './sources.ts';
+import { source } from './sources.ts';
 import { get, owner } from './tracking.ts';
 
 interface Tally {
@@ -64,13 +64,15 @@ export function work(): () => void {
 		if (!unsettled) return;
 		unsettled = false;
 		count(boundary, -1);
-		if (blocking && --batch.work === 0) request();
+		if (!blocking) return;
+		const target = alias(batch);
+		if (--target.work === 0 && !target.done) request();
 	};
 }
 
 export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>> {
 	if (owner === null) asyncOrphan();
-	const signal = state<T>(undefined as T);
+	const signal = source<T>(undefined as T);
 	const latest = new Map<Batch, object>();
 	let resolved = false;
 	let initial = true;
@@ -95,7 +97,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		const own = (): boolean => {
 			if (latest.get(batch) !== token) return false;
 			latest.delete(batch);
-			return !effect.destroyed;
+			return !effect.destroyed && !alias(batch).discarded;
 		};
 		promise.then(
 			(value) => {
@@ -107,11 +109,11 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 				done?.();
 			},
 			(error: unknown) => {
-				if (own()) {
-					if (resolved) fail(effect, error);
-					else refuse(error);
-				}
+				const owned = own();
 				done?.();
+				if (!owned) return;
+				if (resolved) fail(effect, error);
+				else refuse(error);
 			}
 		);
 	});
@@ -123,6 +125,6 @@ export function pending(): number {
 	const boundary = owner.boundary;
 	if (boundary === null) return 0;
 	const found = tally(boundary);
-	found.source ??= state(found.units);
+	found.source ??= source(found.units);
 	return get(found.source);
 }

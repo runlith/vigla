@@ -1,16 +1,6 @@
-import {
-	Batch,
-	adopt,
-	apply,
-	discard,
-	flushSync,
-	inside,
-	process,
-	quiet,
-	waitFor,
-	within
-} from './batch.ts';
+import { Batch, apply, flushSync, inside, process, quiet, within } from './batch.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
+import { adopt, discard, waitFor } from './held.ts';
 
 export interface Fork {
 	commit(): Promise<void>;
@@ -22,6 +12,7 @@ export function fork(fn: () => void): Fork {
 	flushSync();
 	const batch = new Batch();
 	batch.fork = true;
+	batch.after = new Map();
 	adopt(batch);
 	inside(batch, fn);
 	process(batch);

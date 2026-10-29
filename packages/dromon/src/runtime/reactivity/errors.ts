@@ -40,6 +40,13 @@ export function forkTiming(): never {
 	);
 }
 
+export function unsafeMutation(): never {
+	return fail(
+		'state_unsafe_mutation',
+		'Updating state inside `$derived(...)`, `$inspect(...)` or a template expression is forbidden. If the value should not be reactive, declare it without `$state`'
+	);
+}
+
 export function depthExceeded(): never {
 	return fail(
 		'effect_update_depth_exceeded',

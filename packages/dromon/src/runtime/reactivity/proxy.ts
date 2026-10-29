@@ -1,7 +1,7 @@
 import { write } from './batch.ts';
 import type { Source } from './graph.ts';
-import { state } from './sources.ts';
-import { get } from './tracking.ts';
+import { source as plain, state } from './sources.ts';
+import { get, guard, local } from './tracking.ts';
 
 const RAW = Symbol('raw');
 
@@ -39,7 +39,10 @@ function clone(value: unknown, cloned: Map<object, unknown>): unknown {
 			for (const key of Object.keys(value)) copy[key] = clone((value as Indexed)[key], cloned);
 			return copy;
 		}
-		if (value instanceof Date) return structuredClone(value);
+		if (value instanceof Date) {
+			value.getTime();
+			return structuredClone(value);
+		}
 		const json = (value as { toJSON?: unknown }).toJSON;
 		if (typeof json === 'function') {
 			const copy = clone(json.call(value), cloned);
@@ -60,17 +63,28 @@ export function snapshot<T>(value: T): T {
 }
 
 export function proxy<T>(value: T): T {
+	return wrap(value, true);
+}
+
+function wrap<T>(value: T, aware: boolean): T {
 	if (!proxiable(value)) return value;
 	const target = value;
 	const array = Array.isArray(target);
 	const sources = new Map<string | symbol, Source<unknown>>();
-	const keys = state(0);
-	if (array) sources.set('length', state((target as unknown as unknown[]).length));
+	const keys = aware ? state(0) : plain(0);
+	if (array) {
+		const length = (target as unknown as unknown[]).length;
+		sources.set('length', aware ? state(length) : plain(length));
+	}
+
+	const make = (initial: unknown): Source<unknown> =>
+		local(keys) ? state(initial) : plain(initial);
+	const nested = <V>(child: V): V => wrap(child, local(keys));
 
 	const source = (prop: string | symbol): Source<unknown> => {
 		let found = sources.get(prop);
 		if (found === undefined) {
-			found = state(Object.hasOwn(target, prop) ? proxy(target[prop]) : ABSENT);
+			found = make(Object.hasOwn(target, prop) ? nested(target[prop]) : ABSENT);
 			sources.set(prop, found);
 		}
 		return found;
@@ -86,7 +100,9 @@ export function proxy<T>(value: T): T {
 	const assign = (prop: string | symbol, next: unknown): void => {
 		const existing = sources.get(prop);
 		const added = existing === undefined ? !Object.hasOwn(target, prop) : existing.v === ABSENT;
-		write(source(prop), proxy(next));
+		const found = source(prop);
+		guard(found);
+		write(found, nested(next));
 		if (array) {
 			const position = index(prop);
 			const length = sources.get('length') as Source<unknown>;
@@ -113,10 +129,11 @@ export function proxy<T>(value: T): T {
 			if (!tracked(prop)) return Reflect.set(object, prop, next, receiver);
 			if (array && prop === 'length') {
 				const length = sources.get('length') as Source<unknown>;
+				guard(length);
 				for (let position = next as number; position < (length.v as number); position++) {
 					const key = String(position);
 					const item = sources.get(key);
-					if (item === undefined) sources.set(key, state(ABSENT));
+					if (item === undefined) sources.set(key, make(ABSENT));
 					else write(item, ABSENT);
 				}
 				write(length, next);
@@ -130,6 +147,7 @@ export function proxy<T>(value: T): T {
 			if (!tracked(prop)) return Reflect.deleteProperty(object, prop);
 			const found = source(prop);
 			if (found.v !== ABSENT) {
+				guard(found);
 				write(found, ABSENT);
 				write(keys, (keys.v as number) + 1);
 			}
