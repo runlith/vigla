@@ -2,11 +2,14 @@ import type { Diagnostic } from 'dromon/compiler';
 import type * as AST from '../ast.ts';
 import { bidirectionalChar } from '../parse/characters.ts';
 import type { Parsed } from '../parse/index.ts';
+import { fail } from '../diagnostics.ts';
+import { rejectLegacy } from './legacy.ts';
 import { Report } from './report.ts';
 import { Template } from './template.ts';
 
 export interface ValidateOptions {
 	readonly customElement: boolean;
+	readonly filename: string | undefined;
 }
 
 const bidirectional = bidirectionalChar;
@@ -79,12 +82,63 @@ export function merge(
 	return merged.concat(first.slice(left), second.slice(right));
 }
 
+function firstReference(node: unknown, name: string, parent: Node | null): Node | null {
+	if (node === null || typeof node !== 'object') return null;
+	if (Array.isArray(node)) {
+		for (const item of node) {
+			const found = firstReference(item, name, parent);
+			if (found !== null) return found;
+		}
+		return null;
+	}
+	const record = node as Node;
+	if (typeof record.type !== 'string') return null;
+	if (record.type === 'Identifier' && record.name === name) {
+		const property =
+			(parent?.type === 'MemberExpression' && parent.property === record && !parent.computed) ||
+			(parent?.type === 'Property' && parent.key === record && !parent.computed);
+		if (!property) return record;
+	}
+	for (const key in record) {
+		if (
+			key === 'type' ||
+			key === 'loc' ||
+			key === 'leadingComments' ||
+			key === 'trailingComments'
+		) {
+			continue;
+		}
+		const found = firstReference(record[key], name, record);
+		if (found !== null) return found;
+	}
+	return null;
+}
+
+function rejectLegacyProps(root: AST.Root): void {
+	for (const [name, code] of [
+		['$$props', 'legacy_props_invalid'],
+		['$$restProps', 'legacy_rest_props_invalid']
+	] as const) {
+		const found =
+			firstReference(root.module, name, null) ??
+			firstReference(root.instance, name, null) ??
+			firstReference(root.fragment, name, null);
+		if (found !== null) fail(code, found as unknown as AST.Located);
+	}
+}
+
+export interface Validated {
+	readonly before: readonly Diagnostic[];
+	readonly walk: readonly Diagnostic[];
+}
+
 export function validateComponent(
 	parsed: Parsed,
 	source: string,
 	options: ValidateOptions
-): Diagnostic[] {
+): Validated {
 	const root = parsed.root;
+	rejectLegacy(root, options);
 	const early = new Report();
 	for (const attribute of root.options?.attributes ?? []) {
 		if (
@@ -95,12 +149,13 @@ export function validateComponent(
 			early.warn('options_missing_custom_element', attribute);
 		}
 	}
+	rejectLegacyProps(root);
 	const report = new Report();
 	literals(root.module, report);
 	literals(root.instance, report);
 	new Template(source, report).fragment(root.fragment, root);
 	literals(root.fragment, report);
 	const phase = phases(root);
-	const ordered = [...report.warnings].sort((a, b) => phase(a) - phase(b) || a.start - b.start);
-	return [...parsed.warnings, ...early.warnings, ...ordered];
+	const walk = [...report.warnings].sort((a, b) => phase(a) - phase(b) || a.start - b.start);
+	return { before: [...parsed.warnings, ...early.warnings], walk };
 }

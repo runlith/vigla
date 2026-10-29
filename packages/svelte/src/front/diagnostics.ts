@@ -31,6 +31,29 @@ export function fail(code: string, at: At, args: Args = {}): never {
 	throw new CompileError(diagnostic(code, at, args));
 }
 
+const legacyMessages: Readonly<Record<string, readonly string[]>> = {
+	component_event_directive_invalid: [
+		'`on:%name%` on a component is Svelte 4 event syntax, which is not supported — pass a callback prop such as `on%name%={...}` instead'
+	],
+	let_directive_invalid: [
+		'`let:` directives belong to Svelte 4 slots, which are not supported — use snippets instead'
+	],
+	svelte_fragment_invalid: [
+		'`<svelte:fragment>` belongs to Svelte 4 slots, which are not supported — use snippets instead'
+	],
+	slot_attribute_unsupported: [
+		"The `slot` attribute assigns content to a component's Svelte 4 slot, which is not supported — pass a snippet instead"
+	],
+	runes_mode_required: [
+		'Components must use runes mode — `runes: false` and legacy mode are not supported'
+	]
+};
+
+export function legacy(code: string, at: At, args: Args = {}): never {
+	const templates = warnings[code] ?? legacyMessages[code];
+	throw new CompileError({ code, message: format(templates, code, args), ...span(at) });
+}
+
 export function unsupported(what: string, at: At): never {
 	throw new CompileError({
 		code: 'unsupported',

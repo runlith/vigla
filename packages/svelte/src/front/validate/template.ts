@@ -152,6 +152,15 @@ const mathmlNames = new Set([
 
 type Parent = AST.TemplateNode | AST.Root;
 
+const boundaryAttributes = new Set(['onerror', 'failed', 'pending']);
+
+function isExpressionValue(value: AST.AttributeValue): boolean {
+	return (
+		value !== true &&
+		(!Array.isArray(value) || (value.length === 1 && value[0]?.type === 'ExpressionTag'))
+	);
+}
+
 function customElement(node: AST.ElementLike): boolean {
 	return (
 		node.type === 'RegularElement' &&
@@ -340,6 +349,8 @@ export class Template {
 					if (attribute.type === 'Attribute') {
 						this.attribute(attribute, node);
 						this.colon(attribute);
+					} else if (attribute.type === 'BindDirective') {
+						this.bindParens(attribute);
 					}
 				}
 				break;
@@ -358,13 +369,38 @@ export class Template {
 			case 'SvelteHead':
 				for (const attribute of node.attributes) fail('svelte_head_illegal_attribute', attribute);
 				break;
+			case 'SvelteBoundary':
+				for (const attribute of node.attributes) {
+					if (attribute.type !== 'Attribute' || !boundaryAttributes.has(attribute.name)) {
+						fail('svelte_boundary_invalid_attribute', attribute);
+					}
+					const value = attribute.value;
+					if (
+						value === true ||
+						(Array.isArray(value) && (value.length !== 1 || value[0]?.type !== 'ExpressionTag'))
+					) {
+						fail('svelte_boundary_invalid_attribute_value', attribute);
+					}
+				}
+				break;
+			case 'SvelteBody':
+				for (const attribute of node.attributes) {
+					const event =
+						attribute.type === 'Attribute' &&
+						attribute.name.startsWith('on') &&
+						isExpressionValue(attribute.value);
+					if (!event && (attribute.type === 'SpreadAttribute' || attribute.type === 'Attribute')) {
+						fail('svelte_body_illegal_attribute', attribute);
+					}
+				}
+				break;
 			case 'SvelteWindow':
 			case 'SvelteDocument':
 				for (const attribute of node.attributes) {
 					const event =
 						attribute.type === 'Attribute' &&
 						attribute.name.startsWith('on') &&
-						attribute.name.length > 2;
+						isExpressionValue(attribute.value);
 					if (!event && (attribute.type === 'SpreadAttribute' || attribute.type === 'Attribute')) {
 						fail('illegal_element_attribute', attribute, { name: node.name });
 					}
@@ -398,6 +434,23 @@ export class Template {
 				if (modifiers.length > 1 || (modifiers.length > 0 && modifiers[0] !== 'important')) {
 					fail('style_directive_invalid_modifier', attribute);
 				}
+			} else if (attribute.type === 'BindDirective') {
+				this.bindParens(attribute);
+			}
+		}
+	}
+
+	bindParens(attribute: AST.Directive): void {
+		const expression = attribute.expression;
+		if (expression?.type !== 'SequenceExpression') return;
+		const comments = (expression as unknown as { leadingComments?: AST.Located[] }).leadingComments;
+		const first = comments?.at(0)?.start;
+		const last = comments?.at(-1)?.end;
+		for (let index = (expression.start as number) - 1; this.source[index] !== '{'; index--) {
+			const inComment =
+				first !== undefined && last !== undefined && index <= last && index >= first;
+			if (this.source[index] === '(' && !inComment) {
+				fail('bind_invalid_parens', attribute, { name: attribute.name });
 			}
 		}
 	}

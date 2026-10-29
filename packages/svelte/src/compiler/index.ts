@@ -1,6 +1,8 @@
 import {
 	compile as compileUnit,
 	compileModule as compileModuleUnit,
+	validateComponent as validateUnit,
+	validateModule as validateModuleUnit,
 	type Code,
 	type Diagnostic,
 	type Runtime
@@ -136,18 +138,22 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		const notices = diagnostics.notices(validate(options, 'component'));
 		const parsed = parseComponent(source);
 		const syntax = validateComponent(parsed, source, {
-			customElement: options.customElement === true
+			customElement: options.customElement === true,
+			filename: options.filename
 		});
 		const reading = lowerComponent(parsed, source, options.filename ?? null);
 		const phase = phases(parsed.root);
-		const found = merge(syntax, reading.warnings, phase);
+		const own = merge(syntax.walk, reading.warnings, phase);
+		const reported = (core: readonly Diagnostic[]): Warning[] => [
+			...notices,
+			...diagnostics.warnings([...syntax.before, ...merge(own, core, phase)])
+		];
 		if (options.generate === false) {
-			return {
-				js: null,
-				css: null,
-				warnings: [...notices, ...diagnostics.warnings(found)],
-				metadata: { runes: true }
-			};
+			const core = validateUnit(reading.unit, {
+				customElement: options.customElement === true,
+				namespace: options.namespace
+			});
+			return { js: null, css: null, warnings: reported(core), metadata: { runes: true } };
 		}
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
@@ -161,7 +167,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		return {
 			js: output.js,
 			css: null,
-			warnings: [...notices, ...diagnostics.warnings(merge(found, output.warnings, phase))],
+			warnings: reported(output.warnings),
 			metadata: { runes: true }
 		};
 	});
@@ -174,7 +180,13 @@ export function compileModule(input: string, options: ModuleCompileOptions = {})
 		const notices = diagnostics.notices(validate(options, 'module'));
 		const reading = front.module({ source, filename: options.filename ?? null });
 		if (options.generate === false) {
-			return { js: null, css: null, warnings: notices, metadata: { runes: true } };
+			const core = validateModuleUnit(reading.unit);
+			return {
+				js: null,
+				css: null,
+				warnings: [...notices, ...diagnostics.warnings(core)],
+				metadata: { runes: true }
+			};
 		}
 		const output = compileModuleUnit(reading.unit, {
 			generate: generated(options),
