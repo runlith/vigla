@@ -16,6 +16,16 @@ const-tag-snippet-invalid-reference-1
 const-tag-snippet-invalid-reference-2
 const-tag-whitespace
 css
+css-global-block-combinator
+css-global-block-combinator-2
+css-global-block-declaration
+css-global-block-in-pseudoclass
+css-global-block-multiple-1
+css-global-block-multiple-2
+css-global-modifier
+css-global-modifier-start-1
+css-global-modifier-start-2
+css-nesting-selector-root
 declaration-tag-trailing-slash
 dollar-binding-declaration-runes
 dollar-binding-declaration-runes-2

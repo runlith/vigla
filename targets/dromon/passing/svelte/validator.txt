@@ -128,7 +128,24 @@ const-tag-readonly-1
 const-tag-readonly-2
 contenteditable-dynamic
 contenteditable-missing
+css-invalid-combinator-selector-1
+css-invalid-combinator-selector-2
+css-invalid-combinator-selector-3
 css-invalid-combinator-selector-4
+css-invalid-global-placement
+css-invalid-global-placement-2
+css-invalid-global-placement-3
+css-invalid-global-placement-4
+css-invalid-global-placement-5
+css-invalid-global-placement-6
+css-invalid-global-selector
+css-invalid-global-selector-2
+css-invalid-global-selector-3
+css-invalid-global-selector-4
+css-invalid-global-selector-5
+css-invalid-global-selector-6
+css-invalid-global-selector-list
+css-invalid-type-selector-placement
 css-mismatched-quotes
 custom-element-props-identifier
 custom-element-props-identifier-props-option
@@ -165,6 +182,7 @@ empty-block
 errors if namespace is provided but unrecognised
 event-attribute
 export-not-defined-module-with-source
+general-siblings-combinator-in-custom-element-selects-slot-fallback
 global-event-reference
 global-event-reference-special-elements
 html-block-in-attribute
@@ -227,6 +245,7 @@ script-invalid-spread-attribute
 script-unknown-attribute
 security-anchor-rel-noreferer
 select-multiple
+siblings-combinator-in-custom-element-selects-slot-fallback
 silence-warnings
 snippet-already-declared
 snippet-shadowing-prop

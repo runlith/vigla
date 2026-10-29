@@ -1,5 +1,7 @@
 import {
+	analyzeStyle,
 	compile as compileUnit,
+	hash,
 	compileModule as compileModuleUnit,
 	validateComponent as validateUnit,
 	validateModule as validateModuleUnit,
@@ -75,9 +77,15 @@ export interface Metadata {
 	runes: boolean;
 }
 
+export interface CssResult {
+	code: string;
+	map: unknown;
+	hasGlobal: boolean;
+}
+
 export interface CompileResult {
 	js: Code | null;
-	css: null;
+	css: CssResult | null;
 	warnings: Warning[];
 	metadata: Metadata;
 }
@@ -107,6 +115,21 @@ function componentName(filename: string | undefined): string {
 	if (name === '') return 'Component';
 	const capital = name[0]?.toUpperCase() + name.slice(1);
 	return /^[0-9]/.test(capital) ? `_${capital}` : capital;
+}
+
+function relativeFilename(options: CompileOptions): string {
+	const filename = (options.filename ?? '(unknown)').replace(/\\/g, '/');
+	const root = options.rootDir?.replace(/\\/g, '/');
+	if (root === undefined || !filename.startsWith(root)) return filename;
+	return filename.replace(root, '').replace(/^[/\\]/, '');
+}
+
+function styleHash(root: AST.Root, options: CompileOptions, name: string): string {
+	if (root.css === null) return '';
+	const css = root.css.content.styles;
+	const filename = relativeFilename(options);
+	if (options.cssHash) return options.cssHash({ name, filename, css, hash });
+	return `svelte-${hash(filename === '(unknown)' ? css : filename)}`;
 }
 
 function withoutBom(source: string): string {
@@ -153,18 +176,27 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			...notices,
 			...diagnostics.warnings([...syntax.parse, ...core])
 		];
+		const name = options.name ?? componentName(options.filename);
+		const css = {
+			hash: styleHash(parsed.root, options, name),
+			inject: options.css === 'injected',
+			outputFilename: options.cssOutputFilename
+		};
 		if (options.generate === false) {
+			const core = validateUnit(reading.unit, validation);
+			const style = analyzeStyle(reading.unit, { hash: css.hash });
 			return {
 				js: null,
 				css: null,
-				warnings: reported(validateUnit(reading.unit, validation)),
+				warnings: reported([...core, ...style.warnings]),
 				metadata: { runes: true }
 			};
 		}
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
-			name: options.name ?? componentName(options.filename),
+			name,
+			css,
 			dev: options.dev,
 			namespace: options.namespace,
 			preserveWhitespace: options.preserveWhitespace,
@@ -173,7 +205,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		});
 		return {
 			js: output.js,
-			css: null,
+			css: output.css,
 			warnings: reported(output.warnings),
 			metadata: { runes: true }
 		};

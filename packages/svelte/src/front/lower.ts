@@ -180,7 +180,7 @@ export class Lowering {
 		return { nodes };
 	}
 
-	templateIgnores(node: IR.Node, comments: readonly AST.Comment[]): void {
+	templateIgnores(node: object, comments: readonly AST.Comment[]): void {
 		const codes: string[] = [];
 		for (let index = comments.length - 1; index >= 0; index--) {
 			const comment = comments[index] as AST.Comment;

@@ -27,6 +27,8 @@ export function lowerComponent(
 	const module = ast.module === undefined ? null : lowering.program(ast.module.content);
 	const instance = ast.instance === undefined ? null : lowering.program(ast.instance.content);
 	const template = lowering.fragment(ast.fragment);
+	const comment = ast.css?.content.comment;
+	if (ast.css && comment) lowering.templateIgnores(ast.css, [comment]);
 	return {
 		unit: {
 			kind: 'component',
