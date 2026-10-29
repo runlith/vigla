@@ -45,6 +45,8 @@ edges:
     to: 01a18680-7dc0-713c-85e6-a5df365e9754
   - kind: imports
     to: 01a18680-7dc1-7c56-81a9-8c98fa24c1dc
+  - kind: imports
+    to: 01a1878f-918e-7939-ab43-8548688c49ca
 sources:
   - kind: dir
     ref: packages/dromon/src/entries

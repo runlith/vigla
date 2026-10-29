@@ -20,6 +20,8 @@ edges:
     to: 01a18680-7dbb-7e28-818d-c9e31564a15f
   - kind: imports
     to: 01a18680-7dbc-7244-b1cc-b88469397a8d
+  - kind: imports
+    to: 01a1878f-918e-7939-ab43-8548688c49ca
 sources:
   - kind: dir
     ref: packages/dromon/src/compiler/server

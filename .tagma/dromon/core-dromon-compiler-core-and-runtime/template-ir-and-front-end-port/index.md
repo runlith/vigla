@@ -18,6 +18,9 @@ fields:
       },
       {
         "at": "estree.ts"
+      },
+      {
+        "at": "style.ts"
       }
     ],
     "id": "ir",
