@@ -65,6 +65,12 @@ fields:
       },
       {
         "at": "element.ts"
+      },
+      {
+        "at": "hot.ts",
+        "for": [
+          "33d45c4b"
+        ]
       }
     ],
     "id": "dom",
