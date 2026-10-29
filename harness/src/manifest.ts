@@ -53,6 +53,10 @@ export function runs(status: Status): boolean {
 	return status === 'contract' || status === 'converted';
 }
 
+export function runsOn(status: Status, project: string, target: string): boolean {
+	return runs(status) || (status === 'difference' && project === 'own' && target !== 'upstream');
+}
+
 export function faults(manifest: Manifest): string[] {
 	const found: string[] = [];
 	const check = (key: string, value: Ruling): void => {

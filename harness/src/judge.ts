@@ -1,6 +1,14 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { faults, load, ruling, runs as running, statuses, type Manifest } from './manifest.ts';
+import {
+	faults,
+	load,
+	ruling,
+	runs as running,
+	runsOn,
+	statuses,
+	type Manifest
+} from './manifest.ts';
 import { broken, outcomes, readRuns, suiteResults, type Result } from './reports.ts';
 import { covers, matches, selectors, selects } from './scope.ts';
 import { entryId, suiteId, suites } from './suites.ts';
@@ -12,6 +20,7 @@ export interface Verdict {
 }
 
 export interface Judgement {
+	target: string;
 	results: string;
 	parts: readonly string[];
 	passing: Map<string, Set<string>> | null;
@@ -127,7 +136,8 @@ export function judge(judgement: Judgement): Verdict {
 		const message = (result.state === 'failed' ? result.message : undefined) ?? before?.message;
 		byId.set(id, {
 			passed,
-			runs: status !== 'unruled' && running(status),
+			runs:
+				status !== 'unruled' && runsOn(status, result.suite.split('/')[0] ?? '', judgement.target),
 			...(message === undefined ? {} : { message })
 		});
 		if (!progress && result.state === 'failed')

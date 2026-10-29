@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { compileModule, type CompileOptions } from 'svelte/compiler';
 import { afterAll, assert, beforeAll, inject, it } from 'vitest';
-import { root, ruling, runs } from '../manifest.ts';
+import { root, ruling } from '../manifest.ts';
 import { forced } from '../reference.ts';
 import { unloadable, workspace, type Sample } from '../samples.ts';
 import { selects } from '../scope.ts';
@@ -58,7 +58,7 @@ async function reactive(work: string): Promise<Session['reactive']> {
 
 export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>): Promise<void> {
 	const target = inject('target');
-	const { id, run, manifest, samples } = await workspace<C>(suite);
+	const { id, run, manifest, samples, running } = await workspace<C>(suite);
 	if (samples.length === 0) return;
 	const session: Session = {
 		fresh: (await import(target.fresh)) as Fresh,
@@ -85,7 +85,7 @@ export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>):
 				it(title, () => assert.fail(`${suite}/${name}/${variant} has no status in the manifest`));
 				continue;
 			}
-			const skipped = config.skip || present === 'skipped' || !runs(rule.status);
+			const skipped = config.skip || present === 'skipped' || !running(rule.status);
 			const test = kind.concurrent ? it.concurrent : it;
 			const register = skipped ? test.skip : config.solo ? test.only : test;
 			if (sample.broken !== undefined) {

@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { basename, join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { judge } from './judge.ts';
 import { root } from './manifest.ts';
@@ -136,7 +136,7 @@ for (const part of ['vite-plugin', 'kit'] as const) {
 }
 
 if (passing !== null) delete exits.svelte;
-const verdict = judge({ results, parts, passing: recorded, exits });
+const verdict = judge({ target: basename(target), results, parts, passing: recorded, exits });
 
 if (values.record && passing !== null) {
 	for (const [suite, entries] of verdict.fresh) {

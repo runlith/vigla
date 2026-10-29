@@ -1,7 +1,7 @@
 import { cpSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, assert, inject, it } from 'vitest';
-import { faults, load, root, ruling, runs, type Manifest } from './manifest.ts';
+import { faults, load, root, ruling, runsOn, type Manifest, type Status } from './manifest.ts';
 import type { Base } from './runtime/config.ts';
 import { reaches, selects } from './scope.ts';
 import { suiteId, suiteNamed } from './suites.ts';
@@ -18,6 +18,7 @@ export interface Workspace<C extends Base> {
 	run: string;
 	manifest: Manifest;
 	samples: Sample<C>[];
+	running(status: Status): boolean;
 }
 
 export async function workspace<C extends Base>(suite: string): Promise<Workspace<C>> {
@@ -66,7 +67,13 @@ export async function workspace<C extends Base>(suite: string): Promise<Workspac
 			samples.push({ name, cwd, config: {} as C, broken: error });
 		}
 	}
-	return { id, run, manifest, samples };
+	return {
+		id,
+		run,
+		manifest,
+		samples,
+		running: (status) => runsOn(status, project, target.name)
+	};
 }
 
 export interface Inline {
@@ -80,7 +87,7 @@ export interface Plain<C extends Base> {
 }
 
 function register(
-	{ id, manifest }: Workspace<Base>,
+	{ id, manifest, running }: Workspace<Base>,
 	title: string,
 	config: Base,
 	body: () => void | Promise<void>
@@ -91,7 +98,7 @@ function register(
 		it(title, () => assert.fail(`${id}/${title} has no status in the manifest`));
 		return;
 	}
-	const skipped = config.skip || !runs(rule.status);
+	const skipped = config.skip || !running(rule.status);
 	const test = skipped ? it.skip : config.solo ? it.only : it;
 	test(title, { timeout: config.timeout }, body);
 }
