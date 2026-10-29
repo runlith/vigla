@@ -1,10 +1,9 @@
+import { basename, combine } from 'vigla/compiler';
 import { locator } from '../../front/index.ts';
 import { decodeMap } from './decode.ts';
 import {
 	MappedCode,
 	addOffset,
-	basenameOf,
-	combine,
 	slice,
 	type Map,
 	type Point,
@@ -65,7 +64,7 @@ class Result implements Source {
 		this.source = source;
 		this.filename = filename;
 		this.locate = pointer(source);
-		this.basename = filename == null ? null : basenameOf(filename);
+		this.basename = filename == null ? null : basename(filename);
 	}
 
 	update({ string, map, dependencies }: Update): void {

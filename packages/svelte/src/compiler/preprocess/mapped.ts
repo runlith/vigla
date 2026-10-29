@@ -1,4 +1,4 @@
-import remapping, { type DecodedSourceMap, type SourceMapSegment } from '@jridgewell/remapping';
+import type { DecodedSourceMap, SourceMapSegment } from '@jridgewell/remapping';
 
 export type Map = DecodedSourceMap;
 export type Segment = number[];
@@ -141,26 +141,6 @@ export class MappedCode {
 		for (const segment of mappings[0] as Segment[]) (segment[3] as number) += offset.column;
 		return new MappedCode(source, map);
 	}
-}
-
-export function combine(basename: string | null, maps: Map[]): Map | null {
-	if (maps.length === 0) return null;
-	let next = 1;
-	const singleSourced = maps.slice(0, -1).every((map) => map.sources.length === 1);
-	const map = (singleSourced
-		? remapping(maps as never, () => null, true)
-		: remapping(
-				maps[0] as never,
-				(file) => (file === basename && maps[next] ? (maps[next++] as never) : null),
-				true
-			)) as unknown as Map & { file?: string };
-	if (!map.file) delete map.file;
-	if (!map.sources.length) map.sources = [basename];
-	return map;
-}
-
-export function basenameOf(filename: string): string {
-	return filename.split(/[/\\]/).pop() as string;
 }
 
 export type { SourceMapSegment };

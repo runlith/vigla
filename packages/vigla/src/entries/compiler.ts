@@ -10,6 +10,7 @@ import {
 import { client, clientModule } from '../compiler/client/index.ts';
 import { analyzeStyle, injected, renderStyle, type Stylesheet } from '../compiler/css/index.ts';
 import type { Namespace } from '../compiler/ir/nodes.ts';
+import { chain, sourceName, type InputMap, type OutputMap } from '../compiler/ir/maps.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../compiler/ir/port.ts';
 import { server, serverModule } from '../compiler/server/index.ts';
 
@@ -27,6 +28,7 @@ export type {
 	Unit
 } from '../compiler/ir/port.ts';
 export { CompileError } from '../compiler/ir/port.ts';
+export { basename, combine, type InputMap } from '../compiler/ir/maps.ts';
 export { parseExpression, parseProgram } from '../compiler/ir/script.ts';
 export type * as Style from '../compiler/ir/style.ts';
 export {
@@ -63,7 +65,12 @@ export interface ModuleOptions {
 	readonly validation?: ValidateOptions;
 }
 
-export interface CompileOptions extends ModuleOptions {
+export interface Mapping {
+	readonly outputFilename?: string;
+	readonly inputMap?: InputMap;
+}
+
+export interface CompileOptions extends ModuleOptions, Mapping {
 	readonly name: string;
 	readonly preserveWhitespace?: boolean;
 	readonly preserveComments?: boolean;
@@ -90,11 +97,12 @@ export interface Output {
 
 const runtimes: Runtime = { client: 'vigla/internal/client', server: 'vigla/internal/server' };
 
-function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit): Code {
+function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit, mapping: Mapping): Code {
 	const { code, map } = print(program as never, ts(), {
-		sourceMapSource: unit.filename ?? undefined,
+		sourceMapSource: sourceName(unit.filename, mapping.outputFilename),
 		sourceMapContent: unit.source
 	});
+	if (mapping.inputMap !== undefined) chain(map as OutputMap, unit.filename, mapping.inputMap);
 	return { code, map: map as object };
 }
 
@@ -109,7 +117,8 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 	const css = renderStyle(style, {
 		dev: options.dev ?? false,
 		inject,
-		outputFilename: options.css?.outputFilename ?? null
+		outputFilename: options.css?.outputFilename ?? null,
+		inputMap: options.inputMap
 	});
 	const analysis = analyzeComponent(
 		unit,
@@ -126,7 +135,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		options.generate === 'server'
 			? server(analysis, { ...generation, runtime: runtime.server })
 			: client(analysis, { ...generation, runtime: runtime.client });
-	return { js: printed(program, unit), css: inject ? null : css, warnings };
+	return { js: printed(program, unit, options), css: inject ? null : css, warnings };
 }
 
 export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output {
@@ -137,5 +146,5 @@ export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output 
 		options.generate === 'server'
 			? serverModule(analysis, { runtime: runtime.server })
 			: clientModule(analysis, { runtime: runtime.client });
-	return { js: printed(program, unit), css: null, warnings };
+	return { js: printed(program, unit, {}), css: null, warnings };
 }

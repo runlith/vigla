@@ -7,6 +7,7 @@ import {
 	validateModule as validateModuleUnit,
 	type Code,
 	type Diagnostic,
+	type InputMap,
 	type Runtime,
 	type ValidateOptions
 } from 'vigla/compiler';
@@ -70,7 +71,7 @@ export interface CompileOptions extends ModuleCompileOptions {
 	preserveWhitespace?: boolean;
 	fragments?: 'html' | 'tree';
 	hmr?: boolean;
-	sourcemap?: object | string;
+	sourcemap?: InputMap;
 }
 
 export interface Metadata {
@@ -210,7 +211,9 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			namespace: options.namespace,
 			preserveWhitespace: options.preserveWhitespace,
 			preserveComments: options.preserveComments,
-			validation
+			validation,
+			outputFilename: options.outputFilename,
+			inputMap: options.sourcemap
 		});
 		return {
 			js: output.js,

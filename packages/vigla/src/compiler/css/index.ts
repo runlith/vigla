@@ -1,5 +1,6 @@
 import type { SourceMap } from 'magic-string';
 import { Report } from '../analysis/validate/report.ts';
+import { chain, type InputMap } from '../ir/maps.ts';
 import type { ComponentUnit, Diagnostic } from '../ir/port.ts';
 import type * as S from '../ir/style.ts';
 import { Analysis } from './analyze.ts';
@@ -38,6 +39,7 @@ export interface RenderOptions {
 	readonly dev: boolean;
 	readonly inject: boolean;
 	readonly outputFilename: string | null;
+	readonly inputMap?: InputMap;
 }
 
 export interface Stylesheet {
@@ -135,6 +137,7 @@ export function renderStyle(style: StyleAnalysis, options: RenderOptions): Style
 		filename: style.unit.filename,
 		outputFilename: options.outputFilename
 	}).render(sheet);
+	if (options.inputMap !== undefined) chain(rendered.map, style.unit.filename, options.inputMap);
 	let code = rendered.code;
 	if (options.dev && options.inject && code !== '') {
 		code += `\n/*# sourceMappingURL=${rendered.map.toUrl()} */`;
