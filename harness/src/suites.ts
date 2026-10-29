@@ -24,6 +24,7 @@ export interface Suite {
 	files: readonly string[];
 	upstream: readonly Upstream[];
 	tests?: readonly string[];
+	include?: RegExp;
 }
 
 const variant = /^(.*) \((dom|hydrate|ssr|async-ssr)\)$/;
@@ -138,6 +139,23 @@ export const suites: readonly Suite[] = [
 		source: 'css-parse.test.ts',
 		files: ['css-parse.test.ts'],
 		upstream: [{ file: 'css-parse.test.ts', entry: (title) => ({ sample: title }) }]
+	},
+	{
+		project: 'svelte',
+		name: 'signals',
+		kind: 'units',
+		source: 'signals',
+		files: ['signals.test.ts'],
+		upstream: [{ file: 'signals/test.ts', entry: (title) => ({ sample: title }) }]
+	},
+	{
+		project: 'svelte',
+		name: 'units',
+		kind: 'units',
+		source: '../src',
+		files: ['units.test.ts'],
+		upstream: [],
+		include: /\.test\.ts$/
 	},
 	compiler('validator', [
 		'errors if options.name is illegal',

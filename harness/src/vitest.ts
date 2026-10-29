@@ -17,7 +17,8 @@ const facade = join(root, 'src', 'units', 'vitest.ts');
 
 function scoped(source: string, importer: string | undefined): string | null {
 	if (source !== 'vitest' || importer === undefined) return null;
-	return units.some((dir) => importer.startsWith(dir)) ? facade : null;
+	const compiled = importer.replaceAll('\\', '/').includes('/.work/units-');
+	return compiled || units.some((dir) => importer.startsWith(dir)) ? facade : null;
 }
 
 const productionSuite = 'suites/svelte/runtime-production.test.ts';

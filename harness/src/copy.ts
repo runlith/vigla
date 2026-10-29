@@ -49,18 +49,25 @@ function files(dir: string): string[] {
 		.sort();
 }
 
-function expected(source: string): Map<string, string> {
+function expected(source: string, include?: RegExp): Map<string, string> {
 	const result = new Map<string, string>();
-	for (const file of files(source))
+	for (const file of files(source)) {
+		if (include !== undefined && !include.test(file)) continue;
 		result.set(file, rewrite(readFileSync(join(source, file), 'utf8')));
+	}
 	return result;
 }
 
-function differs(dest: string, wanted: Map<string, string>): string[] {
+function differs(
+	dest: string,
+	wanted: Map<string, string>,
+	kept: readonly string[] = []
+): string[] {
 	if (!existsSync(dest)) return ['missing'];
 	const found: string[] = [];
 	const present = files(dest);
-	for (const file of present) if (!wanted.has(file)) found.push(`extra ${file}`);
+	for (const file of present)
+		if (!wanted.has(file) && !kept.includes(file)) found.push(`extra ${file}`);
 	for (const [file, text] of wanted) {
 		if (!present.includes(file)) found.push(`missing ${file}`);
 		else if (readFileSync(join(dest, file), 'utf8') !== text) found.push(`changed ${file}`);
@@ -128,7 +135,7 @@ if (suite === undefined || base === undefined) {
 	process.exit(2);
 }
 
-const { kind, source } = suiteNamed(suite);
+const { kind, source, include } = suiteNamed(suite);
 const from = join(base, source);
 const to = join(root, 'samples', project, suite);
 const problems: string[] = [];
@@ -136,11 +143,24 @@ const problems: string[] = [];
 if (kind === 'units') {
 	const wanted = statSync(from).isFile()
 		? new Map([[basename(from), rewrite(readFileSync(from, 'utf8'))]])
-		: expected(from);
-	const changes = differs(to, wanted);
+		: expected(from, include);
+	const converted = Object.keys(load(project, suite).conversions ?? {});
+	for (const file of converted) {
+		const text = wanted.get(file);
+		const at = join(to, file);
+		if (text === undefined)
+			problems.push(`${suite}: ${file} converted in the manifest but not upstream`);
+		else if (!existsSync(at))
+			problems.push(`${suite}: ${file} converted in the manifest but missing`);
+		else if (readFileSync(at, 'utf8') === text)
+			problems.push(`${suite}: ${file} converted in the manifest but equal to upstream`);
+		wanted.delete(file);
+	}
+	const changes = differs(to, wanted, converted);
 	if (changes.length > 0 && values.check) problems.push(`${suite}: ${changes.join(', ')}`);
 	else if (changes.length > 0) {
-		rmSync(to, { recursive: true, force: true });
+		for (const file of existsSync(to) ? files(to) : [])
+			if (!wanted.has(file) && !converted.includes(file)) rmSync(join(to, file));
 		for (const [file, text] of wanted) {
 			mkdirSync(dirname(join(to, file)), { recursive: true });
 			writeFileSync(join(to, file), text);

@@ -1,0 +1,581 @@
+{
+	"conversions": {
+		"internal/client/proxy.test.ts": "the internal `proxy` becomes `$state` in a runes module",
+		"internal/shared/clone.test.ts": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module",
+		"reactivity/date.test.ts": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries",
+		"reactivity/map.test.ts": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries",
+		"reactivity/set.test.ts": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries",
+		"reactivity/url-search-params.test.ts": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries",
+		"reactivity/url.test.ts": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+	},
+	"samples": {
+		"internal/client/error-handling.test.ts > ignores errors from a destroyed entry effect": {
+			"status": "covered",
+			"reason": "drives the internal `invoke_error_boundary` with hand-built effects; that an error skips destroyed effects and boundaries on its way to the nearest live boundary is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"internal/client/error-handling.test.ts > skips destroyed boundary ancestors without masking the error": {
+			"status": "covered",
+			"reason": "drives the internal `invoke_error_boundary` with hand-built effects; that an error skips destroyed effects and boundaries on its way to the nearest live boundary is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"internal/client/proxy.test.ts > defines a property": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > deletes a property": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > does not mutate the original object": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > does not re-proxy proxies": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > handles array length mutation": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > handles array mutation": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > handles array.push": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/client/proxy.test.ts > preserves getters": {
+			"status": "converted",
+			"reason": "the internal `proxy` becomes `$state` in a runes module"
+		},
+		"internal/server/crypto.test.ts > sha256(\"\")": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `sha256`; the CSP hashes `render()` returns are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/crypto.test.ts > sha256(\"abcd\")": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `sha256`; the CSP hashes `render()` returns are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/crypto.test.ts > sha256(\"hello world\")": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `sha256`; the CSP hashes `render()` returns are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/crypto.test.ts > sha256(\"the quick brown fox jumps over the lazy dog\")": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `sha256`; the CSP hashes `render()` returns are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/crypto.test.ts > sha256(\"工欲善其事，必先利其器\")": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `sha256`; the CSP hashes `render()` returns are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/hydratable.test.ts > treats replacement tokens in hydratable promise values as literals": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with a hand-written compiled component; that `hydratable` values serialize literally into the head script is asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > SSRState title ordering favors later lexicographic paths": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > SSRState uid generator uses prefix": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > a throwing on_destroy callback does not mask a sync render error": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > a throwing on_destroy callback does not mask an async render error": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > abort signals are scoped to a render": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > aborts in-flight renderers before waiting for them": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > awaiting renderer gets async content": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > on_destroy callbacks run when a sync render throws": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > on_destroy callbacks run when an async render rejects": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > on_destroy waits for every run invocation when an async render rejects": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > on_destroy waits for in-flight renderers when an async render rejects": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > on_destroy yields callbacks in the correct order": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > push accepts async functions in async context": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > push async functions are not supported in sync context": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > push async functions can be mixed with child renderers": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > push async functions work with head content type": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > async > push handles async functions with different timing": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'escapes --->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'escapes -->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'escapes <!--'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'escapes <!--->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'escapes <!-->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'escapes multiple -->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'no double-encoding'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'async children throw' > 'the terrifying special pointy boy'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'escapes --->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'escapes -->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'escapes <!--'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'escapes <!--->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'escapes <!-->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'escapes multiple -->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'no double-encoding'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, async transformError' > 'the terrifying special pointy boy'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'escapes --->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'escapes -->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'escapes <!--'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'escapes <!--->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'escapes <!-->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'escapes multiple -->'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'no double-encoding'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > boundary hydration comment escaping > 'sync children, sync transformError' > 'the terrifying special pointy boy'": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > child inherits parent type when not specified": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > child type switches content area (head vs body)": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > collects synchronous body content by default": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > creating an async child in a sync context throws": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > get_path returns the path indexes to a renderer": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > local state is shallow-copied to children": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > render result properties are inherited": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > select merges scoped css hash with static class": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > selects an option with an explicit value": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > selects an option with an implicit value": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > subsume refuses to switch modes": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/server/renderer.test.ts > subsume replaces tree content and state from other": {
+			"status": "covered",
+			"reason": "drives the internal server `Renderer` with hand-written compiled component functions; its output, async children and `on_destroy` order are asserted by server rendering's (`ssr`) own tests"
+		},
+		"internal/shared/clone.test.ts > array": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > class with state field": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > class with toJSON": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > cycles": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > many uncloneable properties": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > object": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > primitive": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > proxied state": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > reactive class": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > uncloneable properties": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"internal/shared/clone.test.ts > uncloneable value": {
+			"status": "converted",
+			"reason": "the internal `snapshot` and `proxy` become `$state.snapshot` and `$state` in a runes module"
+		},
+		"reactivity/date.test.ts > Date fine grained tests": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > Date methods invoked for the first time in a derived": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > Date methods shared between deriveds": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > Date propagated changes": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > Date.instanceOf": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > Date.toLocaleString": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > Date.valueOf": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setDate and date.setUTCDate": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setFullYear and date.setUTCFullYear": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setHours and date.setUTCHours": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setMilliseconds and date.setUTCMilliseconds": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setMinutes and date.setUTCMinutes": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setMonth and date.setUTCMonth": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setSeconds - edge cases": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setSeconds and date.setUTCSeconds": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setTime": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/date.test.ts > date.setYear": {
+			"status": "converted",
+			"reason": "internal effect and derived functions become `$effect.root`, `$effect.pre` and `$derived` in a runes module; SvelteDate and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > Map.instanceOf": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map handling of undefined values": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.delete() triggers size reactivity for keys without per-key sources": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.delete(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.forEach(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.get(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.getOrInsert(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.getOrInsertComputed(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.has() and map.get() with undefined values": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.has(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > map.values()": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/map.test.ts > not invoking reactivity when value is not in the map after changes": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteMap and flushSync come from their public entries"
+		},
+		"reactivity/set.test.ts > Set.instanceOf": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries"
+		},
+		"reactivity/set.test.ts > not invoking reactivity when value is not in the set after changes": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries"
+		},
+		"reactivity/set.test.ts > set.delete(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries"
+		},
+		"reactivity/set.test.ts > set.forEach()": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries"
+		},
+		"reactivity/set.test.ts > set.has(...)": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries"
+		},
+		"reactivity/set.test.ts > set.values()": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteSet and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > SvelteURLSearchParams instanceof URLSearchParams": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.append": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.delete": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.get": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.getAll": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.set": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.set updates when duplicate values collapse to the same comma-joined string": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.set updates when duplicate values collapse to the same joined string": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > URLSearchParams.toString": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > new URLSearchParams": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url-search-params.test.ts > params.forEach is reactive": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURLSearchParams and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > SvelteURL instanceof URL": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.hash": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.href": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.port is updated when the protocol change clears the port": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.search normalizes value": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.searchParams": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.searchParams subscribers are not notified by changes that leave the search string untouched": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.searchParams writes do not create a reactive dependency": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.searchParams.forEach re-runs when the search string changes via the URL": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.searchParams.set updates url when duplicate values collapse to the same joined string": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"reactivity/url.test.ts > url.searchParams.size is not notified by unrelated href changes": {
+			"status": "converted",
+			"reason": "internal effect functions become `$effect.root` and `$effect.pre` in a runes module; SvelteURL and flushSync come from their public entries"
+		},
+		"utils.test.ts > REGEX_VALID_TAG_NAME accepts basic custom element names": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `REGEX_VALID_TAG_NAME`; the tag-name check of `<svelte:element this>` is asserted by DOM rendering's (`dom`) and server rendering's (`ssr`) own tests"
+		},
+		"utils.test.ts > REGEX_VALID_TAG_NAME accepts common HTML tag names": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `REGEX_VALID_TAG_NAME`; the tag-name check of `<svelte:element this>` is asserted by DOM rendering's (`dom`) and server rendering's (`ssr`) own tests"
+		},
+		"utils.test.ts > REGEX_VALID_TAG_NAME accepts spec-allowed custom element characters": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `REGEX_VALID_TAG_NAME`; the tag-name check of `<svelte:element this>` is asserted by DOM rendering's (`dom`) and server rendering's (`ssr`) own tests"
+		},
+		"utils.test.ts > REGEX_VALID_TAG_NAME no ReDoS": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `REGEX_VALID_TAG_NAME`; the tag-name check of `<svelte:element this>` is asserted by DOM rendering's (`dom`) and server rendering's (`ssr`) own tests"
+		},
+		"utils.test.ts > REGEX_VALID_TAG_NAME rejects invalid tag names": {
+			"status": "covered",
+			"reason": "asserts upstream's internal `REGEX_VALID_TAG_NAME`; the tag-name check of `<svelte:element this>` is asserted by DOM rendering's (`dom`) and server rendering's (`ssr`) own tests"
+		}
+	}
+}

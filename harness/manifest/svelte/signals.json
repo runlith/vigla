@@ -1,0 +1,435 @@
+{
+	"conversions": {
+		"test.ts": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+	},
+	"samples": {
+		"signals > $effect.root inside deriveds stay alive independently (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > $effect.root inside deriveds stay alive independently (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > a derived that throws on its first run re-runs when its dependencies change (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > a derived that throws on its first run re-runs when its dependencies change (runes mode)": {
+			"status": "covered",
+			"reason": "asserts derived ownership (`parent`) and sets the active effect directly; that a derived throwing on its first run re-runs when its dependencies change is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > a reaction that throws after first-reading a fresh derived does not leak it (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > a reaction that throws after first-reading a fresh derived does not leak it (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a reaction that throws leaks no subscription is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > bigint states update correctly (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > bigint states update correctly (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > correctly cleanup unowned nested derived values (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > correctly cleanup unowned nested derived values (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that destroying a root unsubscribes deriveds created inside deriveds is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > creating effects within a derived correctly handles ownership (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > creating effects within a derived correctly handles ownership (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > derived from derived (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > derived from derived (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > derived from state (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > derived from state (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > derived read in an untracked context should not leak in deps reactions (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > derived read in an untracked context should not leak in deps reactions (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a derived chain read untracked subscribes no source is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > derived when connected should add new dependency to its reaction even when read outside effect (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > derived when connected should add new dependency to its reaction even when read outside effect (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > derived whose original parent effect has been destroyed no longer updates (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > derived whose original parent effect has been destroyed no longer updates (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > deriveds containing effects work correctly (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds containing effects work correctly (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that effects created inside a derived belong to it and are destroyed with it is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > deriveds containing effects work correctly when used with untrack (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds containing effects work correctly when used with untrack (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that effects created untracked inside a derived belong to it and are destroyed with it is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > deriveds do not depend on state they own (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds do not depend on state they own (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > deriveds read inside the root/branches are cleaned up (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds read inside the root/branches are cleaned up (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that deriveds read in a root unsubscribe when the root is destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > deriveds set after they are DIRTY doesn't get updated on get (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds set after they are DIRTY doesn't get updated on get (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > deriveds update upon reconnection #1 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds update upon reconnection #1 (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > deriveds update upon reconnection #2 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds update upon reconnection #2 (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > deriveds update upon reconnection #3 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > deriveds update upon reconnection #3 (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > does not treat values created for inactive reactions as current": {
+			"status": "covered",
+			"reason": "drives `active_reaction` and `push_reaction_value` directly; that a value created for an inactive reaction is not treated as current is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > effect teardown is removed on re-run (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > effect teardown is removed on re-run (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > effect with derived using unowned derived every time (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > effect with derived using unowned derived every time (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a live reader keeps one subscription per source and none once destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > effect with state and derived in it (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > effect with state and derived in it (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > effects correctly handle unowned derived values that do not change (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > effects correctly handle unowned derived values that do not change (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that re-running an effect keeps one subscription per source is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > effects do depend on state they own (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > effects do depend on state they own (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn #2 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn #2 (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that destroying the effects over a derived graph unsubscribes every source is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > https://perf.js.hyoo.ru/#!bench=9h2as6_u0mfnn (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #1 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #1 (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that nested deriveds disconnect from their sources when their owner is destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #2 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #2 (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that nested deriveds disconnect from their sources when their owner is destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #3 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > mixed nested deriveds correctly cleanup when no longer connected to graph #3 (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that nested deriveds disconnect from their sources when their owner is destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > multiple effects with state and derived in it #1 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > multiple effects with state and derived in it #1 (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > multiple effects with state and derived in it #2 (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > multiple effects with state and derived in it #2 (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > nested effects depend on state of upper effects (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > nested effects depend on state of upper effects (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > owned deriveds correctly cleanup when no longer connected to graph (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > owned deriveds correctly cleanup when no longer connected to graph (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that an owned derived disconnects from its sources when its owner is destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > proxy version state does not trigger self-dependency guard (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > proxy version state does not trigger self-dependency guard (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > reconnecting deriveds does not duplicate subscriptions (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > reconnecting deriveds does not duplicate subscriptions (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that reconnecting a derived subscribes it once is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > schedules rerun when updating deeply nested value (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > schedules rerun when updating deeply nested value (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > schedules rerun when writing to signal after reading it from derived (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > schedules rerun when writing to signal after reading it from derived (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > schedules rerun when writing to signal before reading it (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > schedules rerun when writing to signal before reading it (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > schedules rerun when writing to signal before reading it from derived (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > schedules rerun when writing to signal before reading it from derived (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > set version state does not trigger self-dependency guard (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > set version state does not trigger self-dependency guard (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > state reset (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > state reset (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > two effects with an unowned derived that has no dependencies (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > two effects with an unowned derived that has no dependencies (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > two effects with an unowned derived that has some dependencies (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > two effects with an unowned derived that has some dependencies (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that destroying the last reader of a shared derived unsubscribes its sources is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > unowned deriveds are correctly connected and disconnected from the graph (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds are correctly connected and disconnected from the graph (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a derived subscribes while an effect reads it and unsubscribes once that effect is destroyed is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > unowned deriveds are not added as reactions (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds are not added as reactions (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a derived read outside any effect subscribes no source is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > unowned deriveds are not added as reactions but trigger effects (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds are not added as reactions but trigger effects (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a derived read outside any effect subscribes no source and destroying its last reader leaves none is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > unowned deriveds correctly re-attach to their source (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds correctly re-attach to their source (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > unowned deriveds correctly update (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds correctly update (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > unowned deriveds dependencies are correctly de-duped (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds dependencies are correctly de-duped (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that a derived records each dependency once is asserted by reactivity's (`reactivity`) own tests"
+		},
+		"signals > unowned deriveds set after they are DIRTY doesn't get updated on get (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds set after they are DIRTY doesn't get updated on get (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > unowned deriveds track missing array indexes (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds track missing array indexes (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > unowned deriveds track missing property checks on proxies (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > unowned deriveds track missing property checks on proxies (runes mode)": {
+			"status": "converted",
+			"reason": "converted to `$state`, `$derived`, `$effect`, `$effect.pre` and `$effect.root` in a runes module, from the internal signal functions"
+		},
+		"signals > untracked derived reads inside effects do not reconnect disconnected dependencies (legacy mode)": {
+			"status": "dropped",
+			"reason": "runs in a legacy-mode component context, which Dromon rejects"
+		},
+		"signals > untracked derived reads inside effects do not reconnect disconnected dependencies (runes mode)": {
+			"status": "covered",
+			"reason": "asserts the dependency graph's internals (`reactions`, `deps`, effect fields); that an untracked read of a disconnected derived does not reconnect it is asserted by reactivity's (`reactivity`) own tests"
+		}
+	}
+}
