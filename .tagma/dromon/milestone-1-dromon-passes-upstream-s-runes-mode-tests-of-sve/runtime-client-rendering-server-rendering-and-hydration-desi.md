@@ -10,7 +10,7 @@ fields:
 ---
 **Designed together.** Client rendering, server rendering and hydration are designed as one: both outputs come from the same IR, and hydration reads what the server writes. Server rendering is async-capable, as `render()` is upstream with async on.
 
-**Public runtime API** is upstream's runes-mode API of `svelte`, `svelte/server`, `svelte/reactivity`, `svelte/reactivity/window`, `svelte/motion`, `svelte/transition`, `svelte/animate`, `svelte/easing`, `svelte/events`, `svelte/attachments` and `svelte/action`, minus what the milestone spec declares legacy; custom elements and `<svelte:boundary>` included.
+**Public runtime API.** The core's entries — `dromon`, `dromon/server`, `dromon/reactivity`, `dromon/reactivity/window`, `dromon/motion`, `dromon/transition`, `dromon/animate`, `dromon/easing`, `dromon/events`, `dromon/attachments`, `dromon/action` — carry upstream's runes-mode API under upstream's names, minus what the milestone spec declares legacy; custom elements and boundaries included. The adapter re-exports each as its `svelte/*` counterpart.
 
 **Kit's contract on the runtime**, designed now: the server `render(Root, { props, context, csp: { nonce } | { hash }, transformError })` returning `head`, `body` and `hashes.script`, as Kit's `runtime/server/page/render.js` calls it; the client `hydrate`, `mount`, `fork`, `settled`, `tick` and `onMount`, as Kit's `runtime/client/client.js` imports them.
 
@@ -20,4 +20,4 @@ fields:
 
 **Acceptance.**
 - The runtime-runes, hydration, server-side-rendering, runtime-browser (custom elements and `test-ssr.ts` included), runtime-production, runtime-xhtml and motion entries pass.
-- The `reactivity` and `ssr` benchmarks meet the milestone's protocol.
+- The runtime meets the milestone's performance targets.
