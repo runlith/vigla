@@ -1,3 +1,4 @@
+import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import { OPEN_ELSE } from '../../shared/markers.ts';
 import {
@@ -49,9 +50,19 @@ interface Stage<T> {
 }
 
 function duplicate(key: unknown, first: number, second: number): Error {
+	const shown = String(key);
 	return failure(
 		'each_key_duplicate',
-		`Keyed each block has duplicate key \`${String(key)}\` at indexes ${first} and ${second}`
+		shown.startsWith('[object ')
+			? `Keyed each block has duplicate key at indexes ${first} and ${second}`
+			: `Keyed each block has duplicate key \`${shown}\` at indexes ${first} and ${second}`
+	);
+}
+
+function volatile(position: number, first: unknown, second: unknown): Error {
+	return failure(
+		'each_key_volatile',
+		`Keyed each block has key that is not idempotent — the key for item at index ${position} was \`${String(first)}\` but is now \`${String(second)}\`. Keys must be the same each time for a given item`
 	);
 }
 
@@ -106,6 +117,10 @@ class List<T> {
 	#identify(items: ArrayLike<T>, position: number, seen: Map<unknown, number> | null): unknown {
 		if (this.#key === null) return position;
 		const key = this.#key(items[position] as T, position);
+		if (DEV) {
+			const again = this.#key(items[position] as T, position);
+			if (!Object.is(key, again)) throw volatile(position, key, again);
+		}
 		const earlier = (seen as Map<unknown, number>).get(key);
 		if (earlier !== undefined) throw duplicate(key, earlier, position);
 		(seen as Map<unknown, number>).set(key, position);
