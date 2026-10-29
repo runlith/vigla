@@ -41,6 +41,12 @@ fields:
       },
       {
         "at": "motion-server.ts"
+      },
+      {
+        "at": "attachments.ts"
+      },
+      {
+        "at": "action.ts"
       }
     ],
     "id": "entries",
