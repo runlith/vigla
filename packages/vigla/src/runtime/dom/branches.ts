@@ -55,6 +55,7 @@ export class Branches<K> {
 			built = render === null ? null : build(render);
 			if (built !== null) place(built, this.anchor);
 		} else if (matched === null) {
+			cursor.before(document.createTextNode(''));
 			built = render === null ? null : build(render);
 			this.anchor = cursor;
 		} else {

@@ -3,6 +3,7 @@ import { OPEN_ELSE } from '../../shared/markers.ts';
 import { reveal } from '../reactivity/async.ts';
 import { block, branch, destroy } from '../reactivity/effects.ts';
 import type { Boundary as Contract, Effect } from '../reactivity/graph.ts';
+import { task } from '../reactivity/tasks.ts';
 import { owner, setOwner } from '../reactivity/tracking.ts';
 import { claim, cursor, hydrating, instruction, isClose, MISMATCH, skip } from './hydration.ts';
 import { build, discard, place, type Built } from './range.ts';
@@ -20,7 +21,22 @@ export interface BoundaryProps {
 
 export const FAILED = '[?';
 
-const transforms = new WeakMap<Contract, (error: unknown) => unknown>();
+type Transform = (error: unknown) => unknown;
+
+const transforms = new WeakMap<Contract, Transform>();
+
+const rooted = new WeakMap<Effect, Transform>();
+
+export function transformAt(root: Effect, transform: Transform | undefined): void {
+	if (transform !== undefined) rooted.set(root, transform);
+}
+
+function rootTransform(): Transform | undefined {
+	let top = owner;
+	if (top === null) return undefined;
+	while (top.parent !== null) top = top.parent;
+	return rooted.get(top);
+}
 
 class Boundary implements Contract {
 	readonly parent: Contract | null;
@@ -49,7 +65,7 @@ class Boundary implements Contract {
 		this.parent = owner?.boundary ?? null;
 		this.#transform =
 			transform ??
-			(this.parent === null ? undefined : transforms.get(this.parent)) ??
+			(this.parent === null ? rootTransform() : transforms.get(this.parent)) ??
 			((error) => error);
 		transforms.set(this, this.#transform);
 		this.#effect = block(() => {
@@ -69,7 +85,7 @@ class Boundary implements Contract {
 			const error = JSON.parse(data.slice(FAILED.length)) as unknown;
 			const failed = this.#props.failed;
 			const { reset, report } = this.#resettable(error);
-			queueMicrotask(report);
+			task(report);
 			if (failed)
 				this.#failed = this.#branch(
 					(anchor) =>
@@ -90,7 +106,7 @@ class Boundary implements Contract {
 				this.#pending = this.#branch((anchor) => pending(anchor), false);
 			}
 			this.#settleAnchor();
-			queueMicrotask(() => {
+			task(() => {
 				if (this.#effect.destroyed) return;
 				this.#offscreen();
 			});
@@ -237,7 +253,7 @@ class Boundary implements Contract {
 		}
 		this.#main = this.#pending = this.#failed = null;
 		this.showing = false;
-		queueMicrotask(() => {
+		task(() => {
 			if (this.#effect.destroyed) return;
 			let transformed: unknown;
 			try {

@@ -1,6 +1,8 @@
 import { failure, warn } from '../../shared/diagnostics.ts';
 import { OPEN } from '../../shared/markers.ts';
 import { root } from '../reactivity/effects.ts';
+import { owner } from '../reactivity/tracking.ts';
+import { transformAt } from './boundary.ts';
 import { delegateRoot } from './events.ts';
 import {
 	claim,
@@ -31,6 +33,7 @@ export interface MountOptions<P extends Props> {
 	readonly anchor?: ChildNode | null;
 	readonly intro?: boolean;
 	readonly context?: Map<unknown, unknown>;
+	readonly transformError?: (error: unknown) => unknown;
 }
 
 export interface HydrateOptions<P extends Props> extends MountOptions<P> {
@@ -52,6 +55,7 @@ function start<P extends Props, E extends Exports>(
 	const props = options.props ?? ({} as P);
 	entry(props);
 	const built = build((anchor) => {
+		if (owner !== null) transformAt(owner, options.transformError);
 		exports = withContext(options.context, () => component(anchor, props));
 	}, root);
 	return { instance: (exports ?? {}) as E, built };
