@@ -1,7 +1,9 @@
 import { failure } from '../../shared/diagnostics.ts';
+import type { Effect } from '../reactivity/graph.ts';
 import { proxy } from '../reactivity/proxy.ts';
 import { derived, set } from '../reactivity/sources.ts';
-import { get, untrack } from '../reactivity/tracking.ts';
+import { get, owner, untrack } from '../reactivity/tracking.ts';
+import { advance, COMMENT, cursor, hydrating } from './hydration.ts';
 
 export const BINDABLE = 1;
 
@@ -117,9 +119,19 @@ export function rest(props: Props, excluded: readonly string[]): Props {
 	});
 }
 
+const issued = new WeakMap<Effect, number>();
+
 export function propsId(): string {
-	const registry = window as unknown as { __svelte?: { uid?: number } };
-	const shared = (registry.__svelte ??= {});
-	shared.uid ??= 1;
-	return `c${shared.uid++}`;
+	if (hydrating && cursor.nodeType === COMMENT) {
+		const data = (cursor as Comment).data;
+		if (data.charCodeAt(0) === 36) {
+			advance();
+			return data.slice(1);
+		}
+	}
+	let top = owner as Effect;
+	while (top.parent !== null) top = top.parent;
+	const next = (issued.get(top) ?? 0) + 1;
+	issued.set(top, next);
+	return `c${next}`;
 }
