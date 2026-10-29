@@ -4,16 +4,23 @@ import {
 	MAYBE,
 	isDerived,
 	now,
-	tick,
+	stamp,
 	type Derived,
 	type Effect,
 	type Reaction,
 	type Source
 } from './graph.ts';
 
-let reaction: Reaction | null = null;
+interface Past {
+	readonly before: Map<Source, unknown>;
+	readonly later: Map<Source, unknown> | null;
+	written: Set<Source> | null;
+	derived: Map<Derived, unknown> | null;
+}
+
 let reads: Source[] | null = null;
 let invalidated = false;
+let past: Past | null = null;
 
 export let owner: Effect | null = null;
 
@@ -25,21 +32,72 @@ export function setOwner(effect: Effect | null): Effect | null {
 
 export function get<T>(source: Source<T>): T {
 	if (reads !== null) reads.push(source);
+	if (past !== null) return recall(source, past) as T;
 	if (isDerived(source)) refresh(source);
 	return source.v;
 }
 
+export function reading(): boolean {
+	return reads !== null;
+}
+
 export function untrack<T>(fn: () => T): T {
-	const previousReaction = reaction;
-	const previousReads = reads;
-	reaction = null;
+	const previous = reads;
 	reads = null;
 	try {
 		return fn();
 	} finally {
-		reaction = previousReaction;
+		reads = previous;
+	}
+}
+
+export function recalling(
+	before: Map<Source, unknown>,
+	later: Map<Source, unknown> | null,
+	fn: () => void
+): void {
+	const previousPast = past;
+	const previousReads = reads;
+	past = { before, later, written: null, derived: null };
+	reads = null;
+	try {
+		fn();
+	} finally {
+		past = previousPast;
 		reads = previousReads;
 	}
+}
+
+function dated(derived: Derived, given: Past): boolean {
+	if (derived.deps === null) return true;
+	for (const dep of derived.deps) {
+		if (given.written?.has(dep)) continue;
+		if (given.before.has(dep) || given.later?.has(dep)) return true;
+		if (isDerived(dep) && dated(dep, given)) return true;
+	}
+	return false;
+}
+
+function recall(source: Source, given: Past): unknown {
+	if (given.written === null || !given.written.has(source)) {
+		if (given.before.has(source)) return given.before.get(source);
+		if (given.later !== null && given.later.has(source)) return given.later.get(source);
+	}
+	if (!isDerived(source)) return source.v;
+	if (given.derived !== null && given.derived.has(source)) return given.derived.get(source);
+	if (!dated(source, given)) {
+		refresh(source);
+		return source.v;
+	}
+	const value = source.fn();
+	(given.derived ??= new Map()).set(source, value);
+	return value;
+}
+
+export function written(source: Source): void {
+	if (past === null) return;
+	(past.written ??= new Set()).add(source);
+	past.derived = null;
 }
 
 export function readDuringRun(source: Source): void {
@@ -56,10 +114,8 @@ function reconcile(target: Reaction, next: Source[]): void {
 }
 
 export function track<T>(target: Reaction, fn: () => T): T {
-	const previousReaction = reaction;
 	const previousReads = reads;
 	const previousInvalidated = invalidated;
-	reaction = target;
 	reads = [];
 	invalidated = false;
 	try {
@@ -69,7 +125,6 @@ export function track<T>(target: Reaction, fn: () => T): T {
 		reconcile(target, reads);
 		target.rv = now();
 		target.status = invalidated ? DIRTY : CLEAN;
-		reaction = previousReaction;
 		reads = previousReads;
 		invalidated = previousInvalidated;
 	}
@@ -94,7 +149,7 @@ export function refresh(derived: Derived): void {
 		const value = track(derived, derived.fn);
 		if (!derived.computed || !Object.is(value, derived.v)) {
 			derived.v = value;
-			derived.wv = tick();
+			derived.wv = stamp();
 			derived.computed = true;
 		}
 	} finally {

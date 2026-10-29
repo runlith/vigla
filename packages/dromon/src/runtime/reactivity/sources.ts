@@ -1,7 +1,7 @@
 import { write } from './batch.ts';
 import { own } from './effects.ts';
 import { DIRTY, type Derived, type Source } from './graph.ts';
-import { owner } from './tracking.ts';
+import { get, owner } from './tracking.ts';
 
 export function state<T>(value: T): Source<T> {
 	return { v: value, wv: 0, reactions: null };
@@ -9,6 +9,20 @@ export function state<T>(value: T): Source<T> {
 
 export function set<T>(source: Source<T>, value: T): T {
 	return write(source, value);
+}
+
+function step<T extends number | bigint>(value: T, delta: number): T {
+	return (typeof value === 'bigint' ? value + BigInt(delta) : (value as number) + delta) as T;
+}
+
+export function update<T extends number | bigint>(source: Source<T>, delta = 1): T {
+	const value = get(source);
+	set(source, step(value, delta));
+	return value;
+}
+
+export function updatePre<T extends number | bigint>(source: Source<T>, delta = 1): T {
+	return set(source, step(get(source), delta));
 }
 
 export function derived<T>(fn: () => T): Derived<T> {

@@ -40,6 +40,7 @@ export interface Effect extends Reaction {
 	prev: Effect | null;
 	next: Effect | null;
 	owned: Derived[] | null;
+	context: unknown;
 	order: number;
 	running: boolean;
 	destroyed: boolean;
@@ -49,7 +50,7 @@ export interface Effect extends Reaction {
 
 let clock = 0;
 
-export function tick(): number {
+export function stamp(): number {
 	return ++clock;
 }
 

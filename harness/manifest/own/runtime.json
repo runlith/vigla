@@ -1,6 +1,74 @@
 {
 	"samples": {
+		"async-branch-removal": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 9 of runlith's Svelte patch: on upstream 5.57.3 the later batch merged into the awaiting one runs the row of the branch that batch removed — TypeError reading `active` of null"
+		},
+		"async-mount-window-blocking": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunks 5 and 6 (time travel, blocking): on upstream 5.57.3 the detached probe ends on `undefined/2` — the response batch reverts `a` and the awaiting batch's commit never reruns the probe"
+		},
+		"async-mount-window-pending": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunks 5 and 6 (time travel, pending): on upstream 5.57.3 the detached probe ends on `undefined/2` — the response batch reverts `a`, which the mount already committed"
+		},
+		"async-rebase-twice": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 8 (rebase): on upstream 5.57.3 the asserted item holds, but the second rebase throws `invariant_violation` \"Batch has scheduled effects\" unhandled, failing the run"
+		},
+		"effect-write-read-flush": {
+			"status": "contract",
+			"reason": "Scheduler trap, hunk 7 (effect self-invalidation): green on upstream 5.57.3, kept as a regression test"
+		},
 		"filtered-keyed-list": "contract",
-		"leading-nested-block": "contract"
+		"invariant-detached-root": {
+			"status": "contract",
+			"reason": "Scheduler invariant 4: green on upstream 5.57.3"
+		},
+		"invariant-guard": {
+			"status": "difference",
+			"reason": "Scheduler invariant 2: upstream 5.57.3 runs the pre effect and template of a branch a commit-time teardown deselected — TypeError reading `name` of null"
+		},
+		"invariant-settled-final": {
+			"status": "difference",
+			"reason": "Scheduler invariant 3: on upstream 5.57.3 `settled()` resolves before the held batch commits, so the effect's last run is `0 1 1`"
+		},
+		"invariant-shown-value": {
+			"status": "difference",
+			"reason": "Scheduler invariant 1: on upstream 5.57.3 a later batch reverts `a`, already on screen, while the earlier batch's boundary is pending"
+		},
+		"invariant-unmounted": {
+			"status": "contract",
+			"reason": "Scheduler invariant 5: green on upstream 5.57.3"
+		},
+		"leading-nested-block": "contract",
+		"teardown-flush-closing-branch": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (nested eager flush): on upstream 5.57.3 a flushSync in the teardown of a branch an effect closed throws — TypeError reading `clear` of null"
+		},
+		"teardown-guard-inside": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (passed guard, own teardown): on upstream 5.57.3 the branch whose teardown cleared its guard still updates — TypeError reading `size` of null"
+		},
+		"teardown-guard-key": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (seat release): on upstream 5.57.3 the keyed column a teardown deselected still updates — TypeError reading `active` of null"
+		},
+		"teardown-guard-key-flush": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (seat release, flushing teardown): on upstream 5.57.3 the keyed column a teardown deselected still updates — TypeError reading `active` of null"
+		},
+		"teardown-guard-passed": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (passed guard): on upstream 5.57.3 the guard the traversal passed, cleared by a later teardown, still lets its effect run — TypeError reading `size` of null"
+		},
+		"teardown-guard-revisit": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (passed guard, revisited): on upstream 5.57.3 the guard cleared again by a second teardown still lets its effect run — TypeError reading `size` of null"
+		},
+		"teardown-guard-rows": {
+			"status": "difference",
+			"reason": "Scheduler trap, hunk 10 (agents column): on upstream 5.57.3 the rows of a column whose seat an attachment teardown released still redraw — TypeError reading `name` of null"
+		}
 	}
 }

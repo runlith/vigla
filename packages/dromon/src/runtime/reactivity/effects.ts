@@ -3,18 +3,20 @@ import {
 	BRANCH,
 	CLEAN,
 	DIRTY,
+	EFFECT,
 	ROOT,
 	TEMPLATE,
 	type Derived,
 	type Effect,
 	type Kind
 } from './graph.ts';
-import { schedule } from './batch.ts';
-import { disconnect, owner, setOwner, track, untrack } from './tracking.ts';
+import { collect, retire, schedule } from './batch.ts';
+import { orphan } from './errors.ts';
+import { disconnect, owner, reading, setOwner, track, untrack } from './tracking.ts';
 
 let created = 0;
 
-function create(kind: Kind, fn: () => void | (() => void), parent: Effect | null): Effect {
+function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effect | null): Effect {
 	const effect: Effect = {
 		kind,
 		fn,
@@ -25,6 +27,7 @@ function create(kind: Kind, fn: () => void | (() => void), parent: Effect | null
 		prev: null,
 		next: null,
 		owned: null,
+		context: parent === null ? null : parent.context,
 		order: ++created,
 		status: DIRTY,
 		deps: null,
@@ -55,22 +58,24 @@ function release(effect: Effect): void {
 export function run(effect: Effect): void {
 	const fn = effect.fn;
 	if (fn === null) return;
-	if (effect.kind === TEMPLATE) destroyChildren(effect);
+	destroyChildren(effect, effect.kind === BLOCK);
 	release(effect);
 	const teardown = effect.teardown;
-	effect.teardown = null;
-	teardown?.();
+	if (teardown !== null) {
+		effect.teardown = null;
+		retire(teardown);
+	}
 	const previous = setOwner(effect);
 	effect.running = true;
 	try {
 		const result =
-			effect.kind === BLOCK || effect.kind === TEMPLATE
-				? track(effect, fn)
-				: untrack(() => {
+			effect.kind === ROOT || effect.kind === BRANCH
+				? untrack(() => {
 						const value = fn();
 						effect.status = CLEAN;
 						return value;
-					});
+					})
+				: track(effect, fn);
 		if (typeof result === 'function') effect.teardown = result;
 	} finally {
 		effect.running = false;
@@ -91,6 +96,12 @@ export function root(fn: () => void): Effect {
 	return effect;
 }
 
+export function effectRoot(fn: () => void | (() => void)): () => void {
+	const effect = create(ROOT, fn, owner);
+	run(effect);
+	return () => destroy(effect);
+}
+
 export function branch(fn: () => void): Effect {
 	return attach(BRANCH, fn);
 }
@@ -99,8 +110,31 @@ export function block(fn: () => void): Effect {
 	return attach(BLOCK, fn);
 }
 
-export function template(fn: () => void): Effect {
+export function template(fn: () => void | (() => void)): Effect {
 	return attach(TEMPLATE, fn);
+}
+
+export function pre(fn: () => void | (() => void)): Effect {
+	if (owner === null) orphan('$effect.pre');
+	return attach(TEMPLATE, fn);
+}
+
+export function effect(fn: () => void | (() => void)): Effect {
+	if (owner === null) orphan('$effect');
+	const created = create(EFFECT, fn, owner);
+	collect(created);
+	return created;
+}
+
+export function teardown(fn: () => void): Effect {
+	const created = create(EFFECT, null, owner);
+	created.status = CLEAN;
+	created.teardown = fn;
+	return created;
+}
+
+export function tracking(): boolean {
+	return reading();
 }
 
 function unlink(effect: Effect): void {
@@ -113,11 +147,16 @@ function unlink(effect: Effect): void {
 	effect.prev = effect.next = null;
 }
 
-function destroyChildren(effect: Effect): void {
+function destroyChildren(effect: Effect, keepBranches = false): void {
 	let child = effect.first;
 	while (child !== null) {
 		const next = child.next;
-		destroy(child);
+		if (child.kind === ROOT) {
+			unlink(child);
+			child.parent = null;
+		} else if (!keepBranches || child.kind !== BRANCH) {
+			destroy(child);
+		}
 		child = next;
 	}
 }
@@ -133,5 +172,5 @@ export function destroy(effect: Effect): void {
 	effect.teardown = null;
 	effect.fn = null;
 	unlink(effect);
-	teardown?.();
+	if (teardown !== null) retire(teardown);
 }
