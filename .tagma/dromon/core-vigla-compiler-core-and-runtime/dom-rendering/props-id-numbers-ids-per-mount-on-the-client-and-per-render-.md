@@ -12,7 +12,7 @@ sources:
   - kind: file
     ref: packages/vigla/src/runtime/server/render.ts
 ---
-The counter lives with the tree that asks for an id: on the client it is keyed in a `WeakMap` by the top-level root effect of the caller's owner chain — the mount, whose root effect has no parent — and on the server it is the counter of the `render()` call. An unmounted tree takes its count with it, so nothing outlives it on `window` or in the module and a target resets nothing between mounts (invariant 5 of [[9d5e3831]]).
+The counter lives with the tree that asks for an id: on the client it is keyed in a `WeakMap` by the nearest mount root above the caller — each mount marks its root, since a mount may stand under an application's owner, such as a tab's, beside other mounts — and on the server it is the counter of the `render()` call. An unmounted tree takes its count with it, so nothing outlives it on `window` or in the module and a target resets nothing between mounts (invariant 5 of [[9d5e3831]]).
 
 While hydrating, the id is read from the `<!--$id-->` comment the server wrote where the component's script asked for it, so a hydrated component keeps the server's `s<n>` (prefixed by `idPrefix`); a component created after hydration counts `c1`, `c2`, … from its mount's own start, as upstream's `props-id` samples pin. The id text keeps upstream's shape.
 
