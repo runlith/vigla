@@ -26,6 +26,9 @@ fields:
       },
       {
         "at": "context.ts"
+      },
+      {
+        "at": "format.ts"
       }
     ],
     "id": "shared",
