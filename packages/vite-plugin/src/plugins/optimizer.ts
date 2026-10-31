@@ -86,14 +86,15 @@ async function compileComponent(
 }
 
 function compileLibraryModule(
-	options: ResolvedOptions,
+	options: CompileOptions,
 	frontEnd: FrontEnd,
 	filename: string,
 	code: string,
 	generate: 'client' | 'server'
 ) {
 	const compiled = frontEnd.compiler.compileModule(code, {
-		dev: options.compilerOptions?.dev ?? true,
+		...options,
+		dev: options.dev ?? true,
 		filename,
 		generate
 	});
@@ -122,7 +123,7 @@ function optimizerPlugin(
 				const frontEnd = claiming(api.frontEnds, filename, !components);
 				try {
 					if (!components)
-						return compileLibraryModule(api.options, frontEnd, filename, code, generate);
+						return compileLibraryModule(api.moduleOptions, frontEnd, filename, code, generate);
 					const environment = api.options.server?.environments[environmentName] as Environment;
 					return await compileComponent(
 						api.options,

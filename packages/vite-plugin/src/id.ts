@@ -166,7 +166,7 @@ export function buildIdParser(options: ResolvedOptions, frontEnds: readonly Fron
 }
 
 function modulePatterns(options: ResolvedOptions, frontEnds: readonly FrontEnd[]): RegExp[] {
-	const given = options.experimental?.compileModule ?? {};
+	const given = frontEnds.length === 1 ? (options.experimental?.compileModule ?? {}) : {};
 	return frontEnds.map((frontEnd) =>
 		modulePattern(
 			given.infixes ?? frontEnd.modules.infixes,

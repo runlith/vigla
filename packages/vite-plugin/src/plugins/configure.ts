@@ -37,6 +37,10 @@ export function configure(api: PluginAPI, inline?: Partial<Options>): Plugin {
 			order: 'pre',
 			handler(config) {
 				api.options = resolveOptions(preResolved, config);
+				api.moduleOptions = {
+					...preResolved.compilerOptions,
+					dev: api.options.compilerOptions.dev
+				};
 				api.filter = buildIdFilter(api.options, api.frontEnds);
 				api.idParser = buildIdParser(api.options, api.frontEnds);
 				log.debug('resolved options', api.options, 'config');

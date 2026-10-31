@@ -1,45 +1,14 @@
 import type { Plugin } from 'vite';
 import type { PluginAPI } from '../api.ts';
 import { dynamicOptions } from '../compile.ts';
-import type {
-	CompileError,
-	CompileOptions,
-	Experimental,
-	ModuleCompileOptions
-} from '../compiler.ts';
+import type { CompileError, CompileOptions } from '../compiler.ts';
 import { toRollupError } from '../error.ts';
 import { buildModuleIdFilter, buildModuleIdParser, type ModuleIdParser } from '../id.ts';
 import { log } from '../log.ts';
 import { logCompilerWarnings } from '../warnings.ts';
 
-const moduleOptionNames = [
-	'dev',
-	'generate',
-	'filename',
-	'rootDir',
-	'warningFilter',
-	'experimental'
-];
-const experimentalModuleOptionNames = ['async'];
-
-function pick<T extends object>(value: object, names: readonly string[]): T {
-	return Object.fromEntries(Object.entries(value).filter(([name]) => names.includes(name))) as T;
-}
-
-function moduleOptions(options: CompileOptions): ModuleCompileOptions {
-	const filtered = pick<ModuleCompileOptions>(options, moduleOptionNames);
-	if (filtered.experimental) {
-		filtered.experimental = pick<Experimental>(
-			filtered.experimental,
-			experimentalModuleOptionNames
-		);
-	}
-	return filtered;
-}
-
 export function compileModule(api: PluginAPI): Plugin {
 	let idParser: ModuleIdParser;
-	let fixed: ModuleCompileOptions;
 	const plugin: Plugin = {
 		name: 'vite-plugin-svelte:compile-module',
 		enforce: 'post',
@@ -48,7 +17,6 @@ export function compileModule(api: PluginAPI): Plugin {
 				filter: buildModuleIdFilter(api.options, api.frontEnds)
 			});
 			idParser = buildModuleIdParser(api.options, api.frontEnds);
-			fixed = moduleOptions(api.options.compilerOptions);
 		},
 		transform: {
 			async handler(code, id) {
@@ -57,8 +25,7 @@ export function compileModule(api: PluginAPI): Plugin {
 				if (!request) return undefined;
 				const filename = request.filename;
 				const compileOptions: CompileOptions = {
-					...fixed,
-					dev: !this.environment.config.isProduction,
+					...api.moduleOptions,
 					generate: ssr ? 'server' : 'client',
 					filename
 				};
@@ -74,16 +41,16 @@ export function compileModule(api: PluginAPI): Plugin {
 				if (dynamic?.experimental) {
 					final.experimental = { ...compileOptions.experimental, ...dynamic.experimental };
 				}
-				const finalModule = moduleOptions(final);
+
 				if (log.debug.enabled) {
 					log.debug(
-						`final ModuleCompileOptions for  ${filename}: ${JSON.stringify(finalModule)}`,
+						`final module options for ${filename}: ${JSON.stringify(final)}`,
 						undefined,
 						'compileModule'
 					);
 				}
 				try {
-					const result = request.frontEnd.compiler.compileModule(code, finalModule);
+					const result = request.frontEnd.compiler.compileModule(code, final);
 					logCompilerWarnings(request, result.warnings, api.options);
 					return { code: result.js.code, map: result.js.map as never };
 				} catch (error) {
