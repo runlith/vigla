@@ -34,3 +34,5 @@ edges:
 - On `targets/upstream`, Vigla's runners pass exactly the contract entries upstream's own runners pass in the reference configuration.
 - No runner imports anything under `svelte/internal`; only the upstream target's hook touches upstream internals.
 - On `targets/vigla`, a run fails exactly when a recorded entry fails.
+
+Acceptance still needs the recorded vite-plugin e2e entries re-proved after switching to `@vigla/vite-plugin`; that verification is owned by [[6aa3c486]].
