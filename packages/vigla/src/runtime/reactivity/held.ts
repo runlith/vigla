@@ -42,7 +42,7 @@ export function overlook(branch: Effect, from: Batch): void {
 	const found: Effect[] = [];
 	gather(branch, found, true);
 	overlooked.add(branch);
-	if (found.length === 0) return;
+	if (found.length === 0 || from.fork) return;
 	const pass = (other: Batch | null): void => {
 		if (other === null || other === from || other.done) return;
 		if (other.shown === null || !other.shown.has(branch)) return;
