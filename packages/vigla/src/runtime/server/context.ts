@@ -136,6 +136,10 @@ export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
 	};
 }
 
+export function isRendering(): boolean {
+	return render !== null;
+}
+
 export type Phase = 'initializing' | null;
 
 export function phase(): Phase {

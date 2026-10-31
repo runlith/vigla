@@ -95,6 +95,7 @@
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): layer's WorldHooks filled with public `vigla` API alone — `root`, `effect`, `cell`, `untrack`; upstream 5.57.3 has no such entry, so the sample cannot run there"
 		},
+		"server-derived-override": "contract",
 		"server-failure-pending-sibling": {
 			"status": "difference",
 			"reason": "A rejected async sibling must reach its server boundary without waiting for an unrelated pending sibling; upstream 5.57.3 remains pending and times out at 30000ms"

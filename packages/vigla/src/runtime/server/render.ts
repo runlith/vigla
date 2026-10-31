@@ -1,4 +1,5 @@
 import { failure } from '../../shared/diagnostics.ts';
+import { isRendering } from './context.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { Data, type Csp, type Script } from './hydration.ts';
 import { isVoid } from '../../shared/html.ts';
@@ -347,15 +348,17 @@ export function propsId(out: Output): string {
 }
 
 export function derived<T>(fn: () => T): (value?: T) => T {
+	const memoize = isRendering();
 	let computed = false;
 	let value = undefined as T;
+	let override: T | undefined;
 	return function (next?: T): T {
 		if (arguments.length > 0) {
-			value = next as T;
-			computed = true;
-			return value;
+			override = next;
+			return next as T;
 		}
-		if (!computed) {
+		if (override != null) return override;
+		if (!memoize || !computed) {
 			value = fn();
 			computed = true;
 		}
