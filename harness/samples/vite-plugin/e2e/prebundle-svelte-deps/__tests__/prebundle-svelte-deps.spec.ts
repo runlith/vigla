@@ -3,11 +3,13 @@ import {
 	editFile,
 	getColor,
 	getText,
-	IS_SVELTE_BASELINE,
 	isBuild,
 	readVitePrebundleMetadata,
 	waitForServerRestartAndPageReload
 } from '~utils';
+import { createRequire } from 'node:module';
+
+const dependencies = createRequire(import.meta.url)('svelte/package.json').dependencies;
 
 async function expectPageToWork() {
 	browserLogs.forEach((msg) => {
@@ -43,8 +45,7 @@ if (!isBuild) {
 		expect(optimizedPaths).toContain('e2e-test-dep-svelte-nested');
 		expect(optimizedPaths).toContain('e2e-test-dep-svelte-module');
 		expect(optimizedPaths).toContain('svelte');
-		if (!IS_SVELTE_BASELINE) {
-			// clsx was added after svelte 5.0.0
+		if (dependencies?.clsx) {
 			expect(optimizedPaths).toContain('svelte > clsx');
 		} else {
 			expect(optimizedPaths).not.toContain('svelte > clsx');

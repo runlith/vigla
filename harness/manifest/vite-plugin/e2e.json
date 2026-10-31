@@ -22,6 +22,7 @@
     "kit-node/src/routes/+page.svelte": "`$lib` imports replaced by the `#lib` subpath import Kit 3.1 uses; `$app/environment` replaced by `$app/env`, as Kit 3.1 deprecates the former; `$:` replaced by `$derived`; `export let` replaced by `$props()`; legacy-mode reactive `let` replaced by `$state`",
     "kit-node/svelte.config.js": "removed; Kit 3.1 refuses a `svelte.config.js` and takes its options through `sveltekit()`",
     "kit-node/vite.config.js": "the Kit 2 `svelte.config.js` options passed to `sveltekit()`, as Kit 3.1 requires",
+    "prebundle-svelte-deps/__tests__/prebundle-svelte-deps.spec.ts": "the nested clsx expectation follows the installed package's dependencies, as upstream's optimizer does, rather than assuming a dependency from VERSION",
     "preprocess-with-vite/src/App.svelte": "`export let` replaced by `$props()`",
     "preprocess-with-vite/src/Foo.svelte": "`export let` replaced by `$props()`",
     "scan-deps/src/Svelte4DoubleQuote.svelte": "`context=\"module\"` replaced by `module`",
@@ -119,12 +120,30 @@
       "reason": "its resolved-config expectations, written against Kit 2.59, follow what Kit 3.1.0 generates: no `build.ssr` config, `@opentelemetry/api` instead of `cookie` and `set-cookie-parser` external, `noExternal: true` in build, Kit’s `devalue` and `esm-env` pre-bundled"
     },
     "package-json-svelte-field/package-json-svelte-field.spec.ts > should render component imported via svelte field in package.json": "contract",
-    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works": "contract",
-    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works with pre-bundling disabled": "contract",
-    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works with pre-bundling enabled": "contract",
-    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > passes the current environment while compiling a Svelte dependency": "contract",
-    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > should not optimize excluded svelte dependencies": "contract",
-    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > should optimize svelte dependencies": "contract",
+    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works": {
+      "status": "converted",
+      "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"
+    },
+    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works with pre-bundling disabled": {
+      "status": "converted",
+      "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"
+    },
+    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works with pre-bundling enabled": {
+      "status": "converted",
+      "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"
+    },
+    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > passes the current environment while compiling a Svelte dependency": {
+      "status": "converted",
+      "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"
+    },
+    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > should not optimize excluded svelte dependencies": {
+      "status": "converted",
+      "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"
+    },
+    "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > should optimize svelte dependencies": {
+      "status": "converted",
+      "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"
+    },
     "preprocess-with-vite/preprocess-with-vite.spec.ts > should apply transforms from preprocessors in the right order": "contract",
     "preprocess-with-vite/preprocess-with-vite.spec.ts > should not mangle code from esbuild pure annotations": "contract",
     "preprocess-with-vite/preprocess-with-vite.spec.ts > should render App": "contract",
