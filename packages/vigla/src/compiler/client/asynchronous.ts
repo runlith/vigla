@@ -24,6 +24,16 @@ type Render = (
 	textFirst: boolean
 ) => ES.Statement[];
 
+export function asyncThunks(
+	context: TemplateContext,
+	expressions: readonly ES.Expression[]
+): ES.ArrowFunctionExpression[] {
+	return expressions.map((expression) => ({
+		...b.arrow([], b.object({ value: rewrite(context, expression) })),
+		async: true
+	}));
+}
+
 export function asyncSetup(
 	context: TemplateContext,
 	nodes: readonly Node[],
@@ -38,10 +48,7 @@ export function asyncSetup(
 			awaited.set(expression, ids[index] as ES.Identifier)
 		);
 		const inner: TemplateContext = { ...context, awaited };
-		const thunks = expressions.map((expression) => ({
-			...b.arrow([], b.object({ value: rewrite(context, expression) })),
-			async: true
-		}));
+		const thunks = asyncThunks(context, expressions);
 		const target = b.id(context.names.unique('$$anchor'));
 		const body = render(inner, nodes, target, namespace, false);
 		emit.init.push(

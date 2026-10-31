@@ -5,6 +5,7 @@ import * as b from '../ir/estree.ts';
 import { isCapture } from '../../shared/html.ts';
 import type { Binding as BindingNode, Fragment, Special, Title } from '../ir/nodes.ts';
 import { accessors } from './bindings.ts';
+import { asyncThunks } from './asynchronous.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { handler, named } from './events.ts';
 import { rewrite, runtime } from './script.ts';
@@ -52,10 +53,7 @@ function titleCode(context: TemplateContext, node: Title): ES.Statement {
 		runtime(context, 'effect', b.arrow([], runtime(context, 'title', value)))
 	);
 	if (pending.length === 0) return effect;
-	const thunks = pending.map((expression) => ({
-		...b.arrow([], rewrite(context, expression)),
-		async: true
-	}));
+	const thunks = asyncThunks(context, pending);
 	return b.statement(
 		runtime(
 			context,
