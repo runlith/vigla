@@ -7,7 +7,13 @@ fields:
   {
     "entries": [
       {
-        "at": "."
+        "at": "index.ts"
+      },
+      {
+        "at": "errors.ts",
+        "for": [
+          "8be3f25c"
+        ]
       }
     ],
     "id": "kit-config"
