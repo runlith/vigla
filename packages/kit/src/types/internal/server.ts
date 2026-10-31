@@ -12,7 +12,14 @@ import type {
 	Transport
 } from '../hooks.ts';
 import type { ParamMatcher, ParamValue } from '../params.ts';
-import type { Actions, Load, RequestEvent, RequestHandler, ServerLoad } from '../request.ts';
+import type {
+	Actions,
+	Load,
+	RequestEvent,
+	RequestHandler,
+	ServerInitOptions,
+	ServerLoad
+} from '../request.ts';
 import type { Page } from '../state.ts';
 import type { MaybePromise } from '../value.ts';
 import type { PageBranch, RouteParam } from './routes.ts';
