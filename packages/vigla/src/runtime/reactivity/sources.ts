@@ -51,6 +51,7 @@ export function derived<T>(fn: () => T): Derived<T> {
 	const created: Derived<T> = {
 		fn,
 		owner,
+		effects: null,
 		computed: false,
 		v: undefined as T,
 		wv: 0,

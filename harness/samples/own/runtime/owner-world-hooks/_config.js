@@ -31,13 +31,21 @@ export default test({
 	mode: ['client'],
 	props: { app, value },
 	html: '<button>leave</button> <p>page</p>',
-	async test({ assert, target, logs }) {
+	async test({ assert, instance, target, logs }) {
 		flushSync(() => target.querySelector('button').click());
 		value.current = 1;
 		await settled();
 		assert.htmlEqual(target.innerHTML, '<button>leave</button>');
 		assert.deepEqual(logs, ['service 0', 'service 1']);
+		const children = app.run(() => instance.childRoots(app));
+		const first = children.current();
+		children.next();
+		const second = children.current();
+		assert.equal(first.disposed, false);
+		assert.equal(second.disposed, false);
 		app.dispose();
+		assert.equal(first.disposed, true);
+		assert.equal(second.disposed, true);
 		value.current = 2;
 		flushSync();
 		assert.deepEqual(logs, ['service 0', 'service 1', 'service gone']);

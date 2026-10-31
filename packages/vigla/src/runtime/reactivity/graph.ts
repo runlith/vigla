@@ -37,6 +37,7 @@ export interface Reaction {
 export interface Derived<T = unknown> extends Source<T>, Reaction {
 	readonly fn: () => T;
 	readonly owner: Effect | null;
+	effects: Effect[] | null;
 	computed: boolean;
 }
 

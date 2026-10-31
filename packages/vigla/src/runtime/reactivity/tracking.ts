@@ -2,12 +2,14 @@ import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
 import { computed, traced, tracedRun, tracing, updated } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
+import { destroy } from './effects.ts';
 import {
 	BLOCK,
 	CLEAN,
 	DIRTY,
 	EAGER,
 	MAYBE,
+	ROOT,
 	isDerived,
 	isDerivedSource,
 	now,
@@ -58,10 +60,8 @@ function opened(target: Reaction): Frame {
 		};
 		frames.push(current);
 	}
-	if (DEV) {
-		current.target = target;
-		current.started = now();
-	}
+	current.target = target;
+	if (DEV) current.started = now();
 	current.version = versions += 3;
 	current.old = target.deps;
 	current.matched = 0;
@@ -79,12 +79,31 @@ function opened(target: Reaction): Frame {
 
 function closed(previous: Frame | null): void {
 	depth--;
-	if (DEV) (frames[depth] as Frame).target = null;
+	(frames[depth] as Frame).target = null;
 	frame = previous;
+}
+
+function finished(current: Frame): void {
+	current.old = current.extra = null;
+	current.hidden = null;
+	current.local = null;
 }
 
 function top(): Frame | null {
 	return depth === 0 ? null : (frames[depth - 1] as Frame);
+}
+
+export function ownEffect(effect: Effect): void {
+	const at = frame ?? top();
+	if (at === null || !at.derived || effect.kind === ROOT) return;
+	const derived = at.target as Derived;
+	if (effect.parent === derived.owner) (derived.effects ??= []).push(effect);
+}
+
+function destroyEffects(derived: Derived): void {
+	const effects = derived.effects;
+	derived.effects = null;
+	for (const effect of effects ?? []) destroy(effect);
 }
 
 export function localize(source: Source): void {
@@ -215,6 +234,7 @@ export function affected(derived: Derived, given: View): boolean {
 }
 
 function compute(derived: Derived, given: View): unknown {
+	destroyEffects(derived);
 	const previous = frame;
 	const current = opened(derived);
 	const previousOwner = setOwner(derived.owner);
@@ -238,6 +258,7 @@ function compute(derived: Derived, given: View): unknown {
 			given.reached.set(derived, current.hidden);
 			note(current.hidden);
 		}
+		finished(current);
 	}
 }
 
@@ -438,6 +459,7 @@ export function track<T>(target: Reaction, fn: () => T): T {
 		if ((target as Effect).destroyed === true) target.deps = null;
 		else settleRun(target, current);
 		if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
+		finished(current);
 	}
 }
 
@@ -484,6 +506,7 @@ export function stale(target: Reaction): boolean {
 export function refresh(derived: Derived): void {
 	if (derived.deps !== null && !stale(derived)) return;
 	if (view !== null && affected(derived, view)) return;
+	destroyEffects(derived);
 	const previous = setOwner(derived.owner);
 	try {
 		const value = track(derived, derived.fn);
@@ -508,6 +531,7 @@ export function refresh(derived: Derived): void {
 }
 
 export function disconnect(derived: Derived): void {
+	destroyEffects(derived);
 	for (const dep of derived.deps ?? []) dep.reactions?.delete(derived);
 	derived.deps = null;
 	derived.status = DIRTY;

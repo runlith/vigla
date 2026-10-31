@@ -17,6 +17,7 @@ import { orphan } from './errors.ts';
 import {
 	disconnect,
 	owner,
+	ownEffect,
 	present,
 	reading,
 	setOwner,
@@ -71,6 +72,7 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		else parent.last.next = effect;
 		parent.last = effect;
 	}
+	ownEffect(effect);
 	return effect;
 }
 
