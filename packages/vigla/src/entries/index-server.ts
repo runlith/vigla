@@ -21,7 +21,7 @@ export type {
 	WritableSource
 } from '../shared/external.ts';
 export type { Format } from '../shared/format.ts';
-export { hydratable, openHydration } from '../runtime/server/hydration.ts';
+export { hydratable, hydrated, openHydration } from '../runtime/server/hydration.ts';
 export type { HydrationOptions } from '../runtime/server/hydration.ts';
 export { createRawSnippet } from '../runtime/server/snippet.ts';
 export type { RawFactory, RawSnippet } from '../shared/snippet.ts';

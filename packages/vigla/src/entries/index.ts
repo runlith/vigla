@@ -9,7 +9,7 @@ export {
 } from '../runtime/dom/context.ts';
 export type { Context } from '../shared/context.ts';
 export type { Format } from '../shared/format.ts';
-export { hydratable, openHydration } from '../runtime/dom/data.ts';
+export { hydratable, hydrated, openHydration } from '../runtime/dom/data.ts';
 export type { HydrationOptions } from '../runtime/dom/data.ts';
 export { createRawSnippet } from '../runtime/dom/snippet.ts';
 export type { RawFactory, RawSnippet } from '../shared/snippet.ts';

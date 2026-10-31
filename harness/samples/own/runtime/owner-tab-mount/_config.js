@@ -1,4 +1,4 @@
-import { flushSync, hydratable, mount, openHydration, root, setContext } from 'vigla';
+import { flushSync, hydratable, hydrated, mount, openHydration, root, setContext } from 'vigla';
 import { test } from '@vigla/harness/helpers';
 
 export default test({
@@ -25,6 +25,14 @@ export default test({
 		assert.equal(
 			tab.run(() => hydratable('payload', () => 'client')),
 			'server'
+		);
+		assert.equal(
+			tab.run(() => hydrated('payload', () => 'client')),
+			'server'
+		);
+		assert.equal(
+			tab.run(() => hydrated('absent', () => 'client')),
+			'client'
 		);
 		close();
 		assert.equal(

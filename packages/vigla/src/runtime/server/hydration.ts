@@ -209,6 +209,10 @@ export function hydratable<T>(key: string, fn: () => T): T {
 	return data === null ? fn() : data.read(key, fn);
 }
 
+export function hydrated<T>(key: string, fn: () => T): T {
+	return hydratable(key, fn);
+}
+
 export interface HydrationOptions {
 	readonly format?: Format;
 	readonly target?: ParentNode;

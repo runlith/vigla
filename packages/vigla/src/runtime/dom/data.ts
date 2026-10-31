@@ -106,15 +106,25 @@ export function withHydration<T>(format: Format, target: ParentNode, fn: () => T
 	}
 }
 
-export function hydratable<T>(key: string, fn: () => T): T {
+function nearest(): Input | undefined {
 	for (let at = owner; at !== null; at = at.parent) {
 		const input = inputs.get(at);
-		if (input === undefined || (!input.explicit && !hydrating)) continue;
-		if (input.values?.has(key)) return input.values.get(key) as T;
-		const message = `The hydratable key ${JSON.stringify(key)} was not present in the server render`;
-		if (DEV) throw failure('hydratable_missing_but_required', message);
-		warn('hydratable_missing_but_expected', message);
-		break;
+		if (input !== undefined && (input.explicit || hydrating)) return input;
 	}
+	return undefined;
+}
+
+export function hydratable<T>(key: string, fn: () => T): T {
+	const input = nearest();
+	if (input === undefined) return fn();
+	if (input.values?.has(key)) return input.values.get(key) as T;
+	const message = `The hydratable key ${JSON.stringify(key)} was not present in the server render`;
+	if (DEV) throw failure('hydratable_missing_but_required', message);
+	warn('hydratable_missing_but_expected', message);
 	return fn();
+}
+
+export function hydrated<T>(key: string, fn: () => T): T {
+	const values = nearest()?.values;
+	return values?.has(key) ? (values.get(key) as T) : fn();
 }
