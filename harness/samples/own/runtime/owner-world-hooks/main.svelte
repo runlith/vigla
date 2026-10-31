@@ -2,7 +2,7 @@
 	import { root } from 'vigla';
 	import Page from './Page.svelte';
 
-	let { app, value } = $props();
+	let { hooks, value } = $props();
 	let shown = $state(true);
 
 	export function childRoots(parent) {
@@ -20,5 +20,5 @@
 
 <button onclick={() => (shown = false)}>leave</button>
 {#if shown}
-	<Page {app} {value} />
+	<Page {hooks} {value} />
 {/if}

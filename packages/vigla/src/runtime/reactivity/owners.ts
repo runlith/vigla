@@ -1,4 +1,5 @@
 import { destroy, detached } from './effects.ts';
+import { work } from './async.ts';
 import type { Effect } from './graph.ts';
 import { owner as running, setOwner, withoutReaction } from './tracking.ts';
 
@@ -28,6 +29,15 @@ export class Owner {
 			return withoutReaction(fn);
 		} finally {
 			setOwner(previous);
+		}
+	}
+
+	async start<T>(fn: () => T): Promise<Awaited<T>> {
+		const finish = this.run(work);
+		try {
+			return await this.run(fn);
+		} finally {
+			finish();
 		}
 	}
 

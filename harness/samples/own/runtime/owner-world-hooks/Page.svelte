@@ -1,14 +1,14 @@
 <script>
-	import { effect, root } from 'vigla';
+	import { effect } from 'vigla';
 
-	let { app, value } = $props();
+	let { hooks, value } = $props();
 
-	root(() => {
+	hooks.effectRoot(() => {
 		effect(() => {
 			console.log(`service ${value.current}`);
+			return () => console.log(`service gone ${value.current}`);
 		});
-		return () => console.log('service gone');
-	}, app);
+	});
 </script>
 
 <p>page</p>
