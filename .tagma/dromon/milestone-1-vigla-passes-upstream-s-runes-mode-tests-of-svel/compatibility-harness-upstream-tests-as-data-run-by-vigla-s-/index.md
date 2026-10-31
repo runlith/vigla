@@ -35,4 +35,4 @@ edges:
 - No runner imports anything under `svelte/internal`; only the upstream target's hook touches upstream internals.
 - On `targets/vigla`, a run fails exactly when a recorded entry fails.
 
-The recorded vite-plugin e2e set has been verified project by project on the workspace `@vigla/vite-plugin` alias. The store-dependent projects not yet in that set remain under [[6aa3c486]].
+All vite-plugin e2e projects, including the store-dependent projects and build-watch, have been verified separately on the workspace `@vigla/vite-plugin` alias in [[6aa3c486]].
