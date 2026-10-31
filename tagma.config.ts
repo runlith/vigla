@@ -1,5 +1,5 @@
 import { defineConfig, Files, Format, Imports } from '@runlith/tagma/rules';
-import { internals, loads, mentions } from './checks/inspections.ts';
+import { builtins, internals, loads, mentions } from './checks/inspections.ts';
 
 export default defineConfig({
 	inspections: {
@@ -53,6 +53,31 @@ export default defineConfig({
 					'packages/vigla/src/entries/index.ts',
 					'packages/vigla/src/entries/server.ts',
 					'packages/vigla/src/entries/internal/*.ts'
+				]
+			}
+		),
+		'kit-web-only': builtins(
+			{
+				globals: [
+					'process',
+					'Buffer',
+					'require',
+					'global',
+					'__dirname',
+					'__filename',
+					'getBuiltinModule',
+					'setImmediate'
+				],
+				tests: ['.test.', '.spec.'],
+				fix: 'Take what the platform gives through Server.init or the request options, and leave Node glue to kit-node, kit-vite, kit-build or an adapter.'
+			},
+			{
+				files: [
+					'packages/kit/src/server/**/*.ts',
+					'packages/kit/src/client/**/*.ts',
+					'packages/kit/src/shared/**/*.ts',
+					'packages/kit/src/types/**/*.ts',
+					'packages/kit/src/entries/**/*.ts'
 				]
 			}
 		)

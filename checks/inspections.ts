@@ -26,10 +26,23 @@ export const loads = defineInspection<LoadsParams>({
 	concern: 'loading'
 });
 
+export type BuiltinsParams = {
+	readonly globals: readonly string[];
+	readonly tests: readonly string[];
+	readonly fix: string;
+};
+
+export const builtins = defineInspection<BuiltinsParams>({
+	program: 'checks/programs.ts',
+	name: 'builtins',
+	concern: 'loading'
+});
+
 export type Programs = {
 	readonly internals: InternalsParams;
 	readonly mentions: MentionsParams;
 	readonly loads: LoadsParams;
+	readonly builtins: BuiltinsParams;
 };
 
 export const mentions = defineInspection<MentionsParams>({

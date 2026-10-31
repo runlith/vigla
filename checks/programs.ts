@@ -1,5 +1,12 @@
+import { builtinModules } from 'node:module';
 import { defineProgram, type Finding, type Reading, type Side } from '@runlith/tagma/rules';
-import type { InternalsParams, LoadsParams, MentionsParams, Programs } from './inspections.ts';
+import type {
+	BuiltinsParams,
+	InternalsParams,
+	LoadsParams,
+	MentionsParams,
+	Programs
+} from './inspections.ts';
 
 const specifier = /(?:\bfrom|\bimport\s*\(|\bimport|\brequire\s*\()\s*(['"`])([^'"`]+)\1/g;
 
@@ -250,7 +257,90 @@ async function loads(side: Side, params: LoadsParams): Promise<Reading> {
 	return { findings };
 }
 
+function prose(text: string): string {
+	let out = '';
+	let index = 0;
+	while (index < text.length) {
+		const char = text[index] ?? '';
+		const next = text[index + 1];
+		if (char === '/' && next === '/') {
+			const end = text.indexOf('\n', index);
+			const stop = end === -1 ? text.length : end;
+			out += blank(text.slice(index, stop));
+			index = stop;
+		} else if (char === '/' && next === '*') {
+			const end = text.indexOf('*/', index + 2);
+			const stop = end === -1 ? text.length : end + 2;
+			out += blank(text.slice(index, stop));
+			index = stop;
+		} else if (char === '"' || char === "'" || char === '`') {
+			let stop = index + 1;
+			while (stop < text.length && text[stop] !== char) stop += text[stop] === '\\' ? 2 : 1;
+			out += char + blank(text.slice(index + 1, stop)) + char;
+			index = stop + 1;
+		} else {
+			out += char;
+			index += 1;
+		}
+	}
+	return out;
+}
+
+function builtin(target: string): boolean {
+	return target.startsWith('node:') || builtinModules.includes(target.split('/')[0] ?? target);
+}
+
+async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> {
+	const scanner = new (globalThis as unknown as Runtime).Bun.Transpiler({ loader: 'ts' });
+	const globals = new RegExp(`(?<![\\w$#])(?:${params.globals.join('|')})(?![\\w$])`, 'g');
+	const member = /(?:^|[^\w$])(?:globalThis|self|window)\s*\??\.\s*$|\?\.\s*$|\.\s*$/;
+	const findings: Finding[] = [];
+	for (const path of side.paths) {
+		if (params.tests.some((infix) => path.includes(infix))) continue;
+		const text = await side.read(path);
+		if (text === null) continue;
+		const seen = new Set<string>();
+		for (const { path: target } of scanner.scanImports(text)) {
+			if (!builtin(target) || seen.has(target)) continue;
+			seen.add(target);
+			findings.push({
+				fingerprint: `loads ${target} @ ${path}`,
+				path,
+				line: lineOf(text, located(text, target)),
+				message: `loads the Node built-in ${target}`,
+				fix: params.fix
+			});
+		}
+		const source = prose(text);
+		for (const match of source.matchAll(globals)) {
+			const name = match[0];
+			const before = source.slice(Math.max(0, match.index - 16), match.index);
+			const property = member.exec(before);
+			if (
+				property !== null &&
+				!/globalThis|self|window/.test(property[0]) &&
+				name !== 'getBuiltinModule'
+			)
+				continue;
+			if (seen.has(name)) continue;
+			seen.add(name);
+			findings.push({
+				fingerprint: `uses ${name} @ ${path}`,
+				path,
+				line: lineOf(source, match.index),
+				message: `uses the Node-only global ${name}`,
+				fix: params.fix
+			});
+		}
+	}
+	return { findings };
+}
+
 export default defineProgram<Programs>({
+	builtins: async ({ params, tree, base }) =>
+		base === null
+			? { tree: await builtinsOf(tree, params) }
+			: { tree: await builtinsOf(tree, params), base: await builtinsOf(base, params) },
 	loads: async ({ params, tree, base }) =>
 		base === null
 			? { tree: await loads(tree, params) }
