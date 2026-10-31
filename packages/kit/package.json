@@ -39,6 +39,7 @@
 		"cookie": "^2.0.1",
 		"devalue": "^5.9.4",
 		"esm-env": "^1.2.2",
+		"mrmime": "^2.0.1",
 		"vigla": "workspace:*"
 	},
 	"peerDependencies": {
