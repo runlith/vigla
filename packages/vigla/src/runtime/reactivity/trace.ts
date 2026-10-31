@@ -1,6 +1,6 @@
 import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
-import { isDerivedSource, stamp, type Reaction, type Source } from './graph.ts';
+import { isDerivedSource, stamp, type Derived, type Reaction, type Source } from './graph.ts';
 import { ABSENT, snapshot } from './proxy.ts';
 import { get, running, untrack, view } from './tracking.ts';
 
@@ -133,6 +133,14 @@ export function tracedRun(reaction: Reaction, version: number): void {
 
 export function traceSource(source: Source, read: () => unknown): void {
 	if (DEV) origins.set(source, read);
+}
+
+export function traceInputs<T>(source: Derived<T>): T {
+	const value = untrace(() => untrack(() => get(source)));
+	const at = tracing;
+	if (at !== null && at.reaction !== null)
+		for (const dep of source.deps ?? []) traced(dep, at.reaction);
+	return value;
 }
 
 export function untrace<T>(fn: () => T): T {
