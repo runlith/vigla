@@ -9,6 +9,7 @@
 	"dependencies": {
 		"deepmerge": "^4.3.1",
 		"obug": "^2.1.0",
+		"vigla": "workspace:*",
 		"vitefu": "^1.1.2"
 	},
 	"peerDependencies": {

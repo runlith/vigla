@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'vite';
 import { expect, test } from 'vitest';
-import { svelte } from './index.ts';
+import { svelte, type PluginAPI } from './index.ts';
 
 test('compiles opaque source through its claiming front end with custom options intact', async () => {
 	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
@@ -42,7 +42,8 @@ test('compiles opaque source through its claiming front end with custom options 
 		);
 		await writeFile(
 			join(frontend, 'compiler.js'),
-			`export function compile(source, options) {
+			`${name === 'text' ? 'export const format = { global: "__text", meta: "__text_meta", cssWrapper: "text-css-wrapper" };' : ''}
+export function compile(source, options) {
 	return {
 		js: { code: 'export default ' + JSON.stringify(${value}), map: null },
 		css: null,
@@ -69,6 +70,14 @@ export async function preprocess(source) { return { code: source }; }
 		server: { middlewareMode: true, watch: null, hmr: { port: 0 } }
 	});
 	try {
+		const api = server.config.plugins.find((plugin) => plugin.name === 'vite-plugin-svelte')
+			?.api as PluginAPI | undefined;
+		expect(
+			api?.frontEnds.find((frontend) => frontend.components.includes('.text'))?.compiler.format
+		).toEqual({ global: '__text', meta: '__text_meta', cssWrapper: 'text-css-wrapper' });
+		expect(
+			api?.frontEnds.find((frontend) => frontend.components.includes('.number'))?.compiler.format
+		).toBeUndefined();
 		const output = await server.ssrLoadModule('/message.text');
 		expect(output.default).toBe(`compiled: ${source}`);
 		const module = await server.ssrLoadModule('/message.text.js');

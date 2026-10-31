@@ -1,3 +1,5 @@
+import type { Format } from 'vigla/compiler';
+
 export interface Position {
 	line: number;
 	column: number;
@@ -95,6 +97,7 @@ export interface PreprocessorGroup {
 }
 
 export interface Compiler {
+	readonly format?: Format;
 	compile(source: string, options: CompileOptions): CompileResult;
 	compileModule(source: string, options: ModuleCompileOptions): CompileResult;
 	preprocess(

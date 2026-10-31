@@ -14,12 +14,15 @@ import type { Options } from './public.ts';
 export { loadSvelteConfig } from './config-file.ts';
 export { vitePreprocess } from './preprocess.ts';
 export type * from './public.ts';
+export type { PluginAPI } from './api.ts';
+export type { Compiler } from './compiler.ts';
+export type { FrontEnd } from './front-end.ts';
 
 export function svelte(inline?: Partial<Options>): Plugin[] {
 	if (process.env.DEBUG != null) log.setLevel('debug');
 	const api = {} as PluginAPI;
 	return [
-		{ name: 'vite-plugin-svelte' },
+		{ name: 'vite-plugin-svelte', api },
 		configure(api, inline),
 		setupOptimizer(api),
 		loadCompiledCss(api),
