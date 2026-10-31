@@ -287,7 +287,12 @@ function prose(text: string): string {
 }
 
 function builtin(target: string): boolean {
-	return target.startsWith('node:') || builtinModules.includes(target.split('/')[0] ?? target);
+	return (
+		target.startsWith('node:') ||
+		target === 'bun' ||
+		target.startsWith('bun:') ||
+		builtinModules.includes(target.split('/')[0] ?? target)
+	);
 }
 
 async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> {
@@ -309,7 +314,7 @@ async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> 
 				fingerprint: `loads ${target} @ ${path}`,
 				path,
 				line: lineOf(text, located(text, target)),
-				message: `loads the Node built-in ${target}`,
+				message: `loads the runtime built-in ${target}`,
 				fix: params.fix
 			});
 		}

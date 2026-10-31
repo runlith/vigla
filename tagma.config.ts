@@ -4,7 +4,7 @@ import { builtins, internals, loads, mentions } from './checks/inspections.ts';
 export default defineConfig({
 	inspections: {
 		modules: Imports.modules({
-			runtimes: ['node'],
+			runtimes: ['node', 'bun'],
 			framework: ['svelte', 'svelte/*', '@runlith/tagma/*'],
 			tests: ['.test'],
 			files: { exclude: ['harness/samples/**'] }
