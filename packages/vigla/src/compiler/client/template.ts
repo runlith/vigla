@@ -433,7 +433,7 @@ export function render(
 	const single = list.length === 1 && isElement(head);
 	const template = context.names.unique('root');
 	const flagged = flags(namespace, single);
-	const args: ES.Expression[] = [b.literal(html)];
+	const args: ES.Expression[] = [b.template([html], [])];
 	if (flagged !== 0) args.push(b.literal(flagged));
 	context.hoisted.push(b.constant(template, runtime(context, 'fragment', ...args)));
 	const hint = single && head !== undefined ? head.hint.replace(/[^\w$]/g, '_') : 'fragment';
