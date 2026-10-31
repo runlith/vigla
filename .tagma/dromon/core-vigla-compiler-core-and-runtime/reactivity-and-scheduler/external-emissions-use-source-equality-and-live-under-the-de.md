@@ -1,0 +1,16 @@
+---
+id: 01a193f4-dfa5-7f9e-8a3b-1dc75f03f073
+title: External emissions use source equality and live under the declaration owner
+ord: 10
+tags: ["explanation"]
+sources:
+  - kind: file
+    ref: packages/vigla/src/runtime/reactivity/external.ts
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/graph.ts
+    symbol: Source
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/sources.ts
+    symbol: mutableSource
+---
+An external value retains one subscription after its first read, independent of which reaction last read it; replacing its selected source or disposing its owner releases it. Reads after disposal subscribe only long enough to obtain the current value. Emissions enter the same value graph and batch views as native state, with an equality policy that treats objects and functions as mutable; ordinary sources and deriveds retain `Object.is` unless they declare another policy. Collections reached through external values carry that policy into their row sources so an in-place mutation does not disappear behind stable object identity.

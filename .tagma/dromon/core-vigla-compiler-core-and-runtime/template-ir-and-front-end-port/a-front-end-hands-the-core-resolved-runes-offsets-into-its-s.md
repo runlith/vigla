@@ -12,9 +12,11 @@ sources:
   - kind: file
     ref: packages/vigla/src/compiler/ir/script.ts
 ---
-The core reads a unit and decides nothing by source syntax; three parts of the port carry what a front end alone can know.
+The core reads a unit and decides nothing by source syntax; four parts of the port carry what a front end alone can know.
 
 **Runes are resolved by the front end.** `runes` maps the callee node of each call the front end resolved as a rune — an `Identifier`, or a `MemberExpression` for dotted runes such as `$state.raw` — to its name. `.svelte` resolves a rune name no binding in scope shadows — a parameter or a local inside a function may, a `$`-prefixed declaration outside functions is `dollar_prefix_invalid` — and TSX will resolve by import binding; either way a local function called `$state` stays a function. The core consults only the map, keyed by node identity, so a unit must carry the same ESTree objects it resolved.
+
+**External values retain their original references through validation.** `externals` associates read identifiers with an expression selecting a subscribable source. Analysis gives those reads a synthetic instance binding, keeping a snippet that closes over one inside its declaration lifetime; code generation creates a lazy accessor under that owner. The source form decides which references use this mechanism — `.svelte` uses it for `$store` — while the core owns subscription lifetime and mutation propagation.
 
 **Positions are offsets into the unit's `source`.** Every IR and ESTree node's `start` and `end` are UTF-16 offsets into the whole source text. `parseProgram` parses a script where it stands, the text before it blanked to spaces with newlines kept, rather than a slice: offsets, lines and source maps need no shifting, and a template expression parsed at its offset agrees with them.
 
