@@ -47,6 +47,15 @@ fields:
       },
       {
         "at": "mime.ts"
+      },
+      {
+        "at": "remote.ts"
+      },
+      {
+        "at": "form-data.ts"
+      },
+      {
+        "at": "form-fields.ts"
       }
     ],
     "id": "kit-shared"

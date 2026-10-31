@@ -41,6 +41,9 @@ fields:
       },
       {
         "at": "abort.ts"
+      },
+      {
+        "at": "slots.ts"
       }
     ],
     "id": "shared",
