@@ -21,7 +21,7 @@ The compiler core and the runtime stay one package, as upstream's: compiled comp
 - the `.svelte` front end, global runes in `.svelte` and `.svelte.js`/`.svelte.ts`, and `svelte/compiler` over the core;
 - a root `compiler/` directory holding a CommonJS bundle with `{"type": "commonjs"}`, loadable by synchronous `require` — `svelte-check` `require`s it — so no top-level await anywhere in its module graph;
 - a version in upstream's 5.x line and `VERSION` reporting the same: `svelte-check` switches to Svelte 5 handling by the major, vite-plugin-svelte reads `VERSION` (async from 5.36.0) and builds its prebundle lists from the package's `exports` and `dependencies`, libraries declare `svelte` peer ranges such as `^5.0.0`;
-- upstream's `exports` keys — `./compiler` with its `require` condition included — minus `./legacy`, `./internal/flags/legacy` and `./internal/flags/async`, `./store` pending the stores decision; every runtime entry re-exports the core's matching entry, so code reaching the runtime as `svelte` and as `vigla` shares one instance;
+- upstream's `exports` keys — `./compiler` with its `require` condition included — minus `./legacy`, `./internal/flags/legacy` and `./internal/flags/async`; every runtime entry re-exports the core's matching entry, so code reaching the runtime as `svelte` and as `vigla` shares one instance;
 - upstream's ambient modules (`declare module 'svelte'`, `'svelte/compiler'`, …) and the global rune declarations;
 - compiled `.svelte` output imports `svelte/internal/*`, which re-exports `vigla/internal/*`.
 

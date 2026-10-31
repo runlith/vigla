@@ -23,7 +23,7 @@ edges:
 Moving Tagma onto Vigla is stage 2 and outside this spec.
 
 **Scope** ([[019de65b]]). Every upstream test file and sample below is in the manifest:
-- Svelte: the suites under `packages/svelte/tests` except runtime-legacy and migrate (legacy mode and the Svelte 4 migration); the unit tests `packages/svelte/src/**/*.test.ts`; `tests/css-parse.test.ts`; `tests/runtime-browser/test-ssr.ts`; `tests/store` pending the stores decision.
+- Svelte: the suites under `packages/svelte/tests` except runtime-legacy and migrate (legacy mode and the Svelte 4 migration); the unit tests `packages/svelte/src/**/*.test.ts`; `tests/css-parse.test.ts`; `tests/runtime-browser/test-ssr.ts`; `tests/store`.
 - SvelteKit: `packages/kit` unit specs, `test/apps` with each app's Playwright and vitest steps, `test/build-errors`, `test/prerendering`, `test/types`, and the tests of the node, bun and static adapters; the Cloudflare, Vercel, Netlify and auto adapters follow this milestone.
 - vite-plugin-svelte: its unit specs and its e2e projects outside the inspector, in each run mode upstream uses (`test:serve`, `test:build`, `test:build:watch`).
 
@@ -47,10 +47,10 @@ The reference configuration is runes forced and async on, for every test that co
 
 **Benchmarks.** Vigla owns ports of upstream's `compiler`, `reactivity` and `ssr` benchmarks over public API — the compiler's `parse` and `compile`, `.svelte.js` modules using `$state`, `$derived`, `$effect.root` and `flushSync`, `render` — run against both targets on one machine: ten runs per target, alternating, medians compared. The performance targets they are judged by stand in a spec of their own under this one.
 
-**Open for the operator.**
-- Stores (`svelte/store`, `$store`, `tests/store`): recommended kept — stores are not legacy mode, 39 runes samples use them and `motion` imports them; Kit 3 already dropped `$app/stores`.
-- Remote functions, experimental behind a flag in Kit 3.1: recommended in, with no flag; the `async` app holds 71 of the 72 `.remote.*` files, so leaving them out removes most of Kit's async coverage.
-- Out of this milestone, recommended: the `snapshot` suite (it pins upstream's generated code, which a new code generator does not reproduce), `@sveltejs/package`, `@sveltejs/enhanced-img` and the vite-plugin inspector.
+**Settled scope.**
+- Stores (`svelte/store`, `$store`, `tests/store`) are kept: they are not legacy mode, runes samples and `motion` use them, and third-party libraries such as `svelte-i18n` reach runes apps through them — three vite-plugin e2e projects need them. `svelte/store` lives in `@vigla/svelte` over the core's public reactivity; what it needs of the core is a general primitive, never a Svelte name in the core.
+- Remote functions are in, with no flag: the `async` app holds 71 of the 72 `.remote.*` files, so leaving them out removes most of Kit's async coverage.
+- Out of this milestone: the `snapshot` suite (it pins upstream's generated code, which a new code generator does not reproduce), `@sveltejs/package`, `@sveltejs/enhanced-img` and the vite-plugin inspector.
 
 **Acceptance.**
 - The manifest gives every upstream test in scope a status, and every non-contract status a reason.

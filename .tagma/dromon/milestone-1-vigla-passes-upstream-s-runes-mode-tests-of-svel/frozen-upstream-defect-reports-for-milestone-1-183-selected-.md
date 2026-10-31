@@ -77,7 +77,7 @@ Selections concerning stores, remote functions or node/static adapters remain co
 | --- | --- | --- | --- |
 | [#5052 — Store is not being updated synchronously / store value is incorrect](https://github.com/sveltejs/svelte/issues/5052) | mode-independent; L | [Playground](https://svelte.dev/repl/a1110f77ded84950b2706760713cdf51?version=3.23.2) | Open; maintainer diagnosis identifies breadth-first nested notification delaying cached `$store` reads; later contributor expectation that runes solves it is not a verified resolution. |
 
-The fork-base shared queue (`packages/svelte/src/store/shared/index.js:45–59`), subscription-updated source (`src/internal/client/reactivity/store.js:36–79`) and store transform outside the legacy conditional (`src/compiler/phases/3-transform/client/visitors/Program.js:44–56`) establish shared runes applicability, not reproduced failure. Selection is conditional on the existing stores decision.
+The fork-base shared queue (`packages/svelte/src/store/shared/index.js:45–59`), subscription-updated source (`src/internal/client/reactivity/store.js:36–79`) and store transform outside the legacy conditional (`src/compiler/phases/3-transform/client/visitors/Program.js:44–56`) establish shared runes applicability, not reproduced failure. Selection held on the stores decision, since settled: stores are kept.
 
 ## Svelte: server rendering (1)
 
