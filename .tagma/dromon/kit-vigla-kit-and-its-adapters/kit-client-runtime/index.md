@@ -19,6 +19,8 @@ edges:
     to: 01a193f1-4d97-7589-b3a8-69aa6c365dd0
   - kind: imports
     to: 01a193f1-4d9b-787a-b261-3bc8d5d68827
+  - kind: imports-tests
+    to: 01a193f1-4d9c-7780-903d-88cd7526d608
 sources:
   - kind: dir
     ref: packages/kit/src/client
