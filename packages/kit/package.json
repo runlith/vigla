@@ -1,0 +1,24 @@
+{
+	"name": "@vigla/kit",
+	"version": "3.1.0",
+	"type": "module",
+	"exports": {
+		".": "./src/entries/index.ts",
+		"./package.json": "./package.json",
+		"./hooks": "./src/entries/hooks.ts",
+		"./node": "./src/node/index.ts"
+	},
+	"dependencies": {
+		"devalue": "^5.9.4",
+		"esm-env": "^1.2.2",
+		"vigla": "workspace:*"
+	},
+	"peerDependencies": {
+		"vite": "^8.0.12"
+	},
+	"devDependencies": {
+		"@types/estree": "^1.0.9",
+		"vite": "8.3.0",
+		"vitest": "5.0.1"
+	}
+}
