@@ -1,5 +1,9 @@
 {
 	"samples": {
+		"abort-native-root": {
+			"status": "difference",
+			"reason": "Application primitives: getAbortSignal follows effects under native roots outside components; upstream 5.57.3 has no vigla entry"
+		},
 		"async-branch-removal": {
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 9 of runlith's Svelte patch: on upstream 5.57.3 the later batch merged into the awaiting one runs the row of the branch that batch removed — TypeError reading `active` of null"

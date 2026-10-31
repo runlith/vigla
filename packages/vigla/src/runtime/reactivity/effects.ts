@@ -23,7 +23,7 @@ import {
 	setOwner,
 	takeHidden,
 	track,
-	untrack,
+	withoutReaction,
 	view
 } from './tracking.ts';
 
@@ -106,7 +106,7 @@ export function run(effect: Effect): void {
 	try {
 		result = tracked
 			? track(effect, fn)
-			: untrack(() => {
+			: withoutReaction(() => {
 					const value = fn();
 					effect.status = CLEAN;
 					return value;

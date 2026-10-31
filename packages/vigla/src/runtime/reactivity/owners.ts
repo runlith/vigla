@@ -1,6 +1,6 @@
 import { destroy, detached } from './effects.ts';
 import type { Effect } from './graph.ts';
-import { owner as running, setOwner, untrack } from './tracking.ts';
+import { owner as running, setOwner, withoutReaction } from './tracking.ts';
 
 const effects = new WeakMap<Owner, Effect>();
 const owners = new WeakMap<Effect, Owner>();
@@ -25,7 +25,7 @@ export class Owner {
 		if (effect.destroyed) throw new Error('Cannot run code under a disposed owner');
 		const previous = setOwner(effect);
 		try {
-			return untrack(fn);
+			return withoutReaction(fn);
 		} finally {
 			setOwner(previous);
 		}

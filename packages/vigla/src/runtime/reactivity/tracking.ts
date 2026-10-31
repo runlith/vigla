@@ -166,6 +166,7 @@ export interface View {
 }
 
 let frame: Frame | null = null;
+let executing: Reaction | null = null;
 const frames: Frame[] = [];
 let past: Past | null = null;
 let hiddenByLast: Set<Batch> | null = null;
@@ -202,7 +203,17 @@ export function reading(): boolean {
 }
 
 export function running(): Reaction | null {
-	return frame?.target ?? null;
+	return executing;
+}
+
+export function withoutReaction<T>(fn: () => T): T {
+	const previous = executing;
+	executing = null;
+	try {
+		return untrack(fn);
+	} finally {
+		executing = previous;
+	}
 }
 
 export function untrack<T>(fn: () => T): T {
@@ -238,6 +249,8 @@ export function affected(derived: Derived, given: View): boolean {
 function compute(derived: Derived, given: View): unknown {
 	destroyEffects(derived);
 	const previous = frame;
+	const previousReaction = executing;
+	executing = derived;
 	const current = opened(derived);
 	const previousOwner = setOwner(derived.owner);
 	try {
@@ -247,6 +260,7 @@ function compute(derived: Derived, given: View): unknown {
 	} finally {
 		if (DEV) tracedRun(derived, now());
 		closed(previous);
+		executing = previousReaction;
 		setOwner(previousOwner);
 		const deps = (derived.deps ??= []);
 		const extra = current.extra ?? [];
@@ -326,13 +340,16 @@ export function present<T>(fn: () => T): T {
 export function recalling(before: Prior, later: Prior | null, fn: () => void): void {
 	const previousPast = past;
 	const previousFrame = frame;
+	const previousReaction = executing;
 	past = { before, later, written: null, derived: null };
 	frame = null;
+	executing = null;
 	try {
 		fn.call(null);
 	} finally {
 		past = previousPast;
 		frame = previousFrame;
+		executing = previousReaction;
 	}
 }
 
@@ -452,11 +469,14 @@ function dirtyRead(dep: Source): boolean {
 
 export function track<T>(target: Reaction, fn: () => T): T {
 	const previous = frame;
+	const previousReaction = executing;
+	executing = target;
 	const current = opened(target);
 	try {
 		return fn();
 	} finally {
 		closed(previous);
+		executing = previousReaction;
 		hiddenByLast = current.hidden;
 		if ((target as Effect).destroyed === true) target.deps = null;
 		else settleRun(target, current);

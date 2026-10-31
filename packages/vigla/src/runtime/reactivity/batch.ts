@@ -40,7 +40,7 @@ import {
 	setOwner,
 	setView,
 	stale,
-	untrack,
+	withoutReaction,
 	view,
 	written
 } from './tracking.ts';
@@ -332,7 +332,7 @@ export function apply(batch: Batch): void {
 export function retire(teardown: () => void): void {
 	const batch = active ?? processing ?? open;
 	if (batch === null) {
-		untrack(() => teardown.call(null));
+		withoutReaction(() => teardown.call(null));
 		return;
 	}
 	const later = open !== null && open !== batch ? prior(open) : null;

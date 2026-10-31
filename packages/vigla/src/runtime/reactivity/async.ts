@@ -1,4 +1,5 @@
 import { alias, collect, current, holds, request, within, write, type Batch } from './batch.ts';
+import { staleReaction } from '../../shared/abort.ts';
 import { block, fail } from './effects.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
 import type { Boundary, Effect, Source } from './graph.ts';
@@ -150,6 +151,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 				done?.();
 			},
 			(error: unknown) => {
+				if (error === staleReaction) return;
 				const owned = own();
 				done?.();
 				if (!owned) return;
