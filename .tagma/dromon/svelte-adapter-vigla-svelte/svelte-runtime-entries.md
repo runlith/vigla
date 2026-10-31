@@ -28,6 +28,8 @@ fields:
 edges:
   - kind: imports
     to: 01a18680-7dc2-71f8-be01-915833d45c4b
+  - kind: imports
+    to: 01a193e3-1ef2-7193-a47f-6b2e00b8694a
 sources:
   - kind: dir
     ref: packages/svelte/src/entries
