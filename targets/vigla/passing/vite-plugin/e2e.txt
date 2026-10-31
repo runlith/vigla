@@ -1,0 +1,6 @@
+hmr-css-first/hmr-css-first.spec.ts > hmr > should apply changes in fuzz test (serve)
+hmr-css-first/hmr-css-first.spec.ts > hmr > should apply css changes in App.svelte (serve)
+hmr-css-first/hmr-css-first.spec.ts > hmr > should apply html change in App.svelte (serve)
+hmr-css-first/hmr-css-first.spec.ts > hmr > should apply js change in App.svelte (serve)
+hmr-css-first/hmr-css-first.spec.ts > should render App (build)
+hmr-css-first/hmr-css-first.spec.ts > should render App (serve)
