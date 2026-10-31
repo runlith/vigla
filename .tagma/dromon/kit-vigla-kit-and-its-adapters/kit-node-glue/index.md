@@ -22,4 +22,4 @@ sources:
   - kind: dir
     ref: packages/kit/src/node
 ---
-`@sveltejs/kit/node`: turning Node's `IncomingMessage` into a Web `Request` — body size limits, aborts when the client goes away — and writing a Web `Response` onto a `ServerResponse`, draining unread bodies and answering a header Node rejects with a 500. Kit's dev and preview servers and the Node adapter use it; the server runtime itself never does.
+The Node boundary used by Kit's dev and preview servers and the Node adapter: requests become Web `Request`s with body limits and aborts, responses drain unread bodies and honor backpressure, and static files share one HTTP conditional and byte-range contract. The public `@sveltejs/kit/node` surface keeps Kit's request/response names; internal static serving is published separately. The server runtime receives Web capabilities and never loads this module.
