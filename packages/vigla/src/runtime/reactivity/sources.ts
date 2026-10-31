@@ -1,9 +1,9 @@
 import { write } from './batch.ts';
-import { DIRTY, type Derived, type Source } from './graph.ts';
+import { DERIVED, DIRTY, SOURCE, type Derived, type Source } from './graph.ts';
 import { get, guard, localize, owner } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
-	return { v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
+	return { kind: SOURCE, v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
 }
 
 export function mutableEqual(before: unknown, after: unknown): boolean {
@@ -60,9 +60,11 @@ export function cell<T>(value: T): Cell<T> {
 
 export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolean): Derived<T> {
 	const created: Derived<T> = {
+		kind: DERIVED,
 		fn,
 		owner,
 		effects: null,
+		failure: null,
 		computed: false,
 		v: undefined as T,
 		wv: 0,

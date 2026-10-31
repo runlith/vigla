@@ -2,7 +2,7 @@ import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
 import { computed, traced, tracedRun, tracing, updated } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
-import { destroy } from './effects.ts';
+import { destroy, fail } from './effects.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -12,7 +12,6 @@ import {
 	ROOT,
 	equal,
 	isDerived,
-	isDerivedSource,
 	now,
 	stamp,
 	type Derived,
@@ -194,8 +193,15 @@ export function get<T>(source: Source<T>): T {
 		record(at, source);
 	if (past !== null) return recall(source, past) as T;
 	if (view !== null) return through(source, view) as T;
-	if (isDerivedSource(source)) refresh(source);
+	if (isDerived(source)) return settled(source) as T;
 	return source.v;
+}
+
+function settled(derived: Derived): unknown {
+	refresh(derived);
+	const failure = derived.failure;
+	if (failure !== null) throw failure.error;
+	return derived.v;
 }
 
 export function reading(): boolean {
@@ -291,7 +297,10 @@ function through(source: Source, given: View): unknown {
 	if (!isDerived(source)) return source.v;
 	if (!affected(source, given)) {
 		refresh(source);
-		if (!given.values.has(source)) return source.v;
+		if (!given.values.has(source)) {
+			if (source.failure !== null) throw source.failure.error;
+			return source.v;
+		}
 		const reached = given.reached.get(source);
 		if (reached !== undefined) note(reached);
 		return given.values.get(source);
@@ -377,8 +386,7 @@ function recall(source: Source, given: Past): unknown {
 	if (given.derived !== null && given.derived.has(source)) return given.derived.get(source);
 	if (!dated(source, given)) {
 		if (view !== null) return through(source, view);
-		refresh(source);
-		return source.v;
+		return settled(source);
 	}
 	const value = source.fn();
 	(given.derived ??= new Map()).set(source, value);
@@ -464,7 +472,7 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 }
 
 function dirtyRead(dep: Source): boolean {
-	return isDerivedSource(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep));
+	return isDerived(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep));
 }
 
 export function track<T>(target: Reaction, fn: () => T): T {
@@ -512,7 +520,7 @@ export function stale(target: Reaction): boolean {
 		if (deps !== null) {
 			for (let index = 0; index < deps.length; index++) {
 				const dep = deps[index] as Source;
-				if (isDerivedSource(dep)) {
+				if (isDerived(dep)) {
 					if (view !== null && affected(dep, view)) return true;
 					refresh(dep);
 					if (view !== null && view.values.has(dep)) return true;
@@ -531,7 +539,23 @@ export function refresh(derived: Derived): void {
 	destroyEffects(derived);
 	const previous = setOwner(derived.owner);
 	try {
-		const value = track(derived, derived.fn);
+		let value: unknown;
+		try {
+			value = track(derived, derived.fn);
+		} catch (error) {
+			hiddenByLast = null;
+			derived.computed = false;
+			derived.wv = stamp();
+			const holder = derived.owner;
+			if (holder === null) {
+				derived.failure = { error };
+				return;
+			}
+			derived.v = undefined as typeof derived.v;
+			if (!holder.destroyed) fail(holder, error);
+			return;
+		}
+		if (derived.failure !== null) derived.failure = null;
 		const hidden = hiddenByLast;
 		hiddenByLast = null;
 		if (hidden !== null && view !== null) {

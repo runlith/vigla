@@ -9,6 +9,9 @@ export const TEMPLATE = 4;
 export const EFFECT = 5;
 export const EAGER = 6;
 
+export const SOURCE = 0;
+export const DERIVED = 7;
+
 export type Kind =
 	| typeof ROOT
 	| typeof BRANCH
@@ -21,6 +24,7 @@ export type Status = typeof CLEAN | typeof MAYBE | typeof DIRTY;
 
 export interface Source<T = unknown> {
 	equals?(before: T, after: T): boolean;
+	readonly kind: typeof SOURCE | typeof DERIVED;
 	v: T;
 	wv: number;
 	reactions: Set<Reaction> | null;
@@ -35,10 +39,16 @@ export interface Reaction {
 	rv: number;
 }
 
+export interface Failure {
+	readonly error: unknown;
+}
+
 export interface Derived<T = unknown> extends Source<T>, Reaction {
+	readonly kind: typeof DERIVED;
 	readonly fn: () => T;
 	readonly owner: Effect | null;
 	effects: Effect[] | null;
+	failure: Failure | null;
 	computed: boolean;
 }
 
@@ -84,14 +94,6 @@ export function now(): number {
 	return clock;
 }
 
-export function isDerived(source: Source | Reaction): source is Derived {
-	return (source as Derived).fn !== undefined && (source as Effect).kind === undefined;
-}
-
-export function isDerivedSource(source: Source): source is Derived {
-	return (source as Derived).fn !== undefined;
-}
-
-export function isDerivedReaction(reaction: Reaction): reaction is Derived {
-	return (reaction as Effect).kind === undefined;
+export function isDerived(node: Source | Reaction): node is Derived {
+	return (node as Source | Effect).kind === DERIVED;
 }

@@ -1,6 +1,6 @@
 import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
-import { isDerivedSource, stamp, type Derived, type Reaction, type Source } from './graph.ts';
+import { isDerived, stamp, type Derived, type Reaction, type Source } from './graph.ts';
 import { ABSENT, snapshot } from './proxy.ts';
 import { get, running, untrack, view } from './tracking.ts';
 
@@ -210,7 +210,7 @@ function log(source: Source, reaction: Reaction, traces: readonly Error[]): void
 	const value = get(source);
 	if (value === ABSENT) return;
 	const label = labels.get(source);
-	const derived = isDerivedSource(source);
+	const derived = isDerived(source);
 	const type = derived ? '$derived' : label?.startsWith('$') ? 'store' : '$state';
 	const update = updateOf(source);
 	const since = runs.get(reaction);
