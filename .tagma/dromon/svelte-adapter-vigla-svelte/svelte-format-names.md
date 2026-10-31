@@ -10,7 +10,8 @@ fields:
         "at": "format.ts"
       }
     ],
-    "id": "svelte-format"
+    "id": "svelte-format",
+    "kind": "substrate"
   }
 edges:
   - kind: imports
