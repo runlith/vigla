@@ -401,6 +401,16 @@ export function discard(batch: Batch): void {
 	release(batch);
 }
 
+export function abandon(batch: Batch, content: readonly Effect[]): void {
+	for (const list of [batch.queued, content, batch.effects, batch.content, batch.deferred])
+		for (const effect of list ?? []) effect.status = CLEAN;
+	batch.queued.length = 0;
+	batch.effects.length = 0;
+	batch.content = batch.deferred = null;
+	batch.members = batch.forced = null;
+	discard(batch);
+}
+
 export function waitFor(batch: Batch): Promise<void> {
 	if (batch.done) return Promise.resolve();
 	return new Promise((done) => (batch.settles ??= []).push(done));

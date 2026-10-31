@@ -30,6 +30,27 @@ const runs = new WeakMap<Reaction, number>();
 export let tracing: Tracing | null = null;
 let stacks = false;
 let indirect = false;
+let repeats = new WeakMap<Source, number>();
+let culprits: Map<string, Error> | null = null;
+
+export function loopWrite(source: Source): void {
+	const count = (repeats.get(source) ?? 0) + 1;
+	repeats.set(source, count);
+	if (count <= 5) return;
+	const error = new Error('updated at');
+	const stack = error.stack ?? '';
+	if (!(culprits ??= new Map()).has(stack)) culprits.set(stack, error);
+}
+
+export function resetLoop(): void {
+	repeats = new WeakMap();
+	culprits = null;
+}
+
+export function reportLoop(): void {
+	for (const error of culprits?.values() ?? []) console.error(error);
+	resetLoop();
+}
 
 export function traceStacks(): void {
 	if (DEV) stacks = true;

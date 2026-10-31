@@ -1,5 +1,5 @@
 import { DEV } from 'esm-env';
-import { applied, forgotten, updated } from './trace.ts';
+import { applied, forgotten, loopWrite, reportLoop, resetLoop, updated } from './trace.ts';
 import { parked, showing, type AsyncRun } from './async.ts';
 import {
 	BLOCK,
@@ -21,6 +21,7 @@ import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
 import { clear, History, prior, record } from './history.ts';
 import {
+	abandon,
 	absorb,
 	finish,
 	hold,
@@ -305,7 +306,10 @@ export function write<T>(source: Source<T>, value: T): T {
 	if (batch.after !== null) batch.after.set(source, value);
 	source.v = value;
 	source.wv = stamp();
-	if (DEV) updated(source, value, batch);
+	if (DEV) {
+		updated(source, value, batch);
+		if (processing !== null) loopWrite(source);
+	}
 	written(source);
 	readDuringRun(source);
 	if (view !== null) {
@@ -472,7 +476,7 @@ export function process(batch: Batch): void {
 		let passes = 0;
 		let merging = true;
 		while (batch.queued.length > 0 || (batch.commits.length > 0 && !holds(batch))) {
-			if (++passes > limit) depthExceeded();
+			if (++passes > limit) exceeded(batch, content);
 			batch.phase = 'structure';
 			const pass = batch.queued.splice(0);
 			batch.members = null;
@@ -514,7 +518,7 @@ export function process(batch: Batch): void {
 	} catch (error) {
 		batch.phase = null;
 		processing = outerBatch;
-		rescue(batch, [...leftover, ...content]);
+		if (!batch.done) rescue(batch, [...leftover, ...content]);
 		throw error;
 	} finally {
 		batch.phase = null;
@@ -546,11 +550,19 @@ export function flushSync<T = void>(fn?: () => T): T {
 	return result as T;
 }
 
+function exceeded(batch: Batch, content: readonly Effect[]): never {
+	if (batch === open) open = null;
+	abandon(batch, content);
+	if (DEV) reportLoop();
+	return depthExceeded();
+}
+
 function flush(tasks: boolean): void {
 	let rounds = 0;
+	if (DEV && processing === null) resetLoop();
 	drain();
 	for (let batch = next(); batch !== null; batch = next()) {
-		if (++rounds > limit) depthExceeded();
+		if (++rounds > limit) exceeded(batch, []);
 		if (batch === open) open = null;
 		process(batch);
 		if (tasks) drain();
