@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import type { ValidatedConfig } from '../types/builder.ts';
 import * as configErrors from '../config/errors.ts';
 import { warnDiagnostic } from '../shared/diagnostics.ts';
-import { filesUnder, relativeFile, writeChanged } from './files.ts';
+import { filesUnder, posix, relativeFile, writeChanged } from './files.ts';
 import * as errors from './errors.ts';
 
 interface CompilerOptions {
@@ -100,6 +100,27 @@ function parseConfig(file: string): ProjectConfig {
 			throw error;
 		}
 	}
+}
+
+const sourceFile = /\.[cm]?[jt]sx?$/;
+function pattern(glob: string): RegExp {
+	const source = posix(glob).replace(/^\.\//, '').replace(/\/$/, '');
+	let expression = '';
+	for (let i = 0; i < source.length; i++) {
+		if (source.startsWith('**/', i)) {
+			expression += '(?:[^/]*/)*';
+			i += 2;
+		} else if (source.startsWith('**', i)) {
+			expression += '.*';
+			i++;
+		} else if (source[i] === '*') expression += '[^/]*';
+		else if (source[i] === '?') expression += '[^/]';
+		else expression += source[i]!.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+	}
+	return new RegExp(`^${expression}(?:/.*)?$`);
+}
+function matches(globs: string[], name: string): boolean {
+	return globs.some((glob) => pattern(glob).test(name));
 }
 
 function pathAliases(config: ValidatedConfig, root: string): Record<string, string[]> {
@@ -202,25 +223,21 @@ export function writeTsconfig(config: ValidatedConfig, root: string): void {
 				);
 		}
 		for (const exclusion of exclusions) {
-			const name = relativeFile(directory, exclusion);
-			const excluded = parsed.exclude?.some(
-				(pattern) =>
-					name === pattern ||
-					name.startsWith(pattern + '/') ||
-					name.startsWith(pattern + '.') ||
-					pattern === '**/service-worker*'
-			);
-			const files = filesUnder(config.files.src);
-			if (
-				!excluded &&
-				files.some(
-					(path) =>
-						path === exclusion ||
-						path.startsWith(exclusion + '/') ||
-						path.startsWith(exclusion + '.')
+			const included = filesUnder(dirname(exclusion)).some((path) => {
+				if (!sourceFile.test(path)) return false;
+				if (
+					path !== exclusion &&
+					!path.startsWith(exclusion + '/') &&
+					!path.startsWith(exclusion + '.')
 				)
-			)
-				issues.push(`${JSON.stringify(name)} should be added to the "exclude" array`);
+					return false;
+				const name = relativeFile(directory, path);
+				return matches(parsed.include ?? ['**/*'], name) && !matches(parsed.exclude ?? [], name);
+			});
+			if (included)
+				issues.push(
+					`${JSON.stringify(relativeFile(directory, exclusion))} should be added to the "exclude" array`
+				);
 		}
 		for (const key of Object.keys(required))
 			if (options[key] !== true)

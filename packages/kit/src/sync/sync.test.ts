@@ -131,6 +131,7 @@ test('writes explicit environment schemas into only their declared visibility', 
 test('validates compiler overrides as one diagnostic and identifies malformed JSONC', async () => {
 	const app = project({
 		'src/routes/+page.view': '',
+		'src/service-worker.js': '',
 		'tsconfig.json':
 			'{ "extends": "$app/tsconfig", "compilerOptions": { "types": ["node"], "isolatedModules": false } }'
 	});
@@ -143,6 +144,20 @@ test('validates compiler overrides as one diagnostic and identifies malformed JS
 		expect(messages.join('\n')).toContain('tsconfig_invalid');
 		expect(messages.join('\n')).toContain('"types"');
 		expect(messages.join('\n')).toContain('"isolatedModules"');
+		expect(messages.join('\n')).toContain(
+			'"src/service-worker" should be added to the "exclude" array'
+		);
+		messages.length = 0;
+		app.put(
+			'tsconfig.json',
+			JSON.stringify({
+				extends: '$app/tsconfig',
+				include: ['src'],
+				exclude: ['src/service-worker.js']
+			})
+		);
+		await app.sync.resync();
+		expect(messages.join('\n')).not.toContain('"exclude" array');
 		app.put('tsconfig.json', '{\n "extends": "$app/tsconfig",\n @\n}');
 		await expect(app.sync.resync()).rejects.toThrow('tsconfig_parse_failed');
 	} finally {
