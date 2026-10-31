@@ -17,6 +17,9 @@ fields:
       },
       {
         "at": "hydration.ts"
+      },
+      {
+        "at": "external.ts"
       }
     ],
     "id": "ssr",

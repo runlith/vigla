@@ -41,11 +41,17 @@ fields:
       },
       {
         "at": "trace.ts"
+      },
+      {
+        "at": "external.ts"
       }
     ],
     "id": "reactivity",
     "kind": "product"
   }
+edges:
+  - kind: imports
+    to: 01a18680-7db9-7c10-b0ec-c0d1e0e72677
 sources:
   - kind: dir
     ref: packages/vigla/src/runtime/reactivity

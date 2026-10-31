@@ -29,6 +29,9 @@ fields:
       },
       {
         "at": "format.ts"
+      },
+      {
+        "at": "external.ts"
       }
     ],
     "id": "shared",

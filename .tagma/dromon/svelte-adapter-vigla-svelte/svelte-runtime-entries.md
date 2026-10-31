@@ -20,6 +20,12 @@ fields:
       },
       {
         "at": "index-server.ts"
+      },
+      {
+        "at": "store-client.ts"
+      },
+      {
+        "at": "store-server.ts"
       }
     ],
     "id": "svelte-entries",
