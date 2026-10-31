@@ -1,7 +1,7 @@
 ---
 id: 01a193fc-1237-7215-837c-ef17603799c9
 title: Generated server options stay separate from the adapter's manifest
-ord: 1
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: file
