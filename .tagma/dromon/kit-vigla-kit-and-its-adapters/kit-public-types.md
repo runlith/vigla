@@ -14,6 +14,8 @@ fields:
   }
 edges:
   - kind: imports
+    to: 01a18680-7dc2-71f8-be01-915833d45c4b
+  - kind: imports
     to: 01a187ca-e656-7569-8564-ac0fabdaf506
 sources:
   - kind: dir
