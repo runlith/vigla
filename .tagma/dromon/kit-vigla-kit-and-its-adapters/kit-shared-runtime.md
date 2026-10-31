@@ -23,6 +23,9 @@ fields:
       },
       {
         "at": "redirect.ts"
+      },
+      {
+        "at": "routing/index.ts"
       }
     ],
     "id": "kit-shared"
