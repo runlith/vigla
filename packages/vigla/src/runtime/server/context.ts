@@ -11,9 +11,11 @@ interface Render {
 	layer: Layer | null;
 	readonly destroys: (() => void)[];
 	readonly hydration: Data | null;
+	readonly signal: (() => AbortSignal) | undefined;
 }
 
 let render: Render | null = null;
+let destroying: Render | null = null;
 
 export function push(map?: Map<unknown, unknown>): void {
 	if (render === null) return;
@@ -24,9 +26,9 @@ export function pop(): void {
 	if (render !== null) render.layer = render.layer?.parent ?? null;
 }
 
-export function begin(): Render | null {
+export function begin(hydration: Data | null = null, signal?: () => AbortSignal): Render | null {
 	const saved = render;
-	render = { layer: null, destroys: [] };
+	render = { layer: null, destroys: [], hydration, signal };
 	return saved;
 }
 
@@ -37,7 +39,17 @@ export function hydrationData(): Data | null {
 export function end(saved: Render | null): void {
 	const done = render;
 	render = saved;
-	for (const fn of done?.destroys ?? []) fn();
+	const previous = destroying;
+	destroying = done;
+	try {
+		for (const fn of done?.destroys ?? []) fn();
+	} finally {
+		destroying = previous;
+	}
+}
+
+export function getAbortSignal(): AbortSignal {
+	return (destroying ?? render)?.signal?.() ?? new AbortController().signal;
 }
 
 export function capture(): () => void {

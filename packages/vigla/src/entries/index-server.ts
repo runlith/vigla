@@ -4,6 +4,7 @@ import type { Cell } from '../runtime/reactivity/sources.ts';
 
 export {
 	createContext,
+	getAbortSignal,
 	getAllContexts,
 	getContext,
 	hasContext,
