@@ -533,12 +533,31 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const [only] = body;
 	const controlled =
 		body.length === 1 && only?.kind === 'raw-html' && awaiting(context, body).length === 0;
+	const constantText =
+		body.length === 1 &&
+		only?.kind === 'expression' &&
+		node.name !== 'textarea' &&
+		!isDynamic(context, only.expression) &&
+		awaiting(context, body).length === 0;
 	if (controlled) {
 		setups.push((element, emit) =>
 			emit.init.push(htmlCall(context, only, element, HTML_CONTROLLED))
 		);
 	}
-	const children = controlled ? [] : parts(context, body, childNamespace);
+	if (constantText) {
+		const value = b.logical('??', rewrite(context, only.expression), b.literal(''));
+		setups.push((element, emit) =>
+			emit.init.push(
+				b.statement({
+					type: 'AssignmentExpression',
+					operator: '=',
+					left: b.member(element, 'textContent'),
+					right: value
+				})
+			)
+		);
+	}
+	const children = controlled || constantText ? [] : parts(context, body, childNamespace);
 	for (const child of children) markup += child.html;
 	if (!isVoid(tag)) markup += `</${tag}>`;
 	for (const attribute of node.attributes) {
