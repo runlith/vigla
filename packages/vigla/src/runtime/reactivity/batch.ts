@@ -191,7 +191,7 @@ export function request(): void {
 	requested = true;
 	queueMicrotask(() => {
 		requested = false;
-		if (processing === null) flushSync();
+		if (processing === null) flush(false);
 	});
 }
 
@@ -606,22 +606,24 @@ export function flushSync<T = void>(fn?: () => T): T {
 		flushSync();
 		result = fn();
 	}
-	if (!joins(processing)) {
-		let rounds = 0;
-		drain();
-		for (let batch = next(); batch !== null; batch = next()) {
-			if (++rounds > limit) depthExceeded();
-			if (batch === open) open = null;
-			process(batch);
-			drain();
-		}
-		if (idle() && waiting.length > 0) {
-			const resolved = waiting;
-			waiting = [];
-			for (const done of resolved) done();
-		}
-	}
+	if (!joins(processing)) flush(true);
 	return result as T;
+}
+
+function flush(tasks: boolean): void {
+	let rounds = 0;
+	drain();
+	for (let batch = next(); batch !== null; batch = next()) {
+		if (++rounds > limit) depthExceeded();
+		if (batch === open) open = null;
+		process(batch);
+		if (tasks) drain();
+	}
+	if (idle() && waiting.length > 0) {
+		const resolved = waiting;
+		waiting = [];
+		for (const done of resolved) done();
+	}
 }
 
 export function settled(): Promise<void> {
