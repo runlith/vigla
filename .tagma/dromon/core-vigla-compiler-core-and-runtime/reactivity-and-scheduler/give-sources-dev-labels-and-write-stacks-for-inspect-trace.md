@@ -5,7 +5,8 @@ ord: 6
 tags: ["task"]
 fields:
   {
-    "status": "open"
+    "holder": "tagma:01a18754-3a91-778c-bdc8-cf0239ed279a",
+    "status": "in_work"
   }
 ---
 `$inspect.trace` (16 runtime-runes entries) prints, for each source a traced reaction read, its label and the stack of the write that last changed it. The core has neither: sources carry no name, and writes keep no stack. Add DEV-only hooks for a label set where a rune is declared and for capturing the stack at write time, read the way upstream's `trace` does (`.external/svelte/packages/svelte/src/internal/client/dev/tracing.js`), and hand the hook names to templates, which compiles `$inspect.trace`.
