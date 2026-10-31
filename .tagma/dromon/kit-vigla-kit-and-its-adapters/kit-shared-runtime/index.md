@@ -38,6 +38,9 @@ fields:
       },
       {
         "at": "serialization.ts"
+      },
+      {
+        "at": "env.ts"
       }
     ],
     "id": "kit-shared"
