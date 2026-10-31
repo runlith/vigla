@@ -1,3 +1,5 @@
+import { DEV } from 'esm-env';
+import { warn } from '../../shared/diagnostics.ts';
 import {
 	clsx,
 	toClass,
@@ -49,11 +51,54 @@ function keepsNetwork(element: Element, name: string): boolean {
 	return name === 'src' || name === 'srcset' || (name === 'href' && element.nodeName === 'LINK');
 }
 
-export function attr(element: Element, name: string, value: unknown): void {
+function sameUrl(left: string, right: string, base: string): boolean {
+	if (left === right) return true;
+	try {
+		return new URL(left, base).href === new URL(right, base).href;
+	} catch {
+		return false;
+	}
+}
+
+function sameSrcset(left: string, right: string, base: string): boolean {
+	const split = (value: string): string[][] =>
+		value.split(',').map((entry) => entry.trim().split(/\s+/));
+	const before = split(left);
+	const after = split(right);
+	return (
+		before.length === after.length &&
+		before.every((entry, index) => {
+			const next = after[index] as string[];
+			return (
+				entry.slice(1).join(' ') === next.slice(1).join(' ') &&
+				sameUrl(entry[0] ?? '', next[0] ?? '', base)
+			);
+		})
+	);
+}
+
+function warnNetworkChange(element: Element, name: string, value: unknown): void {
+	const before = element.getAttribute(name) ?? '';
+	const next = String(value ?? '');
+	const base = element.ownerDocument.baseURI;
+	if (name === 'srcset' ? sameSrcset(before, next, base) : sameUrl(before, next, base)) return;
+	const markup = element.innerHTML
+		? element.outerHTML.replace(element.innerHTML, '...')
+		: element.outerHTML;
+	warn(
+		'hydration_attribute_changed',
+		`The \`${name}\` attribute on \`${markup}\` changed its value between server and client renders. The client value, \`${next}\`, will be ignored in favour of the server value`
+	);
+}
+
+export function attr(element: Element, name: string, value: unknown, unchecked = false): void {
 	const known = values(element);
 	if (hydrating) {
 		known[name] = element.getAttribute(name);
-		if (keepsNetwork(element, name)) return;
+		if (keepsNetwork(element, name)) {
+			if (DEV && !unchecked) warnNetworkChange(element, name, value);
+			return;
+		}
 	}
 	const previous = known[name];
 	if (previous === value) return;
@@ -292,7 +337,8 @@ export function attributes(
 	previous: Spread | undefined,
 	next: Spread,
 	hash?: string | null,
-	removeDefaults = false
+	removeDefaults = false,
+	unchecked = false
 ): Spread {
 	if (
 		previous === undefined &&
@@ -422,7 +468,7 @@ export function attributes(
 			delete values(element)[name];
 			continue;
 		}
-		if (typeof value !== 'function') attr(element, name, value);
+		if (typeof value !== 'function') attr(element, name, value, unchecked);
 	}
 	spreadAttachments(element, current, next);
 	return current;

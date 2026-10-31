@@ -134,13 +134,14 @@ function update(
 			right: value
 		};
 	}
-	return runtime(
-		context,
-		name.startsWith('xlink') ? 'xlink' : 'attr',
-		element,
-		b.literal(name),
-		value
-	);
+	const args: ES.Expression[] = [element, b.literal(name), value];
+	if (
+		!name.startsWith('xlink') &&
+		context.component.ignored.get(node)?.has('hydration_attribute_changed')
+	) {
+		args.push(b.literal(true));
+	}
+	return runtime(context, name.startsWith('xlink') ? 'xlink' : 'attr', ...args);
 }
 
 function directivesObject(
@@ -280,8 +281,11 @@ export function spread(
 	});
 	const args: ES.Expression[] = [element, previous, { type: 'ObjectExpression', properties }];
 	const hash = scopeHash(context, node);
-	if (hash !== null || name === 'input') args.push(b.literal(hash));
-	if (name === 'input') args.push(b.literal(true));
+	const unchecked =
+		context.component.ignored.get(node)?.has('hydration_attribute_changed') === true;
+	if (hash !== null || name === 'input' || unchecked) args.push(b.literal(hash));
+	if (name === 'input' || unchecked) args.push(b.literal(name === 'input'));
+	if (unchecked) args.push(b.literal(true));
 	emit.update.push(
 		b.statement({
 			type: 'AssignmentExpression',
