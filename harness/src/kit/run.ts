@@ -95,6 +95,7 @@ function types(dir: string, report: string): void {
 		allowJs: true,
 		checkJs: true,
 		noEmit: true,
+		allowImportingTsExtensions: true,
 		target: 'esnext',
 		module: 'nodenext',
 		moduleResolution: 'nodenext',
