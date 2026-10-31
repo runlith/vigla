@@ -24,6 +24,9 @@ fields:
       },
       {
         "at": "maps.ts"
+      },
+      {
+        "at": "runtime.ts"
       }
     ],
     "id": "ir",
