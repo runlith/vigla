@@ -3,12 +3,40 @@
 	"version": "3.1.0",
 	"type": "module",
 	"exports": {
-		".": "./src/entries/index.ts",
+		".": {
+			"types": "./src/types/index.ts",
+			"default": "./src/entries/index.ts"
+		},
 		"./package.json": "./package.json",
-		"./hooks": "./src/entries/hooks.ts",
-		"./node": "./src/node/index.ts"
+		"./adapter": {
+			"types": "./src/types/adapter.ts",
+			"default": "./src/entries/adapter.ts"
+		},
+		"./env": {
+			"types": "./src/types/env.ts",
+			"default": "./src/entries/env.ts"
+		},
+		"./hooks": {
+			"types": "./src/types/hooks.ts",
+			"default": "./src/entries/hooks.ts"
+		},
+		"./node": "./src/node/index.ts",
+		"./params": {
+			"types": "./src/types/params.ts",
+			"default": "./src/entries/params.ts"
+		},
+		"./vite": {
+			"types": "./src/types/config.ts"
+		}
+	},
+	"imports": {
+		"#types/*": "./src/types/*.ts"
 	},
 	"dependencies": {
+		"@opentelemetry/api": "^1.9.1",
+		"@standard-schema/spec": "^1.1.0",
+		"@vigla/vite-plugin": "workspace:*",
+		"cookie": "^2.0.1",
 		"devalue": "^5.9.4",
 		"esm-env": "^1.2.2",
 		"vigla": "workspace:*"
@@ -18,7 +46,7 @@
 	},
 	"devDependencies": {
 		"@types/estree": "^1.0.9",
-		"vite": "8.3.0",
+		"vite": "8.2.2",
 		"vitest": "5.0.1"
 	}
 }
