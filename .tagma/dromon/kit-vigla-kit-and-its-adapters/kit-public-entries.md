@@ -68,5 +68,7 @@ sources:
     ref: packages/kit/src/entries
   - kind: file
     ref: packages/kit/package.json
+  - kind: file
+    ref: packages/kit/tsconfig.json
 ---
 What an app imports from Kit: `@sveltejs/kit` and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` and `$env/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit 3.1's public names; the behaviour lives in those runtimes.
