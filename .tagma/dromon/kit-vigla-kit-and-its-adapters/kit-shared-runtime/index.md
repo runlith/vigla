@@ -41,6 +41,9 @@ fields:
       },
       {
         "at": "env.ts"
+      },
+      {
+        "at": "url.ts"
       }
     ],
     "id": "kit-shared"
