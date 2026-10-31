@@ -14,7 +14,7 @@
     "kit-async/src/routes/+page.svelte": "`$lib` imports replaced by the `#lib` subpath import Kit 3.1 uses",
     "kit-async/svelte.config.js": "removed; Kit 3.1 refuses a `svelte.config.js` and takes its options through `sveltekit()`",
     "kit-async/vite.config.js": "the Kit 2 `svelte.config.js` options passed to `sveltekit()`, as Kit 3.1 requires",
-    "kit-node/__tests__/kit.spec.ts": "the resolved-config expectations follow what Kit 3.1.0 generates: no separate `build.ssr` config, `@opentelemetry/api` instead of `cookie` and `set-cookie-parser` external, `noExternal: true` in build, and Kit’s `devalue` and `esm-env` pre-bundled; the edit of Counter.svelte's initial count follows its `$state` declaration",
+    "kit-node/__tests__/kit.spec.ts": "resolved-config expectations follow Kit 3.1.0 and the installed frontend's public exports and dependencies rather than VERSION; the edit of Counter.svelte's initial count follows its `$state` declaration",
     "kit-node/jsconfig.json": "extends `$app/tsconfig`, as Kit 3.1 requires",
     "kit-node/package.json": "declares the `#lib` subpath import that replaces Kit 2’s `$lib` in Kit 3.1",
     "kit-node/src/lib/Child.svelte": "`export let` replaced by `$props()`",
@@ -98,26 +98,77 @@
       "status": "converted",
       "reason": "the edit of Counter.svelte's initial count follows its `$state` declaration"
     },
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should apply changed styles": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should preserve dom order": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should render additional html": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > should apply changed styles": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > should render additional child components": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > should render additional html": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > hmr > should serve changes even after page reload": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should have correct styles applied": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should hydrate": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should include dynamic import from onmount in client output": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should increase count on click": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should load dynamic import in onMount": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should load dynamic import with css": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should not have failed requests": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should not include dynamic import from onMount in ssr output": "contract",
-    "kit-node/kit.spec.ts > kit-node > index route > should respect transforms": "contract",
-    "kit-node/kit.spec.ts > kit-node > output > should produce hermetic build": "contract",
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should apply changed styles": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should preserve dom order": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should render additional html": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > should apply changed styles": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > should render additional child components": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > should render additional html": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > hmr > should serve changes even after page reload": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should have correct styles applied": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should hydrate": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should include dynamic import from onmount in client output": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should increase count on click": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should load dynamic import in onMount": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should load dynamic import with css": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should not have failed requests": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should not include dynamic import from onMount in ssr output": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > index route > should respect transforms": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
+    "kit-node/kit.spec.ts > kit-node > output > should produce hermetic build": {
+      "status": "converted",
+      "reason": "this spec's resolved-config expectations follow Kit 3 and the installed frontend's exports and dependencies"
+    },
     "kit-node/kit.spec.ts > kit-node > resolved config > should have generated values": {
       "status": "converted",
-      "reason": "its resolved-config expectations, written against Kit 2.59, follow what Kit 3.1.0 generates: no `build.ssr` config, `@opentelemetry/api` instead of `cookie` and `set-cookie-parser` external, `noExternal: true` in build, Kit’s `devalue` and `esm-env` pre-bundled"
+      "reason": "resolved-config expectations follow Kit 3.1.0 and the installed frontend's public exports and dependencies rather than VERSION"
     },
     "package-json-svelte-field/package-json-svelte-field.spec.ts > should render component imported via svelte field in package.json": "contract",
     "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works": {

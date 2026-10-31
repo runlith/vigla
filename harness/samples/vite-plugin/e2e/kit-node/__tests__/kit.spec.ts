@@ -12,7 +12,6 @@ import {
 	fetchPageText,
 	reloadPage,
 	readFileContent,
-	IS_SVELTE_BASELINE,
 	getServerErrors
 } from '~utils';
 
@@ -21,6 +20,16 @@ import path from 'node:path';
 import * as vite from 'vite';
 const { defaultClientConditions, defaultClientMainFields } = vite;
 import { describe, expect, it } from 'vitest';
+import { createRequire } from 'node:module';
+
+const sveltePackage = createRequire(import.meta.url)('svelte/package.json');
+const runtimeImports = Object.entries(sveltePackage.exports)
+	.filter(([name, entry]) =>
+		name !== './package.json' &&
+		!(entry && typeof entry === 'object' && Object.keys(entry).length === 1 && 'types' in entry)
+	)
+	.map(([name]) => name.replace(/^\./, 'svelte'))
+	.filter((name) => name !== 'svelte/compiler');
 
 describe('kit-node', () => {
 	describe('index route', () => {
@@ -333,34 +342,14 @@ describe('kit-node', () => {
 				let expectedIncludes = [
 					'svelte-i18n',
 					'e2e-test-dep-svelte-api-only',
-					'svelte/animate',
-					'svelte/easing',
-					'svelte/events',
-					'svelte/internal',
-					'svelte/internal/client',
-					'svelte/motion',
-					'svelte/reactivity',
-					'svelte/store',
-					'svelte/transition',
-					'svelte',
-					'svelte/internal/disclose-version',
-					'svelte/legacy',
+					...runtimeImports.filter((name) => !name.endsWith('/server') && !name.includes('/server/')),
 					'@sveltejs/kit > devalue',
 					'@sveltejs/kit > esm-env',
 					'svelte-i18n > deepmerge',
 					'svelte-i18n > cli-color',
 					'svelte-i18n > tiny-glob'
 				];
-				if (!IS_SVELTE_BASELINE) {
-					expectedIncludes.push(
-						'svelte/reactivity/window',
-						'svelte > clsx',
-						'svelte/attachments',
-						'svelte/internal/flags/async',
-						'svelte/internal/flags/legacy',
-						'svelte/internal/flags/tracing'
-					);
-				}
+				if (sveltePackage.dependencies?.clsx) expectedIncludes.push('svelte > clsx');
 
 				expectedIncludes = expectedIncludes.filter(
 					(item) => !(isServe && item.startsWith('svelte-i18n >'))
@@ -377,33 +366,7 @@ describe('kit-node', () => {
 					expectedIncludes,
 					`optimizeDeps.include in ${filename}`
 				);
-				const expectedDedupe = [
-					'svelte/animate',
-					'svelte/easing',
-					'svelte/events',
-					'svelte/internal',
-					'svelte/internal/client',
-					'svelte/motion',
-					'svelte/reactivity',
-					'svelte/store',
-					'svelte/transition',
-					'svelte',
-					'svelte/internal/disclose-version',
-					'svelte/internal/server',
-					'svelte/server',
-					'svelte/legacy'
-				];
-				if (!IS_SVELTE_BASELINE) {
-					expectedDedupe.push(
-						'svelte/attachments',
-						'svelte/internal/flags/async',
-						'svelte/internal/flags/legacy',
-						'svelte/internal/flags/tracing',
-						'svelte/reactivity/window'
-					);
-				}
-
-				expectArrayEqual(config.resolve.dedupe, expectedDedupe, `resolve.dedupe in ${filename}`);
+				expectArrayEqual(config.resolve.dedupe, runtimeImports, `resolve.dedupe in ${filename}`);
 				expectArrayEqual(
 					config.resolve.mainFields,
 					['svelte', ...defaultClientMainFields],
