@@ -314,8 +314,16 @@ async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> 
 			});
 		}
 		const source = prose(text);
+		const bound = new Set(
+			params.globals.filter((name) =>
+				new RegExp(
+					`\\b(?:const|let|var|function|class)\\s+${name}(?![\\w$])|[(,]\\s*(?:readonly\\s+)?${name}\\s*\\??:`
+				).test(source)
+			)
+		);
 		for (const match of source.matchAll(globals)) {
 			const name = match[0];
+			if (bound.has(name)) continue;
 			const before = source.slice(Math.max(0, match.index - 16), match.index);
 			const property = member.exec(before);
 			if (
