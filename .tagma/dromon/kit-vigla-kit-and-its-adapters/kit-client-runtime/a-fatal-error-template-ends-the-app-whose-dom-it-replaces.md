@@ -9,4 +9,4 @@ sources:
   - kind: file
     ref: packages/kit/src/client/view.ts
 ---
-The static error template receives an HTML-escaped message and replaces the document without running its scripts. Once that replacement is applied, the tab owner is disposed because its mounted tree, navigation listeners and polling still refer to the removed app; an older navigation cannot replace the document after a newer one has committed.
+The static error template receives an HTML-escaped message. Once that replacement is applied, the tab owner is disposed because its mounted tree, navigation listeners and polling still refer to the removed app; an older navigation cannot replace the document after a newer one has committed.
