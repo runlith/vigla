@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/vigla/src/shared/format.ts
 ---
-Compile format names belong to the app that produced the code: metadata properties, version-disclosure globals and component CSS wrappers use native names by default, while an adapter supplies its own names for each compile. Sharing one runtime therefore cannot make a native tree adopt an adapter's names or let one adapter change another tree's format.
+Format names belong to the app that produced the tree: metadata properties, version-disclosure globals, component CSS wrappers and hydration-data globals use native names by default. An adapter supplies its format per compile and per render, mount or hydrate call, so one runtime can serve several front ends without changing another tree's names.
