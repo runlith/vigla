@@ -22,7 +22,17 @@ beforeAll(async () => {
 				directory: root,
 				pathname: new URL(request.url!, 'http://static.local').pathname,
 				request,
-				response
+				response,
+				representation: request.url?.startsWith('/encoded')
+					? {
+							file: 'data.txt',
+							etag: '"content-hash.br"',
+							type: 'text/custom',
+							cacheControl: 'public,max-age=31536000,immutable',
+							encoding: 'br',
+							vary: 'Accept-Encoding'
+						}
+					: undefined
 			})
 		) {
 			response.writeHead(404);
@@ -100,6 +110,25 @@ test('static If-Range requires a strong matching validator', async () => {
 	});
 	expect(dated.status).toBe(206);
 	expect(await dated.text()).toBe('0');
+});
+
+test('adapter representations keep strong validators, selected paths and range bases together', async () => {
+	const response = await fetch(`${origin}/encoded`, { method: 'HEAD' });
+	expect(response.headers.get('etag')).toBe('"content-hash.br"');
+	expect(response.headers.get('content-type')).toBe('text/custom');
+	expect(response.headers.get('content-encoding')).toBe('br');
+	expect(response.headers.get('cache-control')).toBe('public,max-age=31536000,immutable');
+	const cached = await fetch(`${origin}/encoded`, {
+		headers: { 'if-none-match': 'W/"content-hash.br"' }
+	});
+	expect(cached.status).toBe(304);
+	expect(cached.headers.get('vary')).toBe('Accept-Encoding');
+	const partial = await fetch(`${origin}/encoded`, {
+		headers: { range: 'bytes=0-0', 'if-range': '"content-hash.br"' }
+	});
+	expect(partial.status).toBe(206);
+	expect(partial.headers.get('content-range')).toBe('bytes 0-0/10');
+	await partial.body?.cancel();
 });
 
 test('static requests preserve caller fallback for absent, wrong-case and escaping paths', async () => {

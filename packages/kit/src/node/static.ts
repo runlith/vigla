@@ -4,11 +4,21 @@ import path from 'node:path';
 import { pipeline } from 'node:stream';
 import { lookup } from '../shared/mime.ts';
 
+export interface FileRepresentation {
+	file: string;
+	etag: string;
+	type?: string;
+	cacheControl?: string;
+	encoding?: string;
+	vary?: string;
+}
+
 export interface StaticInput {
 	directory: string;
 	pathname: string;
 	request: IncomingMessage;
 	response: ServerResponse;
+	representation?: FileRepresentation;
 }
 
 interface ByteRange {
@@ -47,11 +57,17 @@ function exactCase(file: string, directory: string): boolean {
 	return true;
 }
 
-export function serveFile({ directory, pathname, request, response }: StaticInput): boolean {
+export function serveFile({
+	directory,
+	pathname,
+	request,
+	response,
+	representation
+}: StaticInput): boolean {
 	if (request.method !== 'GET' && request.method !== 'HEAD') return false;
 	let decoded: string;
 	try {
-		decoded = decodeURIComponent(pathname);
+		decoded = representation ? '/' + representation.file : decodeURIComponent(pathname);
 	} catch {
 		return false;
 	}
@@ -68,20 +84,26 @@ export function serveFile({ directory, pathname, request, response }: StaticInpu
 		return false;
 	const stat = statSync(file, { throwIfNoEntry: false });
 	if (!stat?.isFile() || !exactCase(file, directory)) return false;
-	const etag = `W/"${stat.size}-${stat.mtimeMs}"`;
+	const etag = representation?.etag ?? `W/"${stat.size}-${stat.mtimeMs}"`;
 	const modified = Math.min(Math.floor(stat.mtimeMs / 1000), Math.floor(Date.now() / 1000));
 	const lastModified = new Date(modified * 1000).toUTCString();
 	response.setHeader('etag', etag);
 	response.setHeader('last-modified', lastModified);
 	response.setHeader('accept-ranges', 'bytes');
-	if (!response.hasHeader('cache-control')) response.setHeader('cache-control', 'no-cache');
-	const type = lookup(file);
+	if (representation?.cacheControl)
+		response.setHeader('cache-control', representation.cacheControl);
+	else if (!representation && !response.hasHeader('cache-control'))
+		response.setHeader('cache-control', 'no-cache');
+	if (representation?.encoding) response.setHeader('content-encoding', representation.encoding);
+	if (representation?.vary) response.setHeader('vary', representation.vary);
+	const type = representation?.type ?? lookup(file);
 	if (type && !response.hasHeader('content-type'))
 		response.setHeader('content-type', type === 'text/html' ? type + '; charset=utf-8' : type);
 	const match = request.headers['if-match'];
 	const unmodified = request.headers['if-unmodified-since'];
 	if (
-		(match !== undefined && !tags(match).includes('*')) ||
+		(match !== undefined &&
+			!tags(match).some((tag) => tag === '*' || (!tag.startsWith('W/') && tag === etag))) ||
 		(match === undefined && unmodified !== undefined && modified > Date.parse(unmodified) / 1000)
 	) {
 		response.writeHead(412);
@@ -92,7 +114,9 @@ export function serveFile({ directory, pathname, request, response }: StaticInpu
 	const since = request.headers['if-modified-since'];
 	const unchanged =
 		none !== undefined
-			? tags(none).some((tag) => tag === '*' || tag.replace(/^W\//, '') === etag.slice(2))
+			? tags(none).some(
+					(tag) => tag === '*' || tag.replace(/^W\//, '') === etag.replace(/^W\//, '')
+				)
 			: since !== undefined && modified <= Date.parse(since) / 1000;
 	if (unchanged) {
 		response.writeHead(304);
@@ -102,6 +126,7 @@ export function serveFile({ directory, pathname, request, response }: StaticInpu
 	const ifRange = request.headers['if-range'];
 	const canRange =
 		ifRange === undefined ||
+		(!etag.startsWith('W/') && ifRange === etag) ||
 		(ifRange === lastModified && modified <= Math.floor(Date.now() / 1000) - 60);
 	const selected =
 		request.method === 'GET' && canRange && request.headers.range
