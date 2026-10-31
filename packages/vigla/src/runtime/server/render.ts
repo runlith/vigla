@@ -1,7 +1,7 @@
 import { failure } from '../../shared/diagnostics.ts';
 import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
-import { begin, end, push } from './context.ts';
+import { begin, capture, end, push } from './context.ts';
 
 export type Props = Record<string, unknown>;
 
@@ -17,25 +17,19 @@ class Global {
 
 	constructor(prefix: string, transformError?: (error: unknown) => unknown) {
 		this.prefix = prefix;
-		this.transformError = transformError ?? ((error) => error);
+		this.transformError =
+			transformError ??
+			((error) => {
+				throw error;
+			});
 	}
 
 	uid(): string {
 		return `${this.prefix}s${this.#uid++}`;
 	}
 
-	readonly pending: Promise<unknown>[] = [];
 	readonly styles = new Set<Style>();
 	readonly titles: Output[] = [];
-
-	track(promise: Promise<unknown>): void {
-		promise.catch(() => {});
-		this.pending.push(promise);
-	}
-
-	async settle(): Promise<void> {
-		while (this.pending.length > 0) await Promise.all(this.pending.splice(0));
-	}
 
 	title(): string {
 		let chosen: Output | null = null;
@@ -66,10 +60,19 @@ export interface Content {
 
 type Channel = 'body' | 'head' | 'title';
 
+type Failed = (out: Output, error: unknown, reset: () => void) => void;
+
+interface Recovery {
+	readonly failed: Failed;
+	readonly restore: () => void;
+}
+
 export class Output {
 	readonly #parts: (string | Output)[] = [];
 	readonly #parent: Output | null;
 	readonly #channel: Channel;
+	#pending: Promise<void> | null = null;
+	#recovery: Recovery | null = null;
 	readonly global: Global;
 
 	constructor(global: Global, parent: Output | null = null, channel?: Channel) {
@@ -99,7 +102,60 @@ export class Output {
 	#run(inner: Output, fn: (out: Output) => void | Promise<void>): void {
 		this.#parts.push(inner);
 		const result = fn(inner);
-		if (result instanceof Promise) this.global.track(result);
+		if (result instanceof Promise) inner.#wait(result);
+	}
+
+	#wait(promise: Promise<void>): void {
+		promise.catch(() => {});
+		this.#pending = promise;
+	}
+
+	get asynchronous(): boolean {
+		return (
+			this.#pending !== null ||
+			this.#parts.some((part) => typeof part !== 'string' && part.asynchronous)
+		);
+	}
+
+	async settle(): Promise<void> {
+		try {
+			await this.#pending;
+			for (const part of this.#parts) if (typeof part !== 'string') await part.settle();
+		} catch (error) {
+			this.#recover(error);
+			await this.settle();
+		}
+	}
+
+	boundary(props: BoundaryProps, children: (out: Output) => void | Promise<void>): void {
+		const inner = new Output(this.global, this);
+		if (props.failed) inner.#recovery = { failed: props.failed, restore: capture() };
+		try {
+			this.#run(inner, children);
+		} catch (error) {
+			inner.#recover(error);
+		}
+	}
+
+	#recover(error: unknown): void {
+		const recovery = this.#recovery;
+		if (recovery === null) throw error;
+		this.#recovery = null;
+		this.#pending = null;
+		this.#parts.length = 0;
+		recovery.restore();
+		const transformed = this.global.transformError(error);
+		const render = (value: unknown): void => {
+			recovery.restore();
+			this.push(serialized(value));
+			recovery.failed(this, value, () => {});
+			this.push(close);
+		};
+		if (transformed !== null && typeof (transformed as PromiseLike<unknown>)?.then === 'function') {
+			this.#wait(Promise.resolve(transformed).then(render));
+		} else {
+			render(transformed);
+		}
 	}
 
 	path(): number[] | null {
@@ -179,7 +235,7 @@ export function render<P extends Props>(
 		for (const { hash, code } of global.styles) head += `<style id="${hash}">${code}</style>`;
 		return { head, body: content.body, hashes: { script: [] } };
 	};
-	if (global.pending.length === 0) {
+	if (!out.asynchronous) {
 		const rendered = result();
 		return {
 			...rendered,
@@ -188,7 +244,7 @@ export function render<P extends Props>(
 			}
 		};
 	}
-	const settled = global.settle().then(result);
+	const settled = out.settle().then(result);
 	const synchronous = (): never => {
 		throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
 	};
@@ -247,7 +303,7 @@ export function head(out: Output, hash: string, fn: (out: Output) => void): void
 }
 
 export interface BoundaryProps {
-	readonly failed?: ((out: Output, error: unknown, reset: () => void) => void) | null;
+	readonly failed?: Failed | null;
 }
 
 function serialized(error: unknown): string {
@@ -256,24 +312,7 @@ function serialized(error: unknown): string {
 }
 
 export function boundary(out: Output, props: BoundaryProps, children: (out: Output) => void): void {
-	const mark = out.mark();
-	try {
-		children(out);
-	} catch (error) {
-		const failed = props.failed;
-		if (!failed) throw error;
-		out.truncate(mark);
-		const transformed = out.global.transformError(error);
-		if (transformed !== null && typeof (transformed as PromiseLike<unknown>)?.then === 'function') {
-			throw failure(
-				'await_invalid',
-				'Encountered asynchronous work while rendering synchronously.'
-			);
-		}
-		out.push(serialized(transformed));
-		failed(out, transformed, () => {});
-		out.push(close);
-	}
+	out.boundary(props, children);
 }
 
 export function appendStyles(out: Output, style: Style): void {
