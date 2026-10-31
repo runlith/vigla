@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, realpathSync, statSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { lookup } from 'mrmime';
+import { lookup } from '../shared/mime.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { PageNode, Route, RouteTree } from '../types/internal/routes.ts';
 import { parseRoute, sortRoutes } from '../shared/routing/index.ts';

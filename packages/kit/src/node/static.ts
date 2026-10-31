@@ -2,7 +2,7 @@ import { createReadStream, readdirSync, statSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import path from 'node:path';
 import { pipeline } from 'node:stream';
-import { lookup } from 'mrmime';
+import { lookup } from '../shared/mime.ts';
 
 export interface StaticInput {
 	directory: string;
