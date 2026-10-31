@@ -26,8 +26,11 @@
 			"default": "./src/entries/params.ts"
 		},
 		"./vite": {
-			"types": "./src/types/config.ts"
-		}
+			"types": "./src/types/config.ts",
+			"default": "./src/vite/index.ts"
+		},
+		"./internal/env": "./src/entries/internal/env.ts",
+		"./internal/node": "./src/node/static.ts"
 	},
 	"imports": {
 		"#types/*": "./src/types/*.ts"
