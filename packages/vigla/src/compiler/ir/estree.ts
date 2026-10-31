@@ -56,7 +56,13 @@ export type Rewrite = (
 export function rewrite<T extends ES.Node>(node: T, visit: Rewrite): T {
 	const next = <N extends ES.Node>(child: N): N => rewrite(child, visit);
 	const replaced = visit(node, next);
-	if (replaced !== undefined) return replaced as T;
+	if (replaced !== undefined) {
+		return (
+			replaced !== node && replaced.loc == null && node.loc != null
+				? { ...replaced, loc: node.loc }
+				: replaced
+		) as T;
+	}
 	let copy: Record<string, unknown> | null = null;
 	const source = node as unknown as Record<string, unknown>;
 	for (const key of Object.keys(node)) {

@@ -12,6 +12,7 @@ import {
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Rune } from '../ir/port.ts';
+import type { RuntimeNames } from '../ir/runtime.ts';
 import { classBody, fieldValue, privateField } from './classes.ts';
 import { destructured } from './patterns.ts';
 
@@ -19,6 +20,7 @@ export interface Context {
 	readonly analysis: ScriptAnalysis;
 	readonly names: b.Names;
 	readonly runtime: ES.Identifier;
+	readonly runtimeNames?: RuntimeNames;
 	readonly plain: ReadonlySet<Binding>;
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
@@ -46,7 +48,7 @@ export function runtime(
 	name: string,
 	...args: ES.Expression[]
 ): ES.SimpleCallExpression {
-	return b.call(b.member(context.runtime, name), ...args);
+	return b.call(b.member(context.runtime, context.runtimeNames?.[name] ?? name), ...args);
 }
 
 export function primitive(node: ES.Expression): boolean {
@@ -93,7 +95,8 @@ export function read(
 	if (alias !== undefined) return structuredClone(alias);
 	if (binding.kind === 'prop') {
 		if (accessor(binding)) return b.call(node);
-		return propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
+		const member = propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
+		return { ...member, property: { ...member.property, loc: node.loc } };
 	}
 	if (binding.kind === 'index') return runtime(context, 'get', node);
 	if (binding.kind === 'argument') return b.call(node);
@@ -247,6 +250,22 @@ function propDeclarators(
 	return result;
 }
 
+function effectCallee(context: Context, name: string, source: ES.Expression): ES.MemberExpression {
+	const call = runtime(context, name);
+	const callee = call.callee as ES.MemberExpression;
+	return {
+		...callee,
+		object: {
+			...context.runtime,
+			loc: source.type === 'MemberExpression' ? source.object.loc : source.loc
+		},
+		property: {
+			...callee.property,
+			loc: source.type === 'MemberExpression' ? source.property.loc : source.loc
+		}
+	};
+}
+
 function effectCall(
 	context: Context,
 	rune: Rune,
@@ -256,10 +275,14 @@ function effectCall(
 		case '$effect':
 			return {
 				...call,
-				callee: b.member(context.runtime, context.props === null ? 'effect' : 'userEffect')
+				callee: effectCallee(
+					context,
+					context.props === null ? 'effect' : 'userEffect',
+					call.callee as ES.Expression
+				)
 			};
 		case '$effect.pre':
-			return { ...call, callee: b.member(context.runtime, 'pre') };
+			return { ...call, callee: effectCallee(context, 'pre', call.callee as ES.Expression) };
 		case '$effect.root':
 			return { ...call, callee: b.member(context.runtime, 'effectRoot') };
 		case '$effect.tracking':

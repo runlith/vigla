@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import type { Format } from '../../shared/format.ts';
+import type { RuntimeNames } from '../ir/runtime.ts';
 import {
 	spanOf,
 	unsupported,
@@ -15,6 +16,7 @@ import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
 export interface ModuleOptions {
 	readonly runtime: string;
+	readonly runtimeNames?: RuntimeNames;
 	readonly dev: boolean;
 }
 
@@ -57,6 +59,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		component: analysis,
 		names,
 		runtime: id,
+		runtimeNames: options.runtimeNames,
 		out,
 		props,
 		scoping: options.scoping,
@@ -119,6 +122,7 @@ export function serverModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		analysis,
 		names,
 		runtime: b.id(names.unique('$')),
+		runtimeNames: options.runtimeNames,
 		props: null,
 		out: null,
 		dev: options.dev

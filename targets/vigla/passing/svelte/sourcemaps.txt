@@ -4,6 +4,8 @@ binding
 css
 css-injected-map
 decoded-sourcemap
+each-block
+effects
 external
 preprocessed-markup
 preprocessed-multiple
@@ -19,5 +21,7 @@ sourcemap-concat
 sourcemap-empty-source
 sourcemap-names
 sourcemap-offsets
+sourcemap-sources
 static-no-script
+two-scripts
 typescript

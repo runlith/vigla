@@ -10,6 +10,7 @@ import {
 	type StateField
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
+import type { RuntimeNames } from '../ir/runtime.ts';
 import {
 	classBody,
 	constructorField,
@@ -22,6 +23,7 @@ export interface Context {
 	readonly analysis: ScriptAnalysis;
 	readonly names: b.Names;
 	readonly runtime: ES.Identifier;
+	readonly runtimeNames?: RuntimeNames;
 	readonly props: ES.Identifier | null;
 	readonly out: ES.Identifier | null;
 	readonly fields?: ReadonlyMap<string, StateField>;
@@ -35,7 +37,7 @@ export function runtime(
 	name: string,
 	...args: ES.Expression[]
 ): ES.SimpleCallExpression {
-	return b.call(b.member(context.runtime, name), ...args);
+	return b.call(b.member(context.runtime, context.runtimeNames?.[name] ?? name), ...args);
 }
 
 function single(node: ES.CallExpression): ES.Expression {

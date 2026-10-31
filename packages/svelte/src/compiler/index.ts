@@ -103,7 +103,11 @@ export interface ParseOptions {
 
 const stores = ['svelte/store'];
 
-const runtime: Runtime = { client: 'svelte/internal/client', server: 'svelte/internal/server' };
+const runtime: Runtime = {
+	client: 'svelte/internal/client',
+	server: 'svelte/internal/server',
+	names: { pre: 'user_pre_effect', userEffect: 'user_effect' }
+};
 
 function generated(options: ModuleCompileOptions): 'client' | 'server' {
 	return options.generate === 'server' ? 'server' : 'client';

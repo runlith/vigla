@@ -14,6 +14,8 @@ import { analyzeStyle, injected, renderStyle, type Stylesheet } from '../compile
 import type { Namespace } from '../compiler/ir/nodes.ts';
 import { chain, sourceName, type InputMap, type OutputMap } from '../compiler/ir/maps.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../compiler/ir/port.ts';
+import type { Runtime } from '../compiler/ir/runtime.ts';
+export type { Runtime, RuntimeNames } from '../compiler/ir/runtime.ts';
 import { server, serverModule } from '../compiler/server/index.ts';
 
 export type * from '../compiler/ir/nodes.ts';
@@ -54,11 +56,6 @@ export {
 } from '../compiler/analysis/validate/index.ts';
 
 export type Generate = 'client' | 'server';
-
-export interface Runtime {
-	readonly client: string;
-	readonly server: string;
-}
 
 export interface ModuleOptions {
 	readonly generate: Generate;
@@ -139,6 +136,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		scoping: style.scoping,
 		styles,
 		format: options.format ?? format,
+		runtimeNames: runtime.names,
 		dev: options.dev ?? false
 	};
 	const program =
@@ -154,7 +152,15 @@ export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output 
 	const runtime = options.runtime ?? runtimes;
 	const program =
 		options.generate === 'server'
-			? serverModule(analysis, { runtime: runtime.server, dev: options.dev ?? false })
-			: clientModule(analysis, { runtime: runtime.client, dev: options.dev ?? false });
+			? serverModule(analysis, {
+					runtime: runtime.server,
+					runtimeNames: runtime.names,
+					dev: options.dev ?? false
+				})
+			: clientModule(analysis, {
+					runtime: runtime.client,
+					runtimeNames: runtime.names,
+					dev: options.dev ?? false
+				});
 	return { js: printed(program, unit, {}), css: null, warnings };
 }

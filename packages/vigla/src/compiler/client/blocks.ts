@@ -120,7 +120,7 @@ function listCode(
 	const facts = context.component.lists.get(node);
 	if (facts === undefined) throw new Error('each block was not analyzed');
 	const named = node.item?.type === 'Identifier' ? node.item : null;
-	const item = named !== null ? b.id(named.name) : b.id(context.names.unique('$$item'));
+	const item = named !== null ? { ...named } : b.id(context.names.unique('$$item'));
 	const index = b.id(facts.index?.name ?? context.names.unique('$$index'));
 	const collection = b.arrow([], rewrite(context, node.collection));
 	const plain = new Set([...context.plain, ...facts.names]);
