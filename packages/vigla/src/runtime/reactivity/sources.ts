@@ -64,6 +64,7 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 		fn,
 		owner,
 		effects: null,
+		frozen: null,
 		failure: null,
 		computed: false,
 		v: undefined as T,

@@ -2,7 +2,7 @@ import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
 import { computed, traced, tracedRun, tracing, updated } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
-import { destroy, fail } from './effects.ts';
+import { destroy, fail, freeze, thaw } from './effects.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -103,8 +103,20 @@ export function ownEffect(effect: Effect): void {
 function destroyEffects(derived: Derived): void {
 	const effects = derived.effects;
 	if (effects === null) return;
-	derived.effects = null;
+	derived.effects = derived.frozen = null;
 	for (const effect of effects) destroy(effect);
+}
+
+function subscribe(dep: Source, reaction: Reaction): void {
+	const reactions = (dep.reactions ??= new Set());
+	if (reactions.size === 0 && isDerived(dep) && dep.frozen !== null) thaw(dep);
+	reactions.add(reaction);
+}
+
+export function unsubscribe(dep: Source, reaction: Reaction): void {
+	const reactions = dep.reactions;
+	if (reactions === null || !reactions.delete(reaction) || reactions.size > 0) return;
+	if (isDerived(dep) && dep.effects !== null) freeze(dep);
 }
 
 export function localize(source: Source): void {
@@ -274,7 +286,7 @@ function compute(derived: Derived, given: View): unknown {
 		for (const dep of extra) {
 			if (deps.includes(dep)) continue;
 			deps.push(dep);
-			(dep.reactions ??= new Set()).add(derived);
+			subscribe(dep, derived);
 		}
 		if (current.hidden !== null) {
 			given.reached.set(derived, current.hidden);
@@ -420,7 +432,7 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 		if (old === null) target.deps = [];
 		else if (!keep && matched < old.length) {
 			for (let index = matched; index < old.length; index++)
-				(old[index] as Source).reactions?.delete(target);
+				unsubscribe(old[index] as Source, target);
 			old.length = matched;
 		}
 		return;
@@ -439,7 +451,7 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 			const mark = dep.read;
 			if (mark === taken) continue;
 			dep.read = taken;
-			if (mark !== tail) (dep.reactions ??= new Set()).add(target);
+			if (mark !== tail) subscribe(dep, target);
 			else if (keep) continue;
 			extra[count++] = dep;
 		}
@@ -449,7 +461,7 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 		else {
 			for (let index = matched; index < old.length; index++) {
 				const dep = old[index] as Source;
-				if (dep.read === tail) dep.reactions?.delete(target);
+				if (dep.read === tail) unsubscribe(dep, target);
 			}
 			if (matched === 0) target.deps = extra;
 			else {
@@ -463,9 +475,9 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 	const kept = new Set(reads(current));
 	for (const dep of previous ?? []) {
 		if (keep) kept.add(dep);
-		else if (!kept.has(dep)) dep.reactions?.delete(target);
+		else if (!kept.has(dep)) unsubscribe(dep, target);
 	}
-	for (const dep of kept) (dep.reactions ??= new Set()).add(target);
+	for (const dep of kept) subscribe(dep, target);
 	target.deps = [...kept];
 	if ((previous === null || previous.length === 0) && kept.size > 0 && isDerived(target))
 		own(target);
@@ -578,7 +590,7 @@ export function refresh(derived: Derived): void {
 
 export function disconnect(derived: Derived): void {
 	destroyEffects(derived);
-	for (const dep of derived.deps ?? []) dep.reactions?.delete(derived);
+	for (const dep of derived.deps ?? []) unsubscribe(dep, derived);
 	derived.deps = null;
 	derived.status = DIRTY;
 }

@@ -20,9 +20,17 @@ export function getAbortSignal(): AbortSignal {
 		controllers.set(reaction, controller);
 		const current = controller;
 		teardown(() => {
-			controllers.delete(reaction);
+			if (controllers.get(reaction) === current) controllers.delete(reaction);
 			current.abort(staleReaction);
 		});
 	}
 	return controller.signal;
+}
+
+export function abort(reaction: Reaction): boolean {
+	const controller = controllers.get(reaction);
+	if (controller === undefined) return false;
+	controllers.delete(reaction);
+	controller.abort(staleReaction);
+	return true;
 }

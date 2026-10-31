@@ -12,6 +12,7 @@ import {
 	type Effect,
 	type Kind
 } from './graph.ts';
+import { abort } from './abort.ts';
 import { collect, orphaned, retire, revisit, schedule } from './batch.ts';
 import { orphan } from './errors.ts';
 import {
@@ -23,6 +24,7 @@ import {
 	setOwner,
 	takeHidden,
 	track,
+	unsubscribe,
 	withoutReaction,
 	view
 } from './tracking.ts';
@@ -247,7 +249,7 @@ export function destroy(effect: Effect): void {
 	effect.destroyed = true;
 	destroyChildren(effect);
 	release(effect);
-	for (const dep of effect.deps ?? []) dep.reactions?.delete(effect);
+	for (const dep of effect.deps ?? []) unsubscribe(dep, effect);
 	effect.deps = null;
 	const teardown = effect.teardown;
 	effect.teardown = null;
@@ -260,5 +262,46 @@ export function destroy(effect: Effect): void {
 	if (units !== null) {
 		effect.units = null;
 		for (const settle of units) settle();
+	}
+}
+
+function holding(effect: Effect): boolean {
+	return (
+		!effect.destroyed &&
+		!effect.running &&
+		effect.fn !== null &&
+		(effect.kind === EFFECT || effect.kind === TEMPLATE) &&
+		(effect.teardown !== null || effect.first !== null)
+	);
+}
+
+export function freeze(derived: Derived): void {
+	const effects = derived.effects;
+	if (effects === null) return;
+	if (abort(derived)) derived.status = DIRTY;
+	let frozen = derived.frozen;
+	for (const effect of effects) {
+		if (!holding(effect)) continue;
+		destroyChildren(effect);
+		release(effect);
+		for (const dep of effect.deps ?? []) unsubscribe(dep, effect);
+		effect.deps = null;
+		effect.status = CLEAN;
+		const teardown = effect.teardown;
+		effect.teardown = null;
+		if (teardown !== null) retire(teardown);
+		(frozen ??= []).push(effect);
+	}
+	derived.frozen = frozen;
+}
+
+export function thaw(derived: Derived): void {
+	const frozen = derived.frozen;
+	if (frozen === null) return;
+	derived.frozen = null;
+	for (const effect of frozen) {
+		if (effect.destroyed) continue;
+		effect.status = DIRTY;
+		schedule(effect);
 	}
 }

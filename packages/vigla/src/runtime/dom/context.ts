@@ -3,7 +3,7 @@ import { keyed, type Context } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
 import { detached, effect, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
+import { owner, running, setOwner, untrack } from '../reactivity/tracking.ts';
 
 export interface Layer {
 	readonly parent: Layer | null;
@@ -76,7 +76,7 @@ export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () =>
 
 export function userEffect(fn: () => void | (() => void)): void {
 	if (DEV) Object.defineProperty(fn, 'name', { value: '$effect' });
-	if (initializing !== null && initializing.layer.owner === owner) {
+	if (initializing !== null && initializing.layer.owner === owner && running() === null) {
 		initializing.deferred.push(() => effect(fn));
 		return;
 	}
