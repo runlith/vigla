@@ -137,13 +137,17 @@ function componentPatterns(options: ResolvedOptions, frontEnds: readonly FrontEn
 export function buildIdFilter(options: ResolvedOptions, frontEnds: readonly FrontEnd[]): IdFilter {
 	return {
 		id: {
-			include: [...componentPatterns(options, frontEnds), ...arraify(options.include)],
+			include:
+				frontEnds.length === 0
+					? [/$./]
+					: [...componentPatterns(options, frontEnds), ...arraify(options.include)],
 			exclude: ['\0', virtualStyle, ...arraify(options.exclude)]
 		}
 	};
 }
 
 export function buildIdParser(options: ResolvedOptions, frontEnds: readonly FrontEnd[]): IdParser {
+	if (frontEnds.length === 0) return () => undefined;
 	const root = normalizePath(options.root);
 	const claim = claims(componentPatterns(options, frontEnds), frontEnds);
 	return (id, ssr, timestamp = Date.now()) => {
@@ -182,7 +186,10 @@ export function buildModuleIdFilter(
 	const given = options.experimental?.compileModule ?? {};
 	return {
 		id: {
-			include: [...modulePatterns(options, frontEnds), ...arraify(given.include)],
+			include:
+				frontEnds.length === 0
+					? [/$./]
+					: [...modulePatterns(options, frontEnds), ...arraify(given.include)],
 			exclude: ['\0', ...arraify(given.exclude)]
 		}
 	};
@@ -192,6 +199,7 @@ export function buildModuleIdParser(
 	options: ResolvedOptions,
 	frontEnds: readonly FrontEnd[]
 ): ModuleIdParser {
+	if (frontEnds.length === 0) return () => undefined;
 	const root = normalizePath(options.root);
 	const claim = claims(modulePatterns(options, frontEnds), frontEnds);
 	return (id, ssr, timestamp = Date.now()) => {

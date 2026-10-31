@@ -133,11 +133,7 @@ async function discover(root: string): Promise<FrontEnd[]> {
 			if (manifest.vigla?.frontEnd !== undefined) loading.push(load(name, file, manifest));
 		}
 	}
-	const list = await Promise.all(loading);
-	if (list.length === 0) {
-		throw new Error(`no package among the dependencies of ${root} declares a front end`);
-	}
-	return list;
+	return Promise.all(loading);
 }
 
 export function frontEnds(root: string): Promise<FrontEnd[]> {

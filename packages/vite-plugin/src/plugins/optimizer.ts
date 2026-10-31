@@ -164,6 +164,7 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 		name: 'vite-plugin-svelte:setup-optimizer',
 		apply: 'serve',
 		configEnvironment(name, config) {
+			if (api.frontEnds.length === 0) return;
 			const consumer = config.consumer ?? (name === 'client' ? 'client' : 'server');
 			const optimizeDeps: UserConfig['optimizeDeps'] = {
 				extensions: [...new Set(api.frontEnds.flatMap((frontEnd) => frontEnd.components))],
@@ -186,7 +187,7 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 			viteConfig = config;
 		},
 		async buildStart() {
-			if (!api.options.prebundleSvelteLibraries) return;
+			if (api.frontEnds.length === 0 || !api.options.prebundleSvelteLibraries) return;
 			if (await metadataChanged(viteConfig.cacheDir, api.options))
 				viteConfig.optimizeDeps.force = true;
 		}

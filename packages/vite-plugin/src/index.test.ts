@@ -1,12 +1,13 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createServer } from 'vite';
-import { expect, test } from 'vitest';
+import { createServer, optimizeDeps } from 'vite';
+import { expect, onTestFinished, test } from 'vitest';
 import { svelte, type PluginAPI } from './index.ts';
 
 test('compiles opaque source through its claiming front end with custom options intact', async () => {
 	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
+	onTestFinished(() => rm(root, { recursive: true, force: true }));
 	const source = 'text </style> stays intact';
 	const frontends = [
 		{ name: 'number', value: 'Number(source)' },
@@ -84,6 +85,48 @@ export async function preprocess(source) { return { code: source }; }
 		expect(module.default).toBe('compiled: const value = 1;');
 	} finally {
 		await server.close();
-		await rm(root, { recursive: true, force: true });
+	}
+});
+
+test('leaves ordinary JavaScript and dependencies alone when no front end is installed', async () => {
+	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
+	onTestFinished(() => rm(root, { recursive: true, force: true }));
+	const dependency = join(root, 'node_modules', 'plain-dependency');
+	await mkdir(dependency, { recursive: true });
+	await writeFile(
+		join(root, 'package.json'),
+		JSON.stringify({ type: 'module', dependencies: { 'plain-dependency': '1.0.0' } })
+	);
+	await writeFile(
+		join(dependency, 'package.json'),
+		JSON.stringify({ name: 'plain-dependency', type: 'module', exports: './index.js' })
+	);
+	await writeFile(join(dependency, 'index.js'), 'export default 42;');
+	await writeFile(
+		join(root, 'entry.js'),
+		'import answer from "plain-dependency"; export { answer };'
+	);
+	const server = await createServer({
+		root,
+		configFile: false,
+		logLevel: 'silent',
+		plugins: svelte({
+			configFile: false,
+			extensions: ['.js'],
+			include: /\.js$/,
+			experimental: { compileModule: { include: /\.js$/ } }
+		}),
+		optimizeDeps: { include: ['plain-dependency'], noDiscovery: true },
+		server: { middlewareMode: true, watch: null, hmr: { port: 0 } }
+	});
+	try {
+		const api = server.config.plugins.find((plugin) => plugin.name === 'vite-plugin-svelte')
+			?.api as PluginAPI;
+		expect(api.frontEnds).toEqual([]);
+		await optimizeDeps(server.config, true);
+		const output = await server.ssrLoadModule('/entry.js');
+		expect(output.answer).toBe(42);
+	} finally {
+		await server.close();
 	}
 });
