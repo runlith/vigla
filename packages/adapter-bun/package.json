@@ -1,0 +1,16 @@
+{
+	"name": "@vigla/adapter-bun",
+	"version": "1.0.0",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./package.json": "./package.json"
+	},
+	"dependencies": {
+		"@vigla/kit": "workspace:*",
+		"rolldown": "1.2.9"
+	},
+	"devDependencies": {
+		"@types/bun": "1.4.4"
+	}
+}
