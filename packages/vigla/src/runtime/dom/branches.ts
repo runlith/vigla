@@ -1,5 +1,5 @@
 import { atCommit, atDiscard, processed, skip, unskip, type Batch } from '../reactivity/batch.ts';
-import { show as unhide } from '../reactivity/effects.ts';
+import { hide, show as unhide } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { building, pause, resume, seeThrough } from '../transitions/manager.ts';
@@ -42,7 +42,7 @@ export class Branches<K> {
 	anchor: ChildNode;
 	readonly #transparent: boolean;
 	#block: Effect | null = null;
-	#shown: K | undefined = undefined;
+	#shown!: K;
 	readonly #built = new Map<K, Built>();
 	readonly #leaving = new Set<K>();
 	#stages: Map<Batch, K> | null = null;
@@ -94,7 +94,11 @@ export class Branches<K> {
 		if (!known && same(key, this.#shown)) return;
 		if (!this.#built.has(key) && !same(key, this.#shown)) {
 			const content = render();
-			if (content !== null) this.#built.set(key, this.#build(content, true));
+			if (content !== null) {
+				const built = this.#build(content, true);
+				if (batch !== null) hide(built.effect);
+				this.#built.set(key, built);
+			}
 		}
 		if (batch === null) {
 			this.#switch(key);
@@ -130,12 +134,17 @@ export class Branches<K> {
 			const next = this.#built.get(key);
 			if (next !== undefined) {
 				if (this.#leaving.delete(key)) resume(next.effect);
-				else place(next, this.anchor);
+				else {
+					place(next, this.anchor);
+					unhide(next.effect);
+				}
 			}
-			const old = previous === undefined ? undefined : this.#built.get(previous);
+			const old = this.#built.get(previous);
 			if (old !== undefined) {
-				if (this.#needed(previous as K)) stash(old);
-				else this.#leave(previous as K, old);
+				if (this.#needed(previous)) {
+					stash(old);
+					hide(old.effect);
+				} else this.#leave(previous, old);
 			}
 		}
 		this.#prune();
@@ -147,7 +156,6 @@ export class Branches<K> {
 			if (!this.#leaving.delete(key) || this.#block?.destroyed === true) return;
 			if (this.#needed(key)) {
 				stash(built);
-				unhide(built.effect);
 				return;
 			}
 			discard(built);

@@ -10,10 +10,11 @@ import {
 	write,
 	type Batch
 } from '../reactivity/batch.ts';
-import { block, show as unhide } from '../reactivity/effects.ts';
+import { block, hide, show as unhide } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
 import { source } from '../reactivity/sources.ts';
-import { owner } from '../reactivity/tracking.ts';
+import { get, owner } from '../reactivity/tracking.ts';
+import { traceSource, untrace } from '../reactivity/trace.ts';
 import {
 	claim,
 	cursor,
@@ -90,6 +91,7 @@ function kept(positions: readonly number[]): Set<number> {
 
 class List<T> {
 	anchor: ChildNode;
+	readonly #read: () => ArrayLike<T>;
 	readonly #key: ((item: T, index: number) => unknown) | null;
 	readonly #render: Item<T>;
 	readonly #fallback: Render | null;
@@ -104,11 +106,13 @@ class List<T> {
 
 	constructor(
 		anchor: ChildNode,
+		read: () => ArrayLike<T>,
 		key: ((item: T, index: number) => unknown) | null,
 		render: Item<T>,
 		fallback: Render | null
 	) {
 		this.anchor = anchor;
+		this.#read = read;
 		this.#key = key;
 		this.#render = render;
 		this.#fallback = fallback;
@@ -130,6 +134,11 @@ class List<T> {
 	#create(key: unknown, value: T, position: number, update: boolean): Row<T> {
 		const item = source(value);
 		const index = source(position);
+		if (DEV)
+			traceSource(item, () => {
+				const position = untrace(() => get(index));
+				return this.#read()[position];
+			});
 		const built = building(update, () => build((at) => this.#render(at, item, index)));
 		const row: Row<T> = { key, item, index, ...built };
 		this.#rows.set(key, row);
@@ -195,16 +204,20 @@ class List<T> {
 			const value = items[position] as T;
 			const key = this.#identify(items, position, seen);
 			let row = this.#rows.get(key);
-			if (row === undefined) row = this.#create(key, value, position, true);
-			else {
+			if (row === undefined) {
+				row = this.#create(key, value, position, true);
+				if (batch !== null) hide(row.effect);
+			} else {
 				write(row.item, value);
 				write(row.index, position);
 			}
 			rows.push(row);
 		}
 		const empty = items.length === 0 && this.#fallback !== null;
-		if (empty && this.#empty === null)
+		if (empty && this.#empty === null) {
 			this.#empty = building(true, () => build(this.#fallback as Render));
+			if (batch !== null) hide(this.#empty.effect);
+		}
 		const stage: Stage<T> = { rows, empty };
 		if (batch === null) {
 			this.#apply(stage);
@@ -273,6 +286,7 @@ class List<T> {
 			if (selected.has(row)) continue;
 			if (needed?.has(row)) {
 				stash(row);
+				hide(row.effect);
 				continue;
 			}
 			const mover = moverOf(row.effect);
@@ -283,11 +297,14 @@ class List<T> {
 		if (this.#empty !== null) {
 			if (stage.empty && !this.#emptyShown) {
 				place(this.#empty, this.anchor);
+				unhide(this.#empty.effect);
 				this.#emptyShown = true;
 			} else if (!stage.empty && this.#emptyShown) {
 				this.#emptyShown = false;
-				if (this.#emptyNeeded()) stash(this.#empty);
-				else {
+				if (this.#emptyNeeded()) {
+					stash(this.#empty);
+					hide(this.#empty.effect);
+				} else {
 					discard(this.#empty);
 					this.#empty = null;
 				}
@@ -314,6 +331,7 @@ class List<T> {
 					}
 					const before = after.nextSibling as ChildNode;
 					if (before !== row.first) place(row, before);
+					unhide(row.effect);
 				}
 				after = row.last;
 			}
@@ -329,7 +347,6 @@ class List<T> {
 			if (!this.#leaving.delete(row) || this.#block?.destroyed === true) return;
 			if (this.#needed()?.has(row)) {
 				stash(row);
-				unhide(row.effect);
 				return;
 			}
 			discard(row);
@@ -360,12 +377,14 @@ export function list<T>(
 	render: Item<T>,
 	fallback: Render | null = null
 ): void {
-	const rows = new List<T>(node, key, render, fallback);
+	const read = (): ArrayLike<T> => {
+		const given = collection();
+		return given == null ? [] : Array.isArray(given) ? given : Array.from(given as Iterable<T>);
+	};
+	const rows = new List<T>(node, read, key, render, fallback);
 	let first = true;
 	block(() => {
-		const given = collection();
-		const items: ArrayLike<T> =
-			given == null ? [] : Array.isArray(given) ? given : Array.from(given as Iterable<T>);
+		const items = read();
 		if (first) {
 			first = false;
 			rows.start(items);
