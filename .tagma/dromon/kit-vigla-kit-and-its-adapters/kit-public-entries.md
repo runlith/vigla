@@ -86,6 +86,9 @@ fields:
       },
       {
         "at": "internal/server.ts"
+      },
+      {
+        "at": "internal/payload.ts"
       }
     ],
     "id": "kit-entries"
