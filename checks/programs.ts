@@ -294,6 +294,8 @@ async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> 
 	const scanner = new (globalThis as unknown as Runtime).Bun.Transpiler({ loader: 'ts' });
 	const globals = new RegExp(`(?<![\\w$#])(?:${params.globals.join('|')})(?![\\w$])`, 'g');
 	const member = /(?:^|[^\w$])(?:globalThis|self|window)\s*\??\.\s*$|\?\.\s*$|\.\s*$/;
+	const key = /(?:^|[{,;(]|\breadonly)\s*$/;
+	const declared = /^\s*\??\s*:/;
 	const findings: Finding[] = [];
 	for (const path of side.paths) {
 		if (params.tests.some((infix) => path.includes(infix))) continue;
@@ -322,6 +324,8 @@ async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> 
 				name !== 'getBuiltinModule'
 			)
 				continue;
+			const after = source.slice(match.index + name.length, match.index + name.length + 4);
+			if (declared.test(after) && key.test(before)) continue;
 			if (seen.has(name)) continue;
 			seen.add(name);
 			findings.push({
