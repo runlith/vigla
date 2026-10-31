@@ -80,6 +80,9 @@ fields:
       },
       {
         "at": "meta.ts"
+      },
+      {
+        "at": "data.ts"
       }
     ],
     "id": "dom",

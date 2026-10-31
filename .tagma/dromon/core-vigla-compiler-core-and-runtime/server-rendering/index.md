@@ -14,6 +14,9 @@ fields:
       },
       {
         "at": "context.ts"
+      },
+      {
+        "at": "hydration.ts"
       }
     ],
     "id": "ssr",
