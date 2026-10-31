@@ -35,6 +35,9 @@ fields:
       },
       {
         "at": "assignment.ts"
+      },
+      {
+        "at": "snippet.ts"
       }
     ],
     "id": "shared",

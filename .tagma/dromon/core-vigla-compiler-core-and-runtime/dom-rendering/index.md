@@ -83,6 +83,9 @@ fields:
       },
       {
         "at": "data.ts"
+      },
+      {
+        "at": "snippet.ts"
       }
     ],
     "id": "dom",

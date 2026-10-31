@@ -20,6 +20,9 @@ fields:
       },
       {
         "at": "external.ts"
+      },
+      {
+        "at": "snippet.ts"
       }
     ],
     "id": "ssr",
