@@ -1,4 +1,4 @@
-import { routeSegments, segmentTokens } from './pattern.ts';
+import { routeSegments } from './pattern.ts';
 
 interface SortRoute {
 	id: string;
@@ -25,10 +25,17 @@ export function sortRoutes<T extends SortRoute>(routes: T[]): T[] {
 		let value = parsed.get(id);
 		if (!value) {
 			value = routeSegments(id.replace(/\[\[[^\]]+\]\](?!(?:\/\([^/]+\))*$)/g, '')).map((segment) =>
-				segmentTokens(segment).map(({ text, param }) => ({
+				segment.split(/(\[\[.*?\]\]|\[.*?\])/).map((text, index) => ({
 					text,
-					kind: !param ? 'static' : param.rest ? 'rest' : param.optional ? 'optional' : 'required',
-					matched: !!param?.matcher
+					kind:
+						index % 2 === 0
+							? 'static'
+							: text.startsWith('[...')
+								? 'rest'
+								: text.startsWith('[[')
+									? 'optional'
+									: 'required',
+					matched: index % 2 === 1 && text.includes('=')
 				}))
 			);
 			parsed.set(id, value);

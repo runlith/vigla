@@ -125,6 +125,39 @@ test('route precedence preserves static, matched, required, optional and rest or
 		'/[[optional]]',
 		'/[...rest]'
 	]);
+	const precedence = [
+		'/',
+		'/a',
+		'/b',
+		'/b/[required]',
+		'/c',
+		'/c/bar',
+		'/c/b[x].json',
+		'/c/b[x]',
+		'/c/foo',
+		'/d/e',
+		'/d/e[...rest]',
+		'/e/f',
+		'/e/[...rest]/f',
+		'/f/static[...rest]',
+		'/f/[...rest]static',
+		'/g/[[optional]]/static',
+		'/g/[required]',
+		'/g/[...rest]/[required]',
+		'/h/a/b',
+		'/h/a/[required]/b',
+		'/h/a/[...rest]/b',
+		'/x/[...rest]',
+		'/[...rest]/x',
+		'/[...rest]/x/[...deep_rest]/y',
+		'/[...rest]/x/[...deep_rest]',
+		'/[required=matcher]',
+		'/[required]',
+		'/[...rest]'
+	];
+	expect(sortRoutes([...precedence].reverse().map(route)).map(({ id }) => id)).toEqual(precedence);
+	const encoded = ['/[u+1f600]', '/[x+22]', '/[x+23]', '/[x+3f]', '/[x+5b]', '/[x+5d]'];
+	expect(sortRoutes(encoded.map(route)).map(({ id }) => id)).toEqual([...encoded].reverse());
 	const suffixes = ['/[required]/[id]', '/[...rest]', '/[...rest]/x', '/[required]/x'];
 	expect(sortRoutes(suffixes.map(route)).map(({ id }) => id)).toEqual([
 		'/[required]/x',
