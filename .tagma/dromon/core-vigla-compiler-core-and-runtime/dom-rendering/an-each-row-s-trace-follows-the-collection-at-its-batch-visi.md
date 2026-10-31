@@ -10,4 +10,4 @@ sources:
   - kind: file
     ref: packages/vigla/src/runtime/dom/list.ts
 ---
-A keyed row survives reorders, so its diagnostic provenance must follow its current index in the tracing batch's view rather than the index at creation. The provenance read is untracked and suppresses the internal index signal, so tracing reports the application's collection without changing the row's reactive dependencies.
+A keyed row survives reorders, so its diagnostic provenance must follow its current index in the tracing batch's view rather than the index at creation. Tracing projects the memoized collection's recorded input reads and suppresses the internal index signal, so it reports the application's collection without changing the row's reactive dependencies. Re-evaluating the collection for each traced row would repeatedly consume iterables and make tracing quadratic in the row count.
