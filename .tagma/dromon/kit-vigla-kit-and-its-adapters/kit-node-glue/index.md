@@ -18,6 +18,8 @@ fields:
 edges:
   - kind: imports
     to: 01a193f1-4d97-7589-b3a8-69aa6c365dd0
+  - kind: imports
+    to: 01a193f1-4d9b-787a-b261-3bc8d5d68827
 sources:
   - kind: dir
     ref: packages/kit/src/node
