@@ -8,6 +8,9 @@ fields:
     "entries": [
       {
         "at": "index.ts"
+      },
+      {
+        "at": "static.ts"
       }
     ],
     "id": "kit-node"
