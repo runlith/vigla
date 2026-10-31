@@ -77,6 +77,9 @@ fields:
       },
       {
         "at": "values.ts"
+      },
+      {
+        "at": "meta.ts"
       }
     ],
     "id": "dom",
