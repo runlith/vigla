@@ -429,6 +429,22 @@ function single(
 		switch (node.kind) {
 			case 'snippet':
 				break;
+			case 'debug':
+				if (context.dev) {
+					buffer.flush(context, statements);
+					statements.push(
+						b.statement(
+							b.call(
+								b.member(b.id('console'), 'log'),
+								b.object(
+									Object.fromEntries(node.identifiers.map((id) => [id.name, rewrite(context, id)]))
+								)
+							)
+						),
+						{ type: 'DebuggerStatement' }
+					);
+				}
+				break;
 			case 'component':
 				component(context, node, statements, buffer, alone);
 				break;

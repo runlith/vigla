@@ -257,6 +257,7 @@ export function parts(
 				);
 				break;
 			}
+			case 'debug':
 			case 'snippet':
 			case 'constant':
 			case 'declaration':
@@ -376,6 +377,34 @@ export function render(
 		...snippetDeclarations(context, within),
 		...constantDeclarations(context, within, new Set(nodes))
 	];
+	if (context.dev) {
+		for (const node of within) {
+			if (node.kind !== 'debug') continue;
+			const values = b.object(
+				Object.fromEntries(
+					node.identifiers.map((id) => [
+						id.name,
+						runtime(context, 'snapshot', rewrite(context, id))
+					])
+				)
+			);
+			declarations.push(
+				b.statement(
+					runtime(
+						context,
+						'content',
+						b.arrow(
+							[],
+							[
+								b.statement(b.call(b.member(b.id('console'), 'log'), values)),
+								{ type: 'DebuggerStatement' }
+							]
+						)
+					)
+				)
+			);
+		}
+	}
 	const alone = step === null ? standalone(context, nodes) : null;
 	if (alone?.kind === 'component')
 		return [...declarations, ...componentCall(context, alone, anchor)];

@@ -226,7 +226,7 @@ export function asyncStep(nodes: readonly Node[], settled: Settled | undefined):
 }
 
 export function hoisted(node: Node): boolean {
-	return node.kind === 'snippet' || declaring(node);
+	return node.kind === 'snippet' || node.kind === 'debug' || declaring(node);
 }
 
 function apart(node: Node): node is Special | Title {
@@ -600,6 +600,9 @@ export class Template {
 			}
 			case 'declaration':
 				this.expression(node.declaration as unknown as ES.Expression, scope);
+				return;
+			case 'debug':
+				for (const identifier of node.identifiers) this.expression(identifier, scope);
 				return;
 			case 'special':
 				for (const attribute of node.attributes) this.attribute(attribute, scope);
