@@ -211,6 +211,7 @@ export function hydratable<T>(key: string, fn: () => T): T {
 
 export interface HydrationOptions {
 	readonly format?: Format;
+	readonly target?: ParentNode;
 }
 
 export function openHydration(_options?: HydrationOptions): () => void {

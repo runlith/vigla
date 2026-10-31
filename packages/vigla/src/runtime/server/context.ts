@@ -189,5 +189,6 @@ export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, un
 }
 
 export function onDestroy(fn: () => void): void {
-	render?.destroys.push(fn);
+	if (render !== null) render.destroys.push(fn);
+	else if (owner !== null) teardown(fn);
 }

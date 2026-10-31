@@ -1,6 +1,7 @@
 import {
 	getContext,
 	hydratable,
+	onDestroy,
 	openHydration,
 	root,
 	setContext
@@ -15,7 +16,11 @@ export default test({
 		const { default: Main } = await import(/* @vite-ignore */ compiled);
 		const request = root();
 		let released = false;
+		let destroyed = false;
 		request.run(() => {
+			onDestroy(() => {
+				destroyed = true;
+			});
 			setContext('scope', 'request');
 			openHydration();
 			hydratable('load', () => 42);
@@ -35,8 +40,10 @@ export default test({
 		assert.equal(request.run(() => getContext('scope')), 'request');
 
 		assert.equal(released, false);
+		assert.equal(destroyed, false);
 		request.dispose();
 		assert.equal(released, true);
+		assert.equal(destroyed, true);
 		assert.throws(() => setContext('scope', 'none'), /context_without_owner/);
 	}
 });
