@@ -7,7 +7,52 @@ fields:
   {
     "entries": [
       {
-        "at": "."
+        "at": "index.ts"
+      },
+      {
+        "at": "outcomes.ts"
+      },
+      {
+        "at": "request.ts"
+      },
+      {
+        "at": "builder.ts"
+      },
+      {
+        "at": "hooks.ts"
+      },
+      {
+        "at": "env.ts"
+      },
+      {
+        "at": "params.ts"
+      },
+      {
+        "at": "node.ts"
+      },
+      {
+        "at": "value.ts"
+      },
+      {
+        "at": "config.ts"
+      },
+      {
+        "at": "csp.ts"
+      },
+      {
+        "at": "navigation.ts"
+      },
+      {
+        "at": "state.ts"
+      },
+      {
+        "at": "forms.ts"
+      },
+      {
+        "at": "adapter.ts"
+      },
+      {
+        "at": "internal/"
       }
     ],
     "id": "kit-types"

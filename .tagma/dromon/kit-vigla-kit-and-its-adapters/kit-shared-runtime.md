@@ -7,7 +7,22 @@ fields:
   {
     "entries": [
       {
-        "at": "."
+        "at": "diagnostics.ts"
+      },
+      {
+        "at": "errors.ts"
+      },
+      {
+        "at": "warnings.ts"
+      },
+      {
+        "at": "outcomes.ts"
+      },
+      {
+        "at": "pathname.ts"
+      },
+      {
+        "at": "redirect.ts"
       }
     ],
     "id": "kit-shared"

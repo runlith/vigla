@@ -7,7 +7,19 @@ fields:
   {
     "entries": [
       {
-        "at": "."
+        "at": "index.ts"
+      },
+      {
+        "at": "hooks.ts"
+      },
+      {
+        "at": "env.ts"
+      },
+      {
+        "at": "params.ts"
+      },
+      {
+        "at": "adapter.ts"
       }
     ],
     "id": "kit-entries"
@@ -24,5 +36,7 @@ edges:
 sources:
   - kind: dir
     ref: packages/kit/src/entries
+  - kind: file
+    ref: packages/kit/package.json
 ---
 What an app imports from Kit: `@sveltejs/kit` and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` and `$env/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit 3.1's public names; the behaviour lives in those runtimes.
