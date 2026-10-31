@@ -7,7 +7,7 @@ fields:
   {
     "entries": [
       {
-        "at": "."
+        "at": "index.ts"
       }
     ],
     "id": "kit-sync"
