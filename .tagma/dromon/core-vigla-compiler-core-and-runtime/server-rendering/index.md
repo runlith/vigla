@@ -28,6 +28,8 @@ fields:
 edges:
   - kind: imports
     to: 01a18680-7db9-7c10-b0ec-c0d1e0e72677
+  - kind: imports
+    to: 01a18680-7dbf-7586-9429-a423940f08ed
 sources:
   - kind: dir
     ref: packages/vigla/src/runtime/server
