@@ -11,5 +11,7 @@ fields:
 edges:
   - kind: implements
     to: 01a185b6-09f2-796e-90b2-9faeec26636a
+  - kind: waits-on
+    to: 01a1941e-31bd-7fdc-a880-1819c765c21b
 ---
 Provide the core's `getAbortSignal()` through its public runtime and the Svelte adapter, using the existing reaction-lifetime hooks so async work is aborted when its owning reaction reruns or is destroyed. Match Svelte 5.57.3's runes-mode behavior and diagnostics, and record the currently unpassed runtime-runes entries that depend on it.
