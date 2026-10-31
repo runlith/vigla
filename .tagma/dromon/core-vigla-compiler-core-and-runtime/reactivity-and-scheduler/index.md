@@ -38,6 +38,9 @@ fields:
       },
       {
         "at": "latest.ts"
+      },
+      {
+        "at": "trace.ts"
       }
     ],
     "id": "reactivity",
