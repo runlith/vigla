@@ -5,6 +5,7 @@ import type { Server } from './index.ts';
 import { makeTrackable } from '../shared/url.ts';
 import { runRequest } from './scope.ts';
 import { replayFetch } from './replay.ts';
+import { restrictSearch } from './url.ts';
 import * as errors from './errors.ts';
 import * as warnings from './warnings.ts';
 
@@ -71,12 +72,7 @@ export async function serverLoad(
 		(name) =>
 			track('Accessing URL properties', 'the URL changes', () => uses.search_params.add(name))
 	);
-	if (store.state.prerendering || store.state.prerenderDefault === true) {
-		for (const property of ['search', 'searchParams'])
-			Object.defineProperty(url, property, {
-				get: () => errors.url_search_unavailable_prerender({ property })
-			});
-	}
+	restrictSearch(url, store.state);
 	const input: ServerLoadEvent<Record<string, ParamValue>> = {
 		...event,
 		params: new Proxy(event.params, {

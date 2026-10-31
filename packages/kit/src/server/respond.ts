@@ -31,6 +31,7 @@ import { resolutionResponse } from './routing.ts';
 import { FrameworkError } from './failure.ts';
 import { appEvent } from './hooks.ts';
 import { renderDocument } from './document.ts';
+import { restrictSearch } from './url.ts';
 
 export async function respond(
 	server: Server,
@@ -90,6 +91,7 @@ export async function respond(
 		isRendering: false,
 		active: true
 	};
+	restrictSearch(url, state);
 	const event = {
 		cookies: jar.cookies,
 		fetch: (...args: Parameters<typeof fetch>) => fetch(...args),
@@ -198,7 +200,10 @@ export async function respond(
 			state.resolveOptions = resolveOptions;
 			jar.route(slash);
 			const resolvedUrl = new URL(resolvedEvent.url);
-			if (data) resolvedUrl.pathname = normalizePath(resolvedUrl.pathname, slash);
+			if (data) {
+				resolvedUrl.pathname = normalizePath(resolvedUrl.pathname, slash);
+				restrictSearch(resolvedUrl, state);
+			}
 			const store = {
 				...scope.store,
 				event: data ? { ...resolvedEvent, url: resolvedUrl } : resolvedEvent

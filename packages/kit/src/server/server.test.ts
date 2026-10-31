@@ -859,6 +859,72 @@ it('enforces browser fetch CORS and serialized header access during universal lo
 	expect(await headers.text()).toContain('<error>500:load_response_header_not_serialized</error>');
 });
 
+it('rejects prerender query reads outside reroute and preserves route ids on error data', async () => {
+	const app = manifest();
+	app.nodes[2] = async () =>
+		node(
+			2,
+			{ prerender: true, load: ({ url }) => ({ query: url.searchParams.get('q') }) },
+			undefined,
+			layout
+		);
+	app.routes = [
+		route('/api', async () => ({
+			GET: ({ url }) => Response.json({ destination: url.searchParams.get('q') })
+		})),
+		route('/target', async () => ({ prerender: true, GET: () => new Response('target') })),
+		route('/query', async () => ({
+			prerender: true,
+			GET: ({ url }) => Response.json({ query: url.searchParams.get('q') })
+		})),
+		route('/page', null, true)
+	];
+	const server = await start(
+		app,
+		options({
+			reroute: async ({ url, fetch }) =>
+				url.pathname === '/entry'
+					? (await (await fetch('/api?q=/target')).json()).destination
+					: undefined,
+			handle: ({ event, resolve }) => {
+				if (event.url.pathname === '/entry') void event.url.search;
+				return resolve(event);
+			},
+			handleError: ({ error }) => ({
+				status: 400,
+				message: error instanceof Error ? error.message.split('\n')[0]! : 'unknown'
+			})
+		})
+	);
+	const prerendering = () => ({ fallback: false, insideReroute: false, dependencies: new Map() });
+	const hook = await server.respond(
+		request('/entry?q=blocked', { headers: { accept: 'application/json' } }),
+		{ ...address, prerendering: prerendering() }
+	);
+	expect(hook.status).toBe(400);
+	expect(hook.headers.get('x-sveltekit-routeid')).toBe('/target');
+	expect(await hook.json()).toEqual({ status: 400, message: 'url_search_unavailable_prerender' });
+	const endpoint = await server.respond(
+		request('/query?q=blocked', { headers: { accept: 'application/json' } }),
+		{ ...address, prerendering: prerendering() }
+	);
+	expect(endpoint.status).toBe(400);
+	expect(endpoint.headers.get('x-sveltekit-routeid')).toBe('/query');
+	expect(await endpoint.json()).toEqual({
+		status: 400,
+		message: 'url_search_unavailable_prerender'
+	});
+	const data = await server.respond(request('/page/__data.json?q=blocked'), {
+		...address,
+		prerendering: prerendering()
+	});
+	expect(data.headers.get('x-sveltekit-routeid')).toBe('/page');
+	expect((await data.json()).nodes[1].error).toEqual({
+		status: 400,
+		message: 'url_search_unavailable_prerender'
+	});
+});
+
 it('renders the prerender fallback as an absolute-path CSR shell without routing or request hooks', async () => {
 	const app = manifest();
 	app.client = {
