@@ -23,7 +23,7 @@ registerHooks({
 		const resolved = next(specifier, context);
 		if (specifier !== 'svelte/compiler' || context.parentURL?.endsWith(`?${marker}`))
 			return resolved;
-		if (!resolved.url.startsWith('file:') || !resolved.url.endsWith('.js')) return resolved;
+		if (!resolved.url.startsWith('file:') || !/\.[jt]s$/.test(resolved.url)) return resolved;
 		return { ...resolved, url: `${resolved.url}?${marker}`, shortCircuit: true };
 	},
 	load(url, context, next) {

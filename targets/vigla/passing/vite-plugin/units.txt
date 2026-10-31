@@ -1,0 +1,10 @@
+preprocess.spec.js > vitePreprocess > returns function
+preprocess.spec.js > vitePreprocess > script > does not duplicate imports that oxc preserves
+preprocess.spec.js > vitePreprocess > script > preserves import even when identifier appears in string literals
+preprocess.spec.js > vitePreprocess > script > preserves value identifiers from multi-line mixed imports
+preprocess.spec.js > vitePreprocess > script > preserves value imports unused in script but potentially used in template
+preprocess.spec.js > vitePreprocess > script > preserves value specifiers and strips type specifiers from mixed imports
+preprocess.spec.js > vitePreprocess > script > skips non-ts script blocks
+preprocess.spec.js > vitePreprocess > script > strips type-only imports
+preprocess.spec.js > vitePreprocess > style > preprocess with postcss if no lang
+preprocess.spec.js > vitePreprocess > style > produces sourcemap with relative filename
