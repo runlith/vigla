@@ -11,6 +11,8 @@ import {
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { hotComponent } from './hot.ts';
+import { traceStacks } from './inspect.ts';
+import { Positions } from './meta.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
 import { separateCode } from './special.ts';
 import { render, type TemplateContext } from './template.ts';
@@ -27,6 +29,8 @@ export interface ClientOptions extends ModuleOptions {
 	readonly scoping: Scoping;
 	readonly styles: InjectedStyle | null;
 	readonly hmr: boolean;
+	readonly filename: string;
+	readonly discloseVersion: string | false;
 }
 
 function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
@@ -93,11 +97,26 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		groups: new Map(),
 		instance: [],
 		scoping: options.scoping,
+		positions: new Positions(options.dev ? analysis.unit.source : '', options.filename),
+		filename: options.filename,
 		format: options.format,
 		dev: options.dev,
 		aliases: new Map(),
 		renamed: new Map()
 	};
+	traceStacks(context);
+	if (options.discloseVersion !== false) {
+		context.hoisted.push(
+			b.statement(
+				runtime(
+					context,
+					'disclose',
+					b.literal(options.format.global),
+					b.literal(options.discloseVersion)
+				)
+			)
+		);
+	}
 	const imports: ES.ImportDeclaration[] = [];
 	const level: (ES.Statement | ES.ModuleDeclaration)[] = [];
 	for (const statement of analysis.unit.module?.body ?? []) {
@@ -201,8 +220,10 @@ export function clientModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		plain: new Set(),
 		hoisted: [],
 		props: null,
+		filename: analysis.unit.filename ?? '(unknown)',
 		dev: options.dev
 	};
+	traceStacks(context);
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));
 	return b.program([b.namespaceImport(id.name, options.runtime), ...context.hoisted, ...body]);
 }

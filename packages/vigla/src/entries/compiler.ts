@@ -77,6 +77,8 @@ export interface CompileOptions extends ModuleOptions, Mapping {
 	readonly css?: CssOptions;
 	readonly hmr?: boolean;
 	readonly format?: Format;
+	readonly devFilename?: string;
+	readonly discloseVersion?: string | false;
 }
 
 export interface CssOptions {
@@ -145,7 +147,13 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 	const program =
 		options.generate === 'server'
 			? server(analysis, { ...generation, runtime: runtime.server })
-			: client(analysis, { ...generation, runtime: runtime.client, hmr: options.hmr ?? false });
+			: client(analysis, {
+					...generation,
+					runtime: runtime.client,
+					hmr: options.hmr ?? false,
+					filename: options.devFilename ?? unit.filename ?? '(unknown)',
+					discloseVersion: options.discloseVersion ?? '0'
+				});
 	return { js: printed(program, unit, options), css: inject ? null : css, warnings };
 }
 

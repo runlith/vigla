@@ -3,7 +3,6 @@ import {
 	hasAwait,
 	inspection,
 	isSignal,
-	type Inspection,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -15,6 +14,7 @@ import type { Rune } from '../ir/port.ts';
 import type { RuntimeNames } from '../ir/runtime.ts';
 import { classBody, fieldValue, privateField } from './classes.ts';
 import { destructured } from './patterns.ts';
+import { inspectCall, tagged, tracedFunction } from './inspect.ts';
 
 export interface Context {
 	readonly analysis: ScriptAnalysis;
@@ -25,6 +25,8 @@ export interface Context {
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
 	readonly fields?: ReadonlyMap<string, StateField>;
+	readonly className?: string;
+	readonly filename?: string;
 	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
 	readonly saved?: ReadonlySet<ES.Node>;
 	readonly dev?: boolean;
@@ -296,29 +298,6 @@ function effectCall(
 	}
 }
 
-function inspectCall(
-	context: Context,
-	inspected: Inspection,
-	next: <T extends ES.Node>(node: T) => T
-): ES.Expression {
-	if (!context.dev)
-		return { type: 'UnaryExpression', operator: 'void', prefix: true, argument: b.literal(0) };
-	const values: ES.ArrayExpression = {
-		type: 'ArrayExpression',
-		elements: inspected.args.map((argument) => next(argument))
-	};
-	const rest = b.id(context.names.unique('$$args'));
-	const inspector =
-		inspected.inspector === null ? b.member(b.id('console'), 'log') : next(inspected.inspector);
-	const forward = b.arrow(
-		[{ type: 'RestElement', argument: rest }],
-		b.call(inspector, { type: 'SpreadElement', argument: rest })
-	);
-	const args: ES.Expression[] = [b.arrow([], values), forward];
-	if (inspected.inspector === null) args.push(b.literal(true));
-	return runtime(context, 'inspect', ...args);
-}
-
 function assignField(
 	context: Context,
 	node: ES.AssignmentExpression,
@@ -326,8 +305,12 @@ function assignField(
 ): ES.Expression | undefined {
 	const left = node.left as ES.MemberExpression;
 	const declared =
-		left.object.type === 'ThisExpression' && !left.computed && left.property.type === 'Identifier'
-			? context.fields?.get(left.property.name)
+		left.object.type === 'ThisExpression' &&
+		!left.computed &&
+		(left.property.type === 'Identifier' || left.property.type === 'PrivateIdentifier')
+			? context.fields?.get(
+					`${left.property.type === 'PrivateIdentifier' ? '#' : ''}${left.property.name}`
+				)
 			: undefined;
 	if (declared !== undefined && declared.node === node) {
 		return {
@@ -372,6 +355,19 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			});
 		}
 		switch (current.type) {
+			case 'FunctionDeclaration':
+			case 'FunctionExpression':
+			case 'ArrowFunctionExpression':
+				return tracedFunction(context, current, next);
+			case 'ClassDeclaration':
+			case 'ClassExpression': {
+				const inner = { ...context, className: current.id?.name ?? '(anonymous)' };
+				return {
+					...current,
+					superClass: current.superClass == null ? current.superClass : next(current.superClass),
+					body: rewrite(inner, current.body)
+				};
+			}
 			case 'Identifier': {
 				const binding = references.get(current);
 				if (binding === undefined) return undefined;
@@ -474,7 +470,19 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						continue;
 					}
 					const binding = declarations.get(declarator.id);
-					declarators.push({ ...declarator, init: declare(context, rune, binding, init, next) });
+					const value = declare(context, rune, binding, init, next);
+					declarators.push({
+						...declarator,
+						init:
+							rune === '$props.id'
+								? value
+								: tagged(
+										context,
+										value,
+										declarator.id.name,
+										binding !== undefined && isSignal(binding)
+									)
+					});
 				}
 				if (!changed) return current;
 				if (declarators.length === 0) return { type: 'EmptyStatement' } as ES.EmptyStatement;

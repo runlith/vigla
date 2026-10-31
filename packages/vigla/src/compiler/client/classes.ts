@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import { spanOf, unsupported, type StateField } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import { runtime, type Context } from './script.ts';
+import { tagged } from './inspect.ts';
 
 type Next = <T extends ES.Node>(node: T) => T;
 
@@ -16,15 +17,31 @@ export function fieldValue(context: Context, field: StateField, next: Next): ES.
 	const [first] = field.value.arguments;
 	if (first?.type === 'SpreadElement') throw unsupported(spanOf(first), 'A spread rune argument');
 	const value = first === undefined ? b.id('undefined') : next(first);
+	const key =
+		field.node.type === 'PropertyDefinition'
+			? field.node.key
+			: (field.node.left as ES.MemberExpression).property;
+	const name =
+		key.type === 'PrivateIdentifier'
+			? `#${key.name}`
+			: key.type === 'Identifier'
+				? key.name
+				: key.type === 'Literal'
+					? String(key.value)
+					: '';
+	const tag = (value: ES.Expression): ES.Expression =>
+		tagged(context, value, `${context.className ?? '(anonymous)'}.${name}`, true);
 	switch (field.rune) {
 		case '$state':
-			return runtime(context, 'state', primitive(value) ? value : runtime(context, 'proxy', value));
+			return tag(
+				runtime(context, 'state', primitive(value) ? value : runtime(context, 'proxy', value))
+			);
 		case '$state.raw':
-			return runtime(context, 'state', value);
+			return tag(runtime(context, 'state', value));
 		case '$derived':
-			return runtime(context, 'derived', b.arrow([], value));
+			return tag(runtime(context, 'derived', b.arrow([], value)));
 		case '$derived.by':
-			return runtime(context, 'derived', value);
+			return tag(runtime(context, 'derived', value));
 	}
 }
 
@@ -114,6 +131,13 @@ export function classBody(
 						? item.key.value
 						: null;
 		const field = name === null ? undefined : fields.get(name);
+		if (
+			field?.node.type === 'AssignmentExpression' &&
+			item.value == null &&
+			name !== null &&
+			!name.startsWith('#')
+		)
+			continue;
 		if (field === undefined || field.node !== item) {
 			members.push(next(item));
 			continue;

@@ -25,6 +25,7 @@ import {
 import { constantDeclarations } from './constants.ts';
 import { dynamicCall } from './dynamic.ts';
 import { elementPart } from './element.ts';
+import type { Positions } from './meta.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
 export interface TemplateContext extends Context {
@@ -34,6 +35,7 @@ export interface TemplateContext extends Context {
 	readonly instance: ES.Statement[];
 	readonly scoping: Scoping;
 	readonly format: Format;
+	readonly positions: Positions;
 }
 
 export function scopeHash(context: TemplateContext, node: Host): string | null {
@@ -178,7 +180,7 @@ export function htmlCall(
 }
 
 function anchorPart(setup: (node: ES.Identifier, emit: Emit) => void): Part {
-	return { html: '<!>', hint: 'node', text: false, referenced: true, children: [], setup };
+	return { html: '<!---->', hint: 'node', text: false, referenced: true, children: [], setup };
 }
 
 export function parts(

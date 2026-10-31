@@ -20,6 +20,7 @@ import { binding } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { event, handler, isEvent } from './events.ts';
 import { rewrite, runtime } from './script.ts';
+import { location } from './meta.ts';
 import { animationCall, transitionCall } from './transitions.ts';
 import {
 	cleaned,
@@ -411,8 +412,11 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const namespace = context.component.namespaces.get(node) ?? parent;
 	const html = namespace === 'html';
 	const custom = node.name.includes('-');
-	let markup = `<${node.name}`;
+	const tag = html && !custom ? node.name.toLowerCase() : node.name;
+	let markup = `<${tag}`;
 	const setups: ((element: ES.Identifier, emit: Emit) => void)[] = [];
+	if (context.dev)
+		setups.push((element, emit) => emit.init.push(...location(context, node, element)));
 	const hasSpread = node.attributes.some((attribute) => attribute.kind === 'spread');
 	for (const attribute of node.attributes) {
 		if (attribute.kind === 'binding') setups.push(binding(context, node, attribute));
@@ -479,8 +483,8 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			if (isStatic(attribute.value) && !unsettable.has(name) && !custom) {
 				markup +=
 					attribute.value.kind === 'boolean'
-						? ` ${attribute.name}`
-						: ` ${attribute.name}="${escapeAttribute(staticText(attribute.value))}"`;
+						? ` ${lower}=""`
+						: ` ${lower}="${escapeAttribute(staticText(attribute.value))}"`;
 				continue;
 			}
 			const reactive = valueReactive(context, attribute.value);
@@ -505,7 +509,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			if (name !== null) {
 				markup +=
 					hash === null && classValue?.kind === 'boolean'
-						? ' class'
+						? ' class=""'
 						: ` class="${escapeAttribute(name)}"`;
 			}
 		}
@@ -515,11 +519,11 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		} else if (styleValue !== null) {
 			markup +=
 				styleValue.kind === 'boolean'
-					? ' style'
+					? ' style=""'
 					: ` style="${escapeAttribute(staticText(styleValue))}"`;
 		}
 	}
-	markup += '>';
+	markup += isVoid(tag) ? '/>' : '>';
 	const childNamespace = node.name === 'foreignObject' ? 'html' : namespace;
 	const body = cleaned(context, node.body);
 	const [only] = body;
@@ -532,7 +536,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	}
 	const children = controlled ? [] : parts(context, body, childNamespace);
 	for (const child of children) markup += child.html;
-	if (!isVoid(node.name)) markup += `</${node.name}>`;
+	if (!isVoid(tag)) markup += `</${tag}>`;
 	for (const attribute of node.attributes) {
 		if (attribute.kind === 'transition') {
 			setups.push((element, emit) => emit.init.push(transitionCall(context, element, attribute)));

@@ -45,6 +45,7 @@ export { html } from '../../runtime/dom/html.ts';
 export { head, title } from '../../runtime/dom/head.ts';
 export { element } from '../../runtime/dom/element.ts';
 export { inspect } from '../../runtime/dom/inspect.ts';
+export { disclose, frame, locate } from '../../runtime/dom/meta.ts';
 export { exclude, fallback, toArray } from '../../runtime/dom/values.ts';
 export {
 	bindActiveElement,
@@ -81,6 +82,7 @@ export {
 	tracking
 } from '../../runtime/reactivity/effects.ts';
 export { latest } from '../../runtime/reactivity/latest.ts';
+export { tag, tagProxy, trace, traceStacks } from '../../runtime/reactivity/trace.ts';
 export { proxy, snapshot } from '../../runtime/reactivity/proxy.ts';
 export { derived, set, state, update, updatePre } from '../../runtime/reactivity/sources.ts';
 export { get } from '../../runtime/reactivity/tracking.ts';

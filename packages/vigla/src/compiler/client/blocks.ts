@@ -11,6 +11,7 @@ import type {
 	UnkeyedList
 } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
+import { scoped } from './meta.ts';
 import { cleaned, render, type TemplateContext } from './template.ts';
 
 export type Block = Branch | KeyedList | UnkeyedList | KeyedBlock | AsyncBlock;
@@ -209,13 +210,13 @@ export function blockCode(
 ): ES.Statement[] {
 	switch (node.kind) {
 		case 'branch':
-			return branchCode(context, node, anchor);
+			return scoped(context, node, 'if', branchCode(context, node, anchor));
 		case 'keyed-list':
 		case 'unkeyed-list':
-			return listCode(context, node, anchor);
+			return scoped(context, node, 'each', listCode(context, node, anchor));
 		case 'keyed-block':
-			return keyCode(context, node, anchor);
+			return scoped(context, node, 'key', keyCode(context, node, anchor));
 		case 'async-block':
-			return awaitCode(context, node, anchor);
+			return scoped(context, node, 'await', awaitCode(context, node, anchor));
 	}
 }

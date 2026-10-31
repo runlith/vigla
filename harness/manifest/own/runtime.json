@@ -99,6 +99,11 @@
 		"teardown-guard-rows": {
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 10 (agents column): on upstream 5.57.3 the rows of a column whose seat an attachment teardown released still redraw — TypeError reading `name` of null"
-		}
+		},
+		"trace-var-parameter": {
+			"status": "difference",
+			"reason": "A var redeclaration in a traced function shares its parameter binding: upstream 5.57.3 moves it into the trace thunk and renders an empty paragraph instead of 42; the production variant passes"
+		},
+		"trace-var-parameter-production": "contract"
 	}
 }

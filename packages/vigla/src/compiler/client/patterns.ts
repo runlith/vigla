@@ -3,6 +3,7 @@ import { hasAwait, isSignal, spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Rune } from '../ir/port.ts';
 import { declare, primitive, rewrite, runtime, type Context } from './script.ts';
+import { tagged } from './inspect.ts';
 
 export interface Path {
 	readonly name: ES.Identifier;
@@ -142,7 +143,12 @@ export function destructured(
 		} else {
 			value = runtime(context, 'derived', b.arrow([], value));
 		}
-		result.push({ type: 'VariableDeclarator', id: path.name, init: value });
+		const binding = context.analysis.declarations.get(path.name);
+		result.push({
+			type: 'VariableDeclarator',
+			id: path.name,
+			init: tagged(context, value, path.name.name, binding !== undefined && isSignal(binding))
+		});
 	}
 	return result;
 }

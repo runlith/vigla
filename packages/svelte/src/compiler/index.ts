@@ -212,6 +212,8 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			generate: generated(options),
 			runtime,
 			format: { global: '__svelte', meta: '__svelte_meta', cssWrapper: 'svelte-css-wrapper' },
+			devFilename: relativeFilename(options),
+			discloseVersion: options.discloseVersion === false ? false : '5',
 			name,
 			css,
 			dev: options.dev,

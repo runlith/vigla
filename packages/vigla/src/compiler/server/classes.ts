@@ -121,8 +121,11 @@ export function constructorField(
 	const left = node.left;
 	if (left.type !== 'MemberExpression' || left.object.type !== 'ThisExpression' || left.computed)
 		return undefined;
-	if (left.property.type !== 'Identifier') return undefined;
-	const field = context.fields?.get(left.property.name);
+	if (left.property.type !== 'Identifier' && left.property.type !== 'PrivateIdentifier')
+		return undefined;
+	const field = context.fields?.get(
+		`${left.property.type === 'PrivateIdentifier' ? '#' : ''}${left.property.name}`
+	);
 	return field?.node === node ? field : undefined;
 }
 

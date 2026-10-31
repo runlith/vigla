@@ -259,8 +259,8 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 		if (isStatic(attribute.value)) {
 			buffer.text(
 				attribute.value.kind === 'boolean'
-					? ` ${attribute.name}`
-					: ` ${attribute.name}="${escapeAttribute(staticText(attribute.value))}"`
+					? ` ${name}=""`
+					: ` ${name}="${escapeAttribute(staticText(attribute.value))}"`
 			);
 			continue;
 		}
@@ -289,7 +289,7 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 		if (name !== null) {
 			buffer.text(
 				hash === null && classValue?.kind === 'boolean'
-					? ' class'
+					? ' class=""'
 					: ` class="${escapeAttribute(name)}"`
 			);
 		}
@@ -302,7 +302,7 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 	} else if (styleValue !== null) {
 		buffer.text(
 			styleValue.kind === 'boolean'
-				? ' style'
+				? ' style=""'
 				: ` style="${escapeAttribute(staticText(styleValue))}"`
 		);
 	}
@@ -335,10 +335,12 @@ function element(
 	statements: ES.Statement[],
 	buffer: Buffer
 ): void {
-	buffer.text(`<${node.name}`);
+	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
+	const tag = html && !node.name.includes('-') ? node.name.toLowerCase() : node.name;
+	buffer.text(`<${tag}`);
 	const { content, raw, select } = attributes(context, node, buffer);
-	buffer.text('>');
-	if (isVoid(node.name)) return;
+	buffer.text(isVoid(tag) ? '/>' : '>');
+	if (isVoid(tag)) return;
 	if (content !== null) {
 		buffer.value(raw ? runtime(context, 'html', content) : runtime(context, 'escape', content));
 	} else if (select !== null) {
@@ -356,7 +358,7 @@ function element(
 	} else {
 		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
 	}
-	buffer.text(`</${node.name}>`);
+	buffer.text(`</${tag}>`);
 }
 
 export function fragmentCode(

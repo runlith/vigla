@@ -6,6 +6,7 @@ import { bindThisCall } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { spread, valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
+import { location } from './meta.ts';
 import { cleaned, flush, render, scopeHash, type Emit, type TemplateContext } from './template.ts';
 import { transitionCall } from './transitions.ts';
 
@@ -30,7 +31,7 @@ export function dynamicCall(
 	const namespace = context.component.namespaces.get(node) ?? 'html';
 	const element = b.id(context.names.unique('$$element'));
 	const inner = b.id(context.names.unique('$$anchor'));
-	const emit: Emit = { init: [], update: [], thunks: [], params: [] };
+	const emit: Emit = { init: location(context, node, element), update: [], thunks: [], params: [] };
 	let attributes = scopeHash(context, node) !== null;
 	const transitions: Transition[] = [];
 	for (const attribute of node.attributes) {

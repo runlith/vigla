@@ -6,6 +6,7 @@ import { bindThisCall } from './bindings.ts';
 import { snippetParameters } from './parameters.ts';
 import { valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
+import { scoped } from './meta.ts';
 import {
 	cleaned,
 	isDynamic,
@@ -176,7 +177,7 @@ export function styledComponent(
 	if (properties.length === 0) return null;
 	const tag = svg ? 'g' : context.format.cssWrapper;
 	return {
-		html: `<${tag}${svg ? '' : ' style="display: contents"'}><!></${tag}>`,
+		html: `<${tag}${svg ? '' : ' style="display: contents"'}><!----></${tag}>`,
 		hint: tag,
 		text: false,
 		referenced: true,
@@ -237,15 +238,19 @@ export function componentCall(
 	);
 	const bound = (call: ES.Expression): ES.Expression =>
 		self === undefined ? call : bindThisCall(context, call, self.expression);
+	const referenceSpan = spanOf(node.reference);
+	const tag = context.component.unit.source.slice(referenceSpan.start, referenceSpan.end);
+	const within = (body: ES.Statement[]): ES.Statement[] =>
+		scoped(context, node, 'component', body, { componentTag: b.literal(tag) });
 	if (!isDynamicComponent(context, node)) {
-		return [
+		return within([
 			...declarations,
 			b.statement(bound(b.call(rewrite(context, node.reference), anchor, props)))
-		];
+		]);
 	}
 	const inner = b.id(context.names.unique('$$anchor'));
 	const reference = b.id(context.names.unique('$$component'));
-	return [
+	return within([
 		...declarations,
 		b.statement(
 			runtime(
@@ -256,7 +261,7 @@ export function componentCall(
 				b.arrow([inner, reference], bound(b.call(reference, inner, props)))
 			)
 		)
-	];
+	]);
 }
 
 export function boundaryCall(
@@ -367,8 +372,12 @@ export function renderCall(
 		return b.arrow([], rewrite(context, argument));
 	});
 	if (isStaticRender(context, node)) {
-		return [b.statement(b.call(call.callee as ES.Identifier, anchor, ...args))];
+		return scoped(context, node, 'render', [
+			b.statement(b.call(call.callee as ES.Identifier, anchor, ...args))
+		]);
 	}
 	const callee = rewrite(context, call.callee as ES.Expression);
-	return [b.statement(runtime(context, 'render', anchor, b.arrow([], callee), ...args))];
+	return scoped(context, node, 'render', [
+		b.statement(runtime(context, 'render', anchor, b.arrow([], callee), ...args))
+	]);
 }
