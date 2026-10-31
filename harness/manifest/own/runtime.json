@@ -56,6 +56,8 @@
 		},
 		"key-undefined-outro": "contract",
 		"leading-nested-block": "contract",
+		"merge-combined-choice": "contract",
+		"merge-nearest-writer": "contract",
 		"owner-context": {
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): context set on an owner at any time, read in a detached root under it and after an `await`, with `createContext`; upstream 5.57.3 has no `vigla` entry, so the sample cannot run there"

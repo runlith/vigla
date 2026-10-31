@@ -2,8 +2,10 @@ import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import { OPEN_ELSE } from '../../shared/markers.ts';
 import {
+	alias,
 	atCommit,
 	atDiscard,
+	atMerge,
 	processed,
 	skip,
 	unskip,
@@ -238,16 +240,27 @@ class List<T> {
 		if (known) return;
 		atCommit(() => this.#commit(batch));
 		atDiscard(() => this.#discard(batch));
+		atMerge((from, into) => this.#merge(from, into));
 	}
 
-	#commit(batch: Batch): void {
+	#merge(from: Batch, into: Batch): void {
+		const stages = this.#stages;
+		const stage = stages?.get(from);
+		if (stages === null || stage === undefined) return;
+		stages.delete(from);
+		if (from.order > into.order || !stages.has(into)) stages.set(into, stage);
+	}
+
+	#commit(given: Batch): void {
+		const batch = alias(given);
 		const stage = this.#stages?.get(batch);
 		if (stage === undefined || this.#block?.destroyed === true) return;
 		this.#stages?.delete(batch);
 		this.#apply(stage);
 	}
 
-	#discard(batch: Batch): void {
+	#discard(given: Batch): void {
+		const batch = alias(given);
 		if (this.#stages?.delete(batch) !== true || this.#block?.destroyed === true) return;
 		this.#prune(this.#needed());
 	}

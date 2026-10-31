@@ -13,9 +13,11 @@ import {
 	type Batch
 } from './batch.ts';
 import {
+	BLOCK,
 	BRANCH,
 	CLEAN,
 	ROOT,
+	equal,
 	isDerived,
 	type Effect,
 	type Reaction,
@@ -68,6 +70,8 @@ function park(batch: Batch): void {
 	batch.effects.length = 0;
 	batch.members = batch.forced = batch.skipped = batch.shown = batch.waits = null;
 	batch.content = batch.deferred = batch.discards = null;
+	batch.runs = null;
+	batch.merges = null;
 	for (const other of pending) other.waits?.delete(batch);
 	open?.waits?.delete(batch);
 	detach(batch);
@@ -100,7 +104,7 @@ export function viewOf(batch: Batch): View {
 		checked: new Map(),
 		reached: new Map()
 	};
-	const own = batch.after;
+	const own = (batch.after ??= materialize(batch));
 	const hide = (other: Batch): void => {
 		if (other === batch || other.done) return;
 		if (other.fork) {
@@ -121,7 +125,7 @@ export function viewOf(batch: Batch): View {
 	if (open !== null) hide(open);
 	if (own !== null)
 		for (const [source, value] of own)
-			if (!Object.is(source.v, value)) given.values.set(source, value);
+			if (!equal(source, source.v, value)) given.values.set(source, value);
 	return given;
 }
 
@@ -190,8 +194,17 @@ function fold(from: Batch, into: Batch): void {
 	if (from.content !== null) (into.content ??= []).push(...from.content);
 	if (from.deferred !== null) (into.deferred ??= []).push(...from.deferred);
 	for (const effect of from.forced ?? []) (into.forced ??= new Set()).add(effect);
-	for (const effect of from.skipped ?? []) (into.skipped ??= new Set()).add(effect);
-	for (const effect of from.shown ?? []) (into.shown ??= new Set()).add(effect);
+	for (const effect of from.skipped ?? []) {
+		if (older && (into.skipped?.has(effect) || into.shown?.has(effect))) continue;
+		(into.skipped ??= new Set()).add(effect);
+		into.shown?.delete(effect);
+	}
+	for (const effect of from.shown ?? []) {
+		if (from.skipped?.has(effect)) continue;
+		if (older && (into.skipped?.has(effect) || into.shown?.has(effect))) continue;
+		(into.shown ??= new Set()).add(effect);
+		into.skipped?.delete(effect);
+	}
 	for (const [effect, count] of from.owners ?? []) {
 		const owners = (into.owners ??= new Map());
 		owners.set(effect, (owners.get(effect) ?? 0) + count);
@@ -202,6 +215,18 @@ function fold(from: Batch, into: Batch): void {
 	from.work = 0;
 	from.done = true;
 	from.into = into;
+	if (from.merges !== null) {
+		for (const transfer of from.merges) transfer(from, into);
+		(into.merges ??= []).push(...from.merges);
+	}
+	if (from.runs !== null) {
+		const runs = (into.runs ??= new Map());
+		for (const [effect, run] of from.runs) {
+			runs.get(effect)?.supersede();
+			run.adopt(into);
+			runs.set(effect, run);
+		}
+	}
 	const index = pending.indexOf(from);
 	if (index !== -1) pending.splice(index, 1);
 	for (const [writer, effects] of from.waits ?? []) record(into, alias(writer), effects);
@@ -212,13 +237,40 @@ function fold(from: Batch, into: Batch): void {
 	release(from);
 }
 
-export function absorb(batch: Batch): Batch {
+function mergedEffects(
+	batch: Batch,
+	changed: readonly Source[],
+	reused: ReadonlySet<Effect>
+): void {
+	const seen = new Set<Source>();
+	const visit = (source: Source): void => {
+		if (seen.has(source)) return;
+		seen.add(source);
+		for (const reaction of source.reactions ?? []) {
+			if (isDerived(reaction)) visit(reaction);
+			else {
+				const effect = reaction as Effect;
+				if (effect.kind === BLOCK && !reused.has(effect)) force(batch, effect);
+			}
+		}
+	};
+	for (const source of changed) visit(source);
+}
+
+export function absorb(batch: Batch, content: readonly Effect[]): boolean {
+	let target: Batch | null = null;
 	for (const held of pending) {
-		if (held.fork || held.done || !intersects(batch, held)) continue;
-		fold(batch, held);
-		return held;
+		if (held.order >= batch.order || held.fork || held.done || held.phase !== null) continue;
+		if (target !== null && held.order <= target.order) continue;
+		if (intersects(batch, held)) target = held;
 	}
-	return batch;
+	if (target === null) return false;
+	hold(batch, content);
+	const changed = [...batch.before.keys()];
+	const reused = new Set(batch.runs?.keys());
+	fold(batch, target);
+	mergedEffects(target, changed, reused);
+	return true;
 }
 
 export function rescue(batch: Batch, effects: readonly Effect[]): void {
@@ -299,14 +351,11 @@ function rebase(batch: Batch, committed: Batch, changed: readonly Source[]): voi
 	};
 	const after = batch.after;
 	for (const source of changed) {
-		if (
-			!batch.fork &&
-			after !== null &&
-			after.has(source) &&
-			!Object.is(source.v, after.get(source))
-		) {
-			batch.before.delete(source);
-			after.delete(source);
+		if (after !== null && after.has(source)) {
+			const value = committed.after?.has(source) ? committed.after.get(source) : source.v;
+			if (batch.fork || batch.order > committed.order || equal(source, value, after.get(source)))
+				continue;
+			after.set(source, value);
 		}
 		visit(source);
 	}

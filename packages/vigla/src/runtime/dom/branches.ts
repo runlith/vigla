@@ -1,4 +1,13 @@
-import { atCommit, atDiscard, processed, skip, unskip, type Batch } from '../reactivity/batch.ts';
+import {
+	alias,
+	atCommit,
+	atDiscard,
+	atMerge,
+	processed,
+	skip,
+	unskip,
+	type Batch
+} from '../reactivity/batch.ts';
 import { hide, show as unhide } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
@@ -112,9 +121,19 @@ export class Branches<K> {
 		if (known) return;
 		atCommit(() => this.#commit(batch));
 		atDiscard(() => this.#discard(batch));
+		atMerge((from, into) => this.#merge(from, into));
 	}
 
-	#commit(batch: Batch): void {
+	#merge(from: Batch, into: Batch): void {
+		const stages = this.#stages;
+		if (stages === null || !stages.has(from)) return;
+		const key = stages.get(from) as K;
+		stages.delete(from);
+		if (from.order > into.order || !stages.has(into)) stages.set(into, key);
+	}
+
+	#commit(given: Batch): void {
+		const batch = alias(given);
 		const stages = this.#stages;
 		if (stages === null || !stages.has(batch) || this.#block?.destroyed === true) return;
 		const key = stages.get(batch) as K;
@@ -122,7 +141,8 @@ export class Branches<K> {
 		this.#switch(key);
 	}
 
-	#discard(batch: Batch): void {
+	#discard(given: Batch): void {
+		const batch = alias(given);
 		if (this.#stages?.delete(batch) !== true || this.#block?.destroyed === true) return;
 		this.#prune();
 	}

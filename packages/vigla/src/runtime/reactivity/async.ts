@@ -5,6 +5,11 @@ import type { Boundary, Effect, Source } from './graph.ts';
 import { source } from './sources.ts';
 import { get, owner } from './tracking.ts';
 
+export interface AsyncRun {
+	supersede(): void;
+	adopt(batch: Batch): void;
+}
+
 interface Tally {
 	units: number;
 	source: Source<number> | null;
@@ -90,7 +95,7 @@ export function work(): () => void {
 export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>> {
 	if (owner === null) asyncOrphan();
 	const signal = source<T>(undefined as T);
-	const latest = new Map<Batch, object>();
+	const latest = new Map<Batch, AsyncRun>();
 	let resolved = false;
 	let initial = true;
 	let first!: (source: Source<T>) => void;
@@ -101,10 +106,28 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 	});
 	const effect: Effect = block(() => {
 		const batch = current();
-		const token = {};
-		latest.set(batch, token);
+		latest.get(batch)?.supersede();
 		const done = initial ? null : work();
 		initial = false;
+		let target = batch;
+		let owned = true;
+		const token: AsyncRun = {
+			supersede() {
+				if (!owned) return;
+				owned = false;
+				if (latest.get(target) === token) latest.delete(target);
+				done?.();
+			},
+			adopt(into) {
+				if (owned) {
+					latest.delete(target);
+					latest.set(into, token);
+				}
+				target = into;
+			}
+		};
+		latest.set(batch, token);
+		(batch.runs ??= new Map()).set(owner as Effect, token);
 		let promise: Promise<T>;
 		try {
 			promise = Promise.resolve(fn());
@@ -112,9 +135,10 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			promise = Promise.reject(error);
 		}
 		const own = (): boolean => {
-			if (latest.get(batch) !== token) return false;
-			latest.delete(batch);
-			return !effect.destroyed && !alias(batch).discarded;
+			if (!owned || latest.get(target) !== token) return false;
+			owned = false;
+			latest.delete(target);
+			return !effect.destroyed && !alias(target).discarded;
 		};
 		promise.then(
 			(value) => {

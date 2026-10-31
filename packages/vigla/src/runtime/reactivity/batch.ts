@@ -1,6 +1,6 @@
 import { DEV } from 'esm-env';
 import { applied, forgotten, updated } from './trace.ts';
-import { parked, showing } from './async.ts';
+import { parked, showing, type AsyncRun } from './async.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -9,6 +9,7 @@ import {
 	EFFECT,
 	MAYBE,
 	TEMPLATE,
+	equal,
 	isDerivedReaction,
 	stamp,
 	type Effect,
@@ -18,6 +19,7 @@ import { offscreen, run } from './effects.ts';
 import { queueEager, runEager } from './eager.ts';
 import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
+import { clear, History, prior, record } from './history.ts';
 import {
 	absorb,
 	finish,
@@ -30,7 +32,6 @@ import {
 	viewOf
 } from './held.ts';
 import {
-	NONE,
 	conceal,
 	forget,
 	owner,
@@ -41,42 +42,23 @@ import {
 	stale,
 	untrack,
 	view,
-	written,
-	type Prior
+	written
 } from './tracking.ts';
 
 export { orphaned, revisit } from './held.ts';
+export { detach } from './history.ts';
 
 type Phase = 'structure' | 'commit' | 'content' | 'effects';
+export type Transfer = (from: Batch, into: Batch) => void;
 
 const limit = 1000;
 
-let batches = 0;
-
-const alive: Batch[] = [];
-
-let spare: unknown[] | null = null;
-
-function fresh(): unknown[] {
-	const found = spare ?? [];
-	spare = null;
-	return found;
-}
-
-function recycle(log: unknown[]): void {
-	log.length = 0;
-	spare ??= log;
-}
-
-export class Batch {
-	readonly order = ++batches;
-	log: unknown[] = fresh();
-	map: Map<Source, unknown> | null = null;
-	prior: Prior | null = null;
-	crowded = false;
+export class Batch extends History {
 	after: Map<Source, unknown> | null = null;
+	runs: Map<Effect, AsyncRun> | null = null;
 	readonly queued: Effect[] = [];
 	readonly commits: (() => void)[] = [];
+	merges: Transfer[] | null = null;
 	readonly effects: Effect[] = [];
 	discards: (() => void)[] | null = null;
 	content: Effect[] | null = null;
@@ -97,75 +79,13 @@ export class Batch {
 	held = false;
 	done = false;
 	discarded = false;
-
-	constructor() {
-		alive.push(this);
-	}
-
-	get before(): Map<Source, unknown> {
-		let map = this.map;
-		if (map === null) {
-			map = this.map = new Map();
-			const log = this.log;
-			for (let index = 0; index < log.length; index += 2) {
-				const source = log[index] as Source;
-				if (!map.has(source)) map.set(source, log[index + 1]);
-			}
-			recycle(log);
-			this.log = [];
-		}
-		return map;
-	}
-}
-
-function record(batch: Batch, source: Source, previous: unknown): void {
-	const map = batch.map;
-	if (map !== null) {
-		if (!map.has(source)) map.set(source, previous);
-		return;
-	}
-	const logged = source.logged;
-	if (logged === batch.order) return;
-	const oldest = alive[0];
-	if (oldest !== undefined && logged >= oldest.order) {
-		for (const other of alive)
-			if (other.order === logged) {
-				other.crowded = true;
-				break;
-			}
-	}
-	const log = batch.log;
-	source.logged = batch.order;
-	source.slot = log.length + 1;
-	log.push(source, previous);
-}
-
-function priorOf(batch: Batch, source: Source): unknown {
-	const map = batch.map;
-	if (map === null && !batch.crowded)
-		return source.logged === batch.order ? batch.log[source.slot] : NONE;
-	const before = map ?? batch.before;
-	return before.has(source) ? before.get(source) : NONE;
-}
-
-function prior(batch: Batch): Prior {
-	return (batch.prior ??= (source) => priorOf(batch, source));
 }
 
 export function release(batch: Batch): void {
 	if (DEV) forgotten(batch);
-	const index = alive.indexOf(batch);
-	if (index !== -1) alive.splice(index, 1);
-	recycle(batch.log);
-	batch.log = [];
-	batch.map = null;
-	batch.prior = null;
-}
-
-export function detach(batch: Batch): void {
-	void batch.before;
-	const index = alive.indexOf(batch);
-	if (index !== -1) alive.splice(index, 1);
+	batch.runs = null;
+	batch.merges = null;
+	clear(batch);
 }
 
 export let open: Batch | null = null;
@@ -358,7 +278,7 @@ let staging = false;
 function staged<T>(fork: Batch, source: Source<T>, value: T): T {
 	const after = (fork.after ??= new Map());
 	const shown = after.has(source) ? after.get(source) : source.v;
-	if (Object.is(shown, value)) return value;
+	if (equal(source, shown as T, value)) return value;
 	record(fork, source, source.v);
 	after.set(source, value);
 	if (DEV) updated(source, value, fork);
@@ -379,7 +299,7 @@ export function write<T>(source: Source<T>, value: T): T {
 	const target = receiver();
 	if (target !== null && target.fork) return staged(target, source, value);
 	const previous = source.v;
-	if (Object.is(previous, value)) return value;
+	if (equal(source, previous, value)) return value;
 	const batch = target ?? opening();
 	record(batch, source, previous);
 	if (batch.after !== null) batch.after.set(source, value);
@@ -400,7 +320,7 @@ export function write<T>(source: Source<T>, value: T): T {
 export function apply(batch: Batch): void {
 	for (const [source, value] of batch.after ?? []) {
 		batch.before.set(source, source.v);
-		if (Object.is(source.v, value)) continue;
+		if (equal(source, source.v, value)) continue;
 		source.v = value;
 		source.wv = stamp();
 		if (DEV) applied(source, batch);
@@ -427,6 +347,10 @@ export function atCommit(apply: () => void): void {
 export function atDiscard(fn: () => void): void {
 	if (processing !== null && processing.phase === 'structure')
 		(processing.discards ??= []).push(fn);
+}
+
+export function atMerge(fn: Transfer): void {
+	if (processing !== null && processing.phase === 'structure') (processing.merges ??= []).push(fn);
 }
 
 export function skip(effect: Effect): void {
@@ -537,8 +461,7 @@ function commit(batch: Batch): void {
 	}
 }
 
-export function process(given: Batch): void {
-	const batch = given.started || given.fork ? given : absorb(given);
+export function process(batch: Batch): void {
 	const outerBatch = processing;
 	const outerView = setView(others(batch) ? viewOf(batch) : null);
 	processing = batch;
@@ -547,6 +470,7 @@ export function process(given: Batch): void {
 	const leftover: Effect[] = [];
 	try {
 		let passes = 0;
+		let merging = true;
 		while (batch.queued.length > 0 || (batch.commits.length > 0 && !holds(batch))) {
 			if (++passes > limit) depthExceeded();
 			batch.phase = 'structure';
@@ -562,6 +486,11 @@ export function process(given: Batch): void {
 				throw error;
 			}
 			if (holds(batch)) break;
+			if (merging && batch.queued.length > 0) continue;
+			if (merging) {
+				merging = false;
+				if (absorb(batch, content)) return;
+			}
 			batch.phase = 'commit';
 			commit(batch);
 		}
@@ -569,6 +498,7 @@ export function process(given: Batch): void {
 			hold(batch, content);
 			return;
 		}
+		if (merging && absorb(batch, content)) return;
 		batch.phase = 'content';
 		const deferred = batch.content;
 		batch.content = null;
