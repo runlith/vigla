@@ -1,0 +1,52 @@
+{
+	"conversions": {
+		"test.ts": "the four tests driving the internal `source`, `set`, `$.get`, `effect_root` and `render_effect` use `$state`, `$effect.root`, `$effect.pre` and `svelte`'s `flushSync`; the other tests are unchanged"
+	},
+	"samples": {
+		"writable > creates a writable store": "contract",
+		"writable > creates an undefined writable store": "contract",
+		"writable > calls provided subscribe handler": "contract",
+		"writable > does not assume immutable data": "contract",
+		"writable > only calls subscriber once initially, including on resubscriptions": "contract",
+		"writable > no error even if unsubscribe calls twice": "contract",
+		"readable > creates a readable store": "contract",
+		"readable > passes an optional update function": "contract",
+		"readable > creates an undefined readable store": "contract",
+		"readable > creates a readable store without updater": "contract",
+		"derived > maps a single store": "contract",
+		"derived > maps multiple stores": "contract",
+		"derived > passes optional set function": "contract",
+		"derived > passes optional set and update functions": "contract",
+		"derived > prevents glitches": "contract",
+		"derived > prevents diamond dependency problem": "contract",
+		"derived > derived dependency does not update and shared ancestor updates": "contract",
+		"derived > is updated with safe_not_equal logic": "contract",
+		"derived > calls a cleanup function": "contract",
+		"derived > discards non-function return values": "contract",
+		"derived > allows derived with different types": "contract",
+		"derived > works with RxJS-style observables": "contract",
+		"derived > doesn't restart when unsubscribed from another store with a shared ancestor": "contract",
+		"derived > errors on undefined stores #1": "contract",
+		"derived > errors on undefined stores #2": "contract",
+		"get > gets the current value of a store": "contract",
+		"get > works with RxJS-style observables": "contract",
+		"readonly > makes a store readonly": "contract",
+		"toStore > creates a readable store from state": {
+			"status": "converted",
+			"reason": "driven by a `$state` source and `flushSync` from `svelte`, in place of the internal `source`, `$.get`, `set` and batch `flushSync`; the assertions are unchanged"
+		},
+		"toStore > creates a writable store from state": {
+			"status": "converted",
+			"reason": "driven by a `$state` source and `flushSync` from `svelte`, in place of the internal `source`, `$.get`, `set` and batch `flushSync`; the assertions are unchanged"
+		},
+		"fromStore > creates state from a writable store": {
+			"status": "converted",
+			"reason": "reads state in a `$effect.pre` under `$effect.root` and flushes with `svelte`'s `flushSync`, in place of the internal `render_effect`, `effect_root` and batch `flushSync`; the assertions are unchanged"
+		},
+		"fromStore > creates state from a writable store that updates after timeout": {
+			"status": "converted",
+			"reason": "reads state in a `$effect.pre` under `$effect.root`, in place of the internal `render_effect` and `effect_root`; the assertions are unchanged"
+		},
+		"fromStore > creates state from a readable store": "contract"
+	}
+}

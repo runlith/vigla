@@ -1,0 +1,33 @@
+derived > allows derived with different types
+derived > calls a cleanup function
+derived > derived dependency does not update and shared ancestor updates
+derived > discards non-function return values
+derived > doesn't restart when unsubscribed from another store with a shared ancestor
+derived > errors on undefined stores #1
+derived > errors on undefined stores #2
+derived > is updated with safe_not_equal logic
+derived > maps a single store
+derived > maps multiple stores
+derived > passes optional set and update functions
+derived > passes optional set function
+derived > prevents diamond dependency problem
+derived > prevents glitches
+derived > works with RxJS-style observables
+fromStore > creates state from a readable store
+fromStore > creates state from a writable store
+fromStore > creates state from a writable store that updates after timeout
+get > gets the current value of a store
+get > works with RxJS-style observables
+readable > creates a readable store
+readable > creates a readable store without updater
+readable > creates an undefined readable store
+readable > passes an optional update function
+readonly > makes a store readonly
+toStore > creates a readable store from state
+toStore > creates a writable store from state
+writable > calls provided subscribe handler
+writable > creates a writable store
+writable > creates an undefined writable store
+writable > does not assume immutable data
+writable > no error even if unsubscribe calls twice
+writable > only calls subscriber once initially, including on resubscriptions

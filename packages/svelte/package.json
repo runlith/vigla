@@ -52,6 +52,11 @@
 			"default": "./src/entries/window-server.ts"
 		},
 		"./server": "./src/entries/server.ts",
+		"./store": {
+			"worker": "./src/entries/store-server.ts",
+			"browser": "./src/entries/store-client.ts",
+			"default": "./src/entries/store-server.ts"
+		},
 		"./transition": "./src/entries/transition.ts"
 	},
 	"dependencies": {

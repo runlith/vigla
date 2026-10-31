@@ -150,6 +150,14 @@ export const suites: readonly Suite[] = [
 	},
 	{
 		project: 'svelte',
+		name: 'store',
+		kind: 'units',
+		source: 'store',
+		files: ['store.test.ts'],
+		upstream: [{ file: 'store/test.ts', entry: (title) => ({ sample: title }) }]
+	},
+	{
+		project: 'svelte',
 		name: 'units',
 		kind: 'units',
 		source: '../src',
