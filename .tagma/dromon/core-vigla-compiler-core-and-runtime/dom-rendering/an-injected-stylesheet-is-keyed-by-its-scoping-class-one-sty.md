@@ -8,7 +8,10 @@ sources:
     ref: packages/vigla/src/runtime/dom/styles.ts
   - kind: file
     ref: packages/vigla/src/runtime/server/render.ts
+  - kind: symbol
+    ref: packages/vigla/src/runtime/dom/range.ts
+    symbol: position
 ---
 With injection on (`css: 'injected'` or the component's own option), a compiled component carries its sheet as a module-level `{ hash, code }` and hands it to `appendStyles` at the start of every instance. The client inserts `<style id="<hash>">` into the shadow root holding the anchor, else into the document's head, unless an element with that id already stands there; the server adds the object to the render's set, and `render()` writes each sheet once into `head`, in the order components first rendered. The id is the dedupe key and the contract: hydration finds the server's `<style>` already present, and two components sharing a scoping class (a `cssHash` returning a constant) share one sheet.
 
-The client inserts from an effect, so the anchor is in its final tree: a component built inside an off-screen branch would otherwise find the fragment as its root node and lose a shadow root it is about to enter.
+The client inserts from an effect after the owning range reaches its final tree. It resolves the range's stable start node because the original render anchor can already have been removed; using that detached anchor or an off-screen fragment would send a shadow component's sheet to the document.
