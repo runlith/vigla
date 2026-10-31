@@ -4,6 +4,7 @@ import { holdEager } from './eager.ts';
 import type { Source } from './graph.ts';
 import { source as plain, state } from './sources.ts';
 import { get, guard, local } from './tracking.ts';
+import { labelFor, labelled, tag } from './trace.ts';
 
 const RAW = Symbol('raw');
 
@@ -19,7 +20,7 @@ const mutating = new Set([
 	'unshift'
 ]);
 
-const ABSENT = Symbol('absent');
+export const ABSENT = Symbol('absent');
 
 type Indexed = Record<PropertyKey, unknown>;
 
@@ -91,6 +92,8 @@ function wrap<T>(value: T, aware: boolean): T {
 		sources.set('length', aware ? state(length) : plain(length));
 	}
 
+	let path = '';
+	let relabelling = false;
 	const make = (initial: unknown): Source<unknown> =>
 		local(keys) ? state(initial) : plain(initial);
 	const nested = <V>(child: V): V => wrap(child, local(keys));
@@ -100,6 +103,7 @@ function wrap<T>(value: T, aware: boolean): T {
 		if (found === undefined) {
 			found = make(Object.hasOwn(target, prop) ? nested(target[prop]) : ABSENT);
 			sources.set(prop, found);
+			if (DEV) tag(found, labelFor(path, prop));
 		}
 		return found;
 	};
@@ -125,7 +129,7 @@ function wrap<T>(value: T, aware: boolean): T {
 		if (added) write(keys, (keys.v as number) + 1);
 	};
 
-	return new Proxy(target, {
+	const wrapped = new Proxy(target, {
 		get(object, prop, receiver) {
 			if (prop === RAW) return object;
 			if (!tracked(prop)) {
@@ -154,8 +158,11 @@ function wrap<T>(value: T, aware: boolean): T {
 				for (let position = next as number; position < (length.v as number); position++) {
 					const key = String(position);
 					const item = sources.get(key);
-					if (item === undefined) sources.set(key, make(ABSENT));
-					else write(item, ABSENT);
+					if (item === undefined) {
+						const missing = make(ABSENT);
+						sources.set(key, missing);
+						if (DEV) tag(missing, labelFor(path, key));
+					} else write(item, ABSENT);
 				}
 				write(length, next);
 				write(keys, (keys.v as number) + 1);
@@ -200,4 +207,17 @@ function wrap<T>(value: T, aware: boolean): T {
 			return true;
 		}
 	});
+	if (DEV)
+		labelled(wrapped, (label) => {
+			if (relabelling) return;
+			relabelling = true;
+			try {
+				path = label;
+				tag(keys, `${path} version`);
+				for (const [prop, found] of sources) tag(found, labelFor(path, prop));
+			} finally {
+				relabelling = false;
+			}
+		});
+	return wrapped;
 }

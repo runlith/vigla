@@ -1,3 +1,5 @@
+import { DEV } from 'esm-env';
+import { applied, forgotten, updated } from './trace.ts';
 import { parked, showing } from './async.ts';
 import {
 	BLOCK,
@@ -151,6 +153,7 @@ function prior(batch: Batch): Prior {
 }
 
 export function release(batch: Batch): void {
+	if (DEV) forgotten(batch);
 	const index = alive.indexOf(batch);
 	if (index !== -1) alive.splice(index, 1);
 	recycle(batch.log);
@@ -358,6 +361,7 @@ function staged<T>(fork: Batch, source: Source<T>, value: T): T {
 	if (Object.is(shown, value)) return value;
 	record(fork, source, source.v);
 	after.set(source, value);
+	if (DEV) updated(source, value, fork);
 	if (view !== null && view.batch === fork) {
 		forget(source);
 		view.values.set(source, value);
@@ -381,6 +385,7 @@ export function write<T>(source: Source<T>, value: T): T {
 	if (batch.after !== null) batch.after.set(source, value);
 	source.v = value;
 	source.wv = stamp();
+	if (DEV) updated(source, value, batch);
 	written(source);
 	readDuringRun(source);
 	if (view !== null) {
@@ -398,6 +403,7 @@ export function apply(batch: Batch): void {
 		if (Object.is(source.v, value)) continue;
 		source.v = value;
 		source.wv = stamp();
+		if (DEV) applied(source, batch);
 		dirty(source, batch.order);
 	}
 	runEager();

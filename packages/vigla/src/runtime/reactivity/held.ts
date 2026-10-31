@@ -22,6 +22,8 @@ import {
 	type Source
 } from './graph.ts';
 import { stale, type View } from './tracking.ts';
+import { DEV } from 'esm-env';
+import { merged } from './trace.ts';
 
 export const overlooked = new WeakSet<Effect>();
 
@@ -171,6 +173,7 @@ function remap(reader: Batch, from: Batch, into: Batch): void {
 }
 
 function fold(from: Batch, into: Batch): void {
+	if (DEV) merged(from, into);
 	const older = from.order < into.order;
 	for (const [source, value] of from.before)
 		if (older || !into.before.has(source)) into.before.set(source, value);

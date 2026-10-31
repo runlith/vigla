@@ -1,4 +1,6 @@
+import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
+import { computed, traced, tracedRun, tracing, updated } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
 import {
 	BLOCK,
@@ -17,6 +19,8 @@ import {
 } from './graph.ts';
 
 interface Frame {
+	target: Reaction | null;
+	started: number;
 	version: number;
 	old: Source[] | null;
 	matched: number;
@@ -39,6 +43,8 @@ function opened(target: Reaction): Frame {
 	let current = frames[depth];
 	if (current === undefined) {
 		current = {
+			target: null,
+			started: 0,
 			version: 0,
 			old: null,
 			matched: 0,
@@ -51,6 +57,10 @@ function opened(target: Reaction): Frame {
 			local: null
 		};
 		frames.push(current);
+	}
+	if (DEV) {
+		current.target = target;
+		current.started = now();
 	}
 	current.version = versions += 3;
 	current.old = target.deps;
@@ -69,6 +79,7 @@ function opened(target: Reaction): Frame {
 
 function closed(previous: Frame | null): void {
 	depth--;
+	if (DEV) (frames[depth] as Frame).target = null;
 	frame = previous;
 }
 
@@ -156,6 +167,7 @@ export function setView(next: View | null): View | null {
 
 export function get<T>(source: Source<T>): T {
 	const at = frame;
+	if (DEV && tracing !== null) traced(source, at?.target ?? null);
 	if (at !== null && source.read !== at.version && (at.local === null || !at.local.has(source)))
 		record(at, source);
 	if (past !== null) return recall(source, past) as T;
@@ -166,6 +178,10 @@ export function get<T>(source: Source<T>): T {
 
 export function reading(): boolean {
 	return frame !== null;
+}
+
+export function running(): Reaction | null {
+	return frame?.target ?? null;
 }
 
 export function untrack<T>(fn: () => T): T {
@@ -203,8 +219,11 @@ function compute(derived: Derived, given: View): unknown {
 	const current = opened(derived);
 	const previousOwner = setOwner(derived.owner);
 	try {
-		return derived.fn();
+		const value = derived.fn();
+		if (DEV) computed(derived, value, given.batch);
+		return value;
 	} finally {
+		if (DEV) tracedRun(derived, now());
 		closed(previous);
 		setOwner(previousOwner);
 		const deps = (derived.deps ??= []);
@@ -418,6 +437,7 @@ export function track<T>(target: Reaction, fn: () => T): T {
 		hiddenByLast = current.hidden;
 		if ((target as Effect).destroyed === true) target.deps = null;
 		else settleRun(target, current);
+		if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
 	}
 }
 
@@ -480,6 +500,7 @@ export function refresh(derived: Derived): void {
 			derived.v = value;
 			derived.wv = stamp();
 			derived.computed = true;
+			if (DEV) updated(derived);
 		}
 	} finally {
 		setOwner(previous);
