@@ -26,6 +26,18 @@ fields:
       },
       {
         "at": "routing/index.ts"
+      },
+      {
+        "at": "http.ts"
+      },
+      {
+        "at": "escape.ts"
+      },
+      {
+        "at": "hash.ts"
+      },
+      {
+        "at": "serialization.ts"
       }
     ],
     "id": "kit-shared"
