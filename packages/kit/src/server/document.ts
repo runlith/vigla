@@ -215,7 +215,7 @@ export async function renderDocument(
 				}})`
 			: 'undefined';
 		const boot = client.inline
-			? `const element=document.currentScript.parentElement;${namespace}.ready=${prepare}.then(()=>{${client.inline.script};${namespace}.app.init?.(${namespace});});${namespace}.ready.then(()=>{const app=${namespace}.app.app;return ${namespace}.app.start(element,${hydrated});});`
+			? `const element=document.currentScript.parentElement;${namespace}.ready=${prepare}.then(()=>{${client.inline.script};${namespace}.app.init?.(${namespace});});${namespace}.ready.then(()=>{const app=${namespace}.app;return app.start(element,${hydrated});});`
 			: client.app
 				? `const element=document.currentScript.parentElement;const kitPromise=${prepare}.then(()=>import(${escapeJson(clientPath(client.start, paths))}));${namespace}.ready=kitPromise.then(kit=>{kit.init(${namespace});});${namespace}.ready.then(async()=>{const kit=await kitPromise;const app=await import(${escapeJson(clientPath(client.app, paths))});return kit.start(app,element,${hydrated});});`
 				: `const element=document.currentScript.parentElement;const appPromise=${prepare}.then(()=>import(${escapeJson(clientPath(client.start, paths))}));${namespace}.ready=appPromise.then(app=>{app.init?.(${namespace});});${namespace}.ready.then(async()=>{const app=await appPromise;return app.start(element,${hydrated});});`;
