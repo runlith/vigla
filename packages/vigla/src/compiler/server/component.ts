@@ -211,7 +211,7 @@ export function boundary(
 	const nodes = context.component.fragments.get(node.body) ?? [];
 	const handed = (child: Node): boolean =>
 		child.kind === 'snippet' && (child.name.name === 'failed' || child.name.name === 'pending');
-	statements.push(...snippetDeclarations(context, nodes.filter(handed)));
+	const declarations = snippetDeclarations(context, nodes.filter(handed));
 	const snippet = (name: string): ES.Expression | null => {
 		if (nodes.some((child) => child.kind === 'snippet' && child.name.name === name))
 			return b.id(name);
@@ -240,20 +240,24 @@ export function boundary(
 		children.flush(inner, body);
 	}
 	if (failed === null) {
-		statements.push({ type: 'BlockStatement', body });
+		statements.push({ type: 'BlockStatement', body: [...declarations, ...body] });
 		return;
 	}
-	statements.push(
-		b.statement(
-			runtime(
-				context,
-				'boundary',
-				context.out,
-				{ type: 'ObjectExpression', properties: [property('failed', failed)] },
-				b.arrow([out], body)
+	statements.push({
+		type: 'BlockStatement',
+		body: [
+			...declarations,
+			b.statement(
+				runtime(
+					context,
+					'boundary',
+					context.out,
+					{ type: 'ObjectExpression', properties: [property('failed', failed)] },
+					b.arrow([out], body)
+				)
 			)
-		)
-	);
+		]
+	});
 }
 
 export function snippetDeclarations(

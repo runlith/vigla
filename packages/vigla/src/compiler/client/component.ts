@@ -291,16 +291,21 @@ export function boundaryCall(
 	const namespace = context.component.fragmentNamespaces.get(node.body) ?? 'html';
 	const body = render(context, regular, inner, namespace, true);
 	return [
-		...declarations,
-		b.statement(
-			runtime(
-				context,
-				'boundary',
-				anchor,
-				{ type: 'ObjectExpression', properties },
-				b.arrow([inner], body)
-			)
-		)
+		{
+			type: 'BlockStatement',
+			body: [
+				...declarations,
+				b.statement(
+					runtime(
+						context,
+						'boundary',
+						anchor,
+						{ type: 'ObjectExpression', properties },
+						b.arrow([inner], body)
+					)
+				)
+			]
+		}
 	];
 }
 
