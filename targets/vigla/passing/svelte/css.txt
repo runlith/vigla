@@ -36,6 +36,8 @@ empty-class
 empty-rule
 empty-rule-dev
 general-siblings-combinator
+general-siblings-combinator-await
+general-siblings-combinator-await-not-exhaustive
 general-siblings-combinator-each
 general-siblings-combinator-each-2
 general-siblings-combinator-each-else
@@ -44,6 +46,7 @@ general-siblings-combinator-each-nested
 general-siblings-combinator-if
 general-siblings-combinator-if-not-exhaustive
 general-siblings-combinator-if-not-exhaustive-with-each
+general-siblings-combinator-key
 general-siblings-combinator-render-tag
 general-siblings-combinator-rendertag-global
 general-siblings-combinator-star
@@ -113,6 +116,8 @@ root
 selectedcontent
 selector-list
 siblings-combinator
+siblings-combinator-await
+siblings-combinator-await-not-exhaustive
 siblings-combinator-component
 siblings-combinator-component-default-snippet
 siblings-combinator-component-named-snippet
@@ -125,6 +130,7 @@ siblings-combinator-global
 siblings-combinator-if
 siblings-combinator-if-not-exhaustive
 siblings-combinator-if-not-exhaustive-with-each
+siblings-combinator-key
 siblings-combinator-render-tag
 siblings-combinator-star
 siblings-combinator-with-spread
