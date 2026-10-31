@@ -148,6 +148,11 @@ export function rest(props: Props, excluded: readonly string[]): Props {
 }
 
 const issued = new WeakMap<Effect, number>();
+const mounts = new WeakSet<Effect>();
+
+export function mountRoot(effect: Effect): void {
+	mounts.add(effect);
+}
 
 export function propsId(): string {
 	if (hydrating && cursor.nodeType === COMMENT) {
@@ -158,7 +163,7 @@ export function propsId(): string {
 		}
 	}
 	let top = owner as Effect;
-	while (top.parent !== null) top = top.parent;
+	while (top.parent !== null && !mounts.has(top)) top = top.parent;
 	const next = (issued.get(top) ?? 0) + 1;
 	issued.set(top, next);
 	return `c${next}`;

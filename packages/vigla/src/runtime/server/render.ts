@@ -1,10 +1,11 @@
 import { failure } from '../../shared/diagnostics.ts';
-import { staleReaction } from '../../shared/abort.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { Data, type Csp, type Script } from './hydration.ts';
 import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
-import { begin, capture, end, push } from './context.ts';
+import { destroy, detached } from '../reactivity/effects.ts';
+import { owner } from '../reactivity/tracking.ts';
+import { begin, capture, end, push, storeOf } from './context.ts';
 
 export type Props = Record<string, unknown>;
 
@@ -15,8 +16,6 @@ export interface Style {
 
 class Global {
 	#uid = 1;
-	#controller: AbortController | null = null;
-	#aborted = false;
 	readonly prefix: string;
 	readonly transformError: (error: unknown) => unknown;
 
@@ -31,17 +30,6 @@ class Global {
 
 	uid(): string {
 		return `${this.prefix}s${this.#uid++}`;
-	}
-
-	signal(): AbortSignal {
-		const controller = (this.#controller ??= new AbortController());
-		if (this.#aborted) controller.abort(staleReaction);
-		return controller.signal;
-	}
-
-	abort(): void {
-		this.#aborted = true;
-		this.#controller?.abort(staleReaction);
 	}
 
 	readonly styles = new Set<Style>();
@@ -243,19 +231,21 @@ export function render<P extends Props>(
 	}
 	const global = new Global(prefix ? `${prefix}-` : '', options.transformError);
 	const out = new Output(global);
-	const data = new Data();
-	const saved = begin(data, () => global.signal());
+	const caller = owner;
+	const scope = detached(null, caller);
+	const data = storeOf(caller) ?? new Data();
+	const saved = begin(scope, data);
 	try {
 		push(options.context);
 		out.push(open);
 		component(out, options.props ?? ({} as P));
 		out.push(close);
 	} catch (error) {
-		global.abort();
-		throw error;
-	} finally {
 		end(saved);
+		destroy(scope);
+		throw error;
 	}
+	end(saved);
 	const result = (script?: Script): Rendered => {
 		const content = out.collect();
 		let head = (script?.html ?? '') + content.head + global.title();
@@ -264,7 +254,7 @@ export function render<P extends Props>(
 	};
 	if (!out.asynchronous && data.size === 0) {
 		const rendered = result();
-		global.abort();
+		destroy(scope);
 		return {
 			...rendered,
 			then(fulfilled, rejected) {
@@ -275,7 +265,7 @@ export function render<P extends Props>(
 	const settled = out
 		.settle()
 		.then(async () => result(await data.script(options.format ?? nativeFormat, options.csp)))
-		.finally(() => global.abort());
+		.finally(() => destroy(scope));
 	const synchronous = (): never => {
 		throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
 	};

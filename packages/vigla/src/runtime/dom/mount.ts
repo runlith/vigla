@@ -1,7 +1,8 @@
 import { failure, warn } from '../../shared/diagnostics.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
-import { destroy, root } from '../reactivity/effects.ts';
+import { destroy, detached } from '../reactivity/effects.ts';
+import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { introducing } from '../transitions/manager.ts';
 import { transformAt } from './boundary.ts';
@@ -17,7 +18,7 @@ import {
 	setHydrating
 } from './hydration.ts';
 import { withContext } from './context.ts';
-import { entry } from './props.ts';
+import { entry, mountRoot } from './props.ts';
 import { withHydration } from './data.ts';
 import { build, discard, type Built } from './range.ts';
 
@@ -58,13 +59,19 @@ function start<P extends Props, E extends Exports>(
 	let exports: E | void = undefined;
 	const props = options.props ?? ({} as P);
 	entry(props);
+	const parent = owner;
+	const create = (fn: () => void): Effect =>
+		detached(() => {
+			mountRoot(owner as Effect);
+			fn();
+		}, parent);
 	const built = introducing(options.intro ?? true, () =>
 		build((anchor) => {
 			if (owner !== null) transformAt(owner, options.transformError);
 			exports = withHydration(options.format ?? nativeFormat, options.target, () =>
 				withContext(options.context, () => component(anchor, props))
 			);
-		}, root)
+		}, create)
 	);
 	return { instance: (exports ?? {}) as E, built };
 }

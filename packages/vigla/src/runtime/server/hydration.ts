@@ -3,7 +3,7 @@ import { uneval } from 'devalue';
 import { failure, warn } from '../../shared/diagnostics.ts';
 import { escapeAttribute } from '../../shared/escape.ts';
 import type { Format } from '../../shared/format.ts';
-import { hydrationData } from './context.ts';
+import { hydrationData, openStore } from './context.ts';
 
 export interface Csp {
 	readonly nonce?: string;
@@ -207,4 +207,13 @@ export class Data {
 export function hydratable<T>(key: string, fn: () => T): T {
 	const data = hydrationData();
 	return data === null ? fn() : data.read(key, fn);
+}
+
+export interface HydrationOptions {
+	readonly format?: Format;
+}
+
+export function openHydration(_options?: HydrationOptions): () => void {
+	openStore(new Data());
+	return () => {};
 }

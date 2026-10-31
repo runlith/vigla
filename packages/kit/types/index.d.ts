@@ -153,6 +153,7 @@ declare module '$app/server' {
 	} from '#types/remote';
 	export function read(asset: string): Response;
 	export function getRequestEvent(): RequestEvent;
+	export function getRequestOwner(): import('vigla').Owner;
 	export const command: Command;
 	export const form: Form;
 	export const prerender: Prerender;

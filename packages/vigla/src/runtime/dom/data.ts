@@ -1,6 +1,6 @@
 import { DEV } from 'esm-env';
 import { failure, warn } from '../../shared/diagnostics.ts';
-import type { Format } from '../../shared/format.ts';
+import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { teardown } from '../reactivity/effects.ts';
 import { owner } from '../reactivity/tracking.ts';
@@ -8,6 +8,7 @@ import { hydrating } from './hydration.ts';
 
 interface Input {
 	readonly values: Map<string, unknown> | undefined;
+	readonly explicit: boolean;
 }
 
 interface Global {
@@ -44,15 +45,52 @@ function acquire(view: Window, key: string, values: Map<string, unknown>): () =>
 	};
 }
 
-export function withHydration<T>(format: Format, target: ParentNode, fn: () => T): T {
-	if (owner === null) return fn();
+function viewOf(target: ParentNode | undefined): Window {
+	if (target === undefined) return window;
 	const document =
 		(target as Node).nodeType === 9 ? (target as Document) : (target as Node).ownerDocument;
-	const view = document?.defaultView ?? window;
-	const globals = view as unknown as Record<string, Global | undefined>;
-	const values = hydrating ? globals[format.global]?.h : undefined;
+	return document?.defaultView ?? window;
+}
+
+function serverData(view: Window, format: Format): Map<string, unknown> | undefined {
+	return (view as unknown as Record<string, Global | undefined>)[format.global]?.h;
+}
+
+export interface HydrationOptions {
+	readonly format?: Format;
+	readonly target?: ParentNode;
+}
+
+export function openHydration(options: HydrationOptions = {}): () => void {
+	if (owner === null) {
+		throw failure(
+			'context_without_owner',
+			'Hydration data can only be opened where an owner exists'
+		);
+	}
+	const view = viewOf(options.target);
+	const format = options.format ?? nativeFormat;
+	const values = serverData(view, format);
+	if (values === undefined) return () => {};
 	const at = owner;
-	inputs.set(at, { values });
+	const input: Input = { values, explicit: true };
+	inputs.set(at, input);
+	const releaseStore = acquire(view, format.global, values);
+	let open = true;
+	return () => {
+		if (!open) return;
+		open = false;
+		if (inputs.get(at) === input) inputs.delete(at);
+		releaseStore();
+	};
+}
+
+export function withHydration<T>(format: Format, target: ParentNode, fn: () => T): T {
+	if (owner === null) return fn();
+	const view = viewOf(target);
+	const values = hydrating ? serverData(view, format) : undefined;
+	const at = owner;
+	inputs.set(at, { values, explicit: false });
 	if (values === undefined) return fn();
 	const releaseStore = acquire(view, format.global, values);
 	const release = (): void => {
@@ -69,10 +107,9 @@ export function withHydration<T>(format: Format, target: ParentNode, fn: () => T
 }
 
 export function hydratable<T>(key: string, fn: () => T): T {
-	if (!hydrating) return fn();
 	for (let at = owner; at !== null; at = at.parent) {
 		const input = inputs.get(at);
-		if (input === undefined) continue;
+		if (input === undefined || (!input.explicit && !hydrating)) continue;
 		if (input.values?.has(key)) return input.values.get(key) as T;
 		const message = `The hydratable key ${JSON.stringify(key)} was not present in the server render`;
 		if (DEV) throw failure('hydratable_missing_but_required', message);
