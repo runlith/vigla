@@ -11,10 +11,10 @@ import {
 	type Batch
 } from '../reactivity/batch.ts';
 import { block, hide, show as unhide } from '../reactivity/effects.ts';
-import type { Effect, Source } from '../reactivity/graph.ts';
-import { source } from '../reactivity/sources.ts';
+import type { Derived, Effect, Source } from '../reactivity/graph.ts';
+import { derived, source } from '../reactivity/sources.ts';
 import { get, owner } from '../reactivity/tracking.ts';
-import { traceSource, untrace } from '../reactivity/trace.ts';
+import { traceInputs, traceSource, untrace } from '../reactivity/trace.ts';
 import {
 	claim,
 	cursor,
@@ -91,7 +91,7 @@ function kept(positions: readonly number[]): Set<number> {
 
 class List<T> {
 	anchor: ChildNode;
-	readonly #read: () => ArrayLike<T>;
+	readonly #collection: Derived<ArrayLike<T>>;
 	readonly #key: ((item: T, index: number) => unknown) | null;
 	readonly #render: Item<T>;
 	readonly #fallback: Render | null;
@@ -106,13 +106,13 @@ class List<T> {
 
 	constructor(
 		anchor: ChildNode,
-		read: () => ArrayLike<T>,
+		collection: Derived<ArrayLike<T>>,
 		key: ((item: T, index: number) => unknown) | null,
 		render: Item<T>,
 		fallback: Render | null
 	) {
 		this.anchor = anchor;
-		this.#read = read;
+		this.#collection = collection;
 		this.#key = key;
 		this.#render = render;
 		this.#fallback = fallback;
@@ -137,7 +137,7 @@ class List<T> {
 		if (DEV)
 			traceSource(item, () => {
 				const position = untrace(() => get(index));
-				return this.#read()[position];
+				return traceInputs(this.#collection)[position];
 			});
 		const built = building(update, () => build((at) => this.#render(at, item, index)));
 		const row: Row<T> = { key, item, index, ...built };
@@ -377,14 +377,14 @@ export function list<T>(
 	render: Item<T>,
 	fallback: Render | null = null
 ): void {
-	const read = (): ArrayLike<T> => {
+	const values = derived<ArrayLike<T>>(() => {
 		const given = collection();
 		return given == null ? [] : Array.isArray(given) ? given : Array.from(given as Iterable<T>);
-	};
-	const rows = new List<T>(node, read, key, render, fallback);
+	});
+	const rows = new List<T>(node, values, key, render, fallback);
 	let first = true;
 	block(() => {
-		const items = read();
+		const items = get(values);
 		if (first) {
 			first = false;
 			rows.start(items);
