@@ -86,6 +86,9 @@ fields:
       },
       {
         "at": "snippet.ts"
+      },
+      {
+        "at": "custom-element.ts"
       }
     ],
     "id": "dom",
