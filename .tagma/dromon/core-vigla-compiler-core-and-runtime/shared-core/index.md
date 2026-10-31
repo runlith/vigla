@@ -32,6 +32,9 @@ fields:
       },
       {
         "at": "external.ts"
+      },
+      {
+        "at": "assignment.ts"
       }
     ],
     "id": "shared",

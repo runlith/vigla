@@ -20,6 +20,9 @@ fields:
       },
       {
         "at": "adapter.ts"
+      },
+      {
+        "at": "internal/env.ts"
       }
     ],
     "id": "kit-entries"
