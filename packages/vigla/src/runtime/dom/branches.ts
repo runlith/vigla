@@ -91,7 +91,7 @@ export class Branches<K> {
 		const batch = processed();
 		const stages = this.#stages;
 		const known = batch !== null && stages !== null && stages.has(batch);
-		if (!known && same(key, this.#shown)) return;
+		if (!known && same(key, this.#shown) && (stages === null || stages.size === 0)) return;
 		if (!this.#built.has(key) && !same(key, this.#shown)) {
 			const content = render();
 			if (content !== null) {
