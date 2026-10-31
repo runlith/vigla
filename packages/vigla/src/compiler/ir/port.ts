@@ -40,6 +40,12 @@ export class CompileError extends Error {
 	}
 }
 
+export interface ExternalBinding {
+	readonly source: ES.Expression;
+	readonly name: string;
+	readonly references: ReadonlySet<ES.Identifier>;
+}
+
 export interface ComponentUnit {
 	readonly kind: 'component';
 	readonly source: string;
@@ -47,6 +53,7 @@ export interface ComponentUnit {
 	readonly module: ES.Program | null;
 	readonly instance: ES.Program | null;
 	readonly template: Fragment;
+	readonly externals?: readonly ExternalBinding[];
 	readonly style: StyleSheet | null;
 	readonly options: Options | null;
 	readonly runes: Runes;

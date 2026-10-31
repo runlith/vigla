@@ -9,6 +9,14 @@ export {
 	setContext
 } from '../runtime/server/context.ts';
 export type { Context } from '../shared/context.ts';
+export { external } from '../runtime/server/external.ts';
+export type {
+	External,
+	Subscribable,
+	Subscription,
+	WritableExternal,
+	WritableSource
+} from '../shared/external.ts';
 export { createRawSnippet } from '../runtime/server/snippet.ts';
 export type { RawFactory, RawSnippet } from '../shared/snippet.ts';
 export type {

@@ -10,7 +10,8 @@ import {
 	type StateField
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Rune } from '../ir/port.ts';
+import type { ExternalBinding, Rune } from '../ir/port.ts';
+import { external } from './external.ts';
 import type { RuntimeNames } from '../ir/runtime.ts';
 import { classBody, fieldValue, privateField } from './classes.ts';
 import { destructured } from './patterns.ts';
@@ -32,6 +33,8 @@ export interface Context {
 	readonly dev?: boolean;
 	readonly aliases?: Map<Binding, ES.Expression>;
 	readonly renamed?: Map<Binding, string>;
+	readonly externalCells?: Map<ExternalBinding, ES.Identifier>;
+	readonly refreshing?: ES.Node;
 }
 
 function named(context: Context, node: ES.Identifier, binding: Binding): ES.Identifier {
@@ -304,6 +307,8 @@ function assignField(
 	next: <T extends ES.Node>(node: T) => T
 ): ES.Expression | undefined {
 	const left = node.left as ES.MemberExpression;
+	const mutable = mutateProp(context, node, next);
+	if (mutable !== undefined) return mutable;
 	const declared =
 		left.object.type === 'ThisExpression' &&
 		!left.computed &&
@@ -343,9 +348,29 @@ function assignField(
 	);
 }
 
+function mutateProp(
+	context: Context,
+	node: ES.AssignmentExpression | ES.UpdateExpression,
+	next: <T extends ES.Node>(node: T) => T
+): ES.Expression | undefined {
+	const target = node.type === 'AssignmentExpression' ? node.left : node.argument;
+	let base: ES.Node = target;
+	while (base.type === 'MemberExpression') base = base.object;
+	if (base.type !== 'Identifier' || target === base) return;
+	const binding = context.analysis.references.get(base);
+	if (binding?.kind !== 'prop' || !accessor(binding)) return;
+	const mutation =
+		node.type === 'AssignmentExpression'
+			? { ...node, left: next(target) as ES.Pattern, right: next(node.right) }
+			: { ...node, argument: next(target) as ES.Expression };
+	return runtime(context, 'mutateProp', base, mutation);
+}
+
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 	const { references, declarations, runes } = context.analysis;
 	return b.rewrite(node, (current, next) => {
+		const connected = external(context, current, next);
+		if (connected !== undefined) return connected;
 		const awaited = context.awaited?.get(current);
 		if (awaited !== undefined) return runtime(context, 'get', awaited);
 		if (current.type === 'AwaitExpression' && context.saved?.has(current)) {
@@ -411,6 +436,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			}
 			case 'UpdateExpression': {
 				if (current.argument.type === 'MemberExpression') {
+					const mutated = mutateProp(context, current, next);
+					if (mutated !== undefined) return mutated;
 					const target = current.argument;
 					if (privateField(context, target) === undefined) return undefined;
 					const source = { ...target, object: next(target.object) };

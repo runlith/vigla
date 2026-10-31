@@ -184,6 +184,7 @@ function reserved(name: ES.Identifier): void {
 
 export class Resolution {
 	readonly runes = new Map<ES.Node, Rune>();
+	readonly references = new Map<ES.Identifier, string>();
 	readonly #seen: ((node: ES.Node) => void) | undefined;
 
 	constructor(seen?: (node: ES.Node) => void) {
@@ -203,8 +204,23 @@ export class Resolution {
 		return { parent, names: new Set(names.map((name) => name.name)) };
 	}
 
-	private visit(node: ES.Node, scope: Scope | null, nested: boolean): void {
+	private visit(
+		node: ES.Node,
+		scope: Scope | null,
+		nested: boolean,
+		parent: ES.Node | null = null
+	): void {
 		this.#seen?.(node);
+		if (node.type === 'Identifier' && node.name.startsWith('$') && !shadowed(scope, node.name)) {
+			const property =
+				(parent?.type === 'MemberExpression' && parent.property === node && !parent.computed) ||
+				(parent?.type === 'Property' &&
+					parent.key === node &&
+					parent.value !== node &&
+					!parent.computed) ||
+				(parent?.type === 'MethodDefinition' && parent.key === node && !parent.computed);
+			if (!property) this.references.set(node, node.name);
+		}
 		if (node.type === 'CallExpression') {
 			const found = runeName(node.callee);
 			if (found !== null && !shadowed(scope, found.base)) this.runes.set(node.callee, found.rune);
@@ -246,6 +262,6 @@ export class Resolution {
 			default:
 				break;
 		}
-		children(node, (child) => this.visit(child, inner, nested));
+		children(node, (child) => this.visit(child, inner, nested, node));
 	}
 }

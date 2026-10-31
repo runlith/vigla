@@ -21,6 +21,14 @@ export type {
 
 export { flushSync, settled, tick } from '../runtime/reactivity/batch.ts';
 export { effect } from '../runtime/reactivity/effects.ts';
+export { external } from '../runtime/reactivity/external.ts';
+export type {
+	External,
+	Subscribable,
+	Subscription,
+	WritableExternal,
+	WritableSource
+} from '../shared/external.ts';
 export { fork } from '../runtime/reactivity/fork.ts';
 export type { Fork } from '../runtime/reactivity/fork.ts';
 export { Owner, getOwner, root } from '../runtime/reactivity/owners.ts';

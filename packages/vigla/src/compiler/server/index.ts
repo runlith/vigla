@@ -11,6 +11,7 @@ import { close, open } from '../../shared/markers.ts';
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { rewrite, runtime, type Context } from './script.ts';
+import { prepare } from './external.ts';
 import { separateCode } from './special.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
@@ -65,7 +66,8 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		scoping: options.scoping,
 		format: options.format,
 		hoisted: [],
-		dev: options.dev
+		dev: options.dev,
+		externalCells: new Map()
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const hoisted = context.hoisted;
@@ -85,7 +87,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	const scripted: TemplateContext = analysis.asynchronous
 		? { ...context, out: inner, saved: topLevelAwaits(analysis) }
 		: context;
-	const script: ES.Statement[] = [];
+	const script = prepare(scripted, [...new Set(analysis.externals.values())]);
 	for (const statement of analysis.unit.instance?.body ?? []) {
 		if (statement.type === 'ImportDeclaration') imports.push(statement);
 		else if (statement.type === 'ExportNamedDeclaration' && statement.source == null) {

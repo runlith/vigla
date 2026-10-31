@@ -11,6 +11,8 @@ import {
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { RuntimeNames } from '../ir/runtime.ts';
+import type { ExternalBinding } from '../ir/port.ts';
+import { external } from './external.ts';
 import {
 	classBody,
 	constructorField,
@@ -30,6 +32,8 @@ export interface Context {
 	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
 	readonly saved?: ReadonlySet<ES.Node>;
 	readonly dev?: boolean;
+	readonly externalCells?: Map<ExternalBinding, ES.Identifier>;
+	readonly refreshing?: ES.Node;
 }
 
 export function runtime(
@@ -161,6 +165,8 @@ function derivedPattern(context: Context, declarator: ES.VariableDeclarator): bo
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 	const { references, runes } = context.analysis;
 	return b.rewrite(node, (current, next) => {
+		const connected = external(context, current, next);
+		if (connected !== undefined) return connected;
 		const awaited = context.awaited?.get(current);
 		if (awaited !== undefined) return { ...awaited };
 		if (current.type === 'AwaitExpression' && context.saved?.has(current)) {

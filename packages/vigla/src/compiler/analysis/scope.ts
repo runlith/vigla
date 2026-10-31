@@ -14,6 +14,7 @@ export type BindingKind =
 	| 'index'
 	| 'snippet'
 	| 'argument'
+	| 'external'
 	| 'import'
 	| 'template-constant';
 
@@ -363,6 +364,7 @@ export class Scopes {
 			const binding = scope.lookup(name.name);
 			if (binding === null) continue;
 			binding.reassigned = true;
+			this.references.set(name, binding);
 			this.functions.delete(binding);
 		}
 		walkMembers(target, (object) => {

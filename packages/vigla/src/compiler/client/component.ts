@@ -5,7 +5,7 @@ import type { Boundary, Component, Node, Render, Snippet } from '../ir/nodes.ts'
 import { bindThisCall } from './bindings.ts';
 import { snippetParameters } from './parameters.ts';
 import { valueOf } from './element.ts';
-import { rewrite, runtime } from './script.ts';
+import { accessor, rewrite, runtime } from './script.ts';
 import { scoped } from './meta.ts';
 import {
 	cleaned,
@@ -113,10 +113,40 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 				groups.push(isDynamic(context, attribute.expression) ? b.arrow([], value) : value);
 				break;
 			}
-			case 'binding':
+			case 'binding': {
 				if (attribute.name === 'this') break;
-				push(...bindingProperties(context, attribute.name, attribute.expression));
+				const properties = bindingProperties(context, attribute.name, attribute.expression);
+				const props: ES.ObjectExpression = { type: 'ObjectExpression', properties };
+				let external = false;
+				b.walk(attribute.expression, (node) => {
+					if (node.type === 'Identifier' && context.analysis.externals.has(node)) external = true;
+				});
+				if (external) {
+					groups.push(
+						runtime(context, 'mutableProps', props, {
+							type: 'ArrayExpression',
+							elements: [b.literal(attribute.name)]
+						})
+					);
+					break;
+				}
+				let base: ES.Node = attribute.expression;
+				while (base.type === 'MemberExpression') base = base.object;
+				const binding =
+					base.type === 'Identifier' ? context.analysis.references.get(base) : undefined;
+				if (binding?.kind === 'prop' && accessor(binding))
+					groups.push(
+						runtime(
+							context,
+							'forwardProps',
+							props,
+							b.literal(attribute.name),
+							base as ES.Identifier
+						)
+					);
+				else push(...properties);
 				break;
+			}
 			case 'attachment': {
 				let value = rewrite(context, attribute.expression);
 				if (isDynamic(context, attribute.expression)) {
@@ -160,10 +190,11 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 			: group
 	);
 	if (objects.length === 0) return { type: 'ObjectExpression', properties: [] };
-	if (objects.length === 1 && groups[0] !== undefined && Array.isArray(groups[0])) {
-		return objects[0] as ES.Expression;
-	}
-	return runtime(context, 'spreadProps', ...objects);
+	const props =
+		objects.length === 1 && groups[0] !== undefined && Array.isArray(groups[0])
+			? (objects[0] as ES.Expression)
+			: runtime(context, 'spreadProps', ...objects);
+	return props;
 }
 
 export function styledComponent(

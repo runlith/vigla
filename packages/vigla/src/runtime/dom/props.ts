@@ -14,12 +14,36 @@ export const UPDATED = 4;
 type Props = Record<PropertyKey, unknown>;
 
 const entries = new WeakSet<object>();
+const mutableGetters = new WeakSet<object>();
+const mutableAccessors = new WeakSet<object>();
+
+export function mutableProps<T extends object>(props: T, keys: readonly string[]): T {
+	for (const key of keys) {
+		const getter = Object.getOwnPropertyDescriptor(props, key)?.get;
+		if (getter !== undefined) mutableGetters.add(getter);
+	}
+	return props;
+}
+
+export function forwardProps<T extends object, V>(props: T, key: string, accessor: Accessor<V>): T {
+	return mutableAccessors.has(accessor) ? mutableProps(props, [key]) : props;
+}
+
+function marked<T>(accessor: Accessor<T>, mutable: boolean): Accessor<T> {
+	if (mutable) mutableAccessors.add(accessor);
+	return accessor;
+}
 
 export function entry(props: object): void {
 	entries.add(props);
 }
 
-export type Accessor<T> = (value?: T) => T;
+export type Accessor<T> = (value?: T, mutation?: boolean) => T;
+
+export function mutateProp<T, R>(accessor: Accessor<T>, result: R): R {
+	accessor(undefined, true);
+	return result;
+}
 
 export function prop<T>(
 	props: Props,
@@ -32,10 +56,12 @@ export function prop<T>(
 	const computed = lazy ? derived(fallback as () => T) : null;
 	let fallbackValue = lazy ? undefined : (fallback as T | undefined);
 	const getFallback = (): T => (computed !== null ? get(computed) : (fallbackValue as T));
+	const descriptor = Object.getOwnPropertyDescriptor(props, key);
+	const mutable = descriptor?.get !== undefined && mutableGetters.has(descriptor.get);
 	let setter: ((value: T) => void) | undefined;
 	if (bindable) {
 		setter =
-			Object.getOwnPropertyDescriptor(props, key)?.set ??
+			descriptor?.set ??
 			(entries.has(props) && key in props
 				? (value: T) => {
 						props[key] = value;
@@ -53,28 +79,30 @@ export function prop<T>(
 		const value = props[key] as T;
 		return value === undefined ? getFallback() : value;
 	};
-	if ((flags & UPDATED) === 0) return getter;
+	if ((flags & UPDATED) === 0) return marked(getter, mutable);
 	if (setter !== undefined) {
 		const write = setter;
-		return function (this: unknown, value?: T): T {
+		return marked(function (this: unknown, value?: T, mutation = false): T {
 			if (arguments.length > 0) {
-				write(value as T);
+				if (!mutation) write(value as T);
+				else if (mutable) write(getter());
 				return value as T;
 			}
 			return getter();
-		};
+		}, mutable);
 	}
 	const local = derived(getter);
 	if (bindable) get(local);
-	return function (this: unknown, value?: T): T {
+	return marked(function (this: unknown, value?: T, mutation = false): T {
 		if (arguments.length > 0) {
+			if (mutation) return value as T;
 			const next = bindable ? proxy(value as T) : (value as T);
 			set(local, next);
 			if (fallbackValue !== undefined) fallbackValue = next;
 			return value as T;
 		}
 		return get(local);
-	};
+	}, mutable);
 }
 
 function step<T>(value: T, delta: number): T {

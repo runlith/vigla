@@ -22,6 +22,7 @@ export type * from '../compiler/ir/nodes.ts';
 export type {
 	ComponentUnit,
 	Diagnostic,
+	ExternalBinding,
 	FrontEnd,
 	Ignores,
 	Input,

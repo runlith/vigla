@@ -16,6 +16,10 @@ export const reporter: Reporter = {
 		}
 	},
 	error(code, message) {
+		if (code === 'source_invalid') {
+			code = 'store_invalid_shape';
+			message = message?.replace('subscribable source', 'store') ?? null;
+		}
 		const error = new Error(message === null ? link(code) : `${code}\n${message}\n${link(code)}`);
 		error.name = 'Svelte error';
 		return error;

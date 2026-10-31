@@ -15,6 +15,7 @@ import type {
 import {
 	CompileError,
 	type ComponentUnit,
+	type ExternalBinding,
 	type ModuleUnit,
 	type Rune,
 	type Runes
@@ -47,6 +48,7 @@ export interface ScriptAnalysis {
 	readonly names: ReadonlySet<string>;
 	readonly functions: ReadonlySet<Binding>;
 	readonly classes: ClassFields;
+	readonly externals: ReadonlyMap<ES.Identifier, ExternalBinding>;
 }
 
 export interface ComponentAnalysis extends ScriptAnalysis {
@@ -94,6 +96,10 @@ export function dynamic(analysis: ScriptAnalysis, expression: ES.Node): boolean 
 				found = true;
 				return false;
 			case 'Identifier': {
+				if (analysis.externals.has(node)) {
+					found = true;
+					return false;
+				}
 				const binding = analysis.references.get(node);
 				if (binding === undefined) return;
 				if (binding.constant && !binding.reassigned) return;
@@ -253,7 +259,8 @@ export function analyzeModule(unit: ModuleUnit): ModuleAnalysis {
 		runes: unit.runes,
 		names,
 		functions: scopes.functions,
-		classes
+		classes,
+		externals: new Map()
 	};
 }
 
@@ -263,7 +270,20 @@ export function analyzeComponent(
 	defaultNamespace: Namespace = 'html'
 ): ComponentAnalysis {
 	if (unit.options?.customElement) throw unsupported(unit.options, 'A custom element');
-	const scopes = new Scopes(unit.runes);
+	const runes = new Map(unit.runes);
+	const externalReferences = new Set(
+		(unit.externals ?? []).flatMap((binding) => [...binding.references])
+	);
+	for (const callee of runes.keys()) {
+		if (
+			(callee.type === 'Identifier' && externalReferences.has(callee)) ||
+			(callee.type === 'MemberExpression' &&
+				callee.object.type === 'Identifier' &&
+				externalReferences.has(callee.object))
+		)
+			runes.delete(callee);
+	}
+	const scopes = new Scopes(runes);
 	const top = scopes.root(null);
 	const scope = scopes.root(top);
 	const names = new Set<string>();
@@ -277,6 +297,12 @@ export function analyzeComponent(
 		scopes.declare(unit.instance, scope);
 		collectNames(unit.instance, names);
 	}
+	for (const binding of unit.externals ?? []) {
+		for (const reference of binding.references) {
+			if (!scope.bindings.has(reference.name))
+				scopes.bind(scope, { type: 'Identifier', name: reference.name }, { kind: 'external' });
+		}
+	}
 	const namespace = unit.options?.namespace ?? defaultNamespace;
 	const template = new Template(scopes, preserve, names, unit.ignores);
 	const root = template.fragment(
@@ -288,7 +314,7 @@ export function analyzeComponent(
 		namespace === 'html'
 	);
 	const classes = checkRunes(
-		unit.runes,
+		runes,
 		[unit.module, unit.instance],
 		true,
 		template.placed,
@@ -297,14 +323,22 @@ export function analyzeComponent(
 	if (unit.module !== null) scopes.resolve(unit.module, top);
 	if (unit.instance !== null) scopes.resolve(unit.instance, scope);
 	if (unit.module !== null) checkExports(unit.module, scopes);
+	const externals = new Map<ES.Identifier, ExternalBinding>();
+	for (const binding of unit.externals ?? []) {
+		scopes.resolve(binding.source, scope);
+		for (const reference of binding.references) {
+			if (scopes.references.get(reference)?.kind === 'external') externals.set(reference, binding);
+		}
+	}
 	return {
 		unit,
 		references: scopes.references,
 		declarations: scopes.declarations,
-		runes: unit.runes,
+		runes,
 		names,
 		functions: scopes.functions,
 		classes,
+		externals,
 		lists: template.lists,
 		fragments: template.fragments,
 		namespaces: template.namespaces,

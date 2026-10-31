@@ -147,7 +147,13 @@ function listCode(
 			: patternValues(context, node.item, facts.names, item);
 	const body = arm(context, node.body, true, [item, index], prelude);
 	const args: ES.Expression[] = [anchor, collection, key, body];
-	if (node.fallback !== null) args.push(arm(context, node.fallback, true));
+	let mutable = false;
+	b.walk(node.collection, (node) => {
+		if (node.type === 'Identifier' && context.analysis.externals.has(node)) mutable = true;
+	});
+	if (node.fallback !== null || mutable)
+		args.push(node.fallback === null ? b.literal(null) : arm(context, node.fallback, true));
+	if (mutable) args.push(b.literal(true));
 	return [b.statement(runtime(context, 'list', ...args))];
 }
 

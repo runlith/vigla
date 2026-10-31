@@ -8,6 +8,7 @@ import {
 import { Lowering } from './lower.ts';
 import { parseComponent, type Parsed } from './parse/index.ts';
 import { Resolution } from './runes.ts';
+import { stores } from './stores.ts';
 
 export type * as AST from './ast.ts';
 export { legacy } from './legacy.ts';
@@ -43,6 +44,7 @@ export function lowerComponent(parsed: Parsed, source: string, filename: string 
 			module,
 			instance,
 			template,
+			externals: stores(lowering.resolution, module, instance),
 			style: ast.css ?? null,
 			options: lowering.options(ast.options),
 			runes: lowering.resolution.runes,

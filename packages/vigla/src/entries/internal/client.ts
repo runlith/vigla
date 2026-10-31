@@ -1,4 +1,5 @@
 export { clsx } from '../../shared/attributes.ts';
+export { assignment, mutationTarget } from '../../shared/assignment.ts';
 export { failure, setReporter } from '../../shared/diagnostics.ts';
 export type { Reporter } from '../../shared/diagnostics.ts';
 export {
@@ -57,7 +58,16 @@ export {
 export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
 export { delegate, delegated, listen } from '../../runtime/dom/events.ts';
-export { prop, propsId, rest, updateProp, updatePropPre } from '../../runtime/dom/props.ts';
+export {
+	forwardProps,
+	mutableProps,
+	mutateProp,
+	prop,
+	propsId,
+	rest,
+	updateProp,
+	updatePropPre
+} from '../../runtime/dom/props.ts';
 export { component, noop, render, spreadProps } from '../../runtime/dom/swap.ts';
 export { cleanupStyles, HMR, hmr } from '../../runtime/dom/hot.ts';
 export {
@@ -81,6 +91,7 @@ export {
 	template,
 	tracking
 } from '../../runtime/reactivity/effects.ts';
+export { external } from '../../runtime/reactivity/external.ts';
 export { latest } from '../../runtime/reactivity/latest.ts';
 export { tag, tagProxy, trace, traceStacks } from '../../runtime/reactivity/trace.ts';
 export { proxy, snapshot } from '../../runtime/reactivity/proxy.ts';

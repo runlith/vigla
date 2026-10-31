@@ -29,6 +29,10 @@
 			"status": "contract",
 			"reason": "Scheduler trap, hunk 7 (effect self-invalidation): green on upstream 5.57.3, kept as a regression test"
 		},
+		"external-owner": {
+			"status": "difference",
+			"reason": "Application primitives: an external subscription follows any owner, releases when its selected source is cleared, and reads transiently after disposal; upstream 5.57.3 has no vigla entry"
+		},
 		"filtered-keyed-list": "contract",
 		"fork-dirt-consumed": {
 			"status": "contract",
@@ -78,6 +82,10 @@
 			"status": "contract",
 			"reason": "Layer's session-handoff trap (spec 8191e72f), the incoming frame still awaiting its chunk when the answer lands; green on upstream 5.57.3, kept as a regression test"
 		},
+		"store-destructuring": "contract",
+		"store-forwarded-binding": "contract",
+		"store-snippet": "contract",
+		"store-switch-empty": "contract",
 		"teardown-flush-closing-branch": {
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 10 (nested eager flush): on upstream 5.57.3 a flushSync in the teardown of a branch an effect closed throws — TypeError reading `clear` of null"

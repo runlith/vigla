@@ -11,6 +11,7 @@ import {
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { hotComponent } from './hot.ts';
+import { prepare } from './external.ts';
 import { traceStacks } from './inspect.ts';
 import { Positions } from './meta.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
@@ -102,7 +103,8 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		format: options.format,
 		dev: options.dev,
 		aliases: new Map(),
-		renamed: new Map()
+		renamed: new Map(),
+		externalCells: new Map()
 	};
 	traceStacks(context);
 	if (options.discloseVersion !== false) {
@@ -133,7 +135,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		body.push(b.statement(runtime(context, 'appendStyles', anchor, b.id(css))));
 	}
 	body.push(b.statement(runtime(context, 'push')));
-	const script: ES.Statement[] = [];
+	const script = prepare(context, [...new Set(analysis.externals.values())]);
 	const exported: ES.Property[] = [];
 	const saving: Context = analysis.asynchronous
 		? { ...context, saved: topLevelAwaits(analysis) }

@@ -1,6 +1,8 @@
 export { failure, setReporter } from '../../shared/diagnostics.ts';
+export { assignment, mutationTarget } from '../../shared/assignment.ts';
 export type { Reporter } from '../../shared/diagnostics.ts';
 export { escapeContent as escape } from '../../shared/escape.ts';
+export { external } from '../../runtime/server/external.ts';
 export {
 	attr,
 	attrClass,

@@ -14,7 +14,7 @@ import {
 } from '../reactivity/batch.ts';
 import { block, hide, show as unhide } from '../reactivity/effects.ts';
 import type { Derived, Effect, Source } from '../reactivity/graph.ts';
-import { derived, source } from '../reactivity/sources.ts';
+import { derived, mutableEqual, mutableSource, source } from '../reactivity/sources.ts';
 import { get, owner } from '../reactivity/tracking.ts';
 import { traceInputs, traceSource, untrace } from '../reactivity/trace.ts';
 import {
@@ -97,6 +97,7 @@ class List<T> {
 	readonly #key: ((item: T, index: number) => unknown) | null;
 	readonly #render: Item<T>;
 	readonly #fallback: Render | null;
+	readonly #mutable: boolean;
 	#block: Effect | null = null;
 	#start: ChildNode | null = null;
 	readonly #rows = new Map<unknown, Row<T>>();
@@ -111,13 +112,15 @@ class List<T> {
 		collection: Derived<ArrayLike<T>>,
 		key: ((item: T, index: number) => unknown) | null,
 		render: Item<T>,
-		fallback: Render | null
+		fallback: Render | null,
+		mutable: boolean
 	) {
 		this.anchor = anchor;
 		this.#collection = collection;
 		this.#key = key;
 		this.#render = render;
 		this.#fallback = fallback;
+		this.#mutable = mutable;
 	}
 
 	#identify(items: ArrayLike<T>, position: number, seen: Map<unknown, number> | null): unknown {
@@ -134,7 +137,7 @@ class List<T> {
 	}
 
 	#create(key: unknown, value: T, position: number, update: boolean): Row<T> {
-		const item = source(value);
+		const item = this.#mutable ? mutableSource(value) : source(value);
 		const index = source(position);
 		if (DEV)
 			traceSource(item, () => {
@@ -388,13 +391,17 @@ export function list<T>(
 	collection: () => Collection<T>,
 	key: ((item: T, index: number) => unknown) | null,
 	render: Item<T>,
-	fallback: Render | null = null
+	fallback: Render | null = null,
+	mutable = false
 ): void {
-	const values = derived<ArrayLike<T>>(() => {
-		const given = collection();
-		return given == null ? [] : Array.isArray(given) ? given : Array.from(given as Iterable<T>);
-	});
-	const rows = new List<T>(node, values, key, render, fallback);
+	const values = derived<ArrayLike<T>>(
+		() => {
+			const given = collection();
+			return given == null ? [] : Array.isArray(given) ? given : Array.from(given as Iterable<T>);
+		},
+		mutable ? mutableEqual : undefined
+	);
+	const rows = new List<T>(node, values, key, render, fallback, mutable);
 	let first = true;
 	block(() => {
 		const items = get(values);
