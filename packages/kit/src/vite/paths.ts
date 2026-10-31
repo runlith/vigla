@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import type { Alias, Plugin } from 'vite';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import type { Alias, DevEnvironment, Plugin, RunnableDevEnvironment } from 'vite';
 import type { ValidatedConfig } from '../types/builder.ts';
 
 export const packageDirectory = fileURLToPath(new URL('../../', import.meta.url));
@@ -46,6 +46,19 @@ export function resolveEntry(file: string, extensions: readonly string[]): strin
 		if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
 	}
 	return null;
+}
+
+export async function importVite(root: string): Promise<typeof import('vite')> {
+	const require = createRequire(path.join(root, 'package.json'));
+	return import(pathToFileURL(require.resolve('vite')).href);
+}
+
+export function isRunnable(
+	environment: DevEnvironment | undefined
+): environment is RunnableDevEnvironment {
+	if (!environment || !('runner' in environment)) return false;
+	const runner = environment.runner as RunnableDevEnvironment['runner'];
+	return !!runner && typeof runner.import === 'function';
 }
 
 export function installedName(root: string): string {

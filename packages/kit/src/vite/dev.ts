@@ -1,14 +1,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
-import {
-	isCSSRequest,
-	isFileServingAllowed,
-	isRunnableDevEnvironment,
-	type EnvironmentModuleNode,
-	type RunnableDevEnvironment,
-	type ViteDevServer
-} from 'vite';
+import type { EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
 import { createReadableStream, getRequest, setResponse } from '../node/index.ts';
 import type { Server } from '../types/request.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
@@ -22,7 +15,7 @@ import { outsideBase, serveAsset } from './assets.ts';
 import { loadEnvironment } from './env.ts';
 import { ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
-import { fileUrl, posix, resolveEntry } from './paths.ts';
+import { fileUrl, isRunnable, posix, resolveEntry } from './paths.ts';
 import type { Project } from './project.ts';
 
 interface ServerModule {
@@ -57,6 +50,7 @@ async function validateMatchers(
 }
 
 async function styles(
+	project: Project,
 	environment: RunnableDevEnvironment,
 	files: Array<string | undefined>
 ): Promise<Record<string, string>> {
@@ -65,7 +59,7 @@ async function styles(
 	function visit(module: EnvironmentModuleNode): void {
 		if (seen.has(module)) return;
 		seen.add(module);
-		if (isCSSRequest(module.url) && !/[?&](raw|url|inline)(?:&|$)/.test(module.url))
+		if (project.api.isCSSRequest(module.url) && !/[?&](raw|url|inline)(?:&|$)/.test(module.url))
 			modules.push(module);
 		for (const child of module.importedModules) visit(child);
 	}
@@ -86,7 +80,7 @@ async function styles(
 
 export async function configureDev(server: ViteDevServer, project: Project): Promise<() => void> {
 	const environment = server.environments.ssr;
-	if (!environment || !isRunnableDevEnvironment(environment)) e.vite_ssr_environment_not_runnable();
+	if (!isRunnable(environment)) e.vite_ssr_environment_not_runnable();
 	const storage = new AsyncLocalStorage<RequestStore>();
 	const scope: AsyncContext = {
 		run: (store, fn) => storage.run(store, fn),
@@ -177,7 +171,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 		if (
 			!existsSync(resolved) ||
 			!statSync(resolved).isFile() ||
-			!isFileServingAllowed(resolved, server)
+			!project.api.isFileServingAllowed(resolved, server)
 		)
 			return null;
 		return createReadableStream(resolved);
@@ -249,7 +243,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						return async () => {
 							const node = await load();
 							node.inline_styles = () =>
-								styles(environment, [
+								styles(project, environment, [
 									source?.component && path.resolve(project.root, source.component),
 									source?.universal && path.resolve(project.root, source.universal)
 								]);

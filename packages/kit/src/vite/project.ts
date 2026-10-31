@@ -10,6 +10,7 @@ export interface Project {
 	name: string;
 	config: ValidatedConfig;
 	vite: ResolvedConfig;
+	api: typeof import('vite');
 	sync: Sync;
 	tree: RouteTree;
 	environment: Environment;

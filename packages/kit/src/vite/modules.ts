@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { normalizePath, type Plugin } from 'vite';
+import type { Plugin } from 'vite';
 import { compileComponent, componentNames } from '../components/index.ts';
 import { clientApp, clientNode } from './client.ts';
 import {
@@ -146,10 +146,10 @@ export function serverGuard(getProject: () => Project): Plugin {
 				id === ids.privateEnv ||
 				id === ids.env ||
 				isServerOnly(id, {
-					root: normalizePath(project.root),
-					node_modules: normalizePath(path.join(project.root, 'node_modules')),
-					routes: normalizePath(project.config.files.routes),
-					assets: normalizePath(project.config.files.assets)
+					root: posix(project.root),
+					node_modules: posix(path.join(project.root, 'node_modules')),
+					routes: posix(project.config.files.routes),
+					assets: posix(project.config.files.assets)
 				})
 			) {
 				const names = [...chain(id), id]

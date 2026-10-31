@@ -1,13 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { svelte, type Options, type PluginAPI } from '@vigla/vite-plugin';
-import {
-	normalizePath,
-	searchForWorkspaceRoot,
-	type CorsOptions,
-	type Plugin,
-	type UserConfig
-} from 'vite';
+import type { CorsOptions, Plugin, UserConfig } from 'vite';
 import { resolveConfig, splitConfig, validateConfig } from '../config/index.ts';
 import { createSync } from '../sync/index.ts';
 import type { Config } from '../types/config.ts';
@@ -20,7 +14,9 @@ import { serverGuard, virtualModules } from './modules.ts';
 import {
 	configAliases,
 	importAliases,
+	importVite,
 	installedName,
+	posix,
 	packageDirectory,
 	resolveEntry,
 	usesHtmlHook
@@ -93,14 +89,16 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 	let name: string;
 	let config: ValidatedConfig;
 	let project: Project;
+	let runtime: typeof import('vite');
 	const setup: Plugin = {
 		name: 'kit:setup',
 		enforce: 'pre',
 		api: { options: validated },
 		config: {
 			order: 'pre',
-			handler(user, env) {
-				root = normalizePath(path.resolve(user.root ?? process.cwd()));
+			async handler(user, env) {
+				root = posix(path.resolve(user.root ?? process.cwd()));
+				runtime = await importVite(root);
 				for (const file of ['svelte.config.js', 'svelte.config.ts']) {
 					if (existsSync(path.join(root, file))) e.config_file_unsupported({ file });
 				}
@@ -115,7 +113,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 					config.outDir,
 					packageDirectory,
 					path.join(root, 'node_modules'),
-					path.join(searchForWorkspaceRoot(root), 'node_modules'),
+					path.join(runtime.searchForWorkspaceRoot(root), 'node_modules'),
 					...aliases.map((alias) => alias.path)
 				]);
 				const hooks = resolveEntry(config.files.hooks.client, config.moduleExtensions);
@@ -187,13 +185,14 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 			}
 			const sync = createSync(config, root);
 			const tree = await sync.initial(vite.mode);
-			const environment = await loadEnvironment(config, root, vite.mode);
+			const environment = await loadEnvironment(config, root, vite.mode, runtime);
 			sync.writeEnvironment(environment.file, environment.variables);
 			project = {
 				root,
 				name,
 				config,
 				vite,
+				api: runtime,
 				sync,
 				tree,
 				environment,

@@ -1,12 +1,11 @@
 import path from 'node:path';
 import { uneval } from 'devalue';
-import { createServer, isRunnableDevEnvironment, loadEnv } from 'vite';
 import { validate, handleIssues, type EnvironmentIssues } from '../shared/env.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { EnvVarConfig } from '../types/env.ts';
 import { ids } from './ids.ts';
 import * as e from './messages.ts';
-import { configAliases, posix, resolveEntry } from './paths.ts';
+import { configAliases, isRunnable, posix, resolveEntry } from './paths.ts';
 
 export interface Environment {
 	variables: Record<string, EnvVarConfig<any>>;
@@ -25,18 +24,19 @@ const reserved = new Set(
 export async function loadEnvironment(
 	config: ValidatedConfig,
 	root: string,
-	mode: string
+	mode: string,
+	vite: typeof import('vite')
 ): Promise<Environment> {
 	const file = resolveEntry(path.join(config.files.src, 'env'), config.moduleExtensions);
 	const result: Environment = {
 		variables: {},
-		values: loadEnv(mode, config.env.dir, ''),
+		values: vite.loadEnv(mode, config.env.dir, ''),
 		validated: {},
 		dependencies: new Set(),
 		file
 	};
 	if (!file) return result;
-	const server = await createServer({
+	const server = await vite.createServer({
 		root,
 		configFile: false,
 		logLevel: 'silent',
@@ -63,7 +63,7 @@ export async function loadEnvironment(
 	});
 	try {
 		const ssr = server.environments.ssr;
-		if (!ssr || !isRunnableDevEnvironment(ssr)) e.vite_ssr_environment_not_runnable();
+		if (!isRunnable(ssr)) e.vite_ssr_environment_not_runnable();
 		const module = await ssr.runner.import(file);
 		if (
 			!module.variables ||
