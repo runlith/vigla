@@ -6,7 +6,14 @@ import { bindThisCall } from './bindings.ts';
 import { snippetParameters } from './parameters.ts';
 import { valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
-import { cleaned, isDynamic, render, type TemplateContext } from './template.ts';
+import {
+	cleaned,
+	isDynamic,
+	render,
+	type Emit,
+	type Part,
+	type TemplateContext
+} from './template.ts';
 
 function getter(name: string, value: ES.Expression): ES.Property {
 	return {
@@ -88,6 +95,7 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 	for (const attribute of node.attributes) {
 		switch (attribute.kind) {
 			case 'attribute': {
+				if (attribute.name.startsWith('--')) break;
 				const value = valueOf(context, null, attribute.value);
 				const reactive =
 					attribute.value.kind !== 'boolean' &&
@@ -155,6 +163,65 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 		return objects[0] as ES.Expression;
 	}
 	return runtime(context, 'spreadProps', ...objects);
+}
+
+export function styledComponent(
+	context: TemplateContext,
+	node: Component,
+	svg: boolean
+): Part | null {
+	const properties = node.attributes.filter(
+		(attribute) => attribute.kind === 'attribute' && attribute.name.startsWith('--')
+	);
+	if (properties.length === 0) return null;
+	const tag = svg ? 'g' : context.format.cssWrapper;
+	return {
+		html: `<${tag}${svg ? '' : ' style="display: contents"'}><!></${tag}>`,
+		hint: tag,
+		text: false,
+		referenced: true,
+		children: [],
+		setup(wrapper, emit) {
+			const updates: Emit = { init: [], update: [], thunks: [], params: [] };
+			const styles = b.object(
+				Object.fromEntries(
+					properties.map((attribute) => {
+						if (attribute.kind !== 'attribute') throw new Error('expected CSS property');
+						return [attribute.name, valueOf(context, updates, attribute.value)];
+					})
+				)
+			);
+			emit.init.push(
+				b.statement(
+					runtime(
+						context,
+						'content',
+						b.arrow(updates.params, [
+							b.statement(
+								runtime(
+									context,
+									'style',
+									wrapper,
+									b.literal(svg ? null : 'display: contents;'),
+									b.literal(null),
+									styles
+								)
+							)
+						]),
+						...(updates.thunks.length > 0
+							? [{ type: 'ArrayExpression', elements: updates.thunks } as ES.ArrayExpression]
+							: [])
+					)
+				)
+			);
+			const anchor = b.id(context.names.unique('$$anchor'));
+			emit.init.push(
+				b.constant(anchor.name, runtime(context, 'child', wrapper)),
+				...componentCall(context, node, anchor)
+			);
+			emit.init.push(b.statement(runtime(context, 'reset', wrapper)));
+		}
+	};
 }
 
 export function componentCall(

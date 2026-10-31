@@ -1,4 +1,5 @@
 import type * as ES from 'estree';
+import type { Format } from '../../shared/format.ts';
 import {
 	spanOf,
 	unsupported,
@@ -19,6 +20,7 @@ export interface ModuleOptions {
 
 export interface ServerOptions extends ModuleOptions {
 	readonly name: string;
+	readonly format: Format;
 	readonly scoping: Scoping;
 	readonly styles: InjectedStyle | null;
 }
@@ -58,6 +60,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		out,
 		props,
 		scoping: options.scoping,
+		format: options.format,
 		hoisted: [],
 		dev: options.dev
 	};

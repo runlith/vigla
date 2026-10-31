@@ -464,9 +464,6 @@ export class Template {
 		for (const attribute of node.attributes) {
 			switch (attribute.kind) {
 				case 'attribute':
-					if (attribute.name.startsWith('--')) {
-						throw unsupported(attribute, 'A CSS custom property on a component');
-					}
 					this.value(attribute.value, scope);
 					break;
 				case 'spread':

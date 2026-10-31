@@ -207,6 +207,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
+			format: { global: '__svelte', meta: '__svelte_meta', cssWrapper: 'svelte-css-wrapper' },
 			name,
 			css,
 			dev: options.dev,

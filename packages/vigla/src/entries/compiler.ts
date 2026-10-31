@@ -1,6 +1,8 @@
 import type * as ES from 'estree';
 import { print } from 'esrap';
 import ts from 'esrap/languages/ts';
+import { format, type Format } from '../shared/format.ts';
+export type { Format } from '../shared/format.ts';
 import { analyzeComponent, analyzeModule } from '../compiler/analysis/index.ts';
 import {
 	validateComponent,
@@ -77,6 +79,7 @@ export interface CompileOptions extends ModuleOptions, Mapping {
 	readonly namespace?: Namespace;
 	readonly css?: CssOptions;
 	readonly hmr?: boolean;
+	readonly format?: Format;
 }
 
 export interface CssOptions {
@@ -135,6 +138,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		name: options.name,
 		scoping: style.scoping,
 		styles,
+		format: options.format ?? format,
 		dev: options.dev ?? false
 	};
 	const program =

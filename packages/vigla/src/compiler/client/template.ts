@@ -1,4 +1,5 @@
 import type * as ES from 'estree';
+import type { Format } from '../../shared/format.ts';
 import { escapeContent } from '../../shared/escape.ts';
 import {
 	asyncStep,
@@ -18,7 +19,8 @@ import {
 	isDynamicComponent,
 	isStaticRender,
 	renderCall,
-	snippetDeclarations
+	snippetDeclarations,
+	styledComponent
 } from './component.ts';
 import { constantDeclarations } from './constants.ts';
 import { dynamicCall } from './dynamic.ts';
@@ -31,6 +33,7 @@ export interface TemplateContext extends Context {
 	readonly groups: Map<string, ES.Identifier>;
 	readonly instance: ES.Statement[];
 	readonly scoping: Scoping;
+	readonly format: Format;
 }
 
 export function scopeHash(context: TemplateContext, node: Host): string | null {
@@ -232,7 +235,8 @@ export function parts(
 				break;
 			case 'component':
 				result.push(
-					anchorPart((anchor, emit) => emit.init.push(...componentCall(context, node, anchor)))
+					styledComponent(context, node, namespace === 'svg') ??
+						anchorPart((anchor, emit) => emit.init.push(...componentCall(context, node, anchor)))
 				);
 				break;
 			case 'render':
@@ -285,7 +289,14 @@ function standalone(context: TemplateContext, nodes: readonly Node[]): Node | nu
 	if (regular.length !== 1) return null;
 	const [only] = regular;
 	if (only === undefined || awaiting(context, [only]).length > 0) return null;
-	if (only?.kind === 'component' && !isDynamicComponent(context, only)) return only;
+	if (
+		only?.kind === 'component' &&
+		!isDynamicComponent(context, only) &&
+		!only.attributes.some(
+			(attribute) => attribute.kind === 'attribute' && attribute.name.startsWith('--')
+		)
+	)
+		return only;
 	if (only?.kind === 'render' && isStaticRender(context, only)) return only;
 	return null;
 }

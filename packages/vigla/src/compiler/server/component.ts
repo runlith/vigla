@@ -113,6 +113,7 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 	for (const attribute of node.attributes) {
 		switch (attribute.kind) {
 			case 'attribute':
+				if (attribute.name.startsWith('--')) break;
 				push(property(attribute.name, valueOf(context, attribute.value)));
 				break;
 			case 'spread':
@@ -160,6 +161,22 @@ export function component(
 	buffer: Buffer,
 	alone: boolean
 ): void {
+	const styles: Record<string, ES.Expression> = {};
+	for (const attribute of node.attributes) {
+		if (attribute.kind === 'attribute' && attribute.name.startsWith('--')) {
+			styles[attribute.name] = valueOf(context, attribute.value);
+		}
+	}
+	const wrapped = Object.keys(styles).length > 0;
+	const svg = context.component.fragmentNamespaces.get(node.body) === 'svg';
+	const tag = svg ? 'g' : context.format.cssWrapper;
+	if (wrapped) {
+		buffer.text(`<${tag}`);
+		buffer.value(
+			runtime(context, 'attrStyle', b.literal(svg ? null : 'display: contents;'), b.object(styles))
+		);
+		buffer.text('>');
+	}
 	buffer.flush(context, statements);
 	statements.push(
 		...snippetDeclarations(context, context.component.fragments.get(node.body) ?? [])
@@ -169,7 +186,8 @@ export function component(
 	const call = b.statement(b.call(reference, context.out, props));
 	if (!isDynamicComponent(context, node)) {
 		statements.push(call);
-		if (!alone) buffer.text(empty);
+		if (!alone || wrapped) buffer.text(empty);
+		if (wrapped) buffer.text(`</${tag}>`);
 		return;
 	}
 	const push = (html: string): ES.Statement =>
@@ -180,6 +198,7 @@ export function component(
 		consequent: { type: 'BlockStatement', body: [push(open), call, push(close)] },
 		alternate: { type: 'BlockStatement', body: [push(openElse), push(close)] }
 	});
+	if (wrapped) buffer.text(`</${tag}>`);
 }
 
 export function boundary(

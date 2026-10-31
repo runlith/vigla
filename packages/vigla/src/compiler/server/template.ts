@@ -1,4 +1,5 @@
 import type * as ES from 'estree';
+import type { Format } from '../../shared/format.ts';
 import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
 import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
 import { empty } from '../../shared/markers.ts';
@@ -34,6 +35,7 @@ export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
 	readonly out: ES.Identifier;
 	readonly scoping: Scoping;
+	readonly format: Format;
 	readonly hoisted: (ES.Statement | ES.ModuleDeclaration)[];
 }
 

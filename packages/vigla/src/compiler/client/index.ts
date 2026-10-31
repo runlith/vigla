@@ -1,4 +1,5 @@
 import type * as ES from 'estree';
+import type { Format } from '../../shared/format.ts';
 import {
 	patternNames,
 	spanOf,
@@ -20,6 +21,7 @@ export interface ModuleOptions {
 
 export interface ClientOptions extends ModuleOptions {
 	readonly name: string;
+	readonly format: Format;
 	readonly scoping: Scoping;
 	readonly styles: InjectedStyle | null;
 	readonly hmr: boolean;
@@ -88,6 +90,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		groups: new Map(),
 		instance: [],
 		scoping: options.scoping,
+		format: options.format,
 		dev: options.dev,
 		aliases: new Map(),
 		renamed: new Map()
