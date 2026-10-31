@@ -285,6 +285,11 @@ export interface RespondOptions {
 	prerendering?: PrerenderState;
 }
 
+export interface ServerInstance {
+	init(options: ServerInitOptions): Promise<void>;
+	respond(request: Request, options: RespondOptions): Promise<Response>;
+}
+
 export interface RequestState {
 	read?: Read;
 	depth: number;
