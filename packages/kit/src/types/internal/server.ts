@@ -290,6 +290,11 @@ export interface ServerInstance {
 	respond(request: Request, options: RespondOptions): Promise<Response>;
 }
 
+export interface ServerModule {
+	Server: new (manifest: ServerManifest) => ServerInstance;
+	options: ServerOptions;
+}
+
 export interface RequestState {
 	read?: Read;
 	depth: number;
