@@ -182,8 +182,16 @@ export async function renderDocument(
 				link(file, relation, relation.replaceAll(' ', '; '));
 			}
 		}
+		const fallback = !!state.prerendering?.fallback;
+		const base = !options.paths.relative
+			? escapeJson(paths.base)
+			: !fallback
+				? `new URL(${escapeJson(paths.base)},location).pathname.slice(0,-1)`
+				: options.router.type === 'hash'
+					? `new URL('.',location).pathname.slice(0,-1)`
+					: escapeJson(paths.base);
 		const properties = [
-			`base:${escapeJson(paths.base)}`,
+			`base:${base}`,
 			`assets:${escapeJson(paths.assets)}`,
 			`version:${escapeJson(options.version.name)}`,
 			`version_poll_interval:${options.version.pollInterval}`,
