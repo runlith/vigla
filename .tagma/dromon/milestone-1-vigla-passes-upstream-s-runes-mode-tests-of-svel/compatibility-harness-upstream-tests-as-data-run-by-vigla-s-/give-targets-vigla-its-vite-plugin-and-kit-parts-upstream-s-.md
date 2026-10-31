@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a18754-3a7f-7a8c-b16f-398394e4ee29",
-    "status": "in_work"
+    "status": "done"
   }
 edges:
   - kind: implements
@@ -14,4 +14,4 @@ edges:
   - kind: relates
     to: 01a187bd-e581-7ebe-85bb-fecb6aa3c486
 ---
-`targets/vigla` runs only the Svelte suites. Add its `vite-plugin` and `kit` parts as `targets/upstream` has them, with `svelte` resolving to `@vigla/svelte`. Until `@vigla/vite-plugin` and `@vigla/kit` exist, upstream's vite-plugin-svelte 7.3.1 and Kit 3.1.0 stand in, so real Vite and Kit apps exercise Vigla's compiler and runtime now; each part switches to Vigla's package in the change that makes that package installable, and the passing set judges the switch.
+Add the `vite-plugin` and `kit` parts to `targets/vigla`, with `svelte` resolving to `@vigla/svelte`. Both parts now install the available `@vigla/vite-plugin` under its upstream name; Kit remains upstream 3.1.0 until `@vigla/kit` exists. The commit records 10 plugin units, re-proved on the new plugin by the front-end worker, and 47 Kit units plus 7 type entries checked against the retained reports. The original plugin e2e baseline was 9 serve and 35 build entries; its passing file and revalidation after the switch are handed to the front-end worker, outside this commit. Kit apps, adapters, prerendering and build-errors remain unmeasured on Vigla. Compiler-hook smoke checks passed on both targets and the harness typecheck passed; full upstream equality and heavy suites were not rerun.
