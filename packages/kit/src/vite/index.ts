@@ -10,7 +10,7 @@ import { configureDev } from './dev.ts';
 import { loadEnvironment } from './env.ts';
 import { globalName } from './ids.ts';
 import * as e from './messages.ts';
-import { serverGuard, virtualModules } from './modules.ts';
+import { scanVirtualModules, serverGuard, virtualModules } from './modules.ts';
 import {
 	configAliases,
 	importAliases,
@@ -147,6 +147,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 					},
 					preview: { cors: resolveCors(user.preview?.cors, 'preview.cors', dev) },
 					optimizeDeps: {
+						rolldownOptions: { plugins: [scanVirtualModules()] },
 						entries: [
 							`${config.files.routes}/**/+*.{js,ts}`,
 							`!${config.files.routes}/**/+*server.*`

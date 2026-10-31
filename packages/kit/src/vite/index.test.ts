@@ -1,9 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createServer, type ViteDevServer } from 'vite';
 import { sveltekit } from './index.ts';
-import { packageDirectory } from './paths.ts';
+import { importVite, packageDirectory } from './paths.ts';
 
 let root: string;
 let server: ViteDevServer;
@@ -156,6 +156,27 @@ test('the client public environment contains validated named exports without pri
 	const serverEnv = await server.ssrLoadModule('/src/environment.js');
 	expect({ ...serverEnv.publicEnv }).toEqual({ PUBLIC_NUMBER: 7, setEnv: 'present' });
 	expect({ ...serverEnv.privateEnv }).toEqual({ PRIVATE_TOKEN: 'local-test-private' });
+});
+
+test('dependency scanning externalizes virtual modules and discovers normal dependencies', async () => {
+	const file = path.join(root, 'src/scan.js');
+	writeFileSync(
+		file,
+		`import { assets } from '$app/manifest'; import { env as dynamic } from '$env/dynamic/public'; import * as publicEnv from '$app/env/public'; import * as legacy from '$env/static/public'; import * as cookie from 'cookie'; export const result = [assets, dynamic, publicEnv, legacy, cookie];`
+	);
+	const vite = await importVite(root);
+	const config = await vite.resolveConfig(
+		{
+			root,
+			configFile: false,
+			logLevel: 'silent',
+			plugins: await sveltekit({ paths: { base: '/base' } }),
+			optimizeDeps: { entries: [file] }
+		},
+		'serve'
+	);
+	const result = await vite.optimizeDeps(config, true);
+	expect(existsSync(result.optimized.cookie!.file)).toBe(true);
 });
 
 test('the app manifest publishes development asset and route metadata', async () => {

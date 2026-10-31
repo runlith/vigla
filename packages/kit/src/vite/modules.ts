@@ -1,5 +1,5 @@
 import path from 'node:path';
-import type { Plugin } from 'vite';
+import type { Plugin, Rolldown } from 'vite';
 import { compileComponent, componentNames } from '../components/index.ts';
 import { clientApp, clientNode } from './client.ts';
 import {
@@ -10,9 +10,36 @@ import {
 } from './env.ts';
 import { ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
-import { importAliases, isServerOnly, normalizeId, packageImporter, posix } from './paths.ts';
+import {
+	fileUrl,
+	importAliases,
+	isServerOnly,
+	normalizeId,
+	packageImporter,
+	posix
+} from './paths.ts';
 import type { Project } from './project.ts';
 import { errorTemplate, serverEntry, serverManifest, serverOptions } from './server.ts';
+
+export function scanVirtualModules(): Rolldown.Plugin {
+	return {
+		name: 'kit:scan-virtual-modules',
+		resolveId: {
+			filter: {
+				id: [
+					/^\$app\//,
+					/^\$env\//,
+					new RegExp(virtualDirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+				]
+			},
+			async handler(id, importer) {
+				const resolved = await this.resolve(id, importer, { skipSelf: true });
+				const target = resolved?.id ?? id;
+				return { id: path.isAbsolute(target) ? fileUrl(target) : target, external: 'absolute' };
+			}
+		}
+	};
+}
 
 export function virtualModules(getProject: () => Project): Plugin {
 	return {
