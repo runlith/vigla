@@ -17,4 +17,4 @@ sources:
     ref: packages/vigla/src/runtime/reactivity/effects.ts
     symbol: create
 ---
-An attached effect created directly while a derived evaluates belongs to that evaluation, while retaining the declaration owner's context and place in the effect tree. Recomputing or disconnecting the derived destroys those effects before replacing its work; otherwise a cached expression can retain a subscription to a value it no longer returns. An explicit detached root keeps its independent lifetime.
+An attached effect created directly while a derived evaluates belongs to that evaluation, while retaining the declaration owner's context and place in the effect tree. Recomputing or disconnecting the derived destroys those effects before replacing its work; otherwise a cached expression can retain a subscription to a value it no longer returns. An explicit root belongs to its chosen parent, or stands independently with no parent; the caller's derived never adopts it.
