@@ -6,6 +6,17 @@ export function source<T>(value: T): Source<T> {
 	return { v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
 }
 
+export function mutableEqual(before: unknown, after: unknown): boolean {
+	return (
+		(before === after || (before !== before && after !== after)) &&
+		(before === null || (typeof before !== 'object' && typeof before !== 'function'))
+	);
+}
+
+export function mutableSource<T>(value: T): Source<T> {
+	return { ...source(value), equals: mutableEqual };
+}
+
 export function state<T>(value: T): Source<T> {
 	const created = source(value);
 	localize(created);
@@ -47,7 +58,7 @@ export function cell<T>(value: T): Cell<T> {
 	};
 }
 
-export function derived<T>(fn: () => T): Derived<T> {
+export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolean): Derived<T> {
 	const created: Derived<T> = {
 		fn,
 		owner,
@@ -63,5 +74,6 @@ export function derived<T>(fn: () => T): Derived<T> {
 		deps: null,
 		rv: 0
 	};
+	if (equals !== undefined) created.equals = equals;
 	return created;
 }

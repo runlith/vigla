@@ -20,6 +20,7 @@ export type Kind =
 export type Status = typeof CLEAN | typeof MAYBE | typeof DIRTY;
 
 export interface Source<T = unknown> {
+	equals?(before: T, after: T): boolean;
 	v: T;
 	wv: number;
 	reactions: Set<Reaction> | null;
@@ -70,6 +71,10 @@ export interface Effect extends Reaction {
 }
 
 let clock = 0;
+
+export function equal<T>(source: Source<T>, before: T, after: T): boolean {
+	return source.equals === undefined ? Object.is(before, after) : source.equals(before, after);
+}
 
 export function stamp(): number {
 	return ++clock;

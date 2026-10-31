@@ -10,6 +10,7 @@ import {
 	EAGER,
 	MAYBE,
 	ROOT,
+	equal,
 	isDerived,
 	isDerivedSource,
 	now,
@@ -519,7 +520,7 @@ export function refresh(derived: Derived): void {
 			view.checked.set(derived, true);
 			return;
 		}
-		if (!derived.computed || !Object.is(value, derived.v)) {
+		if (!derived.computed || !equal(derived, derived.v, value)) {
 			derived.v = value;
 			derived.wv = stamp();
 			derived.computed = true;
