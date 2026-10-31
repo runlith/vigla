@@ -7,6 +7,7 @@ import type { Listed, Measured } from './protocol.ts';
 
 interface Row extends Listed {
 	readonly times: Record<string, number[]>;
+	readonly failed?: string;
 }
 
 const base = resolve(import.meta.dirname, '..');
@@ -39,9 +40,9 @@ function child<T>(target: Prepared, label: string | undefined): Promise<T> {
 		let result: T | null = null;
 		spawned.on('message', (message) => (result = message as T));
 		spawned.on('error', failed);
-		spawned.on('exit', (code) => {
-			if (result === null)
-				failed(new Error(`${target.name} ${label ?? 'list'} exited with ${code}`));
+		spawned.on('exit', (code, signal) => {
+			if (code !== 0 || result === null)
+				failed(new Error(`${target.name} ${label ?? 'list'} exited with ${code ?? signal}`));
 			else done(result);
 		});
 	});
@@ -101,12 +102,19 @@ const rows: Row[] = [];
 for (const entry of selected) {
 	const times: Record<string, number[]> = {};
 	for (const target of prepared) times[target.name] = [];
-	for (let run = 0; run < runs; run++) {
-		const order = run % 2 === 0 ? prepared : [...prepared].reverse();
-		for (const target of order) {
-			const measured = await child<Measured>(target, entry.label);
-			times[target.name]?.push(measured.time);
+	try {
+		for (let run = 0; run < runs; run++) {
+			const order = run % 2 === 0 ? prepared : [...prepared].reverse();
+			for (const target of order) {
+				const measured = await child<Measured>(target, entry.label);
+				times[target.name]?.push(measured.time);
+			}
 		}
+	} catch (error) {
+		process.exitCode = 1;
+		rows.push({ ...entry, times, failed: String(error) });
+		console.log(line([`${entry.suite}/${entry.label}`, 'failed:', String(error), '']));
+		continue;
 	}
 	rows.push({ ...entry, times });
 	const upstream = times.upstream as number[];
