@@ -20,6 +20,6 @@ A branch or row stays alive while it is on screen or some uncommitted batch's ch
 
 Rows are reconciled at commit against the order on screen: a row whose relative order survives stays where it is, and only the rest move, chosen by the longest increasing run of retained positions, so a reorder costs the minimum DOM moves.
 
-`{#await}` stages the same way, but each settled state of a promise is its own batch: the promise's result is written into an internal source and flushed, so the block reruns in that batch and the switch commits with it, never inside the batch that handed over the promise. The pending branch is a deferred `task`: it appears one microtask later only if the promise has not settled by then, or at once when `flushSync` drains the task first. A newer input makes every result of an older promise stale.
+An `{#await}` promise settles under the block's owner without restoring the input's batch or view. Settlement selects the still-live run's branch directly before flushing queued input changes: rerunning the input from a settlement source would instead see a later write and suppress a pending branch whose task came first (`await-pending-destroy`). The pending branch is a deferred `task`: it appears one microtask later only if the promise has not settled by then, or at once when `flushSync` drains the task first. A newer input makes every result of an older promise stale.
 
 A block run outside any batch's structure phase — its first run, or one with no batch being processed — applies at once, since nothing of it can be held.
