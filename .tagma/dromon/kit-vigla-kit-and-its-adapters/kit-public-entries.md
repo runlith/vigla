@@ -50,15 +50,6 @@ fields:
       },
       {
         "at": "env/dynamic/public/client.ts"
-      },
-      {
-        "at": "env/dynamic/private/client.ts"
-      },
-      {
-        "at": "env/static/public/client.ts"
-      },
-      {
-        "at": "env/static/private/client.ts"
       }
     ],
     "id": "kit-entries"
