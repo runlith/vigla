@@ -50,6 +50,42 @@ fields:
       },
       {
         "at": "env/dynamic/public/client.ts"
+      },
+      {
+        "at": "app/env/server.ts"
+      },
+      {
+        "at": "app/env/public/server.ts"
+      },
+      {
+        "at": "app/env/private/server.ts"
+      },
+      {
+        "at": "app/environment/server.ts"
+      },
+      {
+        "at": "app/forms/server.ts"
+      },
+      {
+        "at": "app/navigation/server.ts"
+      },
+      {
+        "at": "app/paths/server.ts"
+      },
+      {
+        "at": "app/state/server.ts"
+      },
+      {
+        "at": "app/server/server.ts"
+      },
+      {
+        "at": "env/dynamic/public/server.ts"
+      },
+      {
+        "at": "env/dynamic/private/server.ts"
+      },
+      {
+        "at": "internal/server.ts"
       }
     ],
     "id": "kit-entries"
@@ -70,5 +106,7 @@ sources:
     ref: packages/kit/package.json
   - kind: file
     ref: packages/kit/tsconfig.json
+  - kind: file
+    ref: packages/kit/vitest.config.ts
 ---
 What an app imports from Kit: `@sveltejs/kit` and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` and `$env/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit 3.1's public names; the behaviour lives in those runtimes.
