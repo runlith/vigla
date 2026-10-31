@@ -3291,51 +3291,51 @@
     },
     "runtime/utils.spec.js > base64_decode > ": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_decode > abcd": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_decode > hello world": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_decode > the quick brown fox jumps over the lazy dog": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_decode > 工欲善其事，必先利其器": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_encode > ": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_encode > abcd": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_encode > hello world": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_encode > the quick brown fox jumps over the lazy dog": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > base64_encode > 工欲善其事，必先利其器": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > stream_from_iterable without ReadableStream.from > cancelling the stream ends the iterable": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "runtime/utils.spec.js > stream_from_iterable without ReadableStream.from > streams the iterable": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/runtime/utils.js` code; covered by the `kit-client` module"
     },
     "utils/css.spec.js > fix_css_urls > handles escaped parenthesis": {
       "status": "covered",
