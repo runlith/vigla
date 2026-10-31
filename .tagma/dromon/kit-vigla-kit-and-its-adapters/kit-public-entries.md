@@ -23,6 +23,42 @@ fields:
       },
       {
         "at": "internal/env.ts"
+      },
+      {
+        "at": "internal/client.ts"
+      },
+      {
+        "at": "app/navigation/client.ts"
+      },
+      {
+        "at": "app/state/client.ts"
+      },
+      {
+        "at": "app/forms/client.ts"
+      },
+      {
+        "at": "app/paths/client.ts"
+      },
+      {
+        "at": "app/env/client.ts"
+      },
+      {
+        "at": "app/environment/client.ts"
+      },
+      {
+        "at": "app/service-worker/client.ts"
+      },
+      {
+        "at": "env/dynamic/public/client.ts"
+      },
+      {
+        "at": "env/dynamic/private/client.ts"
+      },
+      {
+        "at": "env/static/public/client.ts"
+      },
+      {
+        "at": "env/static/private/client.ts"
       }
     ],
     "id": "kit-entries"
