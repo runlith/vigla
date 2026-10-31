@@ -8,6 +8,9 @@
 			"default": "./src/entries/index.ts"
 		},
 		"./package.json": "./package.json",
+		"./internal/client": "./src/entries/internal/client.ts",
+		"./internal/payload": "./src/entries/internal/payload.ts",
+		"./internal/server": "./src/entries/internal/server.ts",
 		"./adapter": {
 			"types": "./src/types/adapter.ts",
 			"default": "./src/entries/adapter.ts"
@@ -33,7 +36,61 @@
 		"./internal/node": "./src/node/static.ts"
 	},
 	"imports": {
-		"#types/*": "./src/types/*.ts"
+		"#types/*": "./src/types/*.ts",
+		"#app/env": {
+			"workerd": "./src/entries/app/env/server.ts",
+			"browser": "./src/entries/app/env/client.ts",
+			"default": "./src/entries/app/env/server.ts"
+		},
+		"#app/environment": {
+			"workerd": "./src/entries/app/environment/server.ts",
+			"browser": "./src/entries/app/environment/client.ts",
+			"default": "./src/entries/app/environment/server.ts"
+		},
+		"#app/forms": {
+			"workerd": "./src/entries/app/forms/server.ts",
+			"browser": "./src/entries/app/forms/client.ts",
+			"default": "./src/entries/app/forms/server.ts"
+		},
+		"#app/navigation": {
+			"workerd": "./src/entries/app/navigation/server.ts",
+			"browser": "./src/entries/app/navigation/client.ts",
+			"default": "./src/entries/app/navigation/server.ts"
+		},
+		"#app/paths": {
+			"workerd": "./src/entries/app/paths/server.ts",
+			"browser": "./src/entries/app/paths/client.ts",
+			"default": "./src/entries/app/paths/server.ts"
+		},
+		"#app/service-worker": {
+			"browser": "./src/entries/app/service-worker/client.ts"
+		},
+		"#app/state": {
+			"workerd": "./src/entries/app/state/server.ts",
+			"browser": "./src/entries/app/state/client.ts",
+			"default": "./src/entries/app/state/server.ts"
+		},
+		"#app/server": {
+			"workerd": "./src/entries/app/server/server.ts",
+			"default": "./src/entries/app/server/server.ts"
+		},
+		"#app/env/public": {
+			"workerd": "./src/entries/app/env/public/server.ts",
+			"default": "./src/entries/app/env/public/server.ts"
+		},
+		"#app/env/private": {
+			"workerd": "./src/entries/app/env/private/server.ts",
+			"default": "./src/entries/app/env/private/server.ts"
+		},
+		"#env/dynamic/public": {
+			"workerd": "./src/entries/env/dynamic/public/server.ts",
+			"browser": "./src/entries/env/dynamic/public/client.ts",
+			"default": "./src/entries/env/dynamic/public/server.ts"
+		},
+		"#env/dynamic/private": {
+			"workerd": "./src/entries/env/dynamic/private/server.ts",
+			"default": "./src/entries/env/dynamic/private/server.ts"
+		}
 	},
 	"dependencies": {
 		"@opentelemetry/api": "^1.9.1",
