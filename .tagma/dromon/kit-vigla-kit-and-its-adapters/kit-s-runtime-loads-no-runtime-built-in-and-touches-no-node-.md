@@ -1,6 +1,6 @@
 ---
 id: 01a193f1-6c19-7cfd-849a-b78f130836eb
-title: Kit's runtime loads no Node built-in and touches no Node-only global
+title: Kit's runtime loads no runtime built-in and touches no Node-only global
 ord: 5
 tags: ["rule"]
 fields:
@@ -37,4 +37,4 @@ sources:
   - kind: dir
     ref: packages/kit/src/entries
 ---
-Covers Kit's server, client and shared runtime, its public types and entries. No `node:*` or bare built-in import, static or dynamic, no `process.getBuiltinModule`, and no `process`, `Buffer`, `require`, `global`, `setImmediate`, `__dirname` or `__filename`. What a platform has — environment variables, an async-context store such as `AsyncLocalStorage`, file reads, source-mapped stacks — reaches the runtime through `Server.init` or the request options, passed by the dev server, the prerenderer or an adapter. Node glue belongs to `kit-node`, the Vite plugin, the build and the adapters.
+Covers Kit's server, client and shared runtime, its public types and entries. No `node:*`, `bun`, `bun:*` or bare Node built-in import, static or dynamic, no `process.getBuiltinModule`, and no `process`, `Buffer`, `require`, `global`, `setImmediate`, `__dirname` or `__filename`. What a platform has — environment variables, an async-context store such as `AsyncLocalStorage`, file reads, source-mapped stacks — reaches the runtime through `Server.init` or the request options, passed by the dev server, the prerenderer or an adapter. Node and Bun glue belongs to `kit-node`, the Vite plugin, the build and the adapters.
