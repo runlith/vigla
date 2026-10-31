@@ -112,7 +112,10 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		...options.validation,
 		namespace: options.namespace
 	});
-	const style = analyzeStyle(unit, { hash: options.css?.hash ?? '' });
+	const style = analyzeStyle(unit, {
+		hash: options.css?.hash ?? '',
+		scope: options.hmr && !options.css?.inject ? 'all' : 'matched'
+	});
 	const warnings = [...validated, ...style.warnings];
 	const inject = injected(style, options.css?.inject ?? false);
 	const css = renderStyle(style, {

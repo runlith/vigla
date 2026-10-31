@@ -24,6 +24,7 @@ export interface InjectedStyle {
 
 export interface StyleOptions {
 	readonly hash: string;
+	readonly scope?: 'matched' | 'all';
 }
 
 export interface StyleAnalysis {
@@ -107,13 +108,18 @@ export function analyzeStyle(unit: ComponentUnit, options: StyleOptions): StyleA
 	}
 	const analysis = new Analysis(marks);
 	analysis.sheet(sheet);
-	const pruning = new Pruning(marks, new TemplateIndex(unit));
+	const index = new TemplateIndex(unit);
+	const pruning = new Pruning(marks, index);
 	pruning.sheet(sheet);
+	const scoped =
+		options.scope === 'all'
+			? new Set(index.hosts.filter((host) => !index.insideHead(host)))
+			: pruning.scoped;
 	const report = new Report(unit.ignores);
 	if (!(unit.ignores.get(sheet)?.has('css_unused_selector') ?? false)) unused(sheet, marks, report);
 	return {
 		unit,
-		scoping: { hash: options.hash, scoped: pruning.scoped },
+		scoping: { hash: options.hash, scoped },
 		hasGlobal: analysis.hasGlobal || exportsSnippet(unit),
 		warnings: report.warnings,
 		keyframes: analysis.keyframes,

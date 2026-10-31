@@ -4,8 +4,8 @@
   },
   "samples": {
     "compile.spec.js > createCompileSvelte > compileSvelte > detects script lang": {
-      "status": "covered",
-      "reason": "drives the internal `createCompileSvelte`; covered by the tests of the compile module of @vigla/vite-plugin"
+      "status": "dropped",
+      "reason": "source-language detection is the claiming front end's responsibility; the plugin's compiled output declares moduleType js"
     },
     "compile.spec.js > createCompileSvelte > compileSvelte > passes the current environment to dynamicCompileOptions": {
       "status": "covered",

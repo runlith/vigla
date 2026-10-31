@@ -6,14 +6,10 @@ import { log } from './log.ts';
 import { mapToRelative } from './maps.ts';
 import type { ResolvedOptions } from './options.ts';
 
-const scriptLang =
-	/<!--[^]*?-->|<script\s+(?:[^>]*|(?:[^=>'"/]+=(?:"[^"]*"|'[^']*'|[^>\s]+)\s+)*)lang=(["'])?([^"' >]+)\1[^>]*>/g;
-
 export interface Compiled {
 	filename: string;
 	normalizedFilename: string;
 	cssId: string;
-	lang: string;
 	compiled: CompileResult;
 	ssr: boolean;
 }
@@ -42,11 +38,6 @@ export async function dynamicOptions(
 	return dynamic || undefined;
 }
 
-function lang(code: string): string {
-	for (const match of code.matchAll(scriptLang)) if (match[2]) return match[2];
-	return 'js';
-}
-
 export async function compileComponent(
 	request: ComponentRequest,
 	code: string,
@@ -60,15 +51,10 @@ export async function compileComponent(
 		filename,
 		generate: ssr ? 'server' : 'client'
 	};
-	let source = code;
-	if (compileOptions.hmr && options.emitCss) {
-		const close = code.lastIndexOf('</style>');
-		if (close > -1) source = `${source.slice(0, close)} *{}${source.slice(close)}`;
-	}
 	const dynamic = await dynamicOptions(
 		options,
 		filename,
-		source,
+		code,
 		compileOptions,
 		environment,
 		'compile'
@@ -77,7 +63,7 @@ export async function compileComponent(
 	if (sourcemap) final.sourcemap = sourcemap;
 	let compiled: CompileResult;
 	try {
-		compiled = frontEnd.compiler.compile(source, { ...final, filename });
+		compiled = frontEnd.compiler.compile(code, { ...final, filename });
 		if (
 			options.server?.config.experimental.hmrPartialAccept &&
 			compiled.js.code.includes('import.meta.hot.accept(')
@@ -96,5 +82,5 @@ export async function compileComponent(
 	if (!raw && options.emitCss !== false && (compiled.css?.code?.trim().length ?? 0) > 0) {
 		compiled.js.code += `\nimport ${JSON.stringify(cssId)};\n`;
 	}
-	return { filename, normalizedFilename, cssId, lang: lang(code), compiled, ssr };
+	return { filename, normalizedFilename, cssId, compiled, ssr };
 }

@@ -36,7 +36,6 @@ export function compile(api: PluginAPI): Plugin {
 					map: compiled.compiled.js.map as never,
 					moduleType: 'js',
 					meta: {
-						vite: { lang: compiled.lang },
 						svelte: { css: compiled.compiled.css }
 					}
 				};
