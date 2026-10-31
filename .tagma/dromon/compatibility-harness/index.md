@@ -34,6 +34,9 @@ fields:
     "id": "harness",
     "kind": "substrate"
   }
+edges:
+  - kind: imports-tests
+    to: 01a187ca-e656-7569-8564-ac0fabdaf506
 sources:
   - kind: dir
     ref: harness
