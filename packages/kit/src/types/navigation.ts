@@ -1,13 +1,14 @@
 import type { LayoutParams, RouteId } from '$app/types';
 import type { Route, Snapshot } from './request.ts';
 import type { MaybePromise } from './value.ts';
+import type { ParamValue } from './params.ts';
 
 export interface ScrollPosition {
 	x: number;
 	y: number;
 }
 export interface NavigationTarget<
-	Params extends LayoutParams<'/'> = LayoutParams<'/'>,
+	Params extends Record<string, ParamValue> = LayoutParams<'/'>,
 	Id extends RouteId | null = RouteId | null
 > {
 	params: Params | null;
