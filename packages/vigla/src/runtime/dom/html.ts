@@ -20,17 +20,17 @@ function closing(open: ChildNode): ChildNode {
 	return node;
 }
 
-function parsed(html: string, flags: number): ParentNode {
+export function parse(html: string, flags = 0, doc: Document = document): ParentNode {
 	if ((flags & HTML_SVG) !== 0 || (flags & HTML_MATHML) !== 0) {
 		const svg = (flags & HTML_SVG) !== 0;
-		const wrapper = document.createElementNS(
+		const wrapper = doc.createElementNS(
 			svg ? 'http://www.w3.org/2000/svg' : 'http://www.w3.org/1998/Math/MathML',
 			svg ? 'svg' : 'math'
 		);
 		wrapper.innerHTML = html;
 		return wrapper;
 	}
-	const wrapper = document.createElement('template');
+	const wrapper = doc.createElement('template');
 	wrapper.innerHTML = html;
 	return wrapper.content;
 }
@@ -82,7 +82,7 @@ export function html(node: ChildNode, get: () => unknown, flags = 0): void {
 		}
 		last = null;
 		if (next === '') return;
-		const content = parsed(next, flags);
+		const content = parse(next, flags);
 		first = content.firstChild as ChildNode | null;
 		last = content.lastChild as ChildNode | null;
 		if (content.nodeType === FRAGMENT) anchor.before(content as DocumentFragment);
