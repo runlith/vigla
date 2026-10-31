@@ -44,6 +44,9 @@ fields:
       },
       {
         "at": "url.ts"
+      },
+      {
+        "at": "mime.ts"
       }
     ],
     "id": "kit-shared"
