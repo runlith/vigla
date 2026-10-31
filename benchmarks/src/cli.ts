@@ -85,7 +85,8 @@ if (selected.length === 0) throw new Error('no benchmark matches the filters');
 
 const machine = `${cpus().length} × ${cpus()[0]?.model ?? 'unknown cpu'}, node ${process.version}`;
 const loadStart = loadavg()[0] as number;
-console.log(`${machine}; vigla at ${revision()}; ${runs} runs per target, alternating`);
+const startRevision = revision();
+console.log(`${machine}; vigla at ${startRevision}; ${runs} runs per target, alternating`);
 console.log(`load average at start: ${loadStart.toFixed(2)}\n`);
 
 const widths = [36, 26, 26, 8];
@@ -124,7 +125,9 @@ for (const entry of selected) {
 }
 
 const loadEnd = loadavg()[0] as number;
+const endRevision = revision();
 console.log(`\nload average at end: ${loadEnd.toFixed(2)} on ${cpus().length} cpus`);
+if (endRevision !== startRevision) console.log(`revision at end: ${endRevision}`);
 
 const results = join(base, '.results');
 mkdirSync(results, { recursive: true });
@@ -132,7 +135,7 @@ const file = join(results, `${new Date().toISOString().replaceAll(':', '-')}.jso
 writeFileSync(
 	file,
 	JSON.stringify(
-		{ machine, revision: revision(), runs, load: [loadStart, loadEnd], rows },
+		{ machine, revision: startRevision, endRevision, runs, load: [loadStart, loadEnd], rows },
 		null,
 		'\t'
 	)
