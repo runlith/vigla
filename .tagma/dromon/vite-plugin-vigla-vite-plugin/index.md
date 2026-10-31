@@ -13,6 +13,9 @@ fields:
     "id": "vite-plugin",
     "kind": "surface"
   }
+edges:
+  - kind: imports
+    to: 01a18680-7dc2-71f8-be01-915833d45c4b
 sources:
   - kind: dir
     ref: packages/vite-plugin
