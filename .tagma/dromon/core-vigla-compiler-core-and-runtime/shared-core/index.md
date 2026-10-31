@@ -38,6 +38,9 @@ fields:
       },
       {
         "at": "snippet.ts"
+      },
+      {
+        "at": "abort.ts"
       }
     ],
     "id": "shared",

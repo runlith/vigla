@@ -44,6 +44,9 @@ fields:
       },
       {
         "at": "external.ts"
+      },
+      {
+        "at": "abort.ts"
       }
     ],
     "id": "reactivity",
