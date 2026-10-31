@@ -3,8 +3,10 @@ import type { Format } from 'vigla/compiler';
 import type { ClientInit, HandleClientError, Reroute, Transport } from '../hooks.ts';
 import type { Load, Snapshot } from '../request.ts';
 import type { Page } from '../state.ts';
-import type { ParamMatcher } from '../params.ts';
+import type { ParamMatcher, ParamValue } from '../params.ts';
 import type { DataNode, TrailingSlash } from './data.ts';
+
+export type MatchedParams = Record<string, ParamValue>;
 
 export interface UniversalNode {
 	load?: Load;
@@ -55,7 +57,7 @@ export interface ComponentInstance extends Exports {
 }
 
 export interface RootProps extends Record<string, unknown> {
-	page: Page;
+	page: Page<MatchedParams>;
 	components: ComponentInstance[];
 	onerror: (error: unknown, reset: () => void) => void;
 	tree: RenderNode;
@@ -64,6 +66,7 @@ export interface RootProps extends Record<string, unknown> {
 }
 
 export interface ClientPayload {
+	hash?: boolean;
 	base?: string;
 	assets?: string;
 	app_dir?: string;
@@ -85,20 +88,28 @@ export interface ClientApp {
 	hooks: ClientHooks;
 	root: Component<RootProps, any>;
 	format?: Format;
-	hash: boolean;
 	clientRouting?: boolean;
+	versionChecks?: boolean;
 	encoders: Record<string, (value: any) => false | any>;
 	decoders: Record<string, (value: any) => any>;
 	decode?: (type: string, value: any) => any;
 	errorTemplate?: () => Promise<(data: { status: number; message: string }) => string>;
-	payload?: ClientPayload;
+}
+
+export type Hydration = () => HydrationPayload;
+export type ChunkDecoder = (app: ClientApp) => [data?: unknown, error?: unknown];
+
+export interface ClientGlobal extends ClientPayload {
+	ready?: Promise<void>;
+	defer(id: number): Promise<unknown>;
+	resolve(id: number, decode: ChunkDecoder): void;
 }
 
 export interface HydrationPayload {
 	status?: number;
 	error: App.Error | null;
 	node_ids: number[];
-	params: Record<string, string>;
+	params: MatchedParams;
 	route: { id: string | null };
 	server_route?: ServerRoute;
 	data: Array<DataNode | null>;

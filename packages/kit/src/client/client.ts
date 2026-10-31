@@ -1,0 +1,517 @@
+import { createContext, onDestroy, openHydration, root, settled, untrack, type Owner } from 'vigla';
+import type { ClientApp, Hydration } from '../types/internal/client.ts';
+import type { ActionResult } from '../types/forms.ts';
+import type {
+	GotoOptions,
+	Invalidation,
+	Navigation,
+	NavigationEnter,
+	NavigationType,
+	OnNavigate,
+	PreloadResult
+} from '../types/navigation.ts';
+import type { RouteMatch } from '../types/paths.ts';
+import { escapeHtml } from '../shared/escape.ts';
+import { payload, chunks } from './payload.ts';
+import type { Chunks } from './chunks.ts';
+import { bindState, State } from './state.ts';
+import { Routes, type Intent } from './routes.ts';
+import { setMatcher } from './paths.ts';
+import { FetchCache } from './fetch.ts';
+import { Transport } from './transport.ts';
+import { Pages, type Changes, type Loaded } from './load.ts';
+import { View } from './view.ts';
+import { Lifecycle } from './lifecycle.ts';
+import { History, type Metadata } from './history.ts';
+import { Restoration } from './restore.ts';
+import { listen } from './links.ts';
+import * as errors from './errors.ts';
+
+interface Transition extends GotoOptions {
+	type?: NavigationType;
+	event?: Event;
+	delta?: number;
+	popped?: Metadata;
+	action?: ActionResult;
+}
+
+export class Client {
+	readonly app: ClientApp;
+	readonly owner: Owner;
+	readonly routes: Routes;
+	readonly state: State;
+	readonly lifecycle = new Lifecycle();
+	readonly restoration: Restoration;
+	readonly history: History;
+	readonly pages: Pages;
+	readonly view: View;
+	readonly chunks: Chunks;
+	readonly transport: Transport;
+	readonly container: Element;
+	unloading = false;
+	readonly ready = Promise.withResolvers<void>();
+	started = false;
+	updating = false;
+	current: Loaded | null = null;
+	readonly #target: HTMLElement;
+	#token = 0;
+	#invalidation = 0;
+	#batch: Promise<void> | null = null;
+	#changes: Changes = { all: false, dependencies: [] };
+	#resetState = false;
+	#preload:
+		| {
+				key: string;
+				value: Promise<Loaded | { type: 'redirect'; status: number; location: string }>;
+		  }
+		| undefined;
+
+	constructor(app: ClientApp, target: HTMLElement) {
+		this.app = app;
+		this.#target = target;
+		this.container = payload.embedded ? target : document.documentElement;
+		this.chunks = chunks;
+		this.owner = root();
+		this.transport = new Transport(app, this.owner);
+		this.routes = new Routes(app);
+		this.state = this.owner.run(() => new State(payload, app));
+		this.owner.run(() => {
+			context[1](this);
+			bindState(this.state);
+		});
+		this.history = new History(this.transport);
+		this.restoration = new Restoration(
+			payload.app_path ?? payload.base ?? '',
+			this.routes.hash,
+			this.transport
+		);
+		this.pages = new Pages(
+			app,
+			this.owner,
+			this.routes,
+			this.state,
+			new FetchCache(),
+			this.transport
+		);
+		this.view = new View(app, this.owner, target, this.state, this.routes, (error) => {
+			void this.pages
+				.error(error, {
+					url: new URL(location.href),
+					route: { id: this.current?.route.id ?? null },
+					params: this.state.page.params
+				})
+				.then((error) => this.state.update({ error, status: error.status }));
+		});
+		active = this;
+		setMatcher(async (url) => {
+			const intent = await this.intent(this.url(url));
+			return intent ? ({ id: intent.route.id, params: intent.params } as RouteMatch) : null;
+		});
+		this.owner.run(() =>
+			onDestroy(() => {
+				this.state.dispose();
+				this.chunks.dispose();
+				this.view.dispose();
+				if (!this.started) this.ready.reject(new Error('Client disposed before startup'));
+			})
+		);
+		void this.ready.promise.catch(() => {});
+	}
+
+	url(value: string | URL): URL {
+		return new URL(value, document.baseURI || location.href);
+	}
+	intent(url: URL): Promise<Intent | null> {
+		return this.owner.run(() => this.routes.match(url));
+	}
+
+	async #errorPage(error: unknown, url: URL): Promise<string | undefined> {
+		if (!this.app.errorTemplate) return;
+		const template = await this.app.errorTemplate();
+		const body = await this.pages.error(error, {
+			url,
+			params: this.state.page.params,
+			route: this.state.page.route
+		});
+		return template({ status: body.status, message: escapeHtml(body.message) });
+	}
+
+	#openInput(): () => void {
+		return this.owner.run(() => openHydration({ format: this.app.format, target: this.#target }));
+	}
+
+	async start(input?: Hydration): Promise<void> {
+		const closeInput = this.#openInput();
+		this.owner.run(() => onDestroy(closeInput));
+		try {
+			await this.owner.run(() => this.app.hooks.init?.());
+			this.chunks.bind(this.app, this.owner);
+			const hydration = input ? this.owner.run(input) : undefined;
+			const url = new URL(location.href);
+			let result: Loaded | { type: 'redirect'; status: number; location: string };
+			if (hydration) result = await this.pages.hydrate(hydration, url);
+			else {
+				const intent = await this.intent(url);
+				result = intent
+					? await this.pages.load(intent, null, { all: false, dependencies: [] })
+					: await this.pages.failure({ url, route: this.pages.fallback(), params: {} }, [], 0, {
+							status: 404,
+							message: 'Not Found'
+						});
+			}
+			if (result.type === 'redirect') {
+				closeInput();
+				this.ready.reject(new Error('Navigation redirected'));
+				this.owner.dispose();
+				location.href = new URL(result.location, url).href;
+				return;
+			}
+			this.updating = true;
+			const apply = await this.view.prepare(
+				result,
+				this.history.metadata()?.persistState ? this.history.state() : {},
+				!!hydration
+			);
+			apply();
+			this.current = result;
+			this.pages.fetches.initial = false;
+			await settled();
+			closeInput();
+			this.started = true;
+			const position = this.restoration.position(this.history.index);
+			if (position || !hydration) this.restoration.scroll(url, true, position);
+			this.restoration.restore(this.history.index, this.view.components);
+			this.lifecycle.finish(this.navigation(url, 'enter') as NavigationEnter);
+			this.updating = false;
+			this.owner.run(() => {
+				onDestroy(listen(this));
+				this.state.poll();
+			});
+			if (payload.service_worker && 'serviceWorker' in navigator) {
+				void navigator.serviceWorker
+					.register(payload.service_worker, payload.service_worker_options)
+					.catch(console.error);
+			}
+			this.ready.resolve();
+		} catch (error) {
+			closeInput();
+			this.ready.reject(error);
+			try {
+				const html = await this.#errorPage(error, new URL(location.href));
+				if (html !== undefined) this.view.error(html);
+			} finally {
+				this.owner.dispose();
+			}
+			throw error;
+		}
+	}
+
+	navigation(
+		url: URL | null,
+		type: NavigationType,
+		options: Transition = {},
+		intent?: Intent | null
+	): Navigation | NavigationEnter {
+		return {
+			type,
+			from:
+				this.started && this.current
+					? {
+							params: this.state.page.params,
+							route: { id: this.current.route.id },
+							url: this.current.url,
+							scroll: { x: window.scrollX, y: window.scrollY }
+						}
+					: null,
+			to: url
+				? {
+						params: intent?.params ?? null,
+						route: { id: intent?.route.id ?? null },
+						url,
+						scroll: options.popped ? this.restoration.position(options.popped.historyIndex) : null
+					}
+				: null,
+			willUnload: type === 'leave',
+			shallow: options.shallow ?? false,
+			complete: Promise.resolve(),
+			...(type === 'popstate' ? { delta: options.delta ?? 0, event: options.event } : {}),
+			...(type === 'link' || type === 'form' ? { event: options.event } : {})
+		} as Navigation | NavigationEnter;
+	}
+
+	leave(url: URL, event: MouseEvent): boolean {
+		const navigation = this.navigation(url, 'link', { event }) as Navigation;
+		navigation.willUnload = true;
+		if (!this.lifecycle.allow(navigation)) return false;
+		this.unloading = true;
+		untrack(() => {
+			this.state.navigation.current = navigation;
+		});
+		return true;
+	}
+
+	async goto(value: string | URL, options: GotoOptions = {}): Promise<void> {
+		if ('noScroll' in options || 'keepFocus' in options) errors.goto_options_removed();
+		const url = this.url(value);
+		if (this.routes.outside(url)) errors.navigation_external_url({ caller: 'goto', url: url.href });
+		await this.ready.promise;
+		return this.navigate(url, { ...options, type: 'goto' });
+	}
+
+	async navigate(url: URL, options: Transition = {}, redirects = 0): Promise<void> {
+		const token = ++this.#token;
+		const previous = this.current;
+		const intent = await this.intent(url);
+		if (token !== this.#token) return;
+		if (!intent) {
+			if (options.type === 'goto')
+				errors.navigation_route_missing({ caller: 'goto', url: url.href });
+			const navigation = this.navigation(url, options.type ?? 'link', options) as Navigation;
+			navigation.willUnload = true;
+			if (!this.lifecycle.allow(navigation)) return;
+			this.unloading = true;
+			location.href = url.href;
+			return;
+		}
+		const completion = Promise.withResolvers<void>();
+		void completion.promise.catch(() => {});
+		const navigation = this.navigation(url, options.type ?? 'goto', options, intent) as Navigation;
+		navigation.complete = completion.promise;
+		if (!this.lifecycle.allow(navigation)) {
+			completion.reject(new Error('Navigation cancelled'));
+			if (options.type === 'goto') throw new Error('Navigation cancelled');
+			if (options.popped && options.delta) history.go(-options.delta);
+			return;
+		}
+		untrack(() => {
+			this.state.navigation.current = navigation;
+		});
+		try {
+			const changes: Changes = {
+				all: options.refreshAll ?? options.invalidateAll ?? false,
+				dependencies: (options.invalidate ?? []).map((value) => this.predicate(value))
+			};
+			const loadIntent =
+				options.popped?.pageUrl && !options.shallow
+					? await this.intent(this.url(options.popped.pageUrl))
+					: intent;
+			if (!loadIntent) {
+				location.href = url.href;
+				completion.resolve();
+				return;
+			}
+			const unchanged =
+				previous && this.routes.key(previous.url) === this.routes.key(loadIntent.url);
+			let result =
+				(options.shallow && previous) ||
+				(unchanged && !changes.all && !changes.dependencies.length && !options.action)
+					? { ...previous!, url: options.shallow ? url : loadIntent.url }
+					: this.#preload?.key === this.routes.key(loadIntent.url) &&
+						  !changes.all &&
+						  !changes.dependencies.length
+						? await this.#preload.value
+						: await this.pages.load(loadIntent, previous, changes);
+			if (token !== this.#token) {
+				completion.resolve();
+				return;
+			}
+			if (result.type === 'redirect') {
+				completion.resolve();
+				if (redirects >= 20) errors.redirect_loop({ url: url.href });
+				const destination = new URL(result.location, url);
+				if (this.routes.outside(destination)) {
+					location.href = destination.href;
+					return;
+				}
+				await this.navigate(destination, { ...options, replace: true }, redirects + 1);
+				return;
+			}
+			if (options.action) result = await this.actionResult(result, options.action);
+			const after = await this.lifecycle.prepare(navigation as OnNavigate);
+			if (token !== this.#token) {
+				completion.resolve();
+				return;
+			}
+			const state = options.state ?? (options.popped ? this.history.state(options.popped) : {});
+			const apply = options.shallow ? undefined : await this.view.prepare(result, state);
+			if (token !== this.#token) {
+				completion.resolve();
+				return;
+			}
+			this.updating = true;
+			this.restoration.capture(this.history.index, this.view.components);
+			const registrations = this.restoration.registrations();
+			const reset = options.reset ?? !options.shallow;
+			this.restoration.blur(reset);
+			if (options.popped) this.history.accept(options.popped);
+			else
+				this.history.write(
+					result.url,
+					state,
+					options.replace ?? options.replaceState ?? false,
+					!!options.shallow,
+					!!options.persistState,
+					previous?.url
+				);
+			const shallow = (options.popped ? options.popped.pageUrl !== undefined : options.shallow)
+				? { params: intent.params, route: { id: intent.route.id }, url }
+				: null;
+			if (options.shallow && previous) this.state.update({ state, shallow });
+			else {
+				apply!();
+				if (shallow) this.state.update({ shallow });
+				this.current = result;
+			}
+			this.#preload = undefined;
+			await settled();
+			const visibleUrl = shallow ? url : result.url;
+			if (reset) this.restoration.focus(visibleUrl);
+			if (options.popped) this.restoration.restore(this.history.index, this.view.components);
+			else if (reset) this.restoration.reset(registrations);
+			for (const callback of after) callback();
+			this.lifecycle.finish(navigation);
+			this.restoration.scroll(
+				visibleUrl,
+				reset,
+				options.popped ? this.restoration.position(this.history.index) : null
+			);
+			completion.resolve();
+		} catch (error) {
+			completion.reject(error);
+			const html = await this.#errorPage(error, url);
+			if (token === this.#token && html !== undefined) {
+				this.view.error(html);
+				this.owner.dispose();
+			}
+			throw error;
+		} finally {
+			if (token === this.#token) {
+				this.updating = false;
+				untrack(() => {
+					this.state.navigation.current = null;
+				});
+			}
+		}
+	}
+
+	predicate(value: Invalidation): (url: URL) => boolean {
+		if (typeof value === 'function') return value;
+		const href = new URL(value, location.href).href;
+		return (url) => url.href === href;
+	}
+
+	invalidate(value?: Invalidation, keepState = false): Promise<void> {
+		this.#resetState ||= !keepState;
+		if (value === undefined) this.#changes.all = true;
+		else this.#changes.dependencies.push(this.predicate(value));
+		this.#preload = undefined;
+		return (this.#batch ??= Promise.resolve().then(async () => {
+			await this.ready.promise;
+			const changes = this.#changes;
+			const reset = this.#resetState;
+			this.#resetState = false;
+			this.#changes = { all: false, dependencies: [] };
+			this.#batch = null;
+			const generation = ++this.#invalidation;
+			const token = this.#token;
+			const current = this.current;
+			if (!current) return;
+			const result = await this.pages.load(current, current, changes);
+			if (generation !== this.#invalidation || token !== this.#token || current !== this.current)
+				return;
+			if (result.type === 'redirect') return this.goto(result.location, { replace: true });
+			result.form = this.state.page.form;
+			const shallow = this.state.page.shallow;
+			const apply = await this.view.prepare(result, reset ? {} : this.state.page.state);
+			if (generation !== this.#invalidation || token !== this.#token || current !== this.current)
+				return;
+			apply();
+			this.state.update({ shallow });
+			this.current = result;
+			await settled();
+		}));
+	}
+
+	async preloadData(value: string | URL): Promise<PreloadResult> {
+		const url = this.url(value);
+		const intent = await this.intent(url);
+		if (!intent) errors.preload_url_outside_app({ url: url.href });
+		const key = this.routes.key(url);
+		if (this.#preload?.key !== key)
+			this.#preload = {
+				key,
+				value: this.pages.load(intent, this.current, { all: false, dependencies: [] })
+			};
+		const preload = this.#preload;
+		try {
+			const result = await preload.value;
+			if (result.type === 'redirect') return result;
+			if (result.error) {
+				if (this.#preload === preload) this.#preload = undefined;
+				return { type: 'error', status: result.status, error: result.error };
+			}
+			return {
+				type: 'loaded',
+				status: result.status,
+				data: Object.assign({}, ...result.branch.map((node) => node?.data))
+			};
+		} catch (error) {
+			if (this.#preload === preload) this.#preload = undefined;
+			throw error;
+		}
+	}
+
+	async actionResult(result: Loaded, action: ActionResult): Promise<Loaded> {
+		if (action.type === 'error')
+			return this.pages.failure(result, result.branch, result.branch.length - 1, action.error);
+		if (action.type === 'success' || action.type === 'failure')
+			return { ...result, status: action.status, form: action.data ?? null };
+		return result;
+	}
+
+	async applyAction(action: ActionResult): Promise<void> {
+		await this.ready.promise;
+		if (action.type === 'redirect') return this.goto(action.location, { refreshAll: true });
+		if (!this.current) return;
+		const token = this.#token;
+		const result = await this.actionResult(this.current, action);
+		const apply = await this.view.prepare(result, this.state.page.state);
+		if (token !== this.#token) return;
+		apply();
+		this.current = result;
+		await settled();
+		if (action.type === 'success') this.restoration.focus(result.url);
+	}
+
+	async applySubmission(url: URL, action: ActionResult, refresh: boolean): Promise<void> {
+		if (action.type === 'redirect') return this.applyAction(action);
+		for (const key of [...url.searchParams.keys()])
+			if (key.startsWith('/')) url.searchParams.delete(key);
+		if (this.current && this.routes.key(url) === this.routes.key(this.current.url)) {
+			if (refresh) await this.invalidate(undefined, true);
+			return this.applyAction(action);
+		}
+		return this.navigate(url, { type: 'form', action, refreshAll: refresh });
+	}
+
+	dispose(): void {
+		this.owner.dispose();
+	}
+}
+
+const context = createContext<Client>();
+let active: Client | undefined;
+export function client(caller: string): Client {
+	const value = context[2]() ? context[0]() : active;
+	if (!value || value.owner.disposed) errors.navigation_before_start({ caller });
+	return value;
+}
+
+export async function start(
+	app: ClientApp,
+	target: HTMLElement,
+	hydration?: Hydration
+): Promise<void> {
+	const runtime = new Client(app, target);
+	await runtime.start(hydration);
+}
