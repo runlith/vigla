@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { runInNewContext } from 'node:vm';
 import { expect, it } from 'vitest';
 import { getContext, getOwner, hydratable, onDestroy, setContext } from 'vigla';
 import type { Component } from 'vigla/server';
@@ -901,6 +902,55 @@ it('renders the prerender fallback as an absolute-path CSR shell without routing
 	expect(html).toContain('import("/base/_app/env.js")');
 	expect(html).not.toContain('<main>');
 	expect(html).not.toContain('node_ids:');
+});
+
+it('decodes inline hydration through the deferred bundle module namespace', async () => {
+	class Point {
+		readonly x: number;
+		constructor(x: number) {
+			this.x = x;
+		}
+	}
+	const app = manifest();
+	app.client = {
+		start: '',
+		imports: [],
+		stylesheets: [],
+		fonts: [],
+		uses_env_dynamic_public: false,
+		inline: {
+			style: undefined,
+			script: `let loaded; globalThis.__sveltekit_contract.app = {
+				init() {},
+				start(target, hydrate) {
+					loaded = { decode: (_name, value) => ({ x: value[0] }) };
+					try { target.resolve(hydrate().data[1].data.point); }
+					catch (error) { target.reject(error); }
+				},
+				decode(name, value) { return loaded.decode(name, value); }
+			}`
+		}
+	};
+	app.nodes[2] = async () => node(2, { load: () => ({ point: new Point(42) }) }, undefined, layout);
+	app.routes = [route('/', null, true)];
+	const config = options({
+		transport: {
+			Point: {
+				encode: (value) => value instanceof Point && [value.x],
+				decode: (value) => new Point(value[0])
+			}
+		}
+	});
+	const server = await start(app, config);
+	const response = await server.respond(
+		request('/', { headers: { accept: 'text/html' } }),
+		address
+	);
+	const html = await response.text();
+	const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(html)![1]!;
+	const result = Promise.withResolvers<{ x: number }>();
+	runInNewContext(script, { document: { currentScript: { parentElement: result } }, Promise });
+	expect(await result.promise).toEqual({ x: 42 });
 });
 
 it('emits an inline client stylesheet and its CSP hash without an external stylesheet', async () => {
