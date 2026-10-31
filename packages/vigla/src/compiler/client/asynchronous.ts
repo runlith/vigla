@@ -39,7 +39,7 @@ export function asyncSetup(
 		);
 		const inner: TemplateContext = { ...context, awaited };
 		const thunks = expressions.map((expression) => ({
-			...b.arrow([], rewrite(context, expression)),
+			...b.arrow([], b.object({ value: rewrite(context, expression) })),
 			async: true
 		}));
 		const target = b.id(context.names.unique('$$anchor'));

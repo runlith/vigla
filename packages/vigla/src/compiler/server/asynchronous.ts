@@ -40,10 +40,17 @@ export function asyncChild(
 	for (const expression of expressions) {
 		const id = b.id(context.names.unique('$async'));
 		awaited.set(expression, id);
-		const value = b.call({
-			type: 'AwaitExpression',
-			argument: runtime(context, 'save', rewrite(context, expression))
-		});
+		const thunk = {
+			...b.arrow([], b.object({ value: rewrite(context, expression) })),
+			async: true
+		};
+		const value = b.member(
+			b.call({
+				type: 'AwaitExpression',
+				argument: runtime(context, 'save', b.call(thunk))
+			}),
+			'value'
+		);
 		body.push(b.constant(id.name, value));
 	}
 	const inner: TemplateContext = { ...context, out, awaited };

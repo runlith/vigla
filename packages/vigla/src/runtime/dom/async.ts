@@ -3,6 +3,7 @@ import { resumed, suspend } from '../reactivity/batch.ts';
 import { fail } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
 import { get, owner } from '../reactivity/tracking.ts';
+import { derived } from '../reactivity/sources.ts';
 import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';
 import { claim, COMMENT, cursor, hydrating, setHydrating } from './hydration.ts';
 import type { Render } from './template.ts';
@@ -53,9 +54,13 @@ function settleWith(effect: Effect | null, error: unknown): void {
 	fail(effect, error);
 }
 
+interface Value {
+	readonly value: unknown;
+}
+
 export function async(
 	node: ChildNode | null,
-	thunks: readonly (() => unknown)[],
+	thunks: readonly (() => Value | PromiseLike<Value>)[],
 	fn: (anchor: ChildNode | null, ...values: Source[]) => void
 ): void {
 	const parked = park(node);
@@ -72,7 +77,8 @@ export function async(
 			restore();
 			try {
 				for (const source of sources) get(source);
-				resume(parked, () => fn(anchor, ...sources));
+				const values = sources.map((source) => derived(() => get(source).value));
+				resume(parked, () => fn(anchor, ...values));
 			} catch (error) {
 				settleWith(at, error);
 			} finally {
