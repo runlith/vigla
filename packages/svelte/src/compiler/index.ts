@@ -24,8 +24,10 @@ import {
 } from '../front/index.ts';
 import { Diagnostics, relativeFilename, type Warning } from './diagnostics.ts';
 import { validate } from './options.ts';
+import { format } from '../shared/format.ts';
 
 export { CompileError, CompileWarning, type Location, type Warning } from './diagnostics.ts';
+export { format } from '../shared/format.ts';
 export { print, type PrintOptions, type Printed } from '../front/index.ts';
 export {
 	preprocess,
@@ -211,7 +213,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
-			format: { global: '__svelte', meta: '__svelte_meta', cssWrapper: 'svelte-css-wrapper' },
+			format,
 			devFilename: relativeFilename(options),
 			discloseVersion: options.discloseVersion === false ? false : '5',
 			name,

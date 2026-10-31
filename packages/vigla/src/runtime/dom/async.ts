@@ -5,7 +5,7 @@ import type { Effect, Source } from '../reactivity/graph.ts';
 import { get, owner } from '../reactivity/tracking.ts';
 import { derived } from '../reactivity/sources.ts';
 import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';
-import { claim, COMMENT, cursor, hydrating, setHydrating } from './hydration.ts';
+import { claim, COMMENT, cursor, hydrating, resumeHydration, setHydrating } from './hydration.ts';
 import type { Render } from './template.ts';
 
 function matchingClose(open: ChildNode): ChildNode {
@@ -100,10 +100,15 @@ export function async(
 
 export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
 	const restore = suspend();
+	const mode = hydrating;
 	const resolved = await value;
 	return () => {
 		restore();
-		queueMicrotask(resumed);
+		const finish = resumeHydration(mode);
+		queueMicrotask(() => {
+			finish();
+			resumed();
+		});
 		return resolved;
 	};
 }

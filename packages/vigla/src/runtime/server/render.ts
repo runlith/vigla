@@ -1,4 +1,7 @@
 import { failure } from '../../shared/diagnostics.ts';
+import { staleReaction } from '../../shared/abort.ts';
+import { format as nativeFormat, type Format } from '../../shared/format.ts';
+import { Data, type Csp, type Script } from './hydration.ts';
 import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
 import { begin, capture, end, push } from './context.ts';
@@ -12,6 +15,8 @@ export interface Style {
 
 class Global {
 	#uid = 1;
+	#controller: AbortController | null = null;
+	#aborted = false;
 	readonly prefix: string;
 	readonly transformError: (error: unknown) => unknown;
 
@@ -26,6 +31,17 @@ class Global {
 
 	uid(): string {
 		return `${this.prefix}s${this.#uid++}`;
+	}
+
+	signal(): AbortSignal {
+		const controller = (this.#controller ??= new AbortController());
+		if (this.#aborted) controller.abort(staleReaction);
+		return controller.signal;
+	}
+
+	abort(): void {
+		this.#aborted = true;
+		this.#controller?.abort(staleReaction);
 	}
 
 	readonly styles = new Set<Style>();
@@ -195,6 +211,8 @@ export type Component<P extends Props = Props> = (out: Output, props: P) => void
 
 export interface RenderOptions<P extends Props> {
 	readonly props?: P;
+	readonly format?: Format;
+	readonly csp?: Csp;
 	readonly idPrefix?: string;
 	readonly context?: Map<unknown, unknown>;
 	readonly transformError?: (error: unknown) => unknown;
@@ -216,29 +234,37 @@ export function render<P extends Props>(
 	component: Component<P>,
 	options: RenderOptions<P> = {}
 ): Rendering {
+	if (options.csp?.hash && options.csp.nonce) {
+		throw failure('invalid_csp', 'A render cannot use both a CSP hash and a nonce');
+	}
 	const prefix = options.idPrefix;
 	if (prefix?.includes('--')) {
 		throw failure('invalid_id_prefix', 'The `idPrefix` option cannot include `--`.');
 	}
 	const global = new Global(prefix ? `${prefix}-` : '', options.transformError);
 	const out = new Output(global);
-	const saved = begin();
+	const data = new Data();
+	const saved = begin(data, () => global.signal());
 	try {
 		push(options.context);
 		out.push(open);
 		component(out, options.props ?? ({} as P));
 		out.push(close);
+	} catch (error) {
+		global.abort();
+		throw error;
 	} finally {
 		end(saved);
 	}
-	const result = (): Rendered => {
+	const result = (script?: Script): Rendered => {
 		const content = out.collect();
-		let head = content.head + global.title();
+		let head = (script?.html ?? '') + content.head + global.title();
 		for (const { hash, code } of global.styles) head += `<style id="${hash}">${code}</style>`;
-		return { head, body: content.body, hashes: { script: [] } };
+		return { head, body: content.body, hashes: { script: script?.hash ? [script.hash] : [] } };
 	};
-	if (!out.asynchronous) {
+	if (!out.asynchronous && data.size === 0) {
 		const rendered = result();
+		global.abort();
 		return {
 			...rendered,
 			then(fulfilled, rejected) {
@@ -246,7 +272,10 @@ export function render<P extends Props>(
 			}
 		};
 	}
-	const settled = out.settle().then(result);
+	const settled = out
+		.settle()
+		.then(async () => result(await data.script(options.format ?? nativeFormat, options.csp)))
+		.finally(() => global.abort());
 	const synchronous = (): never => {
 		throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
 	};

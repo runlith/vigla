@@ -8,6 +8,8 @@ export {
 	setContext
 } from '../runtime/dom/context.ts';
 export type { Context } from '../shared/context.ts';
+export type { Format } from '../shared/format.ts';
+export { hydratable } from '../runtime/dom/data.ts';
 export { createRawSnippet } from '../runtime/dom/snippet.ts';
 export type { RawFactory, RawSnippet } from '../shared/snippet.ts';
 export { hydrate, mount, unmount } from '../runtime/dom/mount.ts';

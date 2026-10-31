@@ -1,4 +1,6 @@
 import { failure } from '../shared/diagnostics.ts';
+import type * as client from './index.ts';
+import type { Cell } from '../runtime/reactivity/sources.ts';
 
 export {
 	createContext,
@@ -17,6 +19,8 @@ export type {
 	WritableExternal,
 	WritableSource
 } from '../shared/external.ts';
+export type { Format } from '../shared/format.ts';
+export { hydratable } from '../runtime/server/hydration.ts';
 export { createRawSnippet } from '../runtime/server/snippet.ts';
 export type { RawFactory, RawSnippet } from '../shared/snippet.ts';
 export type {
@@ -34,7 +38,7 @@ function unavailable(name: string): never {
 	);
 }
 
-export function onMount(): void {}
+export const onMount: typeof client.onMount = () => {};
 
 export function flushSync<T = void>(fn?: () => T): T {
 	return fn?.() as T;
@@ -44,28 +48,17 @@ export function untrack<T>(fn: () => T): T {
 	return fn();
 }
 
-export function mount(): never {
-	return unavailable('mount');
-}
-
-export function hydrate(): never {
-	return unavailable('hydrate');
-}
-
-export function unmount(): never {
-	return unavailable('unmount');
-}
-
-export function fork(): never {
-	return unavailable('fork');
-}
+export const mount: typeof client.mount = () => unavailable('mount');
+export const hydrate: typeof client.hydrate = () => unavailable('hydrate');
+export const unmount: typeof client.unmount = () => unavailable('unmount');
+export const fork: typeof client.fork = () => unavailable('fork');
 
 export { Owner, getOwner, root } from '../runtime/reactivity/owners.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
 
-export function effect(): void {}
+export function effect(..._args: Parameters<typeof client.effect>): void {}
 
-export function cell<T>(value: T): { current: T } {
+export function cell<T>(value: T): Cell<T> {
 	return { current: value };
 }
 

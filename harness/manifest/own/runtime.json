@@ -38,6 +38,18 @@
 			"status": "contract",
 			"reason": "Review finding of the scheduler: a held real batch processed first must not consume a block a fork's async value dirtied, so the fork still builds what it preloads; green on upstream 5.57.3, kept as a regression test"
 		},
+		"hydration-mismatch-lifetime": {
+			"status": "difference",
+			"reason": "Native per-tree hydration formats and their published-data lifetime use public vigla entries, which upstream does not provide"
+		},
+		"hydration-mode-overlap": {
+			"status": "difference",
+			"reason": "Two native hydration roots followed by a fresh mount exercise public vigla entries, which upstream does not provide"
+		},
+		"hydration-promise-graph": {
+			"status": "difference",
+			"reason": "A shared graph with a nested promise fails while evaluating upstream 5.57.3's hydration script: devalue's IIFE parameter r shadows its promise resolver and throws TypeError: r is not a function"
+		},
 		"invariant-detached-root": {
 			"status": "contract",
 			"reason": "Scheduler invariant 4: green on upstream 5.57.3"

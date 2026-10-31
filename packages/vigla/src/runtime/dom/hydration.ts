@@ -17,6 +17,32 @@ export function setHydrating(on: boolean): boolean {
 	return previous;
 }
 
+interface Continuation {
+	readonly mode: boolean;
+	previous: Continuation | null;
+	next: Continuation | null;
+}
+
+let resumed: Continuation | null = null;
+let ambient = false;
+
+export function resumeHydration(mode: boolean): () => void {
+	if (resumed === null) ambient = hydrating;
+	const segment: Continuation = { mode, previous: resumed, next: null };
+	if (resumed !== null) resumed.next = segment;
+	resumed = segment;
+	hydrating = mode;
+	let active = true;
+	return () => {
+		if (!active) return;
+		active = false;
+		if (segment.previous !== null) segment.previous.next = segment.next;
+		if (segment.next !== null) segment.next.previous = segment.previous;
+		if (resumed === segment) resumed = segment.previous;
+		hydrating = resumed?.mode ?? ambient;
+	};
+}
+
 export function mismatch(): never {
 	warn(
 		'hydration_mismatch',

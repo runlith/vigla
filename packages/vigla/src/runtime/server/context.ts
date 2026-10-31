@@ -1,5 +1,6 @@
 import { keyed, type Context } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
+import type { Data } from './hydration.ts';
 
 interface Layer {
 	readonly parent: Layer | null;
@@ -9,6 +10,7 @@ interface Layer {
 interface Render {
 	layer: Layer | null;
 	readonly destroys: (() => void)[];
+	readonly hydration: Data | null;
 }
 
 let render: Render | null = null;
@@ -26,6 +28,10 @@ export function begin(): Render | null {
 	const saved = render;
 	render = { layer: null, destroys: [] };
 	return saved;
+}
+
+export function hydrationData(): Data | null {
+	return render?.hydration ?? null;
 }
 
 export function end(saved: Render | null): void {

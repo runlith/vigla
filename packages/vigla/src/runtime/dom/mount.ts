@@ -1,6 +1,7 @@
 import { failure, warn } from '../../shared/diagnostics.ts';
+import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
-import { root } from '../reactivity/effects.ts';
+import { destroy, root } from '../reactivity/effects.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { introducing } from '../transitions/manager.ts';
 import { transformAt } from './boundary.ts';
@@ -17,6 +18,7 @@ import {
 } from './hydration.ts';
 import { withContext } from './context.ts';
 import { entry } from './props.ts';
+import { withHydration } from './data.ts';
 import { build, discard, type Built } from './range.ts';
 
 export type Props = Record<string, unknown>;
@@ -30,6 +32,7 @@ export type Component<P extends Props = Props, E extends Exports = Exports> = (
 
 export interface MountOptions<P extends Props> {
 	readonly target: ParentNode;
+	readonly format?: Format;
 	readonly props?: P;
 	readonly anchor?: ChildNode | null;
 	readonly intro?: boolean;
@@ -58,7 +61,9 @@ function start<P extends Props, E extends Exports>(
 	const built = introducing(options.intro ?? true, () =>
 		build((anchor) => {
 			if (owner !== null) transformAt(owner, options.transformError);
-			exports = withContext(options.context, () => component(anchor, props));
+			exports = withHydration(options.format ?? nativeFormat, options.target, () =>
+				withContext(options.context, () => component(anchor, props))
+			);
 		}, root)
 	);
 	return { instance: (exports ?? {}) as E, built };
@@ -94,15 +99,18 @@ export function hydrate<P extends Props, E extends Exports>(
 	const target = options.target;
 	const previous = hydrating ? cursor : null;
 	const was = setHydrating(true);
+	let adopted: Built | null = null;
 	try {
 		const open = opening(target);
 		if (open === null) throw MISMATCH;
 		claim(open.nextSibling);
 		const { instance, built } = start(component, options);
+		adopted = built;
 		if (!isClose(cursor)) mismatch();
 		finish(instance, built, target);
 		return instance;
 	} catch (error) {
+		if (adopted !== null) destroy(adopted.effect);
 		if (error !== MISMATCH) throw error;
 		if (options.recover === false) {
 			throw failure('hydration_failed', 'Failed to hydrate the application');
