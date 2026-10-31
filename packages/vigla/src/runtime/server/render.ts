@@ -120,7 +120,9 @@ export class Output {
 	async settle(): Promise<void> {
 		try {
 			await this.#pending;
-			for (const part of this.#parts) if (typeof part !== 'string') await part.settle();
+			const children: Promise<void>[] = [];
+			for (const part of this.#parts) if (typeof part !== 'string') children.push(part.settle());
+			await Promise.all(children);
 		} catch (error) {
 			this.#recover(error);
 			await this.settle();
