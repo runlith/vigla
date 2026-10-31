@@ -103,8 +103,9 @@ export function ownEffect(effect: Effect): void {
 
 function destroyEffects(derived: Derived): void {
 	const effects = derived.effects;
+	if (effects === null) return;
 	derived.effects = null;
-	for (const effect of effects ?? []) destroy(effect);
+	for (const effect of effects) destroy(effect);
 }
 
 export function localize(source: Source): void {
