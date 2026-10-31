@@ -1490,28 +1490,28 @@
       "reason": "Kit names no front end: the `.svelte` source scanners behind the layout-children and page-option-in-component warnings are not part of Vigla's Kit"
     },
     "exports/vite/utils.spec.js > config_snippet(\"a.b.c.d.e\", \"\\\"value\\\"\")": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/exports/vite/utils.js` code; covered by the `kit-vite` module"
+      "status": "difference",
+      "reason": "Vigla has no remote-functions flag, the only caller of the missing-config error and its config snippet"
     },
     "exports/vite/utils.spec.js > config_snippet(\"adapter\", \"true\")": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/exports/vite/utils.js` code; covered by the `kit-vite` module"
+      "status": "difference",
+      "reason": "Vigla has no remote-functions flag, the only caller of the missing-config error and its config snippet"
     },
     "exports/vite/utils.spec.js > config_snippet(\"experimental.remoteFunctions\", \"true\")": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/exports/vite/utils.js` code; covered by the `kit-vite` module"
+      "status": "difference",
+      "reason": "Vigla has no remote-functions flag, the only caller of the missing-config error and its config snippet"
     },
     "exports/vite/utils.spec.js > config_snippet(\"someFeature\", \"false\")": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/exports/vite/utils.js` code; covered by the `kit-vite` module"
+      "status": "difference",
+      "reason": "Vigla has no remote-functions flag, the only caller of the missing-config error and its config snippet"
     },
     "exports/vite/utils.spec.js > config_snippet(\"special\", \"{ enabled: true }\")": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/exports/vite/utils.js` code; covered by the `kit-vite` module"
+      "status": "difference",
+      "reason": "Vigla has no remote-functions flag, the only caller of the missing-config error and its config snippet"
     },
     "exports/vite/utils.spec.js > error_for_missing_config throws config_feature_disabled": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/exports/vite/utils.js` code; covered by the `kit-vite` module"
+      "status": "difference",
+      "reason": "Vigla has no remote-functions flag, the only caller of the missing-config error and its config snippet"
     },
     "exports/vite/utils.spec.js > normalizes special module ids that live inside the cwd": {
       "status": "covered",
