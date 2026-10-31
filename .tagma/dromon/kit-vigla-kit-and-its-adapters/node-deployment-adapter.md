@@ -10,7 +10,8 @@ fields:
         "at": "src/index.ts"
       }
     ],
-    "id": "adapter-node"
+    "id": "adapter-node",
+    "kind": "product"
   }
 edges:
   - kind: imports

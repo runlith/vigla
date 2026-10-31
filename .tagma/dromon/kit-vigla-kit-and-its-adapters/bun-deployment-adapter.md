@@ -10,7 +10,8 @@ fields:
         "at": "src/index.ts"
       }
     ],
-    "id": "adapter-bun"
+    "id": "adapter-bun",
+    "kind": "product"
   }
 edges:
   - kind: imports
