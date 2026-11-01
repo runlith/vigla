@@ -52,6 +52,7 @@ class Boundary implements Contract {
 	#failed: Built | null = null;
 	#building = false;
 	#errored = false;
+	#falling = false;
 
 	constructor(
 		node: ChildNode,
@@ -78,6 +79,15 @@ class Boundary implements Contract {
 		return build(render, (fn) => (own ? branch(fn, this) : branch(fn)));
 	}
 
+	#fallback(render: Render): Built {
+		this.#falling = true;
+		try {
+			return this.#branch(render, true);
+		} finally {
+			this.#falling = false;
+		}
+	}
+
 	#hydrate(node: ChildNode): void {
 		const data = instruction(node);
 		claim(node.nextSibling);
@@ -87,14 +97,12 @@ class Boundary implements Contract {
 			const { reset, report } = this.#resettable(error);
 			task(report);
 			if (failed)
-				this.#failed = this.#branch(
-					(anchor) =>
-						failed(
-							anchor,
-							() => error,
-							() => reset
-						),
-					true
+				this.#failed = this.#fallback((anchor) =>
+					failed(
+						anchor,
+						() => error,
+						() => reset
+					)
 				);
 			this.#settleAnchor();
 			return;
@@ -243,7 +251,7 @@ class Boundary implements Contract {
 	failed(error: unknown): void {
 		if (error === MISMATCH) throw error;
 		const failed = this.#props.failed;
-		if (!failed && !this.#props.onerror) {
+		if (this.#falling || (!failed && !this.#props.onerror)) {
 			this.#escalate(error);
 			return;
 		}
@@ -268,18 +276,21 @@ class Boundary implements Contract {
 				report();
 				if (!failed || this.#effect.destroyed) return;
 				try {
-					this.#failed = this.#run(() =>
-						this.#branch(
-							(anchor) =>
-								failed(
-									anchor,
-									() => value,
-									() => reset
-								),
-							true
+					const built = this.#run(() =>
+						this.#fallback((anchor) =>
+							failed(
+								anchor,
+								() => value,
+								() => reset
+							)
 						)
 					);
-					place(this.#failed, this.#anchor);
+					if (this.#effect.destroyed) {
+						discard(built);
+						return;
+					}
+					this.#failed = built;
+					place(built, this.#anchor);
 				} catch (thrown) {
 					this.#escalate(thrown);
 				}
