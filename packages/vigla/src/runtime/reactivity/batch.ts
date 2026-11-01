@@ -1,6 +1,6 @@
 import { DEV } from 'esm-env';
 import { applied, forgotten, loopWrite, reportLoop, resetLoop, updated } from './trace.ts';
-import { parked, showing, unsettled, type AsyncRun } from './async.ts';
+import { asynchronous, parked, showing, unsettled, type AsyncRun } from './async.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -43,12 +43,12 @@ import {
 	resumeReading,
 	setOwner,
 	setView,
-	stale,
 	suspendReading,
 	withoutReaction,
 	view
 } from './tracking.ts';
 import { recalling, written } from './past.ts';
+import { due, eager, instant, settle } from './settle.ts';
 
 export { orphaned, revisit } from './held.ts';
 export { detach } from './history.ts';
@@ -271,6 +271,8 @@ function mark(
 		}
 		if (forked !== 0 && previous === CLEAN && effect.forked === forked) continue;
 		if (previous < status) effect.status = status;
+		if (eager !== null && previous !== DIRTY && effect.kind === BLOCK && !asynchronous.has(effect))
+			eager.add(effect);
 		if (all || previous === CLEAN) enqueue((scheduling ??= receiving()), effect);
 	}
 }
@@ -349,7 +351,7 @@ export function apply(batch: Batch): void {
 
 export function retire(teardown: () => void): void {
 	const batch = active ?? processing ?? open;
-	if (batch === null) {
+	if (batch === null || instant) {
 		withoutReaction(() => teardown.call(null));
 		return;
 	}
@@ -414,15 +416,6 @@ function unmark(effect: Effect): void {
 		if (child.pending) unmark(child);
 }
 
-function due(effect: Effect): boolean {
-	try {
-		return stale(effect);
-	} catch (error) {
-		effect.status = CLEAN;
-		throw error;
-	}
-}
-
 function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 	effect.pending = false;
 	for (let child = effect.first; child !== null; child = child.next) {
@@ -441,39 +434,13 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 				if (child.status !== CLEAN && due(child)) run(child);
 				break;
 			case TEMPLATE:
-				if (child.status !== CLEAN) content.push(child);
+				content.push(child);
 				break;
 			case EFFECT:
 				if (child.status !== CLEAN) batch.effects.push(child);
 				break;
 		}
 		if (child.pending) traverse(child, batch, content);
-	}
-}
-
-function settle(
-	effects: readonly Effect[],
-	force: boolean,
-	batch: Batch,
-	leftover: Effect[]
-): void {
-	const walk = batch.skipped !== null || offscreen.size > 0;
-	let index = 0;
-	try {
-		for (; index < effects.length; index++) {
-			const effect = effects[index] as Effect;
-			if (effect.destroyed || effect.running) continue;
-			if (walk ? excluded(effect, batch) : effect.inert) continue;
-			if (force) effect.status = DIRTY;
-			if (due(effect)) run(effect);
-		}
-	} catch (error) {
-		for (let rest = index + 1; rest < effects.length; rest++) {
-			const effect = effects[rest] as Effect;
-			if (force) effect.status = DIRTY;
-			leftover.push(effect);
-		}
-		throw error;
 	}
 }
 

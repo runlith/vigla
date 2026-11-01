@@ -30,6 +30,8 @@ interface Tally {
 
 const tallies = new WeakMap<Boundary, Tally>();
 
+export const asynchronous = new WeakSet<Effect>();
+
 function tally(boundary: Boundary): Tally {
 	let found = tallies.get(boundary);
 	if (found === undefined) {
@@ -181,6 +183,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			}
 		);
 	});
+	asynchronous.add(effect);
 	return ready;
 }
 
