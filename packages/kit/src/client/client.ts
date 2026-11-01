@@ -19,6 +19,7 @@ import { Routes, type Intent } from './routes.ts';
 import { setMatcher } from './paths.ts';
 import { FetchCache } from './fetch.ts';
 import { Transport } from './transport.ts';
+import { Remotes } from './remote/cache.ts';
 import { Pages, type Changes, type Loaded } from './load.ts';
 import { View } from './view.ts';
 import { Lifecycle } from './lifecycle.ts';
@@ -47,6 +48,7 @@ export class Client {
 	readonly view: View;
 	readonly chunks: Chunks;
 	readonly transport: Transport;
+	readonly remote: Remotes;
 	readonly container: Element;
 	unloading = false;
 	readonly ready = Promise.withResolvers<void>();
@@ -75,6 +77,7 @@ export class Client {
 		this.transport = new Transport(app, this.owner);
 		this.routes = new Routes(app);
 		this.state = this.owner.run(() => new State(payload, app));
+		this.remote = new Remotes(this);
 		this.owner.run(() => {
 			context[1](this);
 			bindState(this.state);
@@ -291,6 +294,7 @@ export class Client {
 				all: options.refreshAll ?? options.invalidateAll ?? false,
 				dependencies: (options.invalidate ?? []).map((value) => this.predicate(value))
 			};
+			const finishRemotes = changes.all ? this.remote.prepare() : undefined;
 			const loadIntent =
 				options.popped?.pageUrl && !options.shallow
 					? await this.intent(this.url(options.popped.pageUrl))
@@ -363,6 +367,7 @@ export class Client {
 				this.current = result;
 			}
 			this.#preload = undefined;
+			await finishRemotes?.();
 			await settled();
 			const visibleUrl = shallow ? url : result.url;
 			if (reset) this.restoration.focus(visibleUrl);
@@ -416,6 +421,8 @@ export class Client {
 			const token = this.#token;
 			const current = this.current;
 			if (!current) return;
+			const refreshed = changes.all ? this.remote.refresh() : undefined;
+			void refreshed?.catch(() => {});
 			const result = await this.pages.load(current, current, changes);
 			if (generation !== this.#invalidation || token !== this.#token || current !== this.current)
 				return;
@@ -428,6 +435,7 @@ export class Client {
 			apply();
 			this.state.update({ shallow });
 			this.current = result;
+			await refreshed;
 			await settled();
 		}));
 	}
@@ -501,9 +509,13 @@ export class Client {
 
 const context = createContext<Client>();
 let active: Client | undefined;
-export function client(caller: string): Client {
+export function currentClient(): Client | undefined {
 	const value = context[2]() ? context[0]() : active;
-	if (!value || value.owner.disposed) errors.navigation_before_start({ caller });
+	return value?.owner.disposed ? undefined : value;
+}
+export function client(caller: string): Client {
+	const value = currentClient();
+	if (!value) errors.navigation_before_start({ caller });
 	return value;
 }
 

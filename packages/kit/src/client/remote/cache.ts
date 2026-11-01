@@ -1,0 +1,331 @@
+import { getOwner, hydrated, onDestroy, type Owner } from 'vigla';
+import { DEV } from 'esm-env';
+import type { RemoteData, RemoteNode } from '../../types/internal/remote.ts';
+import { getRemoteKey } from '../../shared/remote.ts';
+import { HttpError } from '../../shared/outcomes.ts';
+import type { Client } from '../client.ts';
+import { payload } from '../payload.ts';
+import { Channel } from './channel.ts';
+import { Query, type QueryKind } from './query.ts';
+import { LiveQuery } from './live.ts';
+import { Forms } from './form.ts';
+import { Command } from './command.ts';
+
+export type QueryType = QueryKind | 'query_live';
+type Resource = Query<any> | LiveQuery<any>;
+
+interface Entry {
+	id: string;
+	kind: QueryType;
+	resource: Resource;
+	holders: Set<Owner>;
+}
+interface Batch {
+	payloads: Map<string, PromiseWithResolvers<any>[]>;
+}
+
+export class Remotes {
+	readonly client: Client;
+	readonly channel: Channel;
+	readonly #entries = new Map<string, Entry>();
+	readonly #seeds = new Map<string, RemoteNode>();
+	readonly #batches = new Map<string, Batch>();
+	readonly #forms = new Map<string, Forms>();
+	readonly #commands = new Map<string, Command>();
+	#persistent?: Promise<Cache | undefined>;
+
+	constructor(client: Client) {
+		this.client = client;
+		this.channel = new Channel(client);
+		client.owner.run(() => onDestroy(() => this.dispose()));
+	}
+
+	get owner(): Owner {
+		return this.client.owner;
+	}
+
+	seed(key: string): RemoteNode | Promise<RemoteNode> | undefined {
+		const seeded = this.#seeds.get(key);
+		if (seeded) {
+			this.#seeds.delete(key);
+			return seeded;
+		}
+		const encoded = this.owner.run(() =>
+			hydrated<string | Promise<string> | undefined>(key, () => undefined)
+		);
+		if (encoded === undefined) return;
+		return typeof encoded === 'string'
+			? (this.client.transport.parse(encoded) as RemoteNode)
+			: encoded.then((value) => this.client.transport.parse(value) as RemoteNode);
+	}
+
+	forget(key: string): void {
+		this.#seeds.delete(key);
+	}
+
+	resource(kind: QueryType, id: string, argument: string): Resource {
+		const key = getRemoteKey(id, argument);
+		const holder = getOwner();
+		let entry = this.#entries.get(key);
+		if (!entry) {
+			const seed = this.seed(key);
+			if (kind === 'prerender' && seed)
+				void Promise.resolve(seed)
+					.then((node) => {
+						if (!node.e) return this.persist(id, argument, node.v);
+					})
+					.catch(() => {});
+			const resource = this.owner.run(() =>
+				kind === 'query_live'
+					? new LiveQuery(this, id, argument, seed, holder === null)
+					: new Query(this, key, () => this.load(kind, id, argument), seed)
+			);
+			if (holder === null) return resource;
+			entry = { id, kind, resource, holders: new Set() };
+			this.#entries.set(key, entry);
+		}
+		if (holder && !entry.holders.has(holder)) {
+			entry.holders.add(holder);
+			const held = entry;
+			holder.run(() =>
+				onDestroy(() => {
+					held.holders.delete(holder);
+					if (held.holders.size === 0 && this.#entries.get(key) === held) {
+						this.#entries.delete(key);
+						this.#seeds.delete(key);
+						if (held.resource instanceof LiveQuery) held.resource.destroy();
+					}
+				})
+			);
+		}
+		return entry.resource;
+	}
+
+	*keys(id: string): Iterable<string> {
+		for (const [key, entry] of this.#entries) {
+			if (entry.id === id && entry.kind !== 'prerender') yield key;
+		}
+	}
+
+	forms(id: string): Forms {
+		let forms = this.#forms.get(id);
+		if (!forms) {
+			forms = this.owner.run(() => new Forms(this, id));
+			this.#forms.set(id, forms);
+		}
+		return forms;
+	}
+
+	command(id: string): Command {
+		let command = this.#commands.get(id);
+		if (!command) {
+			command = this.owner.run(() => new Command(this, id));
+			this.#commands.set(id, command);
+		}
+		return command;
+	}
+
+	apply(data: RemoteData, refreshes?: Set<string>): void {
+		for (const [kind, nodes] of [
+			['query', data.q],
+			['query_live', data.l]
+		] as const) {
+			for (const [key, node] of Object.entries(nodes ?? {})) {
+				refreshes?.delete(key);
+				const entry = this.#entries.get(key);
+				if (entry) {
+					if (node.e) entry.resource.fail(new HttpError(node.e));
+					else {
+						entry.resource.set(node.v);
+						if (kind === 'query_live' && entry.resource instanceof LiveQuery)
+							void entry.resource.reconnect().catch(() => {});
+					}
+				} else if (!node.e) this.#seeds.set(key, node);
+			}
+		}
+		for (const nodes of [data.p, data.f]) {
+			for (const [key, node] of Object.entries(nodes ?? {}))
+				if (!node.e) this.#seeds.set(key, node);
+		}
+		for (const key of data.i ?? []) refreshes?.delete(key);
+	}
+
+	failMissing(refreshes?: Set<string>): void {
+		for (const key of refreshes ?? []) {
+			this.#entries.get(key)?.resource.fail(
+				new HttpError({
+					status: 400,
+					message: 'Requested update was not handled by the remote function'
+				})
+			);
+		}
+	}
+
+	async error(error: unknown): Promise<HttpError> {
+		if (error instanceof HttpError) return error;
+		if (this.owner.disposed)
+			return new HttpError({ status: 500, message: 'Remote client disposed' });
+		return new HttpError(
+			await this.client.pages.error(error, {
+				url: new URL(location.href),
+				params: {},
+				route: { id: null }
+			})
+		);
+	}
+
+	reload(id: string): void {
+		for (const entry of this.#entries.values())
+			if (entry.id === id) {
+				void (
+					entry.resource instanceof LiveQuery
+						? entry.resource.reconnect()
+						: entry.resource.refresh()
+				).catch(() => {});
+			}
+	}
+
+	prepare(): () => Promise<void> {
+		const previous = new Map(this.#entries);
+		for (const entry of previous.values())
+			if (entry.resource instanceof Query && entry.kind !== 'prerender') entry.resource.reset();
+		return async () => {
+			const work: Promise<unknown>[] = [];
+			for (const [key, entry] of previous) {
+				if (this.#entries.get(key) !== entry) continue;
+				if (entry.resource instanceof LiveQuery) work.push(entry.resource.reconnect());
+				else if (entry.kind !== 'prerender') work.push(Promise.resolve(entry.resource));
+			}
+			await Promise.all(work);
+		};
+	}
+
+	async refresh(): Promise<void> {
+		const work: Promise<unknown>[] = [];
+		for (const entry of this.#entries.values()) {
+			if (entry.resource instanceof LiveQuery) work.push(entry.resource.reconnect());
+			else if (entry.kind !== 'prerender') work.push(entry.resource.refresh());
+		}
+		await Promise.all(work);
+	}
+
+	async load(kind: QueryKind, id: string, argument: string): Promise<any> {
+		if (kind === 'query_batch') return this.batch(id, argument);
+		if (kind === 'prerender') return this.prerender(id, argument);
+		const data = await this.channel.request(
+			this.channel.url(id) + (argument ? `?payload=${argument}` : '')
+		);
+		if (data.redirect) await this.channel.redirect(data.redirect);
+		return data._;
+	}
+
+	batch(id: string, argument: string): Promise<any> {
+		let batch = this.#batches.get(id);
+		const request = Promise.withResolvers<any>();
+		if (!batch) {
+			batch = { payloads: new Map() };
+			this.#batches.set(id, batch);
+			queueMicrotask(() => void this.#flush(id, batch!));
+		}
+		const waiting = batch.payloads.get(argument) ?? [];
+		waiting.push(request);
+		batch.payloads.set(argument, waiting);
+		return request.promise;
+	}
+
+	async #flush(id: string, batch: Batch): Promise<void> {
+		this.#batches.delete(id);
+		try {
+			const data = await this.channel.request(this.channel.url(id), {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ payloads: [...batch.payloads.keys()] })
+			});
+			if (data.redirect) {
+				await this.channel.redirect(data.redirect);
+				for (const waiting of batch.payloads.values())
+					for (const request of waiting) request.resolve(undefined);
+				return;
+			}
+			const results: unknown = data._;
+			if (!Array.isArray(results) || results.length !== batch.payloads.size)
+				throw new TypeError('Invalid query.batch response');
+			let index = 0;
+			for (const waiting of batch.payloads.values()) {
+				const result = results[index++];
+				if (
+					result === null ||
+					typeof result !== 'object' ||
+					(result.type !== 'error' && result.type !== 'result')
+				)
+					throw new TypeError('Invalid query.batch result');
+				for (const request of waiting) {
+					if (result.type === 'error') request.reject(new HttpError(result.error));
+					else request.resolve(result.data);
+				}
+			}
+		} catch (error) {
+			for (const waiting of batch.payloads.values())
+				for (const request of waiting) request.reject(error);
+		}
+	}
+
+	#cache(): Promise<Cache | undefined> {
+		return (this.#persistent ??= (async () => {
+			if (typeof caches === 'undefined') return;
+			try {
+				const name = `sveltekit:${DEV ? Date.now() : payload.version}`;
+				const cache = await caches.open(name);
+				for (const key of await caches.keys())
+					if (key.startsWith('sveltekit:') && key !== name) await caches.delete(key);
+				return cache;
+			} catch {
+				return;
+			}
+		})());
+	}
+
+	async persist(id: string, argument: string, value: unknown): Promise<void> {
+		const cache = await this.#cache();
+		if (!cache || this.owner.disposed) return;
+		const url = this.channel.url(id) + (argument ? `/${argument}` : '');
+		await cache
+			.put(
+				url,
+				new Response(this.client.transport.stringify(value), {
+					headers: { 'Content-Type': 'application/json' }
+				})
+			)
+			.catch(() => {});
+	}
+
+	async prerender(id: string, argument: string): Promise<any> {
+		const url = this.channel.url(id) + (argument ? `/${argument}` : '');
+		const cache = await this.#cache();
+		if (cache) {
+			try {
+				const response = await cache.match(url);
+				if (response) return this.client.transport.parse(await response.text());
+			} catch {
+				await cache.delete(url).catch(() => {});
+			}
+		}
+		const data = await this.channel.request(url, { headers: this.channel.headers() });
+		if (data.redirect) {
+			await this.channel.redirect(data.redirect);
+			return;
+		}
+		if (cache) void this.persist(id, argument, data._).catch(() => {});
+		return data._;
+	}
+
+	dispose(): void {
+		this.channel.abort();
+		for (const entry of this.#entries.values())
+			if (entry.resource instanceof LiveQuery) entry.resource.destroy();
+		this.#entries.clear();
+		this.#seeds.clear();
+		this.#forms.clear();
+		this.#commands.clear();
+	}
+}
