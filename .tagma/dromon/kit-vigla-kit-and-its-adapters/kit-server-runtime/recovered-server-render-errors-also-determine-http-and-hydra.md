@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/kit/src/server/document.ts
 ---
-A component error recovered by the core's server boundary does not reject the completed render. The transformed application error must still determine the document's HTTP status, rendered page state and hydration payload, or the browser would start a successful page over error markup and lose status overrides.
+An error component guards descendants of the layout declaring it, leaving that layout outside the boundary; sparse branches consume an ancestor's error component once. A component error recovered by the core's server boundary does not reject the completed render. The transformed application error must still determine the document's HTTP status, rendered page state and hydration payload, or the browser would start a successful page over error markup and lose status overrides.
