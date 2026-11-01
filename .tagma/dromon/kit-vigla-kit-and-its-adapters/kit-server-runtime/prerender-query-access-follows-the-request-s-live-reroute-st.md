@@ -11,4 +11,4 @@ sources:
   - kind: file
     ref: packages/kit/src/server/load.ts
 ---
-Prerendered output is selected by pathname, so request hooks, endpoints and loads cannot depend on query strings. Reroute may fetch query-dependent API data to choose that pathname; its temporary state therefore permits query access during those internal requests. The same policy wraps original event URLs, normalized data-request URLs and tracked load URLs, preserving ordinary URL access and dependency tracking outside prerendering.
+Prerendered output is selected by pathname, so request hooks, endpoints and loads cannot depend on query strings. Reroute may fetch query-dependent API data to choose that pathname; its temporary state therefore permits query access during those internal requests. Original and normalized data-event URLs reject queries during prerendering; tracked server-load URLs also reject them for routes declared prerenderable. Ordinary hook URL access stays available when serving those routes dynamically, and load URL wrapping preserves dependency tracking.
