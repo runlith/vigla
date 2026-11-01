@@ -19,6 +19,7 @@ import type { ManifestRoute } from '../types/paths.ts';
 import type { Style } from '../types/internal/server.ts';
 import { dependencies } from './dependencies.ts';
 import { styleExpression } from './styles.ts';
+import { pruneRemotes } from './remote-build.ts';
 import { ids, nodeId } from './ids.ts';
 import { packageDirectory, resolveEntry } from './paths.ts';
 import type { Project } from './project.ts';
@@ -391,7 +392,7 @@ export function buildPlugin(validated: ValidatedConfig, getProject: () => Projec
 			writeNodes(context);
 			full();
 			replaceManifest(server, serverSources, context);
-			const rendered = await prerenderBuild(context);
+			const rendered = await prerenderBuild(context, project.vite.configFile || undefined);
 			context.prerendered = rendered.prerendered;
 			context.prerenderMap = rendered.prerenderMap;
 			context.manifest.prerendered.push(
@@ -404,6 +405,7 @@ export function buildPlugin(validated: ValidatedConfig, getProject: () => Projec
 				context.artifacts.client.inline.script = manifestCode(inlineScript, context);
 			for (const file of inlined) rmSync(path.join(client, file));
 			replaceManifest(server, serverSources, context);
+			await pruneRemotes(project);
 			createBuilder(context).generateEnvModule();
 			if (project.serviceWorker) {
 				await builder.build(builder.environments.serviceWorker!);
