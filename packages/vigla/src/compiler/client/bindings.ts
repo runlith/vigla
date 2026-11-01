@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { unsupported, type Binding } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Binding as BindingNode, Element } from '../ir/nodes.ts';
+import type { Binding as BindingNode, DynamicElement, Element } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
 import type { Emit, TemplateContext } from './template.ts';
 
@@ -103,9 +103,15 @@ export function bindThisCall(
 	return runtime(context, 'bindThis', ...args);
 }
 
+export function hasContentBinding(node: Element | DynamicElement): boolean {
+	return node.attributes.some(
+		(attribute) => attribute.kind === 'binding' && editable.has(attribute.name)
+	);
+}
+
 export function binding(
 	context: TemplateContext,
-	node: Element,
+	node: Element | DynamicElement,
 	attribute: BindingNode
 ): (element: ES.Identifier, emit: Emit) => void {
 	const name = attribute.name;
@@ -119,7 +125,12 @@ export function binding(
 			emit.init.push(b.statement(runtime(context, fn, ...args)));
 		};
 		if (name === 'value') {
-			call(node.name === 'select' ? 'bindSelect' : 'bindValue', element, get, set);
+			call(
+				node.kind === 'element' && node.name === 'select' ? 'bindSelect' : 'bindValue',
+				element,
+				get,
+				set
+			);
 		} else if (name === 'checked') {
 			call('bindChecked', element, get, set);
 		} else if (name === 'indeterminate') {

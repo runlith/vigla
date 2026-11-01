@@ -1,0 +1,13 @@
+{
+	"samples": {
+		"issue-17969-contenteditable": {
+			"status": "difference",
+			"reason": "Svelte #17969: deleting dynamic plaintext-only contenteditable text, toggling editing off/on and inserting abc produces abcabc in the heading while the model remains abc on upstream 5.57.3 Chromium"
+		},
+		"issue-4313-equal-css": {
+			"status": "difference",
+			"reason": "Svelte #4313: anonymous public compilation with injected CSS gives equally authored but differently pruned sheets one id on upstream 5.57.3, so the later yellow element remains transparent"
+		},
+		"issue-4732-grid-flip": "contract"
+	}
+}

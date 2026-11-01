@@ -86,6 +86,7 @@ export interface CompileOptions extends ModuleOptions, Mapping {
 export interface CssOptions {
 	readonly hash: string;
 	readonly inject: boolean;
+	readonly id?: string;
 	readonly outputFilename?: string;
 }
 
@@ -141,7 +142,8 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 			(options.customElement ? { tag: null, shadow: null, props: null, extend: null } : null)
 	);
 	const runtime = options.runtime ?? runtimes;
-	const styles = inject && css !== null ? { hash: style.scoping.hash, code: css.code } : null;
+	const styles =
+		inject && css !== null ? { hash: options.css?.id ?? style.scoping.hash, code: css.code } : null;
 	const generation = {
 		name: options.name,
 		scoping: style.scoping,

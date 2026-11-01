@@ -186,6 +186,14 @@ export const suites: readonly Suite[] = [
 		source: 'runtime/samples',
 		files: ['runtime.test.ts'],
 		upstream: []
+	},
+	{
+		project: 'own',
+		name: 'browser',
+		kind: 'browser',
+		source: 'browser/samples',
+		files: ['browser.test.ts'],
+		upstream: []
 	}
 ];
 

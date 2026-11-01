@@ -196,6 +196,10 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		const name = functionName(options.name ?? named);
 		const css = {
 			hash: styleHash(parsed.root, options, named),
+			id:
+				options.cssHash === undefined && relativeFilename(options) === '(unknown)'
+					? `svelte-${hash(source)}`
+					: undefined,
 			inject: options.css === 'injected',
 			outputFilename: options.cssOutputFilename
 		};

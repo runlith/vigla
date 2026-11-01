@@ -39,6 +39,7 @@ export interface TemplateContext extends Context {
 	readonly scoping: Scoping;
 	readonly format: Format;
 	readonly positions: Positions;
+	readonly boundContent?: boolean;
 }
 
 export function scopeHash(context: TemplateContext, node: Host): string | null {
@@ -76,7 +77,7 @@ export function cleaned(context: TemplateContext, fragment: Fragment): readonly 
 	return nodes;
 }
 
-function hasCall(expression: ES.Node): boolean {
+export function hasCall(expression: ES.Node): boolean {
 	let found = false;
 	b.walk(expression, (node) => {
 		if (found) return false;
@@ -111,17 +112,19 @@ function textValue(
 	emit: Emit,
 	run: readonly (Text | Expression)[]
 ): ES.Expression {
+	const read = (expression: ES.Expression): ES.Expression => {
+		const value = rewrite(context, expression);
+		return context.boundContent ? value : memo(context, emit, expression, value);
+	};
 	const [only] = run;
-	if (run.length === 1 && only?.kind === 'expression') {
-		return memo(context, emit, only.expression, rewrite(context, only.expression));
-	}
+	if (run.length === 1 && only?.kind === 'expression') return read(only.expression);
 	const quasis: string[] = [''];
 	const expressions: ES.Expression[] = [];
 	for (const part of run) {
 		if (part.kind === 'text') {
 			quasis[quasis.length - 1] += part.data;
 		} else {
-			const value = memo(context, emit, part.expression, rewrite(context, part.expression));
+			const value = read(part.expression);
 			expressions.push(b.logical('??', value, b.literal('')));
 			quasis.push('');
 		}
@@ -141,9 +144,9 @@ function textPart(context: TemplateContext, run: readonly (Text | Expression)[])
 			setup: null
 		};
 	}
-	const reactive = run.some(
-		(part) => part.kind === 'expression' && isDynamic(context, part.expression)
-	);
+	const reactive =
+		!context.boundContent &&
+		run.some((part) => part.kind === 'expression' && isDynamic(context, part.expression));
 	const empty = run.every((part) => part.kind === 'expression' || part.data === '');
 	return {
 		html: ' ',

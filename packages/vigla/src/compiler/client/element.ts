@@ -16,7 +16,7 @@ import type {
 	Value
 } from '../ir/nodes.ts';
 import { awaiting } from './asynchronous.ts';
-import { binding } from './bindings.ts';
+import { binding, hasContentBinding } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { event, handler, isEvent } from './events.ts';
 import { rewrite, runtime } from './script.ts';
@@ -571,7 +571,8 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			)
 		);
 	}
-	const children = controlled || constantText ? [] : parts(context, body, childNamespace);
+	const childContext = hasContentBinding(node) ? { ...context, boundContent: true } : context;
+	const children = controlled || constantText ? [] : parts(childContext, body, childNamespace);
 	for (const child of children) markup += child.html;
 	if (!isVoid(tag)) markup += `</${tag}>`;
 	for (const attribute of node.attributes) {

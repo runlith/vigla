@@ -2,7 +2,7 @@ import type * as ES from 'estree';
 import { unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { DynamicElement, Transition } from '../ir/nodes.ts';
-import { bindThisCall } from './bindings.ts';
+import { binding, hasContentBinding } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { spread, valueOf } from './element.ts';
 import { rewrite, runtime } from './script.ts';
@@ -32,6 +32,7 @@ export function dynamicCall(
 	const element = b.id(context.names.unique('$$element'));
 	const inner = b.id(context.names.unique('$$anchor'));
 	const emit: Emit = { init: location(context, node, element), update: [], thunks: [], params: [] };
+	const bound: Emit = { init: [], update: [], thunks: [], params: [] };
 	let attributes = scopeHash(context, node) !== null;
 	const transitions: Transition[] = [];
 	for (const attribute of node.attributes) {
@@ -46,9 +47,7 @@ export function dynamicCall(
 				emit.init.push(attachCall(context, element, attribute));
 				break;
 			case 'binding':
-				if (attribute.name !== 'this')
-					throw unsupported(attribute, `bind:${attribute.name} on <svelte:element>`);
-				emit.init.push(b.statement(bindThisCall(context, element, attribute.expression)));
+				binding(context, node, attribute)(element, attribute.name === 'this' ? emit : bound);
 				break;
 			case 'attribute':
 			case 'spread':
@@ -63,8 +62,9 @@ export function dynamicCall(
 	if (attributes) spread(context, node, element, emit);
 	for (const transition of transitions)
 		emit.init.push(transitionCall(context, element, transition));
-	const children = render(context, cleaned(context, node.body), inner, namespace, false);
-	const body = [...flush(context, emit), ...children];
+	const childContext = hasContentBinding(node) ? { ...context, boundContent: true } : context;
+	const children = render(childContext, cleaned(context, node.body), inner, namespace, false);
+	const body = [...flush(context, emit), ...children, ...flush(context, bound)];
 	const args: ES.Expression[] = [
 		anchor,
 		b.arrow([], rewrite(context, node.tag)),
