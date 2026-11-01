@@ -1,4 +1,4 @@
-import { isPassive } from '../../shared/html.ts';
+import { isPassive, namespaces } from '../../shared/html.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
 
@@ -63,12 +63,11 @@ export function event(
 	passive?: boolean
 ): void {
 	const remove = listen(target, type, handler, capture, passive);
-	if (
-		target === window ||
-		target === document ||
-		target === document.body ||
-		target instanceof HTMLMediaElement
-	) {
+	const element = target as Element;
+	const media =
+		element.namespaceURI === namespaces.html &&
+		(element.localName === 'video' || element.localName === 'audio');
+	if (target === window || target === document || target === document.body || media) {
 		teardown(remove);
 	}
 }

@@ -1,4 +1,6 @@
 <script>
+	import Media from './Media.svelte';
+	export { Media };
 	let show = $state(true);
 	let revision = $state(0);
 	let calls = $state(0);
