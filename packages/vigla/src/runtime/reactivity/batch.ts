@@ -36,6 +36,7 @@ import {
 import {
 	conceal,
 	forget,
+	marked,
 	owner,
 	readDuringRun,
 	recalling,
@@ -271,6 +272,7 @@ function mark(
 
 function dirty(source: Source, forked = 0): void {
 	if (source.reactions === null) return;
+	marked();
 	visits = 0;
 	const all = pending.length > 0;
 	if (all) members(receiving());

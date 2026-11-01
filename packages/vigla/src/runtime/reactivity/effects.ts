@@ -17,6 +17,7 @@ import { collect, orphaned, retire, revisit, schedule } from './batch.ts';
 import { orphan } from './errors.ts';
 import {
 	disconnect,
+	marked,
 	owner,
 	ownEffect,
 	present,
@@ -287,7 +288,10 @@ function holding(effect: Effect): boolean {
 export function freeze(derived: Derived): void {
 	const effects = derived.effects;
 	if (effects === null) return;
-	if (abort(derived)) derived.status = DIRTY;
+	if (abort(derived)) {
+		derived.status = DIRTY;
+		marked();
+	}
 	let frozen = derived.frozen;
 	for (const effect of effects) {
 		if (!holding(effect)) continue;

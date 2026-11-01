@@ -6,6 +6,7 @@ import { destroy, fail, freeze, thaw } from './effects.ts';
 import {
 	BLOCK,
 	CLEAN,
+	DERIVED,
 	DIRTY,
 	EAGER,
 	MAYBE,
@@ -27,9 +28,7 @@ interface Frame {
 	old: Source[] | null;
 	matched: number;
 	extra: Source[] | null;
-	derived: boolean;
-	guarded: boolean;
-	eager: boolean;
+	marks: number;
 	invalidated: boolean;
 	hidden: Set<Batch> | null;
 	local: Set<Source> | null;
@@ -37,11 +36,13 @@ interface Frame {
 
 let versions = 0;
 let depth = 0;
+let marks = 0;
+
+export function marked(): void {
+	marks++;
+}
 
 function opened(target: Reaction): Frame {
-	const derived = isDerived(target);
-	const kind = (target as Effect).kind;
-	const eager = kind === EAGER;
 	let current = frames[depth];
 	if (current === undefined) {
 		current = {
@@ -51,9 +52,7 @@ function opened(target: Reaction): Frame {
 			old: null,
 			matched: 0,
 			extra: null,
-			derived: false,
-			guarded: false,
-			eager: false,
+			marks: 0,
 			invalidated: false,
 			hidden: null,
 			local: null
@@ -66,9 +65,7 @@ function opened(target: Reaction): Frame {
 	current.old = target.deps;
 	current.matched = 0;
 	current.extra = null;
-	current.derived = derived;
-	current.guarded = derived || eager || kind === BLOCK;
-	current.eager = eager;
+	current.marks = marks;
 	current.invalidated = false;
 	current.hidden = null;
 	current.local = null;
@@ -93,9 +90,13 @@ function top(): Frame | null {
 	return depth === 0 ? null : (frames[depth - 1] as Frame);
 }
 
+function kindOf(at: Frame): number {
+	return (at.target as Effect | Derived).kind;
+}
+
 export function ownEffect(effect: Effect): void {
 	const at = frame ?? top();
-	if (at === null || !at.derived || effect.kind === ROOT) return;
+	if (at === null || kindOf(at) !== DERIVED || effect.kind === ROOT) return;
 	const derived = at.target as Derived;
 	if (effect.parent === derived.owner) (derived.effects ??= []).push(effect);
 }
@@ -134,7 +135,7 @@ export function unsubscribe(dep: Source, reaction: Reaction): void {
 
 export function localize(source: Source): void {
 	const at = top();
-	if (at !== null && at.derived) (at.local ??= new Set()).add(source);
+	if (at !== null && kindOf(at) === DERIVED) (at.local ??= new Set()).add(source);
 }
 
 export function local(source: Source): boolean {
@@ -144,7 +145,9 @@ export function local(source: Source): boolean {
 
 export function guard(source: Source): void {
 	const at = frame ?? top();
-	if (at === null || !(frame === null ? at.eager : at.guarded)) return;
+	if (at === null) return;
+	const kind = kindOf(at);
+	if (kind !== EAGER && (frame === null || (kind !== DERIVED && kind !== BLOCK))) return;
 	if (at.local === null || !at.local.has(source)) unsafeMutation();
 }
 
@@ -223,7 +226,7 @@ export function get<T>(source: Source<T>): T {
 }
 
 function settled(derived: Derived): unknown {
-	refresh(derived);
+	if (derived.status !== CLEAN) refresh(derived);
 	const failure = derived.failure;
 	if (failure !== null) throw failure.error;
 	return derived.v;
@@ -521,12 +524,14 @@ export function track<T>(target: Reaction, fn: () => T): T {
 
 function settleRun(target: Reaction, current: Frame): void {
 	let invalidated = current.invalidated;
-	const old = current.old;
-	if (old !== null)
-		for (let index = 0; !invalidated && index < current.matched; index++)
-			if (dirtyRead(old[index] as Source)) invalidated = true;
-	if (!invalidated && current.extra !== null)
-		for (const dep of current.extra) if (dirtyRead(dep)) invalidated = true;
+	if (!invalidated && (view !== null || marks !== current.marks)) {
+		const old = current.old;
+		if (old !== null)
+			for (let index = 0; !invalidated && index < current.matched; index++)
+				if (dirtyRead(old[index] as Source)) invalidated = true;
+		if (!invalidated && current.extra !== null)
+			for (const dep of current.extra) if (dirtyRead(dep)) invalidated = true;
+	}
 	reconcile(target, current, view !== null && (view.batch.fork || current.hidden !== null));
 	target.rv = now();
 	target.status = invalidated ? DIRTY : CLEAN;
@@ -613,4 +618,5 @@ export function disconnect(derived: Derived): void {
 	for (const dep of derived.deps ?? []) unsubscribe(dep, derived);
 	derived.deps = null;
 	derived.status = DIRTY;
+	marks++;
 }
