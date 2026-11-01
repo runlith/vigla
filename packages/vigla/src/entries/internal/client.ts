@@ -14,7 +14,6 @@ export {
 	optionValue,
 	removeInputDefaults,
 	removeTextareaChild,
-	selected,
 	style,
 	STYLE,
 	value,
@@ -39,7 +38,13 @@ export { animation, transition } from '../../runtime/transitions/manager.ts';
 export { branch, key } from '../../runtime/dom/blocks.ts';
 export { list } from '../../runtime/dom/list.ts';
 export { boundary } from '../../runtime/dom/boundary.ts';
-export { bindSelect, initSelect, selectValue } from '../../runtime/dom/select.ts';
+export {
+	bindSelect,
+	initSelect,
+	selectDefault,
+	selected,
+	selectValue
+} from '../../runtime/dom/select.ts';
 export { appendStyles } from '../../runtime/dom/styles.ts';
 export { action, attach, attachment } from '../../runtime/dom/attachments.ts';
 export { html } from '../../runtime/dom/html.ts';

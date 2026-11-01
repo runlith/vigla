@@ -31,8 +31,14 @@ export function dynamicCall(
 	const namespace = context.component.namespaces.get(node) ?? 'html';
 	const element = b.id(context.names.unique('$$element'));
 	const inner = b.id(context.names.unique('$$anchor'));
-	const emit: Emit = { init: location(context, node, element), update: [], thunks: [], params: [] };
-	const bound: Emit = { init: [], update: [], thunks: [], params: [] };
+	const emit: Emit = {
+		init: location(context, node, element),
+		after: [],
+		update: [],
+		thunks: [],
+		params: []
+	};
+	const bound: Emit = { init: [], after: [], update: [], thunks: [], params: [] };
 	let attributes = scopeHash(context, node) !== null;
 	const transitions: Transition[] = [];
 	for (const attribute of node.attributes) {

@@ -259,7 +259,7 @@ export function styledComponent(
 		referenced: true,
 		children: [],
 		setup(wrapper, emit) {
-			const updates: Emit = { init: [], update: [], thunks: [], params: [] };
+			const updates: Emit = { init: [], after: [], update: [], thunks: [], params: [] };
 			const styles = b.object(
 				Object.fromEntries(
 					properties.map((attribute) => {

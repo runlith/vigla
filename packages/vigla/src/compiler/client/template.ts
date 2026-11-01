@@ -49,6 +49,7 @@ export function scopeHash(context: TemplateContext, node: Host): string | null {
 
 export interface Emit {
 	readonly init: ES.Statement[];
+	readonly after: ES.Statement[];
 	readonly update: ES.Statement[];
 	readonly thunks: ES.Expression[];
 	readonly params: ES.Identifier[];
@@ -164,7 +165,11 @@ function textPart(context: TemplateContext, run: readonly (Text | Expression)[])
 					b.statement(runtime(context, 'text', node, textValue(context, emit, run)))
 				);
 			} else {
-				const value = textValue(context, { init: [], update: [], thunks: [], params: [] }, run);
+				const value = textValue(
+					context,
+					{ init: [], after: [], update: [], thunks: [], params: [] },
+					run
+				);
 				emit.init.push(b.statement(runtime(context, 'text', node, value)));
 			}
 		}
@@ -379,11 +384,12 @@ export function navigate(
 }
 
 export function flush(context: TemplateContext, emit: Emit): ES.Statement[] {
-	if (emit.update.length === 0) return emit.init;
+	if (emit.update.length === 0)
+		return emit.after.length === 0 ? emit.init : [...emit.init, ...emit.after];
 	const fn = b.arrow(emit.params, emit.update);
 	const args: ES.Expression[] = [fn];
 	if (emit.thunks.length > 0) args.push({ type: 'ArrayExpression', elements: emit.thunks });
-	return [...emit.init, b.statement(runtime(context, 'content', ...args))];
+	return [...emit.init, b.statement(runtime(context, 'content', ...args)), ...emit.after];
 }
 
 function flags(namespace: Namespace, single: boolean): number {
@@ -444,7 +450,7 @@ export function render(
 	if (alone?.kind === 'render') return [...declarations, ...renderCall(context, alone, anchor)];
 	const list = parts(context, nodes, namespace, step);
 	if (list.length === 0) return declarations;
-	const emit: Emit = { init: [...declarations], update: [], thunks: [], params: [] };
+	const emit: Emit = { init: [...declarations], after: [], update: [], thunks: [], params: [] };
 	const html = list.map((part) => part.html).join('');
 	const startsWithText = textFirst && list[0]?.hint === 'text' && !isElement(list[0]);
 	if (startsWithText) emit.init.push(b.statement(runtime(context, 'next')));

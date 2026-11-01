@@ -1,65 +1,26 @@
 import { tick } from '../reactivity/batch.ts';
 import { effect, teardown, template } from '../reactivity/effects.ts';
 import { original } from '../reactivity/proxy.ts';
-import { setOwner, untrack } from '../reactivity/tracking.ts';
+import { untrack } from '../reactivity/tracking.ts';
+import { unowned } from './events.ts';
 import { hydrating } from './hydration.ts';
+import { onReset } from './reset.ts';
 
 type Get<T> = () => T;
 type Set<T> = (value: T) => void;
 
-interface Resettable {
-	__onReset?: () => void;
-}
-
 interface Valued {
 	__value?: unknown;
-}
-
-function detached<T>(fn: () => T): T {
-	const previous = setOwner(null);
-	try {
-		return untrack(fn);
-	} finally {
-		setOwner(previous);
-	}
-}
-
-let resetting = false;
-
-function listenForReset(): void {
-	if (resetting) return;
-	resetting = true;
-	document.addEventListener(
-		'reset',
-		(event) => {
-			void Promise.resolve().then(() => {
-				if (event.defaultPrevented) return;
-				for (const element of (event.target as HTMLFormElement).elements) {
-					(element as Element & Resettable).__onReset?.();
-				}
-			});
-		},
-		{ capture: true }
-	);
 }
 
 function listenWithReset(
 	element: Element,
 	type: string,
 	handler: (reset: boolean) => void,
-	onReset: (reset: boolean) => void = handler
+	reset: (reset: boolean) => void = handler
 ): void {
-	element.addEventListener(type, () => detached(() => handler(false)));
-	const holder = element as Element & Resettable;
-	const previous = holder.__onReset;
-	holder.__onReset =
-		previous === undefined
-			? () => onReset(true)
-			: () => {
-					previous();
-					onReset(true);
-				};
-	listenForReset();
+	element.addEventListener(type, () => unowned(() => handler(false)));
+	teardown(onReset(element, () => reset(true)));
 }
 
 function numeric(input: HTMLInputElement): boolean {
@@ -126,7 +87,7 @@ export function bindIndeterminate(
 	get: Get<unknown>,
 	set: Set<unknown>
 ): void {
-	input.addEventListener('change', () => detached(() => set(input.indeterminate)));
+	input.addEventListener('change', () => unowned(() => set(input.indeterminate)));
 	template(() => {
 		input.indeterminate = Boolean(get());
 	});
@@ -211,7 +172,7 @@ export function bindContentEditable(
 	get: Get<unknown>,
 	set: Set<unknown>
 ): void {
-	element.addEventListener('input', () => detached(() => set(element[property])));
+	element.addEventListener('input', () => unowned(() => set(element[property])));
 	template(() => {
 		const value = get();
 		if (element[property] === value) return;
@@ -228,7 +189,7 @@ export function bindProperty(
 	get?: Get<unknown>
 ): void {
 	const target = element as unknown as Record<string, unknown>;
-	const handler = (): void => detached(() => set(target[property]));
+	const handler = (): void => unowned(() => set(target[property]));
 	element.addEventListener(type, handler);
 	if (get !== undefined) {
 		template(() => {
@@ -243,7 +204,7 @@ export function bindProperty(
 }
 
 export function bindFocused(element: HTMLElement, set: Set<boolean>): void {
-	const handler = (): void => detached(() => set(element === document.activeElement));
+	const handler = (): void => unowned(() => set(element === document.activeElement));
 	handler();
 	element.addEventListener('focus', handler);
 	element.addEventListener('blur', handler);

@@ -16,7 +16,7 @@ interface Dispatched extends Event {
 	[handled]?: EventTarget;
 }
 
-function unowned<T>(fn: () => T): T {
+export function unowned<T>(fn: () => T): T {
 	const previous = setOwner(null);
 	try {
 		return untrack(fn);

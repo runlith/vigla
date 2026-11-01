@@ -122,7 +122,7 @@ export function binding(
 		}
 		const { get, set } = accessors(context, attribute.expression);
 		const call = (fn: string, ...args: ES.Expression[]): void => {
-			emit.init.push(b.statement(runtime(context, fn, ...args)));
+			emit.after.push(b.statement(runtime(context, fn, ...args)));
 		};
 		if (name === 'value') {
 			call(

@@ -14,7 +14,8 @@ import { claim, cursor, hydrating, setHydrating } from './hydration.ts';
 import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
 import { task } from '../reactivity/tasks.ts';
-import { selectOption } from './select.ts';
+import { selectDefault, selectOption, selected } from './select.ts';
+import { onReset } from './reset.ts';
 
 type Directives = Readonly<Record<string, unknown>>;
 
@@ -126,32 +127,14 @@ export function attr(element: Element, name: string, value: unknown, unchecked =
 	}
 }
 
-let resetting = false;
-
-function listenForReset(): void {
-	if (resetting) return;
-	resetting = true;
-	document.addEventListener(
-		'reset',
-		(event) => {
-			void Promise.resolve().then(() => {
-				if (event.defaultPrevented) return;
-				for (const element of (event.target as HTMLFormElement).elements) {
-					(element as Element & { __reset?: () => void }).__reset?.();
-				}
-			});
-		},
-		{ capture: true }
-	);
-}
-
 export function removeInputDefaults(element: Element): void {
 	if (!hydrating || element.namespaceURI !== namespaces.html) return;
-	const input = element as HTMLInputElement & { __reset?: () => void };
+	const input = element as HTMLInputElement;
 	let removed = false;
 	const remove = (): void => {
 		if (removed) return;
 		removed = true;
+		release();
 		if (input.hasAttribute('value')) {
 			const current = input.value;
 			attr(input, 'value', null);
@@ -163,9 +146,8 @@ export function removeInputDefaults(element: Element): void {
 			input.checked = current;
 		}
 	};
-	input.__reset = remove;
+	const release = onReset(input, remove);
 	task(remove);
-	listenForReset();
 }
 
 export function removeTextareaChild(element: Element): void {
@@ -244,15 +226,6 @@ export function defaultChecked(element: Element, next: unknown): void {
 	const current = input.checked;
 	input.defaultChecked = next as boolean;
 	input.checked = current;
-}
-
-export function selected(element: Element, next: unknown): void {
-	const option = element as HTMLOptionElement;
-	if (next) {
-		if (!option.hasAttribute('selected')) option.setAttribute('selected', '');
-	} else {
-		option.removeAttribute('selected');
-	}
 }
 
 const classCache = Symbol('class');
@@ -395,6 +368,7 @@ export function attributes(
 	const current: Spread = previous ?? {};
 	const custom = element.nodeName.includes('-') || element.hasAttribute('is');
 	const select = tag === 'select';
+	const hasOptionValue = tag === 'option' && Object.hasOwn(next, 'value');
 	for (const key of Object.keys(current)) {
 		if (!(key in next) && !key.startsWith('$$')) next[key] = null;
 	}
@@ -409,6 +383,18 @@ export function attributes(
 	}
 	for (const key of Object.keys(next)) {
 		const value = next[key];
+		if (tag === 'option' && key === 'value') {
+			if (hasOptionValue) {
+				optionValue(element, value);
+				current[key] = value;
+			} else {
+				delete (element as Valued).__value;
+				element.removeAttribute('value');
+				delete values(element).value;
+				delete current[key];
+			}
+			continue;
+		}
 		if (key === 'class') {
 			className(
 				element,
@@ -486,7 +472,10 @@ export function attributes(
 		}
 		const name = html ? propertyName(key) : key;
 		const fallback = name === 'defaultValue' || name === 'defaultChecked';
-		if (element.localName === 'select' && name === 'defaultValue') continue;
+		if (select && name === 'defaultValue') {
+			selectDefault(element as HTMLSelectElement, value, previous === undefined);
+			continue;
+		}
 		if (value == null && !custom && !fallback) {
 			values(element)[key] = null;
 			if (name === 'value' || name === 'checked') {

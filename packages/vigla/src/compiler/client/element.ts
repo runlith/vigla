@@ -94,6 +94,7 @@ function update(
 	attributes: readonly Attribute[]
 ): ES.Expression {
 	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
+	const tag = html ? node.name.toLowerCase() : node.name;
 	if (html && name === 'muted')
 		return {
 			type: 'AssignmentExpression',
@@ -103,12 +104,14 @@ function update(
 		};
 	if (html && name === 'value') {
 		const grouped = attributes.some((other) => other.kind === 'binding' && other.name === 'group');
-		if (node.name === 'option' || grouped) return runtime(context, 'optionValue', element, value);
-		if (node.name === 'select') return runtime(context, 'selectValue', element, value);
+		if (tag === 'option' || grouped) return runtime(context, 'optionValue', element, value);
+		if (tag === 'select') return runtime(context, 'selectValue', element, value);
 		return runtime(context, 'value', element, value);
 	}
 	if (html && name === 'checked') return runtime(context, 'checked', element, value);
 	if (html && name === 'selected') return runtime(context, 'selected', element, value);
+	if (html && tag === 'select' && name === 'defaultValue')
+		return runtime(context, 'selectDefault', element, value);
 	if (
 		html &&
 		name === 'defaultValue' &&
@@ -207,7 +210,7 @@ export function spread(
 	outer: Emit
 ): void {
 	const name = node.kind === 'element' ? node.name : null;
-	const emit: Emit = { init: [], update: [], thunks: [], params: [] };
+	const emit: Emit = { init: [], after: [], update: [], thunks: [], params: [] };
 	const properties: (ES.Property | ES.SpreadElement)[] = [];
 	const classes: ClassToggle[] = [];
 	const styles: StyleProperty[] = [];
@@ -297,14 +300,14 @@ export function spread(
 			right: runtime(context, 'attributes', ...args)
 		})
 	);
+	if (name === 'textarea') {
+		outer.init.push(b.statement(runtime(context, 'removeTextareaChild', element)));
+	}
 	outer.init.push(...flush(context, emit));
 	if (
 		!node.attributes.some((attribute) => attribute.kind === 'binding' && attribute.name === 'value')
 	) {
 		outer.init.push(b.statement(runtime(context, 'initSelect', element, b.arrow([], previous))));
-	}
-	if (name === 'textarea') {
-		outer.init.push(b.statement(runtime(context, 'removeTextareaChild', element)));
 	}
 }
 
@@ -357,7 +360,7 @@ function classAttribute(
 	const reactive =
 		(value !== null && valueReactive(context, value)) ||
 		toggles.some((toggle) => isDynamic(context, toggle.expression));
-	const target = reactive ? emit : { init: [], update: [], thunks: [], params: [] };
+	const target = reactive ? emit : { init: [], after: [], update: [], thunks: [], params: [] };
 	let given: ES.Expression = value === null ? b.literal(null) : valueOf(context, target, value);
 	if (value?.kind === 'expression') given = runtime(context, 'clsx', given);
 	const args: ES.Expression[] = [
@@ -397,7 +400,7 @@ function styleAttribute(
 	const reactive =
 		(value !== null && valueReactive(context, value)) ||
 		styles.some((style) => valueReactive(context, style.value));
-	const target = reactive ? emit : { init: [], update: [], thunks: [], params: [] };
+	const target = reactive ? emit : { init: [], after: [], update: [], thunks: [], params: [] };
 	const given: ES.Expression = value === null ? b.literal(null) : valueOf(context, target, value);
 	const args: ES.Expression[] = [element, given];
 	if (styles.length > 0) {
@@ -497,6 +500,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			if (
 				isStatic(attribute.value) &&
 				!unsettable.has(name) &&
+				!(html && tag === 'select' && name === 'value') &&
 				(!custom || templated(context, node, attribute))
 			) {
 				markup +=
@@ -507,12 +511,16 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			}
 			const reactive = valueReactive(context, attribute.value);
 			setups.push((element, emit) => {
-				const target = reactive ? emit : { init: [], update: [], thunks: [], params: [] };
+				const target = reactive
+					? emit
+					: { init: [], after: [], update: [], thunks: [], params: [] };
 				const value = valueOf(context, target, attribute.value);
 				const call = custom
 					? runtime(context, 'customProp', element, b.literal(attribute.name), value)
 					: update(context, node, element, name, value, node.attributes);
-				(reactive ? emit.update : emit.init).push(b.statement(call));
+				const afterOptions =
+					html && tag === 'select' && (name === 'value' || name === 'defaultValue');
+				(reactive ? emit.update : afterOptions ? emit.after : emit.init).push(b.statement(call));
 			});
 		}
 		if (toggles.length > 0 || classDynamic) {
@@ -581,6 +589,23 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		} else if (attribute.kind === 'animation') {
 			setups.push((element, emit) => emit.init.push(animationCall(context, element, attribute)));
 		}
+	}
+	if (
+		html &&
+		tag === 'select' &&
+		!hasSpread &&
+		!node.attributes.some(
+			(attribute) => attribute.kind === 'binding' && attribute.name === 'value'
+		) &&
+		node.attributes.some(
+			(attribute) =>
+				attribute.kind === 'attribute' &&
+				['value', 'defaultValue'].includes(propertyName(attribute.name))
+		)
+	) {
+		setups.push((element, emit) =>
+			emit.after.push(b.statement(runtime(context, 'initSelect', element)))
+		);
 	}
 	return {
 		html: markup,
