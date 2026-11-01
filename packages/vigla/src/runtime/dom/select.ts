@@ -1,4 +1,6 @@
 import { warn } from '../../shared/diagnostics.ts';
+import { namespaces } from '../../shared/html.ts';
+import type { Spread } from './attributes.ts';
 import { effect, teardown } from '../reactivity/effects.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
 
@@ -32,7 +34,14 @@ export function selectOption(select: HTMLSelectElement, value: unknown, mounting
 	if (!mounting || value !== undefined) select.selectedIndex = -1;
 }
 
-export function initSelect(select: HTMLSelectElement): void {
+export function initSelect(element: Element, attributes?: () => Spread | undefined): void {
+	if (element.namespaceURI !== namespaces.html || element.localName !== 'select') return;
+	const select = element as HTMLSelectElement;
+	if (attributes !== undefined)
+		effect(() => {
+			const values = attributes();
+			if (values !== undefined && 'value' in values) selectValue(select, values.value);
+		});
 	const observer = new MutationObserver(() => {
 		if ('__value' in select) selectOption(select, (select as HTMLSelectElement & Valued).__value);
 	});

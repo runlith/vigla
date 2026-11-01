@@ -1,10 +1,17 @@
 import type * as ES from 'estree';
 import * as b from '../ir/estree.ts';
-import type { Element, Property, Text } from '../ir/nodes.ts';
+import type { Binding as BindingNode, Element, Property, Text } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
 import type { Buffer, TemplateContext } from './template.ts';
 
+export interface BoundAttribute {
+	readonly name: string;
+	readonly value: ES.Expression;
+	readonly boolean: boolean;
+}
+
 export interface Bound {
+	readonly attributes: ReadonlyMap<BindingNode, BoundAttribute>;
 	readonly content: ES.Expression | null;
 	readonly raw: boolean;
 	readonly select: ES.Expression | null;
@@ -44,6 +51,7 @@ export function bindings(context: TemplateContext, node: Element, buffer: Buffer
 	let content: ES.Expression | null = null;
 	let raw = false;
 	let select: ES.Expression | null = null;
+	const attributes = new Map<BindingNode, BoundAttribute>();
 	for (const entry of node.attributes) {
 		if (entry.kind !== 'binding') continue;
 		const value = read(context, entry.expression);
@@ -51,13 +59,13 @@ export function bindings(context: TemplateContext, node: Element, buffer: Buffer
 			case 'value':
 				if (node.name === 'textarea') content = value;
 				else if (node.name === 'select') select = value;
-				else buffer.value(runtime(context, 'attr', b.literal('value'), value));
+				else attributes.set(entry, { name: 'value', value, boolean: false });
 				break;
 			case 'checked':
-				buffer.value(runtime(context, 'attr', b.literal('checked'), value, b.literal(true)));
+				attributes.set(entry, { name: 'checked', value, boolean: true });
 				break;
 			case 'open':
-				buffer.value(runtime(context, 'attr', b.literal('open'), value, b.literal(true)));
+				attributes.set(entry, { name: 'open', value, boolean: true });
 				break;
 			case 'group': {
 				const own = valueOf(context, attribute(node, 'value'));
@@ -76,7 +84,7 @@ export function bindings(context: TemplateContext, node: Element, buffer: Buffer
 							own
 						)
 					: b.binary('===', own, value);
-				buffer.value(runtime(context, 'attr', b.literal('checked'), test, b.literal(true)));
+				attributes.set(entry, { name: 'checked', value: test, boolean: true });
 				break;
 			}
 			case 'innerHTML':
@@ -99,5 +107,5 @@ export function bindings(context: TemplateContext, node: Element, buffer: Buffer
 		const own = valueOf(context, attribute(node, 'value')) ?? staticText(context, node);
 		if (own !== null) buffer.value(runtime(context, 'optionSelected', own));
 	}
-	return { content, raw, select };
+	return { attributes, content, raw, select };
 }

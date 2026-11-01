@@ -82,7 +82,7 @@ export function optionSelected(value: unknown): string {
 	if (selects.length === 0) return '';
 	const chosen = selects[selects.length - 1];
 	const matched = Array.isArray(chosen) ? chosen.includes(value) : Object.is(chosen, value);
-	return matched ? ' selected' : '';
+	return matched ? ' selected=""' : '';
 }
 
 export function html(value: unknown): string {

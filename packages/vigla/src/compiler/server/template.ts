@@ -175,22 +175,27 @@ function spreadAttributes(
 	context: TemplateContext,
 	node: Element,
 	html: boolean,
-	buffer: Buffer
+	buffer: Buffer,
+	bound: Bound
 ): void {
-	buffer.value(attributesCall(context, node, html));
+	buffer.value(attributesCall(context, node, html, bound));
 }
 
 export function attributesCall(
 	context: TemplateContext,
 	node: Element | DynamicElement,
-	html: boolean
+	html: boolean,
+	bound?: Bound
 ): ES.Expression {
 	const name = node.kind === 'element' ? node.name : '';
 	const properties: (ES.Property | ES.SpreadElement)[] = [];
 	const toggles: ClassToggle[] = [];
 	const list: StyleProperty[] = [];
 	for (const attribute of node.attributes) {
-		if (attribute.kind === 'spread') {
+		if (attribute.kind === 'binding') {
+			const value = bound?.attributes.get(attribute);
+			if (value !== undefined) properties.push(property(value.name, value.value));
+		} else if (attribute.kind === 'spread') {
 			properties.push({ type: 'SpreadElement', argument: rewrite(context, attribute.expression) });
 		} else if (attribute.kind === 'attribute') {
 			if (isEvent(attribute)) continue;
@@ -222,7 +227,7 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
 	const bound = bindings(context, node, buffer);
 	if (node.attributes.some((attribute) => attribute.kind === 'spread')) {
-		spreadAttributes(context, node, html, buffer);
+		spreadAttributes(context, node, html, buffer, bound);
 		return bound;
 	}
 	let classValue: Value | null = null;
@@ -231,6 +236,14 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 	const toggles: ClassToggle[] = [];
 	const list: StyleProperty[] = [];
 	for (const attribute of node.attributes) {
+		if (attribute.kind === 'binding') {
+			const value = bound.attributes.get(attribute);
+			if (value !== undefined)
+				buffer.value(
+					runtime(context, 'attr', b.literal(value.name), value.value, b.literal(value.boolean))
+				);
+			continue;
+		}
 		if (attribute.kind === 'class') {
 			toggles.push(attribute);
 			continue;

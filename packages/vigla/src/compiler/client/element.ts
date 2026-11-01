@@ -295,6 +295,11 @@ export function spread(
 		})
 	);
 	outer.init.push(...flush(context, emit));
+	if (
+		!node.attributes.some((attribute) => attribute.kind === 'binding' && attribute.name === 'value')
+	) {
+		outer.init.push(b.statement(runtime(context, 'initSelect', element, b.arrow([], previous))));
+	}
 	if (name === 'textarea') {
 		outer.init.push(b.statement(runtime(context, 'removeTextareaChild', element)));
 	}

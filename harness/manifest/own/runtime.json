@@ -128,6 +128,11 @@
 			"status": "contract",
 			"reason": "Layer's session-handoff trap (spec 8191e72f), the incoming frame still awaiting its chunk when the answer lands; green on upstream 5.57.3, kept as a regression test"
 		},
+		"select-spread-undefined": "contract",
+		"store-nested-read": {
+			"status": "difference",
+			"reason": "Svelte #5052: a nested writable reset leaves compiled store reads stale inside the subscriber on upstream 5.57.3 (1|1|0 rather than 0|0|0)"
+		},
 		"store-destructuring": "contract",
 		"store-forwarded-binding": "contract",
 		"store-snippet": "contract",

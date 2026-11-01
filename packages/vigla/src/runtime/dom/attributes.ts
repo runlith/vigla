@@ -13,6 +13,8 @@ import { delegated, delegate, listen } from './events.ts';
 import { claim, cursor, hydrating, setHydrating } from './hydration.ts';
 import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
+import { task } from '../reactivity/tasks.ts';
+import { selectOption } from './select.ts';
 
 type Directives = Readonly<Record<string, unknown>>;
 
@@ -50,7 +52,11 @@ function setterNames(element: Element): Set<string> {
 }
 
 function keepsNetwork(element: Element, name: string): boolean {
-	return name === 'src' || name === 'srcset' || (name === 'href' && element.nodeName === 'LINK');
+	return (
+		name === 'src' ||
+		name === 'srcset' ||
+		(name === 'href' && element.namespaceURI === namespaces.html && element.localName === 'link')
+	);
 }
 
 function sameUrl(left: string, right: string, base: string): boolean {
@@ -140,7 +146,7 @@ function listenForReset(): void {
 }
 
 export function removeInputDefaults(element: Element): void {
-	if (!hydrating) return;
+	if (!hydrating || element.namespaceURI !== namespaces.html) return;
 	const input = element as HTMLInputElement & { __reset?: () => void };
 	let removed = false;
 	const remove = (): void => {
@@ -158,7 +164,7 @@ export function removeInputDefaults(element: Element): void {
 		}
 	};
 	input.__reset = remove;
-	queueMicrotask(remove);
+	task(remove);
 	listenForReset();
 }
 
@@ -205,7 +211,11 @@ export function value(element: Element, next: unknown): void {
 	const known = values(element);
 	const target = element as Valued;
 	if (known.value === (known.value = next ?? undefined)) return;
-	if (target.value === next && (next !== 0 || element.nodeName !== 'PROGRESS')) return;
+	if (
+		target.value === next &&
+		(next !== 0 || element.localName !== 'progress' || element.namespaceURI !== namespaces.html)
+	)
+		return;
 	target.value = next ?? '';
 }
 
@@ -338,7 +348,7 @@ export const CLASS = Symbol('class');
 
 export const STYLE = Symbol('style');
 
-type Spread = Record<string | symbol, unknown>;
+export type Spread = Record<string | symbol, unknown>;
 
 const listeners = Symbol('listeners');
 
@@ -372,24 +382,26 @@ export function attributes(
 	removeDefaults = false,
 	unchecked = false
 ): Spread {
+	const html = element.namespaceURI === namespaces.html;
+	const tag = html ? element.localName : null;
 	if (
 		previous === undefined &&
 		removeDefaults &&
-		element.nodeName === 'INPUT' &&
+		tag === 'input' &&
 		!('defaultValue' in next || 'defaultChecked' in next)
 	) {
 		removeInputDefaults(element);
 	}
 	const current: Spread = previous ?? {};
 	const custom = element.nodeName.includes('-') || element.hasAttribute('is');
-	const html = element.namespaceURI === namespaces.html;
+	const select = tag === 'select';
 	for (const key of Object.keys(current)) {
 		if (!(key in next) && !key.startsWith('$$')) next[key] = null;
 	}
 	if (next.class) next.class = clsx(next.class);
 	else if (hash || next[CLASS]) next.class = null;
 	if (next[STYLE]) next.style ??= null;
-	if (element.nodeName === 'INPUT' && 'type' in next && 'value' in next) {
+	if (tag === 'input' && 'type' in next && 'value' in next) {
 		if (next.type !== current.type) {
 			current.type = next.type;
 			attr(element, 'type', next.type);
@@ -456,25 +468,25 @@ export function attributes(
 			autofocus(element as HTMLElement, Boolean(value));
 			continue;
 		}
+		if (select && key === 'value' && !custom) {
+			(element as Valued).__value = value;
+			continue;
+		}
 		if (!custom && (key === '__value' || (key === 'value' && value != null))) {
 			const target = element as Valued;
 			target.__value = value;
-			if (
-				before == null ||
-				target.value !== value ||
-				(value === 0 && element.nodeName === 'PROGRESS')
-			) {
+			if (before == null || target.value !== value || (value === 0 && tag === 'progress')) {
 				target.value = value;
 			}
 			continue;
 		}
-		if (key === 'selected' && element.nodeName === 'OPTION') {
+		if (key === 'selected' && tag === 'option') {
 			selected(element, value);
 			continue;
 		}
 		const name = html ? propertyName(key) : key;
 		const fallback = name === 'defaultValue' || name === 'defaultChecked';
-		if (element.nodeName === 'SELECT' && name === 'defaultValue') continue;
+		if (element.localName === 'select' && name === 'defaultValue') continue;
 		if (value == null && !custom && !fallback) {
 			values(element)[key] = null;
 			if (name === 'value' || name === 'checked') {
@@ -504,6 +516,8 @@ export function attributes(
 		}
 		if (typeof value !== 'function') attr(element, name, value, unchecked);
 	}
+	if (select && previous !== undefined && 'value' in next)
+		selectOption(element as HTMLSelectElement, next.value);
 	spreadAttachments(element, current, next);
 	return current;
 }
