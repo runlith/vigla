@@ -13,8 +13,7 @@ import type {
 	Snippet,
 	Special,
 	Title,
-	UnkeyedList,
-	Value
+	UnkeyedList
 } from '../ir/nodes.ts';
 import type { Ignores } from '../ir/port.ts';
 import {
@@ -26,127 +25,22 @@ import {
 	type Scopes
 } from './scope.ts';
 import { clean, preserving, type Preserve } from './whitespace.ts';
+import { declaring } from './asynchronous.ts';
 
 export interface ListFacts {
 	readonly names: readonly Binding[];
 	readonly index: Binding | null;
 }
 
+interface SnippetReferences {
+	readonly bindings: Set<Binding>;
+	instance: boolean;
+}
+
 export function collectNames(node: ES.Node, names: Set<string>): void {
 	walk(node, (child) => {
 		if (child.type === 'Identifier') names.add(child.name);
 	});
-}
-
-export interface Settled {
-	has(node: ES.Node): boolean;
-}
-
-export function awaits(node: ES.Node): ES.AwaitExpression[] {
-	const found: ES.AwaitExpression[] = [];
-	walk(node, (child) => {
-		if (
-			child.type === 'FunctionDeclaration' ||
-			child.type === 'FunctionExpression' ||
-			child.type === 'ArrowFunctionExpression' ||
-			child.type === 'ClassBody'
-		) {
-			return false;
-		}
-		if (child.type === 'AwaitExpression') {
-			found.push(child);
-			return false;
-		}
-	});
-	return found;
-}
-
-export function hasAwait(node: ES.Node, settled?: Settled): boolean {
-	let found = false;
-	walk(node, (child) => {
-		if (found || settled?.has(child)) return false;
-		if (
-			child.type === 'FunctionDeclaration' ||
-			child.type === 'FunctionExpression' ||
-			child.type === 'ArrowFunctionExpression' ||
-			child.type === 'ClassBody'
-		) {
-			return false;
-		}
-		if (child.type === 'AwaitExpression' || (child.type === 'ForOfStatement' && child.await)) {
-			found = true;
-			return false;
-		}
-	});
-	return found;
-}
-
-export function ownExpressions(node: Node): ES.Expression[] {
-	const found: ES.Expression[] = [];
-	const value = (given: Value): void => {
-		if (given.kind === 'expression') found.push(given.expression);
-		else if (given.kind === 'text') {
-			for (const part of given.parts) if (part.kind === 'expression') found.push(part.expression);
-		}
-	};
-	switch (node.kind) {
-		case 'expression':
-		case 'raw-html':
-			found.push(node.expression);
-			break;
-		case 'element':
-		case 'component':
-		case 'dynamic-element':
-		case 'boundary':
-			if (node.kind === 'component') found.push(node.reference);
-			if (node.kind === 'dynamic-element') found.push(node.tag);
-			for (const attribute of node.attributes) {
-				switch (attribute.kind) {
-					case 'attribute':
-					case 'style':
-						value(attribute.value);
-						break;
-					case 'spread':
-					case 'class':
-					case 'attachment':
-						found.push(attribute.expression);
-						break;
-					case 'action':
-						found.push(attribute.action);
-						if (attribute.argument !== null) found.push(attribute.argument);
-						break;
-					default:
-						break;
-				}
-			}
-			break;
-		case 'branch':
-			for (const arm of node.arms) found.push(arm.test);
-			break;
-		case 'keyed-list':
-		case 'unkeyed-list':
-			found.push(node.collection);
-			break;
-		case 'keyed-block':
-			found.push(node.key);
-			break;
-		case 'async-block':
-			found.push(node.promise);
-			break;
-		case 'render': {
-			const call = (
-				node.call.type === 'ChainExpression' ? node.call.expression : node.call
-			) as ES.SimpleCallExpression;
-			found.push(call.callee as ES.Expression);
-			for (const argument of call.arguments) {
-				if (argument.type !== 'SpreadElement') found.push(argument);
-			}
-			break;
-		}
-		default:
-			break;
-	}
-	return found;
 }
 
 function childNamespace(element: Element, namespace: Namespace): Namespace {
@@ -187,44 +81,6 @@ function dynamicNamespace(node: DynamicElement, parent: Namespace): Namespace {
 	return parent;
 }
 
-export function declaring(node: Node): boolean {
-	return node.kind === 'constant' || node.kind === 'declaration';
-}
-
-export function pendingAwaits(node: Node, settled: Settled | undefined): ES.AwaitExpression[] {
-	const inits =
-		node.kind === 'constant'
-			? [node.declarator.init]
-			: node.kind === 'declaration'
-				? node.declaration.declarations.map((declarator) => declarator.init)
-				: [];
-	return inits.flatMap((init) =>
-		init == null ? [] : awaits(init).filter((found) => settled?.has(found) !== true)
-	);
-}
-
-export interface AsyncStep {
-	readonly before: readonly Node[];
-	readonly rest: readonly Node[];
-	readonly pending: readonly ES.AwaitExpression[];
-}
-
-export function asyncStep(nodes: readonly Node[], settled: Settled | undefined): AsyncStep | null {
-	for (let index = 0; index < nodes.length; index++) {
-		const node = nodes[index] as Node;
-		if (!declaring(node)) continue;
-		const pending = pendingAwaits(node, settled);
-		if (pending.length === 0) continue;
-		const earlier = nodes.slice(0, index);
-		return {
-			before: earlier.filter(declaring),
-			rest: [...earlier.filter((other) => !declaring(other)), ...nodes.slice(index)],
-			pending
-		};
-	}
-	return null;
-}
-
 export function hoisted(node: Node): boolean {
 	return node.kind === 'snippet' || node.kind === 'debug' || declaring(node);
 }
@@ -248,8 +104,8 @@ export class Template {
 	readonly #ignores: Ignores;
 	#ignoring: ReadonlySet<string> | null = null;
 	readonly #snippets = new Map<Binding, Snippet>();
-	readonly #uses = new Map<Snippet, Set<Binding>>();
-	#used: Set<Binding> | null = null;
+	readonly #uses = new Map<Snippet, SnippetReferences>();
+	#used: SnippetReferences | null = null;
 	#depth = 0;
 	inText = false;
 
@@ -268,7 +124,9 @@ export class Template {
 		walk(expression, (node, parent) => {
 			if (node.type === 'Identifier') {
 				const binding = used === null ? undefined : this.scopes.references.get(node);
-				if (binding !== undefined) used?.add(binding);
+				if (binding !== undefined) used?.bindings.add(binding);
+			} else if (node.type === 'CallExpression' && this.scopes.runes.get(node.callee) === '$host') {
+				if (used !== null) used.instance = true;
 			} else if (node.type === 'VariableDeclarator' && node.init?.type === 'CallExpression') {
 				this.placed.add(node.init.callee);
 			} else if (
@@ -324,7 +182,9 @@ export class Template {
 			if (lifted.has(snippet)) return true;
 			if (visiting.has(snippet)) return true;
 			visiting.add(snippet);
-			for (const binding of this.#uses.get(snippet) ?? []) {
+			const uses = this.#uses.get(snippet);
+			if (uses?.instance) return false;
+			for (const binding of uses?.bindings ?? []) {
 				if (!instanceBinding(binding)) continue;
 				const other = this.#snippets.get(binding);
 				if (other === undefined || !liftable(other, visiting)) return false;
@@ -521,7 +381,7 @@ export class Template {
 				const inner = this.scopes.root(scope);
 				const outer = this.#used;
 				if (this.#depth === 1) {
-					this.#used = new Set();
+					this.#used = { bindings: new Set(), instance: false };
 					this.#uses.set(node, this.#used);
 				}
 				try {
@@ -534,6 +394,11 @@ export class Template {
 			}
 			case 'render':
 				this.expression(node.call, scope);
+				return;
+			case 'slot':
+				if (this.#used !== null) this.#used.instance = true;
+				for (const attribute of node.attributes) this.attribute(attribute, scope);
+				this.fragment(node.fallback, null, scope, kept, namespace);
 				return;
 			case 'boundary':
 				for (const attribute of node.attributes) {
@@ -611,7 +476,7 @@ export class Template {
 				}
 				return;
 			default:
-				throw unsupported(node, `The ${node.kind} node`);
+				throw unsupported(node, 'This template node');
 		}
 	}
 }

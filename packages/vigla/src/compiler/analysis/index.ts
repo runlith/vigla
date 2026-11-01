@@ -1,6 +1,7 @@
 import type * as ES from 'estree';
 import { walk } from '../ir/estree.ts';
 import type {
+	CustomElement,
 	DynamicElement,
 	Element,
 	Fragment,
@@ -22,7 +23,8 @@ import {
 } from '../ir/port.ts';
 import { classFields, type ClassFields, type StateField } from './classes.ts';
 import { Scopes, spanOf, unsupported, type Binding } from './scope.ts';
-import { collectNames, hasAwait, Template, type ListFacts } from './template.ts';
+import { collectNames, Template, type ListFacts } from './template.ts';
+import { hasAwait } from './asynchronous.ts';
 import type { Preserve } from './whitespace.ts';
 
 export type { ClassFields, FieldRune, StateField } from './classes.ts';
@@ -33,11 +35,11 @@ export {
 	awaits,
 	declaring,
 	hasAwait,
-	hoisted,
 	ownExpressions,
 	pendingAwaits
-} from './template.ts';
-export type { AsyncStep, Settled } from './template.ts';
+} from './asynchronous.ts';
+export { hoisted } from './template.ts';
+export type { AsyncStep, Settled } from './asynchronous.ts';
 export type { Preserve } from './whitespace.ts';
 export { patternNames, spanOf, unsupported } from './scope.ts';
 
@@ -53,6 +55,7 @@ export interface ScriptAnalysis {
 
 export interface ComponentAnalysis extends ScriptAnalysis {
 	readonly unit: ComponentUnit;
+	readonly customElement: CustomElement | null;
 	readonly lists: ReadonlyMap<KeyedList | UnkeyedList, ListFacts>;
 	readonly fragments: ReadonlyMap<Fragment, readonly Node[]>;
 	readonly namespaces: ReadonlyMap<Element | DynamicElement, Namespace>;
@@ -135,7 +138,8 @@ const supported = new Set<Rune>([
 	'$state.snapshot',
 	'$state.eager',
 	'$inspect',
-	'$inspect.trace'
+	'$inspect.trace',
+	'$host'
 ]);
 
 export interface Inspection {
@@ -267,9 +271,9 @@ export function analyzeModule(unit: ModuleUnit): ModuleAnalysis {
 export function analyzeComponent(
 	unit: ComponentUnit,
 	preserve: Preserve,
-	defaultNamespace: Namespace = 'html'
+	defaultNamespace: Namespace = 'html',
+	customElement: CustomElement | null = unit.options?.customElement ?? null
 ): ComponentAnalysis {
-	if (unit.options?.customElement) throw unsupported(unit.options, 'A custom element');
 	const runes = new Map(unit.runes);
 	const externalReferences = new Set(
 		(unit.externals ?? []).flatMap((binding) => [...binding.references])
@@ -303,6 +307,9 @@ export function analyzeComponent(
 				scopes.bind(scope, { type: 'Identifier', name: reference.name }, { kind: 'external' });
 		}
 	}
+	for (const reference of unit.slotReferences ?? []) {
+		if (!scope.bindings.has(reference.name)) scopes.bind(scope, reference, { kind: 'slot-info' });
+	}
 	const namespace = unit.options?.namespace ?? defaultNamespace;
 	const template = new Template(scopes, preserve, names, unit.ignores);
 	const root = template.fragment(
@@ -322,6 +329,11 @@ export function analyzeComponent(
 	);
 	if (unit.module !== null) scopes.resolve(unit.module, top);
 	if (unit.instance !== null) scopes.resolve(unit.instance, scope);
+	if (customElement !== null) {
+		for (const binding of scope.bindings.values()) {
+			if (binding.kind === 'prop') binding.reassigned = true;
+		}
+	}
 	if (unit.module !== null) checkExports(unit.module, scopes);
 	const externals = new Map<ES.Identifier, ExternalBinding>();
 	for (const binding of unit.externals ?? []) {
@@ -339,6 +351,7 @@ export function analyzeComponent(
 		functions: scopes.functions,
 		classes,
 		externals,
+		customElement,
 		lists: template.lists,
 		fragments: template.fragments,
 		namespaces: template.namespaces,

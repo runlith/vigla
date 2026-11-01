@@ -3,7 +3,8 @@ import { resumed, suspend } from '../reactivity/batch.ts';
 import { fail } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
 import { get, owner } from '../reactivity/tracking.ts';
-import { derived } from '../reactivity/sources.ts';
+import { derived, set, state } from '../reactivity/sources.ts';
+import type { Exports } from './mount.ts';
 import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';
 import { claim, COMMENT, cursor, hydrating, resumeHydration, setHydrating } from './hydration.ts';
 import type { Render } from './template.ts';
@@ -111,6 +112,31 @@ export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
 		});
 		return resolved;
 	};
+}
+
+export class ExportsCell {
+	readonly #values = state<Exports>({});
+	#pending: Map<string, unknown> | null = new Map();
+
+	get(name: string): unknown {
+		const values = get(this.#values);
+		return this.#pending?.has(name) ? this.#pending.get(name) : values[name];
+	}
+
+	set(name: string, value: unknown): void {
+		if (this.#pending !== null) this.#pending.set(name, value);
+		else get(this.#values)[name] = value;
+	}
+
+	publish(values: Exports): void {
+		for (const [name, value] of this.#pending ?? []) values[name] = value;
+		this.#pending = null;
+		set(this.#values, values);
+	}
+}
+
+export function deferredExports(): ExportsCell {
+	return new ExportsCell();
 }
 
 export function script(node: ChildNode, fn: () => Promise<Render>): void {

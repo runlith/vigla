@@ -20,6 +20,14 @@
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 8 (rebase): on upstream 5.57.3 the asserted item holds, but the second rebase throws `invariant_violation` \"Batch has scheduled effects\" unhandled, failing the run"
 		},
+		"custom-element-async-props": "contract",
+		"custom-element-hmr": "contract",
+		"custom-element-named-slot": "contract",
+		"custom-element-public-props": "contract",
+		"custom-element-snippet": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 lifts a root snippet containing a native slot outside its custom element and throws ReferenceError: $$props is not defined"
+		},
 		"deferred-tree-recycle": {
 			"status": "contract",
 			"reason": "Layer's deferred-tree trap (spec 8191e72f): pending shown while the chunk is in flight, a session recycle in one flush rebuilds the instance without refetching; green on upstream 5.57.3, kept as a regression test"

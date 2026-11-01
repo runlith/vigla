@@ -32,6 +32,7 @@ export function lowerComponent(parsed: Parsed, source: string, filename: string 
 	const ast = parsed.root;
 	const lowering = new Lowering(parsed.ts);
 	const module = ast.module === undefined ? null : lowering.program(ast.module.content);
+	const moduleReferences = new Set(lowering.resolution.references.keys());
 	const instance = ast.instance === undefined ? null : lowering.program(ast.instance.content);
 	const template = lowering.fragment(ast.fragment);
 	const comment = ast.css?.content.comment;
@@ -45,6 +46,11 @@ export function lowerComponent(parsed: Parsed, source: string, filename: string 
 			instance,
 			template,
 			externals: stores(lowering.resolution, module, instance),
+			slotReferences: new Set(
+				[...lowering.resolution.references]
+					.filter(([reference, name]) => name === '$$slots' && !moduleReferences.has(reference))
+					.map(([reference]) => reference)
+			),
 			style: ast.css ?? null,
 			options: lowering.options(ast.options),
 			runes: lowering.resolution.runes,

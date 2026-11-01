@@ -103,6 +103,7 @@ export function read(
 		const member = propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
 		return { ...member, property: { ...member.property, loc: node.loc } };
 	}
+	if (binding.kind === 'slot-info') return runtime(context, 'slots', context.props!);
 	if (binding.kind === 'index') return runtime(context, 'get', node);
 	if (binding.kind === 'argument') return b.call(node);
 	if (!isSignal(binding)) return undefined;
@@ -212,7 +213,13 @@ function propDeclarators(
 	const props = context.props ?? b.id('$$props');
 	const pattern = declarator.id;
 	if (pattern.type === 'Identifier') {
-		return [{ type: 'VariableDeclarator', id: pattern, init: props }];
+		return [
+			{
+				type: 'VariableDeclarator',
+				id: pattern,
+				init: runtime(context, 'rest', props, { type: 'ArrayExpression', elements: [] })
+			}
+		];
 	}
 	const result: ES.VariableDeclarator[] = [];
 	const seen: ES.Expression[] = [];
@@ -468,6 +475,7 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (inspected !== null) return inspectCall(context, inspected, next);
 				const rune = runes.get(current.callee);
 				if (rune === undefined) return undefined;
+				if (rune === '$host') return runtime(context, 'host', context.props ?? b.id('undefined'));
 				if (rune === '$state.eager')
 					return runtime(context, 'latest', b.arrow([], next(single(current) as ES.Expression)));
 				const replaced = effectCall(context, rune, current);

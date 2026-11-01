@@ -10,6 +10,7 @@ export type BindingKind =
 	| 'derived'
 	| 'prop'
 	| 'rest-prop'
+	| 'slot-info'
 	| 'item'
 	| 'index'
 	| 'snippet'

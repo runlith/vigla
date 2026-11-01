@@ -126,9 +126,6 @@ export function validate(options: object, kind: Kind): Notice[] {
 	}
 	if (given.runes === false) invalid('`runes: false` — legacy mode is not supported');
 	if (typeof given.runes === 'function') unbuilt('A `runes` option given as a function');
-	if (given.customElement === true && given.generate !== false) {
-		unbuilt('Custom element output (`customElement: true`)');
-	}
 	if (
 		given.namespace !== undefined &&
 		given.namespace !== 'html' &&

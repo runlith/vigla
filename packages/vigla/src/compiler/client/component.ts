@@ -170,10 +170,12 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 		}
 	}
 	const nodes = cleaned(context, node.body);
+	const slots: Record<string, ES.Expression> = {};
 	const regular: Node[] = [];
 	for (const child of nodes) {
 		if (child.kind === 'snippet') {
 			push(plain(child.name.name, b.id(child.name.name)));
+			slots[child.name.name === 'children' ? 'default' : child.name.name] = b.literal(true);
 		} else {
 			regular.push(child);
 		}
@@ -183,6 +185,7 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 		const namespace = context.component.fragmentNamespaces.get(node.body) ?? 'html';
 		const body = render(context, regular, anchor, namespace, true);
 		push(plain('children', b.arrow([anchor], body)));
+		slots.default = b.literal(true);
 	}
 	const objects = groups.map((group) =>
 		Array.isArray(group)
@@ -194,7 +197,9 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 		objects.length === 1 && groups[0] !== undefined && Array.isArray(groups[0])
 			? (objects[0] as ES.Expression)
 			: runtime(context, 'spreadProps', ...objects);
-	return props;
+	return Object.keys(slots).length === 0
+		? props
+		: runtime(context, 'slotProps', props, b.object(slots));
 }
 
 export function styledComponent(

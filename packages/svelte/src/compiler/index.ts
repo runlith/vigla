@@ -217,6 +217,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			devFilename: relativeFilename(options),
 			discloseVersion: options.discloseVersion === false ? false : '5',
 			name,
+			customElement: options.customElement ?? false,
 			css,
 			dev: options.dev,
 			namespace: options.namespace,

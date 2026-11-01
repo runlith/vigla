@@ -415,7 +415,9 @@ function styleAttribute(
 export function elementPart(context: TemplateContext, node: Element, parent: Namespace): Part {
 	const namespace = context.component.namespaces.get(node) ?? parent;
 	const html = namespace === 'html';
-	const custom = node.name.includes('-');
+	const custom =
+		node.name.includes('-') ||
+		node.attributes.some((attribute) => attribute.kind === 'attribute' && attribute.name === 'is');
 	const tag = html && !custom ? node.name.toLowerCase() : node.name;
 	let markup = `<${tag}`;
 	const setups: ((element: ES.Identifier, emit: Emit) => void)[] = [];
@@ -484,7 +486,11 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 				continue;
 			}
 			const name = html && !custom ? propertyName(attribute.name) : attribute.name;
-			if (isStatic(attribute.value) && !unsettable.has(name) && !custom) {
+			if (
+				isStatic(attribute.value) &&
+				!unsettable.has(name) &&
+				(!custom || templated(context, node, attribute))
+			) {
 				markup +=
 					attribute.value.kind === 'boolean'
 						? ` ${lower}=""`

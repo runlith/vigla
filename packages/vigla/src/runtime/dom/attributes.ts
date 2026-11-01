@@ -10,7 +10,8 @@ import {
 import { isCapture, isDelegated, namespaces, propertyName } from '../../shared/html.ts';
 import { spreadAttachments } from './attachments.ts';
 import { delegated, delegate, listen } from './events.ts';
-import { hydrating } from './hydration.ts';
+import { claim, cursor, hydrating, setHydrating } from './hydration.ts';
+import { setOwner, withoutReaction } from '../reactivity/tracking.ts';
 
 type Directives = Readonly<Record<string, unknown>>;
 
@@ -165,17 +166,29 @@ export function removeTextareaChild(element: Element): void {
 }
 
 export function customProp(element: Element, name: string, value: unknown): void {
-	const registered =
-		typeof customElements === 'undefined' ||
-		customElements.get(element.getAttribute('is') ?? element.nodeName.toLowerCase()) !== undefined;
-	const settable = registered
-		? setterNames(element).has(name)
-		: value !== null && typeof value === 'object';
-	if (name !== 'style' && settable) {
-		(element as unknown as Values)[name] = value;
-		return;
+	const parent = setOwner(null);
+	const node = hydrating ? cursor : null;
+	const was = setHydrating(false);
+	try {
+		withoutReaction(() => {
+			const registered =
+				typeof customElements === 'undefined' ||
+				customElements.get(element.getAttribute('is') ?? element.nodeName.toLowerCase()) !==
+					undefined;
+			const settable = registered
+				? setterNames(element).has(name)
+				: value !== null && typeof value === 'object';
+			if (name !== 'style' && settable) {
+				(element as unknown as Values)[name] = value;
+				return;
+			}
+			attr(element, name, value == null ? value : String(value));
+		});
+	} finally {
+		setOwner(parent);
+		setHydrating(was);
+		if (node !== null) claim(node);
 	}
-	attr(element, name, value == null ? value : String(value));
 }
 
 export function xlink(element: Element, name: string, value: unknown): void {
@@ -349,7 +362,7 @@ export function attributes(
 		removeInputDefaults(element);
 	}
 	const current: Spread = previous ?? {};
-	const custom = element.nodeName.includes('-');
+	const custom = element.nodeName.includes('-') || element.hasAttribute('is');
 	const html = element.namespaceURI === namespaces.html;
 	for (const key of Object.keys(current)) {
 		if (!(key in next) && !key.startsWith('$$')) next[key] = null;

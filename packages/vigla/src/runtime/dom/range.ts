@@ -10,6 +10,16 @@ export interface Built {
 	fragment: DocumentFragment | null;
 }
 
+const positions = new WeakMap<Effect, ChildNode>();
+
+export function position(effect: Effect | null): ChildNode | null {
+	for (let current = effect; current !== null; current = current.parent) {
+		const node = positions.get(current);
+		if (node !== undefined) return node;
+	}
+	return null;
+}
+
 function adopt(render: Render, create: (fn: () => void) => Effect): Built {
 	const start = cursor;
 	const parent = start.parentNode as ParentNode;
@@ -20,8 +30,10 @@ function adopt(render: Render, create: (fn: () => void) => Effect): Built {
 	if (first === end) {
 		const marker = document.createTextNode('');
 		end.before(marker);
+		positions.set(effect, marker);
 		return { effect, first: marker, last: marker, fragment: null };
 	}
+	positions.set(effect, first as ChildNode);
 	return {
 		effect,
 		first: first as ChildNode,
@@ -38,6 +50,7 @@ export function build(render: Render, create: (fn: () => void) => Effect = branc
 	fragment.append(first, anchor);
 	const effect = create(() => render(anchor));
 	anchor.remove();
+	positions.set(effect, first);
 	return { effect, first, last: fragment.lastChild as ChildNode, fragment };
 }
 

@@ -33,7 +33,7 @@ export {
 	bindThis,
 	bindValue
 } from '../../runtime/dom/bindings.ts';
-export { async, save, script } from '../../runtime/dom/async.ts';
+export { async, deferredExports, save, script } from '../../runtime/dom/async.ts';
 export { awaited } from '../../runtime/dom/await.ts';
 export { animation, transition } from '../../runtime/transitions/manager.ts';
 export { branch, key } from '../../runtime/dom/blocks.ts';
@@ -46,6 +46,9 @@ export { html } from '../../runtime/dom/html.ts';
 export { head, title } from '../../runtime/dom/head.ts';
 export { element } from '../../runtime/dom/element.ts';
 export { inspect } from '../../runtime/dom/inspect.ts';
+export { slots, slotProps } from '../../shared/slots.ts';
+export { customElement, host, slot } from '../../runtime/dom/custom-element.ts';
+export { flushSync } from '../../runtime/reactivity/batch.ts';
 export { disclose, frame, locate } from '../../runtime/dom/meta.ts';
 export { exclude, fallback, toArray } from '../../runtime/dom/values.ts';
 export {

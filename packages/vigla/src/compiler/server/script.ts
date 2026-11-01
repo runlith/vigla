@@ -177,6 +177,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 		}
 		switch (current.type) {
 			case 'Identifier':
+				if (references.get(current)?.kind === 'slot-info')
+					return runtime(context, 'slots', context.props!);
 				return derived(references.get(current)) ? b.call(current) : undefined;
 			case 'Property': {
 				if (current.computed || current.kind !== 'init') return undefined;
@@ -260,6 +262,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				}
 				const rune = runes.get(current.callee);
 				switch (rune) {
+					case '$host':
+						return b.id('undefined');
 					case '$effect.root':
 						return noop;
 					case '$effect.tracking':
@@ -327,7 +331,10 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						return {
 							...current,
 							id: propsPattern(context, current.id, next),
-							init: context.props ?? b.id('$$props')
+							init:
+								current.id.type === 'Identifier'
+									? runtime(context, 'spreadProps', context.props ?? b.id('$$props'))
+									: (context.props ?? b.id('$$props'))
 						};
 					case '$props.id':
 						return { ...current, init: runtime(context, 'propsId', context.out ?? b.id('$$out')) };

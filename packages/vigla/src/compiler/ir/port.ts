@@ -54,6 +54,7 @@ export interface ComponentUnit {
 	readonly instance: ES.Program | null;
 	readonly template: Fragment;
 	readonly externals?: readonly ExternalBinding[];
+	readonly slotReferences?: ReadonlySet<ES.Identifier>;
 	readonly style: StyleSheet | null;
 	readonly options: Options | null;
 	readonly runes: Runes;

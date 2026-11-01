@@ -30,6 +30,7 @@ import { bindings, type Bound } from './bindings.ts';
 import { blockCode } from './blocks.ts';
 import { boundary, component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
+import { slot } from './slot.ts';
 
 export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
@@ -84,7 +85,7 @@ function staticText(value: Value): string {
 	return value.kind === 'text' ? value.parts.map((part) => (part as Text).data).join('') : '';
 }
 
-function valueOf(context: TemplateContext, value: Value): ES.Expression {
+export function valueOf(context: TemplateContext, value: Value): ES.Expression {
 	if (value.kind === 'boolean') return b.literal(true);
 	if (value.kind === 'expression') return rewrite(context, value.expression);
 	const [only] = value.parts;
@@ -448,6 +449,9 @@ function single(
 						{ type: 'DebuggerStatement' }
 					);
 				}
+				break;
+			case 'slot':
+				slot(context, node, statements, buffer);
 				break;
 			case 'component':
 				component(context, node, statements, buffer, alone);

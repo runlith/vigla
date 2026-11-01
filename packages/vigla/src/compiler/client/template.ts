@@ -24,6 +24,7 @@ import {
 } from './component.ts';
 import { constantDeclarations } from './constants.ts';
 import { dynamicCall } from './dynamic.ts';
+import { slotCall } from './custom-element.ts';
 import { elementPart } from './element.ts';
 import type { Positions } from './meta.ts';
 import { rewrite, runtime, type Context } from './script.ts';
@@ -240,6 +241,9 @@ export function parts(
 					styledComponent(context, node, namespace === 'svg') ??
 						anchorPart((anchor, emit) => emit.init.push(...componentCall(context, node, anchor)))
 				);
+				break;
+			case 'slot':
+				result.push(anchorPart((anchor, emit) => emit.init.push(slotCall(context, node, anchor))));
 				break;
 			case 'render':
 				result.push(

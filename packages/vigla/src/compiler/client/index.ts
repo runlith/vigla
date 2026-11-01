@@ -11,7 +11,9 @@ import {
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
 import { hotComponent } from './hot.ts';
+import { accessors, customElement } from './custom-element.ts';
 import { prepare } from './external.ts';
+import { deferExports } from './exports.ts';
 import { traceStacks } from './inspect.ts';
 import { Positions } from './meta.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
@@ -161,6 +163,10 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			throw unsupported(spanOf(statement), 'This export from a component');
 		else script.push(rewrite(saving, statement as ES.Statement));
 	}
+	const exposed = [...exported, ...accessors(context)];
+	const deferred =
+		analysis.asynchronous && exposed.length > 0 ? deferExports(context, exposed) : null;
+	if (deferred !== null) body.push(deferred.setup);
 	const separate = separateCode(context, analysis.unit.template);
 	if (analysis.asynchronous) {
 		const inner = b.id(names.unique('$$anchor'));
@@ -172,6 +178,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			[],
 			[
 				...script,
+				...(deferred === null ? [] : [deferred.publish]),
 				{ type: 'ReturnStatement', argument: b.arrow([inner], [...context.instance, ...template]) }
 			]
 		);
@@ -185,8 +192,13 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		argument: runtime(
 			context,
 			'pop',
-			...(exported.length > 0
-				? [{ type: 'ObjectExpression', properties: exported } as ES.ObjectExpression]
+			...(exposed.length > 0
+				? [
+						{
+							type: 'ObjectExpression',
+							properties: deferred?.properties ?? exposed
+						} as ES.ObjectExpression
+					]
 				: [])
 		)
 	});
@@ -198,6 +210,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			)
 		);
 	}
+	trailer.push(...customElement(context, options.name, exported, options.hmr));
 	const hash = options.scoping.hash === '' ? null : options.scoping.hash;
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),

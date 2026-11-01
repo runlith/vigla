@@ -72,6 +72,7 @@ export interface Mapping {
 
 export interface CompileOptions extends ModuleOptions, Mapping {
 	readonly name: string;
+	readonly customElement?: boolean;
 	readonly preserveWhitespace?: boolean;
 	readonly preserveComments?: boolean;
 	readonly namespace?: Namespace;
@@ -113,6 +114,7 @@ function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit, mapping:
 export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 	const validated = validateComponent(unit, {
 		...options.validation,
+		customElement: options.customElement ?? options.validation?.customElement,
 		namespace: options.namespace
 	});
 	const style = analyzeStyle(unit, {
@@ -120,7 +122,8 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		scope: options.hmr && !options.css?.inject ? 'all' : 'matched'
 	});
 	const warnings = [...validated, ...style.warnings];
-	const inject = injected(style, options.css?.inject ?? false);
+	const element = options.customElement === true || unit.options?.customElement != null;
+	const inject = injected(style, element || (options.css?.inject ?? false));
 	const css = renderStyle(style, {
 		dev: options.dev ?? false,
 		inject,
@@ -133,7 +136,9 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 			whitespace: options.preserveWhitespace ?? false,
 			comments: options.preserveComments ?? false
 		},
-		options.namespace ?? 'html'
+		options.namespace ?? 'html',
+		unit.options?.customElement ??
+			(options.customElement ? { tag: null, shadow: null, props: null, extend: null } : null)
 	);
 	const runtime = options.runtime ?? runtimes;
 	const styles = inject && css !== null ? { hash: style.scoping.hash, code: css.code } : null;

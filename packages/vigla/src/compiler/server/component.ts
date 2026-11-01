@@ -130,10 +130,13 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 		}
 	}
 	const nodes = context.component.fragments.get(node.body) ?? [];
+	const slots: Record<string, ES.Expression> = {};
 	const regular: Node[] = [];
 	for (const child of nodes) {
-		if (child.kind === 'snippet') push(property(child.name.name, b.id(child.name.name)));
-		else regular.push(child);
+		if (child.kind === 'snippet') {
+			push(property(child.name.name, b.id(child.name.name)));
+			slots[child.name.name === 'children' ? 'default' : child.name.name] = b.literal(true);
+		} else regular.push(child);
 	}
 	if (regular.length > 0) {
 		const out = b.id(context.names.unique('$$out'));
@@ -143,6 +146,7 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 		fragmentCode(inner, regular, statements, buffer, true);
 		buffer.flush(inner, statements);
 		push(property('children', b.arrow([out], statements)));
+		slots.default = b.literal(true);
 	}
 	const objects = groups.map((group) =>
 		Array.isArray(group)
@@ -150,8 +154,13 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 			: group
 	);
 	if (objects.length === 0) return { type: 'ObjectExpression', properties: [] };
-	if (objects.length === 1 && Array.isArray(groups[0])) return objects[0] as ES.Expression;
-	return runtime(context, 'spreadProps', ...objects);
+	const props =
+		objects.length === 1 && Array.isArray(groups[0])
+			? (objects[0] as ES.Expression)
+			: runtime(context, 'spreadProps', ...objects);
+	return Object.keys(slots).length === 0
+		? props
+		: runtime(context, 'slotProps', props, b.object(slots));
 }
 
 export function component(

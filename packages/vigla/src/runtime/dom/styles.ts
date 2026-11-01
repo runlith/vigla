@@ -1,4 +1,6 @@
 import { effect } from '../reactivity/effects.ts';
+import { owner } from '../reactivity/tracking.ts';
+import { position } from './range.ts';
 
 export interface Style {
 	readonly hash: string;
@@ -12,8 +14,9 @@ function container(anchor: Node): ParentNode & Node {
 }
 
 export function appendStyles(anchor: Node, style: Style): void {
+	const parent = owner;
 	effect(() => {
-		const target = container(anchor);
+		const target = container(position(parent) ?? anchor);
 		if (target.querySelector(`#${style.hash}`) !== null) return;
 		const element = document.createElement('style');
 		element.id = style.hash;
