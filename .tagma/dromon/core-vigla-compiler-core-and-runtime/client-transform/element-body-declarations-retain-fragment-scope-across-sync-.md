@@ -10,5 +10,8 @@ sources:
     ref: packages/vigla/src/compiler/server/template.ts
   - kind: file
     ref: packages/vigla/src/compiler/client/template.ts
+  - kind: symbol
+    ref: packages/vigla/src/compiler/analysis/template.ts
+    symbol: Template.fragment
 ---
-`{let …}` and `{const …}` may shadow bindings outside their element. Synchronous declarations emitted in the enclosing client function need fresh names because those children share its update effect; the server can use a lexical block. Once an element-body declaration waits, only declarations before it may hoist: the awaited names and dependent content stay together in that element's async part, so sibling fragments and enclosing effects cannot read them before initialization.
+`{let …}` and `{const …}` may shadow bindings outside their element. Synchronous declarations emitted in the enclosing client function need fresh names because those children share its update effect; the server can use a lexical block. Once an element-body declaration waits, only declarations before it may hoist: the awaited names and dependent content stay together in that element's async part, so sibling fragments and enclosing effects cannot read them before initialization. Earlier declarators of an awaited tag are staged first because later initializers can read their bindings.
