@@ -14,6 +14,14 @@ fields:
         "for": [
           "8be3f25c"
         ]
+      },
+      {
+        "at": "file.ts",
+        "for": [
+          "3171b467",
+          "8be3f25c",
+          "741ddad8"
+        ]
       }
     ],
     "id": "kit-config"
