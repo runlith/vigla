@@ -94,7 +94,7 @@ export function customElement(
 		b.object(props),
 		{
 			type: 'ArrayExpression',
-			elements: exports.map((property) => b.literal(propertyName(property)))
+			elements: [...new Set(exports.map(propertyName))].map((name) => b.literal(name))
 		},
 		shadow === 'none'
 			? b.id('undefined')

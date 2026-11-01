@@ -65,13 +65,13 @@ function declaredNames(declaration: ES.Declaration): ES.Identifier[] {
 	return declaration.id === null ? [] : [declaration.id];
 }
 
-function exportProperty(context: Context, name: string, local: ES.Identifier): ES.Property {
+function exportProperties(context: Context, name: string, local: ES.Identifier): ES.Property[] {
 	const binding =
 		context.analysis.references.get(local) ?? context.analysis.declarations.get(local);
 	const value =
-		(binding === undefined ? undefined : read(context, b.id(local.name), binding)) ??
-		b.id(local.name);
-	return {
+		(binding === undefined ? undefined : read(context, { ...local }, binding)) ??
+		rewrite(context, local);
+	const getter: ES.Property = {
 		type: 'Property',
 		key: b.literal(name),
 		value: b.functionExpression([], [{ type: 'ReturnStatement', argument: value }]),
@@ -80,6 +80,31 @@ function exportProperty(context: Context, name: string, local: ES.Identifier): E
 		shorthand: false,
 		computed: false
 	};
+	const next = b.id(context.names.unique('$$value'));
+	let write: ES.Expression | undefined;
+	if (binding?.kind === 'prop') write = b.call({ ...local }, next);
+	else if (binding?.kind === 'state' || binding?.kind === 'raw-state')
+		write = runtime(
+			context,
+			'set',
+			{ ...local },
+			binding.kind === 'state' ? runtime(context, 'proxy', next) : next
+		);
+	else if (
+		binding?.kind === 'normal' &&
+		(binding.declarationKind === 'let' || binding.declarationKind === 'var')
+	)
+		write = { type: 'AssignmentExpression', operator: '=', left: { ...local }, right: next };
+	return write === undefined
+		? [getter]
+		: [
+				getter,
+				{
+					...getter,
+					kind: 'set',
+					value: b.functionExpression([next], [b.statement(write)])
+				}
+			];
 }
 
 export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.Program {
@@ -148,7 +173,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			if (statement.declaration != null) {
 				script.push(rewrite(saving, statement.declaration));
 				for (const name of declaredNames(statement.declaration)) {
-					exported.push(exportProperty(context, name.name, name));
+					exported.push(...exportProperties(context, name.name, name));
 				}
 			}
 			for (const specifier of statement.specifiers) {
@@ -157,7 +182,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 					specifier.exported.type === 'Identifier'
 						? specifier.exported.name
 						: String(specifier.exported.value);
-				exported.push(exportProperty(context, name, local));
+				exported.push(...exportProperties(context, name, local));
 			}
 		} else if (statement.type.startsWith('Export'))
 			throw unsupported(spanOf(statement), 'This export from a component');

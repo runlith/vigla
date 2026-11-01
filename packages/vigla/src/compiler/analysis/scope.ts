@@ -30,6 +30,7 @@ export interface Binding {
 	readonly kind: BindingKind;
 	readonly rune: Rune | null;
 	readonly declaration: ES.Identifier | null;
+	readonly declarationKind: ES.VariableDeclaration['kind'] | null;
 	readonly initial: ES.Node | null;
 	readonly prop: Prop | null;
 	readonly constant: boolean;
@@ -167,6 +168,7 @@ function literal(node: ES.Node | null | undefined): boolean {
 
 export interface Declared {
 	readonly kind: BindingKind;
+	readonly declarationKind?: ES.VariableDeclaration['kind'];
 	readonly rune?: Rune | null;
 	readonly initial?: ES.Node | null;
 	readonly prop?: Prop | null;
@@ -198,6 +200,7 @@ export class Scopes {
 			kind: declared.kind,
 			rune: declared.rune ?? null,
 			declaration: name,
+			declarationKind: declared.declarationKind ?? null,
 			initial: declared.initial ?? null,
 			prop: declared.prop ?? null,
 			constant: declared.constant ?? false,
@@ -311,6 +314,7 @@ export class Scopes {
 					const binding = {
 						kind,
 						rune,
+						declarationKind: node.kind,
 						initial: init ?? null,
 						constant: kind === 'normal' && node.kind === 'const' && literal(init)
 					};

@@ -22,7 +22,7 @@ import {
 	type Runes
 } from '../ir/port.ts';
 import { classFields, type ClassFields, type StateField } from './classes.ts';
-import { Scopes, spanOf, unsupported, type Binding } from './scope.ts';
+import { patternNames, Scopes, spanOf, unsupported, type Binding } from './scope.ts';
 import { collectNames, Template, type ListFacts } from './template.ts';
 import { hasAwait } from './asynchronous.ts';
 import type { Preserve } from './whitespace.ts';
@@ -382,6 +382,22 @@ export function analyzeComponent(
 	if (customElement !== null) {
 		for (const binding of scope.bindings.values()) {
 			if (binding.kind === 'prop') binding.reassigned = true;
+		}
+	}
+	const expose = (name: ES.Identifier): void => {
+		const binding = scopes.references.get(name) ?? scopes.declarations.get(name);
+		if (
+			binding !== undefined &&
+			(binding.kind === 'prop' || binding.kind === 'state' || binding.kind === 'raw-state')
+		)
+			binding.reassigned = true;
+	};
+	for (const statement of unit.instance?.body ?? []) {
+		if (statement.type !== 'ExportNamedDeclaration' || statement.source != null) continue;
+		for (const specifier of statement.specifiers) expose(specifier.local as ES.Identifier);
+		if (statement.declaration?.type === 'VariableDeclaration') {
+			for (const declaration of statement.declaration.declarations)
+				patternNames(declaration.id).forEach(expose);
 		}
 	}
 	if (unit.module !== null) checkExports(unit.module, scopes);

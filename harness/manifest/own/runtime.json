@@ -117,6 +117,7 @@
 		"leading-nested-block": "contract",
 		"merge-combined-choice": "contract",
 		"merge-nearest-writer": "contract",
+		"mutable-instance-exports": "contract",
 		"network-attribute-hydration": "contract",
 		"owner-context": {
 			"status": "difference",
