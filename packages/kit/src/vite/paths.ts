@@ -34,6 +34,13 @@ export function fileUrl(file: string): string {
 	return `/@fs${normalized.startsWith('/') ? '' : '/'}${normalized}`;
 }
 
+export function moduleUrl(file: string, root: string): string {
+	const relative = posix(path.relative(root, file));
+	return relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)
+		? fileUrl(file)
+		: '/' + relative;
+}
+
 export function resolveEntry(file: string, extensions: readonly string[]): string | null {
 	if (existsSync(file)) {
 		if (statSync(file).isFile()) return file;

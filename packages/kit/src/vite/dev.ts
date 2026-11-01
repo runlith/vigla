@@ -1,32 +1,30 @@
 import { existsSync, statSync } from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
-import type { EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
+import type { Connect, EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
 import { createReadableStream, getRequest, setResponse } from '../node/index.ts';
-import type { Server } from '../types/request.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
 import type {
 	AsyncContext,
 	RequestStore,
 	ServerManifest,
-	ServerOptions
+	ServerInstance,
+	ServerModule
 } from '../types/internal/server.ts';
 import { outsideBase, serveAsset } from './assets.ts';
 import { loadEnvironment } from './env.ts';
-import { ids, virtualDirectory } from './ids.ts';
+import { clientDirectory, ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
-import { fileUrl, isRunnable, posix, resolveEntry } from './paths.ts';
+import { fileUrl, isRunnable, moduleUrl, posix, resolveEntry } from './paths.ts';
 import type { Project } from './project.ts';
 
-interface ServerModule {
-	Server: new (manifest: ServerManifest) => Server;
+interface DevelopmentModule extends ServerModule {
 	manifest: ServerManifest;
-	options: ServerOptions;
 }
 
 interface RunningServer {
-	module: ServerModule;
-	instance: Server;
+	module: DevelopmentModule;
+	instance: ServerInstance;
 	ready: Promise<void>;
 }
 
@@ -56,25 +54,31 @@ async function styles(
 ): Promise<Record<string, string>> {
 	const seen = new Set<EnvironmentModuleNode>();
 	const modules: EnvironmentModuleNode[] = [];
-	function visit(module: EnvironmentModuleNode): void {
-		if (seen.has(module)) return;
+	async function visit(module: EnvironmentModuleNode): Promise<void> {
+		if (seen.has(module) || /[?&](raw|url|inline)(?:&|$)/.test(module.url)) return;
 		seen.add(module);
-		if (project.api.isCSSRequest(module.url) && !/[?&](raw|url|inline)(?:&|$)/.test(module.url))
-			modules.push(module);
-		for (const child of module.importedModules) visit(child);
+		const transformed = module.transformResult;
+		if (transformed) {
+			for (const url of [...(transformed.deps ?? []), ...(transformed.dynamicDeps ?? [])]) {
+				const child = await environment.moduleGraph.getModuleByUrl(url);
+				if (child) await visit(child);
+			}
+		} else for (const child of module.importedModules) await visit(child);
+		if (project.api.isCSSRequest(module.url)) modules.push(module);
 	}
 	for (const file of files) {
 		if (!file) continue;
-		for (const module of environment.moduleGraph.getModulesByFile(posix(file)) ?? []) visit(module);
+		const module = await environment.moduleGraph.getModuleByUrl(moduleUrl(file, project.root));
+		if (module) await visit(module);
 	}
 	const output: Record<string, string> = {};
-	await Promise.all(
-		modules.map(async (module) => {
-			const url = module.url + (module.url.includes('?') ? '&inline' : '?inline');
-			const loaded = await environment.runner.import(url);
-			if (typeof loaded.default === 'string') output[module.url] = loaded.default;
-		})
-	);
+	for (const module of modules) {
+		const url = module.url.includes('?')
+			? module.url.replace('?', '?inline&')
+			: module.url + '?inline';
+		const loaded = await environment.runner.import(url);
+		if (typeof loaded.default === 'string') output[module.url] = loaded.default;
+	}
 	return output;
 }
 
@@ -87,8 +91,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 		getStore: () => storage.getStore()
 	};
 	const fixStack = (error: Error) => {
-		server.ssrFixStacktrace(error);
-		if (error.stack) error.stack = error.stack.replaceAll('\0', '');
+		if (error.stack) Reflect.set(error, 'stack', error.stack.replaceAll('\0', ''));
 		return error;
 	};
 	let current: RunningServer | undefined;
@@ -97,7 +100,8 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 	const invalidate = () => {
 		for (const env of Object.values(server.environments)) {
 			for (const [id, module] of env.moduleGraph.idToModuleMap) {
-				if (id.startsWith(virtualDirectory)) env.moduleGraph.invalidateModule(module);
+				if (id.startsWith(virtualDirectory) || id.startsWith(clientDirectory(project) + '/'))
+					env.moduleGraph.invalidateModule(module);
 			}
 		}
 		const evaluated = environment.runner.evaluatedModules;
@@ -111,7 +115,8 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 			evaluated.invalidateModule(module);
 		};
 		for (const id of evaluated.idToModuleMap.keys())
-			if (id.startsWith(virtualDirectory)) invalidateRunner(id);
+			if (id.startsWith(virtualDirectory) || id.startsWith(clientDirectory(project) + '/'))
+				invalidateRunner(id);
 		current = undefined;
 	};
 	function schedule(type: string, file: string): void {
@@ -167,19 +172,34 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 	server.watcher.on('unlink', (file) => schedule('unlink', file));
 	server.watcher.on('change', (file) => schedule('change', file));
 	const emulator = await project.config.adapter?.emulate?.();
-	const read = (file: string) => {
-		let resolved = file.startsWith('/@fs/')
+	const sourceFile = (file: string): string | null => {
+		const resolved = file.startsWith('/@fs/')
 			? file.slice(4)
-			: path.resolve(project.config.files.assets, file);
-		if (!existsSync(resolved) && file.startsWith('/'))
-			resolved = path.resolve(project.root, `.${file}`);
-		if (
-			!existsSync(resolved) ||
-			!statSync(resolved).isFile() ||
-			!project.api.isFileServingAllowed(resolved, server)
-		)
-			return null;
-		return createReadableStream(resolved);
+			: path.resolve(project.root, file.startsWith('/') ? '.' + file : file);
+		return existsSync(resolved) &&
+			statSync(resolved).isFile() &&
+			project.api.isFileServingAllowed(resolved, server)
+			? resolved
+			: null;
+	};
+	const serverAssets = new Proxy<Record<string, number>>(
+		{},
+		{
+			has: (_, file) => typeof file === 'string' && sourceFile(file) !== null,
+			get: (_, file) => {
+				const resolved = typeof file === 'string' && sourceFile(file);
+				return resolved ? statSync(resolved).size : undefined;
+			}
+		}
+	);
+	const read = (file: string) => {
+		const source = sourceFile(file);
+		if (source) return createReadableStream(source);
+		const directory = project.config.files.assets;
+		const asset = path.resolve(directory, file.startsWith('/') ? file.slice(1) : file);
+		return asset.startsWith(directory + path.sep) && existsSync(asset) && statSync(asset).isFile()
+			? createReadableStream(asset)
+			: null;
 	};
 	server.middlewares.use((request, response, next) => {
 		try {
@@ -191,6 +211,12 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 		}
 	});
 	return () => {
+		const staticFiles = server.middlewares.stack
+			.map((layer) => layer.handle)
+			.find(
+				(handle): handle is Connect.NextHandleFunction =>
+					typeof handle === 'function' && handle.name === 'viteServeStaticMiddleware'
+			);
 		for (let index = server.middlewares.stack.length - 1; index >= 0; index--) {
 			const layer = server.middlewares.stack[index]!;
 			if (
@@ -219,6 +245,20 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 					outsideBase(request, response, project.config.paths.base);
 					return;
 				}
+				const file = path.resolve(
+					project.root,
+					pathname.slice(project.config.paths.base.length + 1)
+				);
+				if (
+					staticFiles &&
+					existsSync(file) &&
+					statSync(file).isFile() &&
+					project.api.isFileServingAllowed(file, server)
+				) {
+					request.url = original;
+					staticFiles(request, response, next);
+					return;
+				}
 				if (pathname === `${project.config.paths.base}/${project.config.appDir}/version.json`) {
 					response.writeHead(200, {
 						'content-type': 'application/json',
@@ -239,10 +279,11 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 				}
 				await pending;
 				if (syncError) throw syncError;
-				const loaded = (await environment.runner.import(ids.server)) as unknown as ServerModule;
+				const loaded = (await environment.runner.import(ids.server)) as DevelopmentModule;
 				if (loaded !== current?.module) {
 					const tree = project.tree;
 					loaded.options.fixStack = fixStack;
+					loaded.manifest.server_assets = serverAssets;
 					loaded.manifest.nodes = loaded.manifest.nodes.map((load, index) => {
 						const source = tree.nodes[index];
 						return async () => {
@@ -271,10 +312,21 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						if (!address) throw new Error('Could not determine clientAddress');
 						return address;
 					},
-					platform: await emulator?.platform?.({ config: {}, prerender: false }),
+					emulator,
 					read
 				});
-				(node?.setResponse ?? setResponse)(response, result);
+				const send = () => (node?.setResponse ?? setResponse)(response, result);
+				if (result.status === 404 && staticFiles) {
+					let forwarded = false;
+					response.once('close', () => {
+						if (!forwarded) void result.body?.cancel();
+					});
+					request.url = original;
+					staticFiles(request, response, () => {
+						forwarded = true;
+						send();
+					});
+				} else send();
 			} catch (error) {
 				const failure = fixStack(error instanceof Error ? error : new Error(String(error)));
 				server.config.logger.error(failure.stack ?? failure.message);

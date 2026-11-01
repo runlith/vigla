@@ -8,7 +8,7 @@ import {
 	legacyEnvironment,
 	workerEnvironment
 } from './env.ts';
-import { ids, virtualDirectory } from './ids.ts';
+import { clientDirectory, ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
 import {
 	fileUrl,
@@ -16,6 +16,7 @@ import {
 	isServerOnly,
 	normalizeId,
 	packageImporter,
+	moduleUrl,
 	posix
 } from './paths.ts';
 import type { Project } from './project.ts';
@@ -29,6 +30,7 @@ export function scanVirtualModules(): Rolldown.Plugin {
 				id: [
 					/^\$app\//,
 					/^\$env\//,
+					/\/generated\/(?:dev|build)\/client\/nodes\//,
 					new RegExp(virtualDirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 				]
 			},
@@ -49,6 +51,10 @@ export function virtualModules(getProject: () => Project): Plugin {
 			const project = getProject();
 			if (id.startsWith('/@fs/')) id = id.slice(4);
 			if (id.startsWith(virtualDirectory)) return path.posix.normalize(id);
+			const nodes = clientDirectory(project) + '/nodes/';
+			if (id.startsWith(nodes)) return path.posix.normalize(id);
+			const url = moduleUrl(clientDirectory(project), project.root) + '/nodes/';
+			if (id.startsWith(url)) return nodes + id.slice(url.length);
 			if (id === '$app/manifest' || id === '<sveltekit:generated>/app-manifest.js')
 				return ids.appManifest;
 			if (id === '$app/env/public') return ids.publicEnv;
@@ -112,8 +118,9 @@ export function virtualModules(getProject: () => Project): Plugin {
 					name,
 					project.vite.command === 'serve'
 				);
-			const node = /^client\/nodes\/(\d+)\.js$/.exec(id.slice(virtualDirectory.length));
-			if (id.startsWith(virtualDirectory) && node) {
+			const nodes = clientDirectory(project) + '/nodes/';
+			const node = /^(\d+)\.js$/.exec(id.slice(nodes.length));
+			if (id.startsWith(nodes) && node) {
 				const index = Number(node[1]);
 				const value = tree.nodes[index];
 				if (!value) throw new Error(`Unknown client node ${index}`);

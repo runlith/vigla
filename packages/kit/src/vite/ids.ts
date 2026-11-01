@@ -1,5 +1,7 @@
+import path from 'node:path';
 import { packageDirectory, posix } from './paths.ts';
 import { hash } from '../shared/hash.ts';
+import type { Project } from './project.ts';
 
 export function namespace(version: string, dev: boolean): string {
 	return dev ? '__sveltekit_dev' : `__sveltekit_${hash(version)}`;
@@ -23,6 +25,17 @@ export const ids = {
 	privateEnv: `${virtualDirectory}env/private.js`
 };
 
-export function nodeId(index: number): string {
-	return `${virtualDirectory}client/nodes/${index}.js`;
+export function clientDirectory(project: Project): string {
+	return posix(
+		path.join(
+			project.config.outDir,
+			'generated',
+			project.vite.command === 'serve' ? 'dev' : 'build',
+			'client'
+		)
+	);
+}
+
+export function nodeId(project: Project, index: number): string {
+	return `${clientDirectory(project)}/nodes/${index}.js`;
 }

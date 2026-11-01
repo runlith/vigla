@@ -181,7 +181,7 @@ export async function configurePreview(
 						if (!request.socket.remoteAddress) throw new Error('Could not determine clientAddress');
 						return request.socket.remoteAddress;
 					},
-					platform: await emulator?.platform?.({ config: {}, prerender: false })
+					emulator
 				});
 				(project.config.adapter?.vite?.setResponse ?? setResponse)(response, result);
 			} catch (error) {

@@ -2,7 +2,7 @@ import path from 'node:path';
 import type { PageNode } from '../types/internal/routes.ts';
 import type { Project } from './project.ts';
 import { ids, nodeId } from './ids.ts';
-import { posix } from './paths.ts';
+import { moduleUrl, posix } from './paths.ts';
 
 export function clientNode(node: PageNode, index: number, root: string): string {
 	const lines: string[] = [];
@@ -63,7 +63,10 @@ export function clientApp(project: Project): string {
 	const clientRouting = config.router.resolution === 'client';
 	const loaders = tree.nodes
 		.slice(0, clientRouting ? tree.nodes.length : 2)
-		.map((_, index) => `() => import(${JSON.stringify(nodeId(index))})`);
+		.map(
+			(_, index) =>
+				`() => import(${JSON.stringify(project.vite.command === 'serve' ? moduleUrl(nodeId(project, index), root) : nodeId(project, index))})`
+		);
 	lines.push(
 		`export const nodes = [${loaders.join(',')}];`,
 		`export const dictionary = {${clientRouting ? dictionary.join(',') : ''}};`,

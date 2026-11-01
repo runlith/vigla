@@ -271,7 +271,7 @@ export function buildPlugin(validated: ValidatedConfig, getProject: () => Projec
 				'entry/app': ids.client
 			};
 			project.tree.nodes.forEach((_, index) => {
-				clientInputs[`nodes/${index}`] = nodeId(index);
+				clientInputs[`nodes/${index}`] = nodeId(project, index);
 			});
 			const split = project.config.output.bundleStrategy === 'split';
 			builder.environments.client!.config.build.rolldownOptions.input = split
@@ -303,7 +303,8 @@ export function buildPlugin(validated: ValidatedConfig, getProject: () => Projec
 			};
 			if (project.config.router.resolution === 'server') {
 				context.artifacts.client.nodes = project.tree.nodes.map(
-					(_, index) => dependencies(clientManifest, nodeId(index), project.root, true).file
+					(_, index) =>
+						dependencies(clientManifest, nodeId(project, index), project.root, true).file
 				);
 				context.artifacts.client.routes = project.tree.routes
 					.filter((route) => route.page)
@@ -324,7 +325,7 @@ export function buildPlugin(validated: ValidatedConfig, getProject: () => Projec
 			const staticFiles = new Set(project.tree.assets.map((asset) => asset.file));
 			for (const [index, node] of context.artifacts.nodes.entries()) {
 				const deps = split
-					? dependencies(clientManifest, nodeId(index), project.root, true)
+					? dependencies(clientManifest, nodeId(project, index), project.root, true)
 					: initial;
 				node.imports = deps.imports;
 				node.stylesheets = deps.stylesheets;

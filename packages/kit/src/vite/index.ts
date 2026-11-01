@@ -116,7 +116,6 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 				const allow = new Set([
 					config.files.routes,
 					config.files.src,
-					config.files.assets,
 					config.outDir,
 					packageDirectory,
 					path.join(root, 'node_modules'),
