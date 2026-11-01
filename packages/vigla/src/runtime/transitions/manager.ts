@@ -114,6 +114,7 @@ export function transition<P>(
 			if (!intro) {
 				leaving?.abort();
 				leaving?.reset();
+				leaving = current = undefined;
 				return;
 			}
 			if (!outro) entering?.abort();
