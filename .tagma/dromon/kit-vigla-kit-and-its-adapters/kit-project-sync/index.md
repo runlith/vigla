@@ -23,4 +23,4 @@ sources:
   - kind: dir
     ref: packages/kit/src/sync
 ---
-The project model Kit builds from the file system: the route tree discovered under `src/routes` with its layouts, pages, errors, endpoints and param matchers, validated and sorted, each node's statically readable page options, and the files editors and type checkers read where Kit 3.1 writes them — the app's `$app` tsconfig and type declarations under `node_modules/$app` and each route's `$types.d.ts`. It runs at dev start, on route changes and before a build; turning the model into runtime modules is the Vite plugin's work.
+The project model Kit builds from the file system: the route tree discovered under `src/routes` with its layouts, pages, errors, endpoints and param matchers, validated and sorted, each node's statically readable page options, and the files editors and type checkers read where Kit 3.1 writes them — the app's `$app` tsconfig and type declarations under `node_modules/$app` and each route's `$types.d.ts`. It runs from the CLI, at dev start, on route changes and before a build; turning the model into runtime modules is the Vite plugin's work.

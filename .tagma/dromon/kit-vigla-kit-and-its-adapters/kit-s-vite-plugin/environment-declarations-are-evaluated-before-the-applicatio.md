@@ -10,5 +10,7 @@ sources:
     ref: packages/kit/src/vite/server.ts
   - kind: file
     ref: packages/kit/src/sync/env.ts
+  - kind: file
+    ref: packages/kit/src/vite/index.ts
 ---
-Discovering explicit variable names and schemas requires evaluating the app's environment declaration before generated environment modules or application hooks can load; importing those modules at that point would be circular. A short-lived runner exposes environment flags and rejects other app imports. Server initialization supplies dynamic values before hooks are imported, while browser modules embed only declared public values. User variable names are export aliases over independent internal bindings, so a valid declaration cannot collide with the generator's own names.
+Type synchronization needs names and schemas even when deployment values are unavailable, so Kit's Vite config resolution performs neither declaration evaluation nor value validation. Declarations load before application modules exist, in a short-lived runner that exposes environment flags and rejects other app imports to avoid cycles. Dev, build and preview startup validate values before runtime modules are consumed. User variable names remain export aliases over independent internal bindings to prevent collisions with generator names.
