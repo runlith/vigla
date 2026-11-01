@@ -53,7 +53,7 @@ export class DataSerializer {
 					(data) => ({ data, error: undefined }),
 					async (error) => ({
 						data: undefined,
-						error: await handleError(this.#server, this.#store, error)
+						error: await handleError(this.#store, error)
 					})
 				)
 				.then(async (result) => {
@@ -76,7 +76,7 @@ export class DataSerializer {
 						} catch (error) {
 							failure = error;
 						}
-						result.error = await handleError(this.#server, this.#store, failure);
+						result.error = await handleError(this.#store, failure);
 						data = this.#value(this.#html ? [, result.error] : result.error);
 					}
 					return this.#html
@@ -179,7 +179,7 @@ export async function dataResponse(
 					return await load();
 				} catch (error) {
 					if (error instanceof Redirect) throw error;
-					const body = await handleError(server, store, error);
+					const body = await handleError(store, error);
 					return { type: 'error', error: body, status: body.status };
 				}
 			})
@@ -203,7 +203,7 @@ export async function dataResponse(
 					}
 				}
 			);
-		const body = await handleError(server, store, error);
+		const body = await handleError(store, error);
 		return Response.json(body, {
 			status: body.status,
 			headers: {

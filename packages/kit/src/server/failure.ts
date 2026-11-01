@@ -1,7 +1,6 @@
 import type { CaughtError } from '../types/hooks.ts';
 import type { RequestStore } from '../types/internal/server.ts';
 import { HttpError, ValidationError } from '../shared/outcomes.ts';
-import type { Server } from './index.ts';
 import { runRequest } from './scope.ts';
 import { appEvent } from './hooks.ts';
 import * as errors from './errors.ts';
@@ -16,11 +15,10 @@ export class FrameworkError extends Error {
 	}
 }
 
-export async function handleError(
-	server: Server,
-	store: RequestStore,
-	error: unknown
-): Promise<App.Error> {
+export class HandledError extends HttpError {}
+
+export async function handleError(store: RequestStore, error: unknown): Promise<App.Error> {
+	if (error instanceof HandledError) return error.body;
 	let caught: CaughtError;
 	if (error instanceof HttpError) caught = { kind: 'app', error: error.body };
 	else if (error instanceof FrameworkError)
@@ -35,21 +33,21 @@ export async function handleError(
 		caught = { kind: 'unknown', error };
 		let current = error;
 		while (current instanceof Error) {
-			server.options.fixStack?.(current);
+			store.options.fixStack?.(current);
 			current = current.cause;
 		}
 	}
 	const fallback =
 		caught.kind === 'unknown' ? { status: 500, message: 'Internal Error' } : caught.error;
 	try {
-		if (!server.hooks.handleError) {
+		if (!store.hooks.handleError) {
 			if (caught.kind === 'unknown') console.error(error);
 			return fallback as App.Error;
 		}
 		const result = await runRequest(
 			store,
-			() => server.hooks.handleError!({ ...caught, event: appEvent(store.event) }),
-			server.scope
+			() => store.hooks.handleError!({ ...caught, event: appEvent(store.event) }),
+			store.scope
 		);
 		return { ...fallback, ...result } as App.Error;
 	} catch (cause) {

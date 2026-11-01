@@ -110,7 +110,7 @@ export async function errorResponse(
 ): Promise<Response> {
 	if (failure instanceof Redirect)
 		return new Response(null, { status: failure.status, headers: { location: failure.location } });
-	const body = await handleError(server, store, failure);
+	const body = await handleError(store, failure);
 	const { event, state } = store;
 	const accept = negotiate(event.request.headers.get('accept') ?? 'text/html', [
 		'application/json',

@@ -4,6 +4,7 @@ import type { RequestEvent } from '../types/request.ts';
 import type { ParamValue } from '../types/params.ts';
 import * as errors from './errors.ts';
 import type { Server } from './index.ts';
+import { publishSnapshots } from './remote/resource.ts';
 
 const requestKey = Symbol('request');
 const contexts = new Set<WeakRef<AsyncContext>>();
@@ -54,7 +55,7 @@ export function getRequestOwner(): RequestStore['owner'] {
 export function bindRequest(store: RequestStore): void {
 	store.owner.run(() => {
 		setContext(requestKey, store);
-		openHydration({ format: store.options.format });
+		openHydration({ format: store.options.format, beforeSnapshot: () => publishSnapshots(store) });
 	});
 }
 
@@ -95,7 +96,24 @@ export class RequestScope {
 			manifest: server.manifest,
 			options: server.options,
 			environment: server.environment,
-			hooks: server.hooks
+			hooks: server.hooks,
+			scope: context,
+			remote: {
+				cache: new Map(),
+				forms: new Map(),
+				formValues: new Map(),
+				batches: new Map(),
+				live: new Map(),
+				explicit: new Map(),
+				implicit: new Map(),
+				requested: new Map(),
+				ignored: new Set(),
+				hydration: new Set(),
+				snapshots: new Map(),
+				query: false,
+				prerender: false,
+				mutation: false
+			}
 		};
 		bindRequest(this.store);
 		this.#signal.addEventListener('abort', this.#abort, { once: true });

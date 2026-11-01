@@ -6,6 +6,7 @@ import type { Server } from './index.ts';
 import { FrameworkError, handleError } from './failure.ts';
 import { runRequest } from './scope.ts';
 import * as errors from './errors.ts';
+import { handleFormPost } from './remote/handler.ts';
 
 export type ActionResult =
 	| { type: 'success' | 'failure'; status: number; location: string; data: unknown }
@@ -40,6 +41,8 @@ export async function runAction(
 ): Promise<ActionResult> {
 	const { event } = store;
 	const location = actionLocation(event.url);
+	const remote = event.url.searchParams.get('/remote');
+	if (remote) return handleFormPost(store, remote);
 	if (!node?.actions) {
 		event.setHeaders({ allow: 'GET' });
 		return { type: 'error', location, error: new FrameworkError(405, 'Method Not Allowed') };
@@ -110,7 +113,7 @@ export async function actionResponse(
 	let payload: unknown;
 	let status = 200;
 	if (result.type === 'error') {
-		const error = await handleError(server, store, result.error);
+		const error = await handleError(store, result.error);
 		payload = { ...result, error };
 		status = error.status;
 	} else if (result.type === 'redirect') payload = result;

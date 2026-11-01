@@ -24,6 +24,7 @@ import type { Page } from '../state.ts';
 import type { MaybePromise } from '../value.ts';
 import type { PageBranch, RouteParam } from './routes.ts';
 import type { TrailingSlash } from './data.ts';
+import type { RemoteExport, RemoteRequestState } from './remote.ts';
 
 export type { TrailingSlash } from './data.ts';
 export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
@@ -119,7 +120,7 @@ export interface ClientBuild {
 }
 
 export interface RemoteModule {
-	default: Record<string, unknown>;
+	default: Record<string, RemoteExport>;
 }
 
 export interface ServerManifest {
@@ -276,6 +277,7 @@ export interface PrerenderState {
 	fallback: boolean;
 	insideReroute: boolean;
 	dependencies: Map<string, PrerenderDependency>;
+	remoteResponses?: Map<string, Promise<any>>;
 }
 
 export interface RespondOptions {
@@ -316,6 +318,8 @@ export interface RequestStore {
 	options: ServerOptions;
 	environment: Environment;
 	hooks: ServerHooks;
+	scope?: AsyncContext;
+	remote: RemoteRequestState;
 }
 
 export interface RenderBranch {

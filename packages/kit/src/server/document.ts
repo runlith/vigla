@@ -92,7 +92,7 @@ export async function renderDocument(
 								props,
 								context,
 								csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },
-								transformError: (error) => handleError(server, store, error),
+								transformError: (error) => handleError(store, error),
 								format: options.format
 							}),
 						server.scope
