@@ -1,6 +1,6 @@
 import { write } from './batch.ts';
-import { DERIVED, DIRTY, SOURCE, type Derived, type Source } from './graph.ts';
-import { get, guard, localize, owner } from './tracking.ts';
+import { DERIVED, DIRTY, SOURCE, isDerived, type Derived, type Source } from './graph.ts';
+import { get, guard, localize, owner, refresh } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
 	return { kind: SOURCE, v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
@@ -25,6 +25,10 @@ export function state<T>(value: T): Source<T> {
 
 export function set<T>(target: Source<T>, value: T): T {
 	guard(target);
+	if (isDerived(target)) {
+		refresh(target);
+		target.failure = null;
+	}
 	return write(target, value);
 }
 
