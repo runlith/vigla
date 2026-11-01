@@ -50,7 +50,7 @@ export function createFetch(server: Server, store: RequestStore, cookies: Cookie
 			decoded.startsWith(`${assetPrefix}/`) ? decoded.slice(assetPrefix.length) : decoded
 		).slice(1);
 		const asset =
-			server.manifest.assets.has(filename) || Object.hasOwn(server.manifest.server_assets, filename)
+			server.manifest.assets.has(filename) || filename in server.manifest.server_assets
 				? filename
 				: server.manifest.assets.has(`${filename}/index.html`)
 					? `${filename}/index.html`
@@ -78,8 +78,17 @@ export function createFetch(server: Server, store: RequestStore, cookies: Cookie
 		const language = event.request.headers.get('accept-language');
 		if (language && !request.headers.has('accept-language'))
 			request.headers.set('accept-language', language);
-		if (request.signal.aborted) throw request.signal.reason;
-		const response = await server.respondInternal(request, store);
+		if (request.signal.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
+		let onAbort: () => void;
+		const aborted = new Promise<never>((_, reject) => {
+			onAbort = () => reject(new DOMException('The operation was aborted.', 'AbortError'));
+			request.signal.addEventListener('abort', onAbort, { once: true });
+		});
+		const response = await Promise.race([server.respondInternal(request, store), aborted]).finally(
+			() => {
+				request.signal.removeEventListener('abort', onAbort);
+			}
+		);
 		for (const value of response.headers.getSetCookie()) {
 			const {
 				name,

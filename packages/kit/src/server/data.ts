@@ -109,21 +109,18 @@ export class DataSerializer {
 			if (node.type !== 'data') return JSON.stringify(node);
 			try {
 				const uses = serializedUses(node.uses);
-				if (this.#html)
-					return this.#value({
-						type: 'data',
-						data: node.data,
-						uses,
-						...(node.slash ? { slash: node.slash } : {})
-					});
-				return `{"type":"data","data":${this.#value(node.data)},"uses":${JSON.stringify(uses)}${node.slash ? `,"slash":${JSON.stringify(node.slash)}` : ''}}`;
+				const data = this.#value(node.data);
+				return `{"type":"data","data":${data},"uses":${JSON.stringify(uses)}${node.slash ? `,"slash":${JSON.stringify(node.slash)}` : ''}}`;
 			} catch (error) {
 				if (error instanceof Error && 'path' in error)
-					errors.load_not_serializable({
-						id: this.#store.event.route.id ?? '',
-						message: error.message,
-						path: `data${error.path}`
-					});
+					errors.load_not_serializable(
+						{
+							id: this.#store.event.route.id ?? '',
+							message: error.message,
+							path: `data${error.path}`
+						},
+						{ cause: error }
+					);
 				throw error;
 			}
 		});

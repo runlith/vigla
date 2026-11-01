@@ -1,11 +1,11 @@
 import type { RequestState } from '../types/internal/server.ts';
 import { url_search_unavailable_prerender } from './errors.ts';
 
-export function restrictSearch(url: URL, state: RequestState): void {
+export function restrictSearch(url: URL, state: RequestState, staticLoad = false): void {
 	const forbidden = (): boolean =>
 		!state.prerendering?.insideReroute &&
 		!state.prerendering?.fallback &&
-		(!!state.prerendering || state.prerenderDefault === true);
+		(!!state.prerendering || (staticLoad && state.prerenderDefault === true));
 	for (const property of ['search', 'searchParams'] as const) {
 		const descriptor =
 			Object.getOwnPropertyDescriptor(url, property) ??

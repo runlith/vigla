@@ -2,12 +2,12 @@ import type { PageNode, RequestStore, ServerRoute } from '../types/internal/serv
 import type { TrailingSlash } from '../types/internal/data.ts';
 import type { Server } from './index.ts';
 import type { LoadedNode } from './load.ts';
-import { Redirect } from '../shared/outcomes.ts';
+import { HttpError, Redirect } from '../shared/outcomes.ts';
 import { negotiate } from '../shared/http.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import { renderDocument } from './document.ts';
 import { loadBranch, serverLoad, universalLoad } from './load.ts';
-import { actionResponse, runAction, wantsActionJson } from './actions.ts';
+import { actionResponse, runAction, wantsActionJson, type ActionResult } from './actions.ts';
 import { FrameworkError, handleError } from './failure.ts';
 import * as errors from './errors.ts';
 import * as warnings from './warnings.ts';
@@ -22,7 +22,7 @@ export interface PageSettings {
 export function pageSettings(nodes: Array<PageNode | undefined>): PageSettings {
 	const settings: PageSettings = { ssr: true, csr: true, prerender: false, trailingSlash: 'never' };
 	for (const node of nodes)
-		for (const module of [node?.universal, node?.server]) {
+		for (const module of [node?.server, node?.universal]) {
 			if (module?.ssr !== undefined) settings.ssr = module.ssr;
 			if (module?.csr !== undefined) settings.csr = module.csr;
 			if (module?.prerender !== undefined) settings.prerender = module.prerender;
@@ -48,21 +48,26 @@ export async function pageResponse(
 		return actionResponse(server, store, await runAction(server, store, leaf?.server));
 	let form: unknown = null;
 	let status = 200;
+	let action: ActionResult | undefined;
 	if (event.request.method === 'POST') {
-		const result = await runAction(server, store, leaf?.server);
+		const result = (action = await runAction(server, store, leaf?.server));
 		if (result.type === 'redirect')
 			return new Response(null, { status: result.status, headers: { location: result.location } });
 		if (result.type === 'error') {
 			if (!settings.ssr && server.options.dev) warnings.form_action_error_without_ssr();
-			return errorResponse(server, store, result.error, route, [], 0);
+			status =
+				result.error instanceof HttpError || result.error instanceof FrameworkError
+					? result.error.status
+					: 500;
+		} else {
+			form = result.data;
+			status = result.status;
 		}
-		form = result.data;
-		status = result.status;
 		if (!settings.ssr && form && server.options.dev) warnings.form_action_data_without_ssr();
 	}
 	const branch: LoadedNode[] = [];
 	if (settings.ssr) {
-		const pending = loadBranch(server, store, nodes, settings.csr);
+		const pending = loadBranch(server, store, nodes, settings.csr, action);
 		for (const [index, load] of pending.entries()) {
 			try {
 				const result = await load;

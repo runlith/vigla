@@ -693,6 +693,184 @@ it('returns named form failures and redirects in the upstream action wire format
 	expect(await redirect.json()).toEqual({ type: 'redirect', status: 303, location: '/done' });
 });
 
+it('turns handle redirects into data redirects without dropping response cookies', async () => {
+	const app = manifest();
+	app.nodes[2] = async () => node(2, undefined, undefined, layout);
+	app.routes = [route('/go', null, true)];
+	const server = await start(
+		app,
+		options({
+			handle: ({ event }) => {
+				event.cookies.set('redirected', 'yes', { path: '/' });
+				return new Response(null, { status: 307, headers: { location: '/target' } });
+			}
+		})
+	);
+	const response = await server.respond(request('/go/__data.json'), address);
+	expect(response.status).toBe(200);
+	expect(response.headers.getSetCookie()).toContain(
+		'redirected=yes; Path=/; HttpOnly; Secure; SameSite=Lax'
+	);
+	expect(await response.json()).toEqual({ type: 'redirect', status: 307, location: '/target' });
+});
+
+it('rejects an aborted internal fetch before its endpoint returns headers', async () => {
+	const app = manifest();
+	const controller = new AbortController();
+	app.routes = [
+		route('/', async () => ({
+			GET: async ({ fetch }) => {
+				const errorName = async (signal: AbortSignal) => {
+					try {
+						await fetch('/slow', { signal });
+						return 'fulfilled';
+					} catch (error) {
+						return error instanceof Error ? error.name : 'unknown';
+					}
+				};
+				return Response.json({
+					immediate: await errorName(AbortSignal.abort()),
+					pending: await errorName(controller.signal),
+					data: await (await fetch('/data')).json()
+				});
+			}
+		})),
+		route('/slow', async () => ({
+			GET: () => {
+				queueMicrotask(() => controller.abort(new DOMException('deadline', 'TimeoutError')));
+				return new Promise<Response>(() => {});
+			}
+		})),
+		route('/data', async () => ({ GET: () => Response.json('success') }))
+	];
+	const server = await start(app, options());
+	const response = await server.respond(request(), address);
+	expect(await response.json()).toEqual({
+		immediate: 'AbortError',
+		pending: 'AbortError',
+		data: 'success'
+	});
+}, 1000);
+
+it('replays a bodyless fetched response as a valid Web Response', async () => {
+	const app = manifest();
+	app.client = {
+		start: '/start.js',
+		imports: [],
+		stylesheets: [],
+		fonts: [],
+		uses_env_dynamic_public: false
+	};
+	app.nodes[2] = async () =>
+		node(
+			2,
+			undefined,
+			{
+				load: async ({ fetch }) => ({ layout: await (await fetch('/empty')).text() })
+			},
+			layout
+		);
+	app.routes = [
+		route('/', null, true),
+		route('/empty', async () => ({ GET: () => new Response(null, { status: 204 }) }))
+	];
+	const server = await start(app, options());
+	const response = await server.respond(request(), address);
+	const html = await response.text();
+	const replay = JSON.parse(/data-sveltekit-fetched[^>]*>([^<]*)<\/script>/.exec(html)![1]!);
+	const restored = new Response(replay.body, replay);
+	expect(restored.status).toBe(204);
+	expect(restored.body).toBeNull();
+	expect(await restored.text()).toBe('');
+});
+
+it('reports invalid load results at their source and serializes data paths once', async () => {
+	const app = manifest();
+	app.nodes[2] = async () => ({
+		...node(2, { load: () => [] as any }, undefined, layout),
+		server_id: 'src/routes/+page.server.js'
+	});
+	app.routes = [route('/', null, true)];
+	const server = await start(
+		app,
+		options({ handleError: ({ error }) => ({ message: (error as Error).message }) })
+	);
+	const invalid = await server.respond(
+		request('/', { headers: { accept: 'application/json' } }),
+		address
+	);
+	expect((await invalid.json()).message).toMatch(
+		/load_invalid_response[\s\S]*in src\/routes\/\+page.server.js[\s\S]*an array/
+	);
+	app.nodes[2] = async () =>
+		node(2, { load: () => ({ nope: new (class Unsupported {})() }) }, undefined, layout);
+	const serialized = await server.respond(
+		request('/', { headers: { accept: 'application/json' } }),
+		address
+	);
+	expect((await serialized.json()).message).toContain(
+		'Cannot stringify arbitrary non-POJOs (`data.nope`)'
+	);
+});
+
+it('keeps rendered boundary errors in the response status and page state', async () => {
+	const app = manifest();
+	app.nodes[2] = async () =>
+		node(2, undefined, undefined, () => {
+			throw new Error('render failed');
+		});
+	app.routes = [route('/', null, true)];
+	const config = options({ handleError: () => ({ status: 404, message: 'handled render' }) });
+	config.root = (out, props) =>
+		out.boundary(
+			{
+				failed: (out) => out.push(`<failure>${page.status}:${page.error?.message}</failure>`)
+			},
+			(out) => root(out, props)
+		);
+	const server = await start(app, config);
+	const response = await server.respond(request(), address);
+	expect(response.status).toBe(404);
+	expect(await response.text()).toContain('<failure>404:handled render</failure>');
+});
+
+it('uses the action destination boundary and retains its successful layout data', async () => {
+	const app = manifest();
+	app.nodes[2] = async () =>
+		node(2, { load: () => ({ layout: 'destination' }) }, undefined, layout);
+	app.nodes[3] = async () =>
+		node(3, undefined, undefined, (out, props) =>
+			out.push(`<destination>${props.data.layout}:${props.error.message}</destination>`)
+		);
+	app.nodes[4] = async () =>
+		node(
+			4,
+			{
+				actions: {
+					default: () => {
+						throw new HttpError({ status: 400, message: 'action failed' });
+					}
+				}
+			},
+			undefined,
+			layout
+		);
+	const destination = route('/destination', null, true);
+	destination.page = { layouts: [0, 2], errors: [1, 3], leaf: 4 };
+	app.routes = [destination];
+	const server = await start(app, options());
+	const response = await server.respond(
+		request('/destination', {
+			method: 'POST',
+			body: 'x=1',
+			headers: { origin: 'https://app.test', accept: 'text/html' }
+		}),
+		address
+	);
+	expect(response.status).toBe(400);
+	expect(await response.text()).toContain('<destination>destination:action failed</destination>');
+});
+
 it('transforms errors once, renders the closest error node and falls back when its component fails', async () => {
 	const app = manifest();
 	app.nodes[2] = async () =>
@@ -1045,6 +1223,135 @@ it('emits an inline client stylesheet and its CSP hash without an external style
 	);
 });
 
+it('keeps initial fetch replay keys and TTL aligned with the document request', async () => {
+	const app = manifest();
+	app.client = {
+		start: '/start.js',
+		imports: [],
+		stylesheets: [],
+		fonts: [],
+		uses_env_dynamic_public: false
+	};
+	app.nodes[2] = async () =>
+		node(
+			2,
+			undefined,
+			{
+				load: async ({ fetch }) => ({
+					layout:
+						(await (await fetch(new Request('https://app.test/data'))).text()) +
+						(await (await fetch('/data', { method: 'POST', body: 'value' })).text())
+				})
+			},
+			layout
+		);
+	app.routes = [
+		route('/', null, true),
+		route('/data', async () => ({
+			GET: () => new Response('read', { headers: { 'cache-control': 'max-age=30' } }),
+			POST: () => new Response('posted', { headers: { 'cache-control': 'max-age=30' } })
+		}))
+	];
+	const server = await start(app, options());
+	const response = await server.respond(request(), address);
+	const scripts = [
+		...(await response.text()).matchAll(/<script ([^>]*data-sveltekit-fetched[^>]*)>/g)
+	];
+	expect(scripts).toHaveLength(2);
+	expect(scripts[0]![1]).not.toContain('data-hash');
+	expect(scripts[1]![1]).toContain('data-ttl="30"');
+});
+
+it('emulates route configuration before hooks for pages, endpoints and fallback requests', async () => {
+	const app = manifest();
+	app.nodes[0] = async () =>
+		node(0, { config: { inherited: true, message: 'root' } }, undefined, layout);
+	app.nodes[2] = async () =>
+		node(
+			2,
+			{ prerender: true, config: { message: 'server' } },
+			{ config: { message: 'page' } },
+			layout
+		);
+	app.routes = [
+		route('/page', null, true),
+		route('/api', async () => ({
+			config: { message: 'endpoint' },
+			prerender: 'auto',
+			GET: ({ platform }) => Response.json(platform)
+		}))
+	];
+	const server = await start(
+		app,
+		options({
+			handle: ({ event, resolve }) =>
+				event.route.id === '/page'
+					? Response.json({ platform: event.platform, query: event.url.searchParams.get('q') })
+					: event.route.id === null
+						? Response.json(event.platform)
+						: resolve(event)
+		})
+	);
+	const emulator = {
+		platform: ({ config, prerender }: import('../types/builder.ts').EmulationInput) => ({
+			config,
+			prerender
+		})
+	};
+	const pageResponse = await server.respond(request('/page?q=allowed'), { ...address, emulator });
+	expect(await pageResponse.json()).toEqual({
+		platform: { config: { inherited: true, message: 'page' }, prerender: true },
+		query: 'allowed'
+	});
+	const api = await server.respond(request('/api'), { ...address, emulator });
+	expect(await api.json()).toEqual({ config: { message: 'endpoint' }, prerender: 'auto' });
+	const missing = await server.respond(request('/missing'), { ...address, emulator });
+	expect(await missing.json()).toEqual({ config: {}, prerender: false });
+});
+
+it('embeds service worker registration and its options in CSP-authorized document code', async () => {
+	const app = manifest();
+	app.client = {
+		start: '/start.js',
+		imports: [],
+		stylesheets: [],
+		fonts: [],
+		uses_env_dynamic_public: false
+	};
+	app.nodes[2] = async () => node(2, { ssr: false });
+	app.routes = [route('/', null, true)];
+	const config = options();
+	app.client.inline = { script: '__sveltekit_contract.app={init(){},start(){}}' };
+	config.serviceWorker = { file: 'service-worker.js', options: { updateViaCache: 'imports' } };
+	config.csp = { mode: 'hash', directives: { 'default-src': ['self'] } };
+	const server = await start(app, config);
+	const response = await server.respond(request(), address);
+	const html = await response.text();
+	const script = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)]
+		.map((match) => match[1]!)
+		.find((script) => script.includes('navigator.serviceWorker.register'))!;
+	let register: (() => void) | undefined;
+	let registered: unknown[] = [];
+	await runInNewContext(script, {
+		document: { currentScript: { parentElement: {} } },
+		addEventListener: (name: string, handler: () => void) => {
+			if (name === 'load') register = handler;
+		},
+		navigator: {
+			serviceWorker: {
+				register: (...args: unknown[]) => {
+					registered = args;
+				}
+			}
+		}
+	});
+	register!();
+	expect(registered).toEqual(['/service-worker.js', { updateViaCache: 'imports', type: 'module' }]);
+	expect(response.headers.get('content-security-policy')).toContain(
+		`'sha256-${await sha256(script)}'`
+	);
+});
+
 it('normalizes page slashes and answers conditional requests without a response body', async () => {
 	const app = manifest();
 	app.nodes[2] = async () =>
@@ -1075,20 +1382,34 @@ it('normalizes page slashes and answers conditional requests without a response 
 
 it('reads imported and inline assets through the supplied Web-stream reader', async () => {
 	const app = manifest();
-	app.server_assets['asset.txt'] = 5;
+	app.server_assets = new Proxy(
+		{},
+		{
+			has: (_, file) => file === 'asset.txt' || file === '/@fs/root/[asset].txt',
+			get: () => 5
+		}
+	);
 	app.routes = [
 		route('/', async () => ({
 			GET: async () =>
 				Response.json({
 					imported: await read('/asset.txt').text(),
+					filesystem: await read('/@fs/root/%5Basset%5D.txt').text(),
 					inline: await read('data:text/plain;base64,aGVsbG8=').text()
 				})
 		}))
 	];
-	const server = await start(app, options(), {
+	const config = options();
+	config.dev = true;
+	const server = await start(app, config, {
 		env: {},
-		read: (file) => (file === 'asset.txt' ? new Blob(['hello']).stream() : null)
+		read: (file) =>
+			file === 'asset.txt' || file === '/@fs/root/[asset].txt' ? new Blob(['hello']).stream() : null
 	});
 	const response = await server.respond(request(), address);
-	expect(await response.json()).toEqual({ imported: 'hello', inline: 'hello' });
+	expect(await response.json()).toEqual({
+		imported: 'hello',
+		filesystem: 'hello',
+		inline: 'hello'
+	});
 });

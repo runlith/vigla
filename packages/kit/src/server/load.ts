@@ -3,10 +3,11 @@ import type { ServerLoadEvent } from '../types/request.ts';
 import type { ParamValue } from '../types/params.ts';
 import type { Server } from './index.ts';
 import { makeTrackable } from '../shared/url.ts';
+import { load_invalid_response } from '../shared/errors.ts';
+import type { ActionResult } from './actions.ts';
 import { runRequest } from './scope.ts';
 import { replayFetch } from './replay.ts';
 import { restrictSearch } from './url.ts';
-import * as errors from './errors.ts';
 import * as warnings from './warnings.ts';
 
 export interface LoadedNode {
@@ -18,16 +19,20 @@ export interface LoadedNode {
 
 export function validateLoad(
 	value: unknown,
-	id: string
+	location: string
 ): asserts value is Record<string, any> | null | undefined {
-	if (value == null) return;
-	const proto = Object.getPrototypeOf(value);
-	if (
-		typeof value !== 'object' ||
-		Array.isArray(value) ||
-		(proto !== Object.prototype && proto !== null)
-	)
-		errors.load_not_plain_object({ id });
+	if (value == null || Object.getPrototypeOf(value) === Object.prototype) return;
+	load_invalid_response({
+		location,
+		type:
+			typeof value !== 'object'
+				? `a ${typeof value}`
+				: value instanceof Response
+					? 'a Response object'
+					: Array.isArray(value)
+						? 'an array'
+						: 'a non-plain object'
+	});
 }
 
 export async function serverLoad(
@@ -72,7 +77,7 @@ export async function serverLoad(
 		(name) =>
 			track('Accessing URL properties', 'the URL changes', () => uses.search_params.add(name))
 	);
-	restrictSearch(url, store.state);
+	restrictSearch(url, store.state, true);
 	const input: ServerLoadEvent<Record<string, ParamValue>> = {
 		...event,
 		params: new Proxy(event.params, {
@@ -129,7 +134,10 @@ export async function serverLoad(
 			);
 		}
 	);
-	validateLoad(result, event.route.id ?? '');
+	validateLoad(
+		result,
+		node.server_id ? `in ${node.server_id}` : `related to route '${event.route.id}'`
+	);
 	observePromises(result);
 	done = true;
 	return { type: 'data', data: result ?? null, uses, slash: node.server.trailingSlash };
@@ -172,7 +180,10 @@ export async function universalLoad(
 				server.scope
 			)
 	);
-	validateLoad(result, event.route.id ?? '');
+	validateLoad(
+		result,
+		node.universal_id ? `in ${node.universal_id}` : `related to route '${event.route.id}'`
+	);
 	return result ?? null;
 }
 
@@ -202,7 +213,8 @@ export function loadBranch(
 	server: Server,
 	store: RequestStore,
 	nodes: Array<PageNode | undefined>,
-	csr: boolean
+	csr: boolean,
+	action?: ActionResult
 ): Array<Promise<LoadedNode | null>> {
 	const serverData: Array<Promise<ServerDataNode | null>> = [];
 	const universalData: Array<Promise<Record<string, any> | null>> = [];
@@ -211,9 +223,12 @@ export function loadBranch(
 			promises: Array<Promise<Record<string, any> | null>>
 		): Promise<Record<string, any>> =>
 			Object.assign({}, ...(await Promise.all(promises.slice(0, index))));
-		serverData[index] = serverLoad(server, store, node, () =>
-			parent(serverData.map((promise) => promise.then((value) => value?.data ?? null)))
-		);
+		serverData[index] =
+			index === nodes.length - 1 && action?.type === 'error'
+				? Promise.reject(action.error)
+				: serverLoad(server, store, node, () =>
+						parent(serverData.map((promise) => promise.then((value) => value?.data ?? null)))
+					);
 		serverData[index]!.catch(() => {});
 		universalData[index] = node
 			? universalLoad(server, store, node, serverData[index]!, () => parent(universalData), csr)

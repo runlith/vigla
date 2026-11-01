@@ -127,20 +127,28 @@ export function action_data_not_serializable({
 		action_data_not_serializable
 	);
 }
-export function load_not_serializable({
-	id,
-	message,
-	path
-}: {
-	id: string;
-	message: string;
-	path: string;
-}): never {
-	return throwDiagnostic(
-		'load_not_serializable',
-		`Data returned from \`load\` while rendering \`${id}\` is not serializable: ${message} (\`${path}\`). Use transport hooks for custom types.`,
-		load_not_serializable
-	);
+export function load_not_serializable(
+	{
+		id,
+		message,
+		path
+	}: {
+		id: string;
+		message: string;
+		path: string;
+	},
+	options?: ErrorOptions
+): never {
+	try {
+		throwDiagnostic(
+			'load_not_serializable',
+			`Data returned from \`load\` while rendering \`${id}\` is not serializable: ${message} (\`${path}\`). Use transport hooks for custom types.`,
+			load_not_serializable
+		);
+	} catch (error) {
+		if (error instanceof Error) error.cause = options?.cause;
+		throw error;
+	}
 }
 export function load_not_plain_object({ id }: { id: string }): never {
 	return throwDiagnostic(

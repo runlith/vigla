@@ -1,7 +1,7 @@
 import type { Owner } from 'vigla';
 import type { Component, Format } from 'vigla/server';
 import type { CspConfig } from '../csp.ts';
-import type { PrerenderOption } from '../builder.ts';
+import type { Emulator, PrerenderOption } from '../builder.ts';
 import type {
 	Handle,
 	HandleFetch,
@@ -283,6 +283,7 @@ export interface PrerenderState {
 export interface RespondOptions {
 	getClientAddress(): string;
 	platform?: App.Platform;
+	emulator?: Emulator;
 	read?: Read;
 	prerendering?: PrerenderState;
 }
@@ -299,6 +300,7 @@ export interface ServerModule {
 
 export interface RequestState {
 	read?: Read;
+	emulator?: Emulator;
 	depth: number;
 	error: boolean;
 	rerouted: string | null;

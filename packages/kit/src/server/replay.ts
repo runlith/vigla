@@ -10,7 +10,9 @@ export function replayFetch(server: Server, store: RequestStore, csr: boolean): 
 		const url = new URL(input instanceof Request ? input.url : input, event.url);
 		const requestHeaders =
 			input instanceof Request
-				? new Headers(input.headers)
+				? [...input.headers].length
+					? new Headers(input.headers)
+					: undefined
 				: init?.headers
 					? new Headers(init.headers)
 					: undefined;
@@ -49,7 +51,7 @@ export function replayFetch(server: Server, store: RequestStore, csr: boolean): 
 				if (csr)
 					state.fetched.push({
 						url: sameOrigin ? url.href.slice(url.origin.length) : url.href,
-						method: input instanceof Request ? input.method : (init?.method ?? 'GET'),
+						method: event.request.method,
 						request_headers: requestHeaders,
 						request_body: request as string | ArrayBufferView | undefined,
 						response,
@@ -168,5 +170,5 @@ export function serializeFetched(
 				`data-ttl="${Number(maxAge[1]) - Number(fetched.response.headers.get('age') ?? 0)}"`
 			);
 	}
-	return `<script ${attributes.join(' ')}>${escapeJson({ status: fetched.response.status, statusText: fetched.response.statusText, headers, body: fetched.response_body })}</script>`;
+	return `<script ${attributes.join(' ')}>${escapeJson({ status: fetched.response.status, statusText: fetched.response.statusText, headers, body: [101, 103, 204, 205, 304].includes(fetched.response.status) ? null : fetched.response_body })}</script>`;
 }

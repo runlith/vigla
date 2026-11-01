@@ -38,10 +38,12 @@ export function read(file: string): Response {
 		return errors.read_asset_missing({ file });
 	}
 	const prefix = source.paths.assets || source.paths.base;
-	const name = pathname.startsWith(`${prefix}/`)
-		? pathname.slice(prefix.length + 1)
-		: pathname.slice(1);
-	if (!Object.hasOwn(source.manifest.server_assets, name)) errors.read_asset_missing({ file });
+	const name = pathname.startsWith(`${prefix}/@fs/`)
+		? pathname.slice(prefix.length)
+		: pathname.startsWith(`${prefix}/`)
+			? pathname.slice(prefix.length + 1)
+			: pathname.slice(1);
+	if (!(name in source.manifest.server_assets)) errors.read_asset_missing({ file });
 	const reader = source.read;
 	const pending = Promise.resolve(reader(name)).then((stream) => {
 		if (!stream) errors.read_asset_missing({ file });

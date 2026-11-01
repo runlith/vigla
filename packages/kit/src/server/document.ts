@@ -6,6 +6,7 @@ import type { Server } from './index.ts';
 import type { LoadedNode } from './load.ts';
 import { escapeHtml, escapeJson } from '../shared/escape.ts';
 import { hash } from '../shared/hash.ts';
+import { Redirect } from '../shared/outcomes.ts';
 import { DataSerializer } from './data.ts';
 import { Csp } from './csp.ts';
 import { handleError } from './failure.ts';
@@ -92,7 +93,13 @@ export async function renderDocument(
 								props,
 								context,
 								csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },
-								transformError: (error) => handleError(store, error),
+								transformError: async (error) => {
+									if (error instanceof Redirect) throw error;
+									const body = await handleError(store, error);
+									document.error = page.error = body;
+									document.status = page.status = body.status;
+									return body;
+								},
 								format: options.format
 							}),
 						server.scope
@@ -229,7 +236,11 @@ export async function renderDocument(
 			: client.app
 				? `const element=document.currentScript.parentElement;const kitPromise=${prepare}.then(()=>import(${escapeJson(clientPath(client.start, paths))}));${namespace}.ready=kitPromise.then(kit=>{kit.init(${namespace});});${namespace}.ready.then(async()=>{const kit=await kitPromise;const app=await import(${escapeJson(clientPath(client.app, paths))});return kit.start(app,element,${hydrated});});`
 				: `const element=document.currentScript.parentElement;const appPromise=${prepare}.then(()=>import(${escapeJson(clientPath(client.start, paths))}));${namespace}.ready=appPromise.then(app=>{app.init?.(${namespace});});${namespace}.ready.then(async()=>{const app=await appPromise;return app.start(element,${hydrated});});`;
-		const script = `{globalThis.${namespace}={${properties.join(',')}};${boot}}`;
+		const worker = options.serviceWorker;
+		const registration = worker
+			? `if('serviceWorker' in navigator){const script_url=${escapeJson(clientPath(worker.file, paths))};const policy=globalThis.window?.trustedTypes?.createPolicy('sveltekit-trusted-url',{createScriptURL(url){return url;}});const sanitised=policy?.createScriptURL(script_url)??script_url;addEventListener('load',function(){navigator.serviceWorker.register(sanitised, ${escapeJson({ ...worker.options, type: 'module' })});});}`
+			: '';
+		const script = `{globalThis.${namespace}={${properties.join(',')}};${boot}${registration}}`;
 		await csp.script(script);
 		body += `<script${csp.scriptNonce ? ` nonce="${csp.nonce}"` : ''}>${script}</script>`;
 	}

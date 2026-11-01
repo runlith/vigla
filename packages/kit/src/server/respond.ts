@@ -82,6 +82,7 @@ export async function respond(
 	const jar = new CookieJar(request, url, server.options.dev, server.cookiePaths);
 	const state: RequestState = {
 		read: options.read ?? server.read,
+		emulator: options.emulator,
 		depth: (parent?.state.depth ?? -1) + 1,
 		error: false,
 		rerouted: null,
@@ -98,7 +99,9 @@ export async function respond(
 		getClientAddress: options.getClientAddress,
 		locals: {},
 		params: {},
-		platform: options.platform,
+		platform: options.emulator?.platform
+			? await options.emulator.platform({ config: {}, prerender: !!state.prerendering?.fallback })
+			: options.platform,
 		request,
 		route: { id: null as string | null },
 		setHeaders: headers.set,
@@ -190,6 +193,17 @@ export async function respond(
 			: useEndpoint
 				? (endpoint!.trailingSlash ?? 'never')
 				: pageSettings(nodes).trailingSlash;
+		if (options.emulator?.platform && route) {
+			const config = endpoint
+				? (endpoint.config ?? {})
+				: Object.assign(
+						{},
+						...nodes.flatMap((node) => [node?.server?.config, node?.universal?.config])
+					);
+			const prerender = endpoint ? (endpoint.prerender ?? false) : pageSettings(nodes).prerender;
+			if (!endpoint) state.prerenderDefault = prerender;
+			event.platform = await options.emulator.platform({ config, prerender });
+		}
 		let resolved = false;
 		const resolve = async (
 			resolvedEvent: RequestEvent<Record<string, ParamValue>>,
@@ -303,6 +317,18 @@ export async function respond(
 	}
 
 	function finish(response: Response, vary = false): Response {
+		const location = response.headers.get('location');
+		if (data && response.status >= 300 && response.status <= 308 && location) {
+			void response.body?.cancel().catch(() => {});
+			const headers = new Headers(response.headers);
+			headers.delete('location');
+			headers.delete('content-length');
+			headers.set('content-type', 'application/json');
+			response = Response.json(
+				{ type: 'redirect', status: response.status, location },
+				{ headers }
+			);
+		}
 		jar.route('ignore');
 		jar.seal();
 		headers.seal();

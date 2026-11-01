@@ -63,6 +63,7 @@ export class Server implements ServerInstance {
 			{
 				getClientAddress: parent.event.getClientAddress,
 				platform: parent.event.platform,
+				emulator: parent.state.emulator,
 				read: parent.state.read,
 				prerendering: parent.state.prerendering
 			},
