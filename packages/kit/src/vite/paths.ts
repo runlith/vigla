@@ -7,6 +7,7 @@ import type { ValidatedConfig } from '../types/builder.ts';
 
 export const packageDirectory = fileURLToPath(new URL('../../', import.meta.url));
 export const packageImporter = path.join(packageDirectory, 'src/vite/index.ts');
+const sourceDirectory = posix(path.join(packageDirectory, 'src')) + '/';
 
 export interface ImportAlias {
 	alias: string;
@@ -146,6 +147,7 @@ export function isServerOnly(id: string, dirs: ProjectDirectories): boolean {
 export function isRemoteModule(id: string): boolean {
 	id = posix(id);
 	if (!remotePattern.test(id)) return false;
+	if (id.startsWith(sourceDirectory)) return false;
 	if (!id.split('/').includes('node_modules')) return true;
 	let directory = path.dirname(id);
 	while (path.basename(directory) !== 'node_modules') {
