@@ -4,16 +4,16 @@ import { asynchronous, parked, showing, unsettled, type AsyncRun } from './async
 import {
 	BLOCK,
 	CLEAN,
+	DERIVED,
 	DIRTY,
 	EAGER,
 	EFFECT,
 	MAYBE,
 	TEMPLATE,
 	equal,
-	isDerived,
 	stamp,
+	type Derived,
 	type Effect,
-	type Reaction,
 	type Source
 } from './graph.ts';
 import { fail, offscreen, run } from './effects.ts';
@@ -255,14 +255,14 @@ function mark(
 		seen.add(source);
 	} else if ((visits += length) > 10_000) seen = new Set([source]);
 	for (let index = 0; index < length; index++) {
-		const reaction = reactions[index] as Reaction;
+		const reaction = reactions[index] as Derived | Effect;
 		const previous = reaction.status;
-		if (isDerived(reaction)) {
+		if (reaction.kind === DERIVED) {
 			if (previous < status) reaction.status = status;
 			mark(reaction, MAYBE, all, forked);
 			continue;
 		}
-		const effect = reaction as Effect;
+		const effect = reaction;
 		if (effect.kind === EAGER) {
 			if (staging) continue;
 			if (previous < status) effect.status = status;
