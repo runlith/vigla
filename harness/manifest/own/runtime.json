@@ -92,6 +92,10 @@
 			"status": "contract",
 			"reason": "Scheduler invariant 5: green on upstream 5.57.3"
 		},
+		"issue-17220-module-spread": {
+			"status": "difference",
+			"reason": "Svelte #17220: spreading a real module namespace before an explicit prop throws Cannot redefine property: foo on upstream 5.57.3 in sync and async SSR; Vigla renders the explicit value"
+		},
 		"key-undefined-outro": "contract",
 		"leading-nested-block": "contract",
 		"merge-combined-choice": "contract",
@@ -132,10 +136,22 @@
 		},
 		"select-spread-undefined": "contract",
 		"tagged-input-cache": "contract",
+		"async-batch-effect": { "status": "difference", "reason": "Svelte #18374: upstream 5.57.3 with async on and dev:false commits 0/1 instead of 1/1 after the nested microtask writes" },
+		"async-hydration-prewrite": { "status": "difference", "reason": "Svelte #18993 public hydration analogue: upstream 5.57.3 renders content after the pre-hydration data write but its expected root/child layout effect is absent" },
+		"eager-promise-parallel": { "status": "difference", "reason": "Svelte #18069 narrowed case: upstream 5.57.3 with dev:true emits a false waterfall warning although working's 200ms promise started eagerly before broken's 100ms Promise.all work" },
+		"bind-teardown-snapshot": { "status": "difference", "reason": "Svelte #18150: upstream 5.57.3 clears bind:this before the effect cleanup, which reads null rather than the previous INPUT" },
+		"async-derived-read-cache": { "status": "difference", "reason": "Svelte #18997: upstream 5.57.3 evaluates the same derived 8 times within one held view after counters reset, rather than at most once" },
+		"effect-focus-order": { "status": "difference", "reason": "Svelte #16256: upstream 5.57.3 logs post:false before pre:false when a child focus effect closes the parent branch" },
+		"effect-shared-derived-cost": { "status": "difference", "reason": "Svelte #19032: the depth-24 shared-diamond public graph measured an effect-write/direct-write same-thread CPU median ratio of 172.94 on upstream 5.57.3, above the 32x regression ceiling" },
+		"guard-publisher-teardown": "contract",
+		"derived-stale-override": { "status": "difference", "reason": "Svelte #19057: assigning a derived its stale cached value on upstream 5.57.3 yields ['2', 2] for the connected and disconnected cases rather than ['1', 1]" },
 		"async-context-batch": { "status": "difference", "reason": "Svelte #16942: a read after an await in a template expression must use the batch that started it; upstream 5.57.3 shows 3/3 instead of 2/2 when the first of two held batches resolves" },
 		"async-each-overlap": { "status": "difference", "reason": "Svelte #18355: two overlapping reversals of an awaited each; upstream 5.57.3 reevaluates the rows derived 25 times instead of fewer than 12" },
 		"destroy-read-current": { "status": "difference", "reason": "Svelte #17375: onDestroy reads after a same-tick write; upstream 5.57.3 logs initial|initial|initial instead of changed|changed|changed" },
 		"pending-snippet-switch": { "status": "difference", "reason": "Svelte #19107: a boundary's pending prop switching to a snippet mid-await; upstream 5.57.3 remounts the pending branch until about 500 <p>DIV</p> remain instead of one" },
+		"prop-boolean-reset": { "status": "difference", "reason": "Svelte #17474: upstream 5.57.3 cannot reopen the child after its local prop write and parent reset when the prop is passed through !!ask" },
+		"option-spread-null": { "status": "difference", "reason": "Svelte #17395: upstream 5.57.3 selects empty strings rather than undefined and null for option values supplied through spread" },
+		"props-own-spread": { "status": "difference", "reason": "Svelte #16139: upstream 5.57.3 leaks inherited prototype functions into both absent and explicit props" },
 		"store-nested-read": {
 			"status": "difference",
 			"reason": "Svelte #5052: a nested writable reset leaves compiled store reads stale inside the subscriber on upstream 5.57.3 (1|1|0 rather than 0|0|0)"
