@@ -108,14 +108,27 @@ function destroyEffects(derived: Derived): void {
 }
 
 function subscribe(dep: Source, reaction: Reaction): void {
-	const reactions = (dep.reactions ??= new Set());
-	if (reactions.size === 0 && isDerived(dep) && dep.frozen !== null) thaw(dep);
-	reactions.add(reaction);
+	const reactions = dep.reactions;
+	if (reactions !== null) {
+		reactions.push(reaction);
+		return;
+	}
+	dep.reactions = [reaction];
+	if (isDerived(dep) && dep.frozen !== null) thaw(dep);
 }
 
 export function unsubscribe(dep: Source, reaction: Reaction): void {
 	const reactions = dep.reactions;
-	if (reactions === null || !reactions.delete(reaction) || reactions.size > 0) return;
+	if (reactions === null) return;
+	const index = reactions.indexOf(reaction);
+	if (index === -1) return;
+	const last = reactions.length - 1;
+	if (last > 0) {
+		reactions[index] = reactions[last] as Reaction;
+		reactions.pop();
+		return;
+	}
+	dep.reactions = null;
 	if (isDerived(dep) && dep.effects !== null) freeze(dep);
 }
 
@@ -473,11 +486,12 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 		return;
 	}
 	const kept = new Set(reads(current));
-	for (const dep of previous ?? []) {
+	const subscribed = new Set(previous);
+	for (const dep of subscribed) {
 		if (keep) kept.add(dep);
 		else if (!kept.has(dep)) unsubscribe(dep, target);
 	}
-	for (const dep of kept) subscribe(dep, target);
+	for (const dep of kept) if (!subscribed.has(dep)) subscribe(dep, target);
 	target.deps = [...kept];
 	if ((previous === null || previous.length === 0) && kept.size > 0 && isDerived(target))
 		own(target);

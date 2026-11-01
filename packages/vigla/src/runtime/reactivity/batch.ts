@@ -13,6 +13,7 @@ import {
 	isDerived,
 	stamp,
 	type Effect,
+	type Reaction,
 	type Source
 } from './graph.ts';
 import { offscreen, run } from './effects.ts';
@@ -232,6 +233,7 @@ export function collect(effect: Effect): void {
 
 let visits = 0;
 let seen: Set<Source> | null = null;
+let scheduling: Batch | null = null;
 
 function mark(
 	source: Source,
@@ -241,11 +243,13 @@ function mark(
 ): void {
 	const reactions = source.reactions;
 	if (reactions === null) return;
+	const length = reactions.length;
 	if (seen !== null) {
 		if (seen.has(source)) return;
 		seen.add(source);
-	} else if ((visits += reactions.size) > 10_000) seen = new Set([source]);
-	for (const reaction of reactions) {
+	} else if ((visits += length) > 10_000) seen = new Set([source]);
+	for (let index = 0; index < length; index++) {
+		const reaction = reactions[index] as Reaction;
 		const previous = reaction.status;
 		if (isDerived(reaction)) {
 			if (previous < status) reaction.status = status;
@@ -261,7 +265,7 @@ function mark(
 		}
 		if (forked !== 0 && previous === CLEAN && effect.forked === forked) continue;
 		if (previous < status) effect.status = status;
-		if (all || previous === CLEAN) schedule(effect);
+		if (all || previous === CLEAN) enqueue((scheduling ??= receiving()), effect);
 	}
 }
 
@@ -272,6 +276,9 @@ function dirty(source: Source, forked = 0): void {
 	if (all) members(receiving());
 	mark(source, DIRTY, all, forked);
 	seen = null;
+	const batch = scheduling;
+	scheduling = null;
+	if (batch !== null && batch !== processing && batch.started) request();
 }
 
 let staging = false;

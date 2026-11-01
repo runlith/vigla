@@ -27,7 +27,7 @@ export interface Source<T = unknown> {
 	readonly kind: typeof SOURCE | typeof DERIVED;
 	v: T;
 	wv: number;
-	reactions: Set<Reaction> | null;
+	reactions: Reaction[] | null;
 	logged: number;
 	slot: number;
 	read: number;
