@@ -1,4 +1,5 @@
 import { BROWSER, DEV } from 'esm-env';
+import { getOrigin } from '#internal/origin';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type {
 	ErrorFunction,
@@ -70,7 +71,7 @@ export function redirect(status: number, location: string | URL, options?: Redir
 	if ((!BROWSER || DEV) && (isNaN(status) || status < 300 || status > 308))
 		invalid_redirect_status({ status: String(status) });
 	const href = location.toString();
-	validateRedirect(href, options, BROWSER ? globalThis.location.origin : undefined);
+	validateRedirect(href, options, getOrigin());
 	throw new Redirect(status as RedirectStatus, href);
 }
 export function isRedirect(value: unknown): value is Redirect {

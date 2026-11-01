@@ -57,11 +57,15 @@ export async function renderDocument(
 		let tree: RenderBranch | null = null;
 		const merged: Record<string, any> = {};
 		const branches: RenderBranch[] = [];
+		let guard = -1;
 		for (const branch of document.branch) {
 			Object.assign(merged, branch.data);
 			if (!branch.node.component) continue;
 			const component = await branch.node.component();
-			const error = (await document.errors[branch.depth]?.component?.()) ?? null;
+			let depth = branch.depth - 1;
+			while (depth > guard + 1 && !document.errors[depth]) depth--;
+			guard = depth;
+			const error = (await document.errors[depth]?.component?.()) ?? null;
 			branches.push({ component, error, data: { ...merged }, child: null });
 		}
 		for (let index = branches.length - 1; index >= 0; index--)

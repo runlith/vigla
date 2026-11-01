@@ -18,6 +18,7 @@ import { parseRoute } from '../shared/routing/index.ts';
 import { ActionFailure, HttpError, Redirect } from '../shared/outcomes.ts';
 import { deserialize } from '../shared/serialization.ts';
 import { sha256 } from '../shared/hash.ts';
+import { redirect } from '../entries/index.ts';
 import { Server, getRequestEvent, getRequestOwner, read } from './index.ts';
 import { page } from './state.ts';
 
@@ -714,6 +715,38 @@ it('turns handle redirects into data redirects without dropping response cookies
 	expect(await response.json()).toEqual({ type: 'redirect', status: 307, location: '/target' });
 });
 
+it('allows same-origin absolute hook redirects after an await and retains deleted cookies', async () => {
+	const app = manifest();
+	app.nodes[2] = async () => node(2, undefined, undefined, layout);
+	app.routes = [route('/go', null, true)];
+	const server = await start(
+		app,
+		options({
+			async handle({ event }) {
+				await Promise.resolve();
+				event.cookies.delete('session', { path: '/cookies' });
+				redirect(307, new URL('/cookies', event.url));
+			},
+			handleError: ({ error }) => ({ message: (error as Error).message })
+		}),
+		{ env: {}, scope: new AsyncLocalStorage<RequestStore>() }
+	);
+	const document = await server.respond(request('/go'), address);
+	expect(document.status).toBe(307);
+	expect(document.headers.get('location')).toBe('https://app.test/cookies');
+	expect(document.headers.getSetCookie()).toEqual([
+		expect.stringContaining('session=; Max-Age=0; Path=/cookies')
+	]);
+	expect(document.body).toBeNull();
+	const data = await server.respond(request('/go/__data.json'), address);
+	expect(await data.json()).toEqual({
+		type: 'redirect',
+		status: 307,
+		location: 'https://app.test/cookies'
+	});
+	expect(data.headers.getSetCookie()).toEqual(document.headers.getSetCookie());
+});
+
 it('rejects an aborted internal fetch before its endpoint returns headers', async () => {
 	const app = manifest();
 	const controller = new AbortController();
@@ -813,25 +846,52 @@ it('reports invalid load results at their source and serializes data paths once'
 	);
 });
 
-it('keeps rendered boundary errors in the response status and page state', async () => {
+it('keeps rendered boundary errors inside their ancestor layout and updates the page status', async () => {
 	const app = manifest();
+	app.nodes[0] = async () =>
+		node(0, undefined, undefined, (out, props) => {
+			props.children(out);
+			out.push('<footer>root layout</footer>');
+		});
+	app.nodes[1] = async () =>
+		node(1, undefined, undefined, (out) =>
+			out.push(`<failure>${page.status}:${page.error?.message}</failure>`)
+		);
 	app.nodes[2] = async () =>
-		node(2, undefined, undefined, () => {
+		node(2, undefined, undefined, (out, props) => {
+			props.children(out);
+			out.push('<inner-layout/>');
+		});
+	app.nodes[3] = async () =>
+		node(3, undefined, undefined, () => {
 			throw new Error('render failed');
 		});
-	app.routes = [route('/', null, true)];
+	const nested = route('/', null, true);
+	nested.page = { layouts: [0, undefined, 2], errors: [1, undefined, undefined], leaf: 3 };
+	app.routes = [nested];
 	const config = options({ handleError: () => ({ status: 404, message: 'handled render' }) });
-	config.root = (out, props) =>
-		out.boundary(
-			{
-				failed: (out) => out.push(`<failure>${page.status}:${page.error?.message}</failure>`)
-			},
-			(out) => root(out, props)
-		);
+	config.root = (out, props) => {
+		const visit = (out: Parameters<Component>[0], branch: RootProps['tree']): void => {
+			out.boundary(
+				{
+					failed: branch.error ? (out, error) => branch.error!(out, { error }) : undefined
+				},
+				(out) =>
+					branch.component(out, {
+						data: branch.data,
+						children: (out: Parameters<Component>[0]) => visit(out, branch.child!)
+					})
+			);
+		};
+		visit(out, props.tree);
+	};
 	const server = await start(app, config);
 	const response = await server.respond(request(), address);
+	const html = await response.text();
 	expect(response.status).toBe(404);
-	expect(await response.text()).toContain('<failure>404:handled render</failure>');
+	expect(html).toContain('<failure>404:handled render</failure>');
+	expect(html).toContain('<footer>root layout</footer>');
+	expect(html).not.toContain('<inner-layout/>');
 });
 
 it('uses the action destination boundary and retains its successful layout data', async () => {

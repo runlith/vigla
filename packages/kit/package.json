@@ -39,6 +39,11 @@
 		"./internal/node": "./src/node/static.ts"
 	},
 	"imports": {
+		"#internal/origin": {
+			"workerd": "./src/server/origin.ts",
+			"browser": "./src/client/origin.ts",
+			"default": "./src/server/origin.ts"
+		},
 		"#types/*": "./src/types/*.ts",
 		"#app/env": {
 			"workerd": "./src/entries/app/env/server.ts",
