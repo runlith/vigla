@@ -1,4 +1,4 @@
-import { createContext, onDestroy, openHydration, root, settled, untrack, type Owner } from 'vigla';
+import { createContext, onDestroy, openHydration, root, untrack, type Owner } from 'vigla';
 import type { ClientApp, Hydration } from '../types/internal/client.ts';
 import type { ActionResult } from '../types/forms.ts';
 import type {
@@ -103,14 +103,15 @@ export class Client {
 			this.transport
 		);
 		this.owner.run(() => onDestroy(this.pages.fetches.observe()));
-		this.view = new View(app, this.owner, target, this.state, this.routes, (error) => {
-			void this.pages
-				.error(error, {
-					url: new URL(location.href),
-					route: { id: this.current?.route.id ?? null },
-					params: this.state.page.params
-				})
-				.then((error) => this.state.update({ error, status: error.status }));
+		this.view = new View(app, this.owner, target, this.state, this.routes, async (error) => {
+			const token = this.#token;
+			const body = await this.pages.error(error, {
+				url: new URL(location.href),
+				route: { id: this.current?.route.id ?? null },
+				params: this.state.page.params
+			});
+			if (token === this.#token) this.state.update({ error: body, status: body.status });
+			return body;
 		});
 		active = this;
 		setMatcher(async (url) => {
@@ -129,7 +130,9 @@ export class Client {
 	}
 
 	url(value: string | URL): URL {
-		return new URL(value, document.baseURI || location.href);
+		const url = new URL(value, document.baseURI || location.href);
+		url.search = url.search;
+		return url;
 	}
 	intent(url: URL): Promise<Intent | null> {
 		return this.owner.run(() => this.routes.match(url));
@@ -184,13 +187,14 @@ export class Client {
 				this.history.metadata()?.persistState ? this.history.state() : {},
 				hydrating
 			);
-			apply();
 			this.current = result;
+			apply();
 			this.pages.fetches.initial = false;
-			await settled();
+			await this.view.settle();
 			closeInput();
 			const position = this.restoration.position(this.history.index);
-			if (position || !hydration) this.restoration.scroll(url, true, position);
+			if (position || !hydrating) this.restoration.scroll(url, true, position);
+			if (!hydrating && document.activeElement === document.body) this.restoration.focus(url);
 			const navigation = this.navigation(url, 'enter', {}, result) as NavigationEnter;
 			navigation.to!.scroll = { x: window.scrollX, y: window.scrollY };
 			this.lifecycle.finish(navigation);
@@ -378,15 +382,21 @@ export class Client {
 			}
 			if (result.type === 'redirect') {
 				this.#preload = undefined;
-				if (redirects >= 20) errors.redirect_loop({ url: url.href });
-				const destination = new URL(result.location, url);
-				if (this.routes.outside(destination)) {
-					location.href = destination.href;
-					return;
+				if (redirects < 20) {
+					const destination = new URL(result.location, url);
+					if (this.routes.outside(destination)) {
+						location.href = destination.href;
+						return;
+					}
+					const redirected = this.navigate(destination, options, redirects + 1);
+					void redirected.then(completion.resolve, completion.reject);
+					return redirected;
 				}
-				const redirected = this.navigate(destination, options, redirects + 1);
-				void redirected.then(completion.resolve, completion.reject);
-				return redirected;
+				try {
+					errors.redirect_loop({ url: url.href });
+				} catch (error) {
+					result = await this.pages.rootError(loadIntent, error);
+				}
 			}
 			if (options.action && options.action.type !== 'error')
 				result = await this.actions.result(result, options.action);
@@ -441,7 +451,7 @@ export class Client {
 			}
 			this.#preload = undefined;
 			await finishRemotes?.();
-			await settled();
+			await this.view.settle();
 			const visibleUrl = shallow ? url : result.url;
 			if (token !== this.#token) {
 				completion.resolve();
@@ -521,7 +531,7 @@ export class Client {
 			this.state.update({ shallow });
 			this.current = result;
 			await refreshed;
-			await settled();
+			await this.view.settle();
 		}));
 	}
 

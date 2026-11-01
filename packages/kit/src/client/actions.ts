@@ -1,4 +1,3 @@
-import { settled } from 'vigla';
 import type { ActionResult } from '../types/forms.ts';
 import type { Client } from './client.ts';
 import type { Loaded } from './load.ts';
@@ -33,7 +32,7 @@ export class Actions {
 		if (generation !== client.generation) return;
 		apply();
 		client.current = result;
-		await settled();
+		await client.view.settle();
 		if (action.type === 'success') client.restoration.focus(result.url);
 	}
 

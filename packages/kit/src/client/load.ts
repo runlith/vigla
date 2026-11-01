@@ -275,6 +275,45 @@ export class Pages {
 		};
 	}
 
+	async rootError(intent: Intent, error: unknown): Promise<Loaded> {
+		const fallback: Intent = {
+			url: intent.url,
+			params: {},
+			route: { ...this.fallback(intent.route.id), errors: [] }
+		};
+		const body = await this.error(error, {
+			url: intent.url,
+			params: {},
+			route: { id: intent.route.id }
+		});
+		let data: DataNode | null = null;
+		if (this.app.serverLoads.includes(0)) {
+			const response = await fetchData(intent.url, [true], this.transport, this.state);
+			if (response.type !== 'data') throw new HandledError(body);
+			const node = response.nodes[0];
+			if (node?.type === 'error') throw new HandledError(node.error);
+			if (node && node.type !== 'data') throw new HandledError(body);
+			data = node ?? null;
+		}
+		const root = await this.node(this.app.nodes[0]!, data, fallback, async () => ({}));
+		const loader = this.app.nodes[1]!;
+		const leaf: Branch = {
+			loader,
+			node: await this.routes.load(loader),
+			server: null,
+			uses: null,
+			data: empty
+		};
+		return {
+			...fallback,
+			type: 'loaded',
+			branch: [root, leaf],
+			error: body,
+			status: body.status,
+			form: null
+		};
+	}
+
 	fallback(id = '/'): Route {
 		return {
 			id,

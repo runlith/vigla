@@ -6,6 +6,7 @@ import type { Server } from './index.ts';
 import type { LoadedNode } from './load.ts';
 import { escapeHtml, escapeJson } from '../shared/escape.ts';
 import { hash } from '../shared/hash.ts';
+import { errorGuards } from '../shared/render.ts';
 import { Redirect } from '../shared/outcomes.ts';
 import { DataSerializer } from './data.ts';
 import { Csp } from './csp.ts';
@@ -57,15 +58,18 @@ export async function renderDocument(
 		let tree: RenderBranch | null = null;
 		const merged: Record<string, any> = {};
 		const branches: RenderBranch[] = [];
-		let guard = -1;
+		const guards = errorGuards(
+			document.branch.filter((branch) => branch.node.component).map((branch) => branch.depth),
+			document.errors
+		);
+		let index = 0;
 		for (const branch of document.branch) {
 			Object.assign(merged, branch.data);
 			if (!branch.node.component) continue;
 			const component = await branch.node.component();
-			let depth = branch.depth - 1;
-			while (depth > guard + 1 && !document.errors[depth]) depth--;
-			guard = depth;
-			const error = (await document.errors[depth]?.component?.()) ?? null;
+			const guard = guards[index++];
+			const error =
+				guard === undefined ? null : ((await document.errors[guard]?.component?.()) ?? null);
 			branches.push({ component, error, data: { ...merged }, child: null });
 		}
 		for (let index = branches.length - 1; index >= 0; index--)

@@ -1,4 +1,5 @@
-import { cell, hydrate, mount, unmount, type Owner } from 'vigla';
+import { cell, hydrate, mount, unmount, settled, type Owner } from 'vigla';
+import { errorGuards } from '../shared/render.ts';
 import type {
 	ClientApp,
 	ComponentInstance,
@@ -9,6 +10,8 @@ import type { Component } from 'vigla';
 import type { Loaded } from './load.ts';
 import type { State } from './state.ts';
 import type { Routes } from './routes.ts';
+
+type ErrorTransform = (error: unknown) => Promise<App.Error>;
 
 class Tree implements RenderNode {
 	readonly #component = cell<Component<any, any>>(null!);
@@ -47,12 +50,13 @@ export class View {
 	#branches: Loaded['branch'] = [];
 	readonly #root = cell<RenderNode>(null!);
 	readonly #resets = new Set<() => void>();
+	readonly #pendingResets = new Set<() => void>();
 	readonly #app: ClientApp;
 	readonly #owner: Owner;
 	readonly #target: HTMLElement;
 	readonly #state: State;
 	readonly #routes: Routes;
-	readonly #onerror: (error: unknown) => void;
+	readonly #transformError: ErrorTransform;
 	#instance: Record<string, unknown> | undefined;
 
 	constructor(
@@ -61,26 +65,31 @@ export class View {
 		target: HTMLElement,
 		state: State,
 		routes: Routes,
-		onerror: (error: unknown) => void
+		transformError: ErrorTransform
 	) {
 		this.#app = app;
 		this.#owner = owner;
 		this.#target = target;
 		this.#state = state;
 		this.#routes = routes;
-		this.#onerror = onerror;
+		this.#transformError = transformError;
 	}
 
 	async prepare(result: Loaded, state: App.PageState, hydratePage = false): Promise<() => void> {
+		const guards = errorGuards(
+			result.branch.flatMap((node, depth) => (node ? [depth] : [])),
+			result.route.errors
+		);
 		const errors = await Promise.all(
-			result.route.errors.map((loader) =>
-				loader
+			guards.map((guard) => {
+				const loader = guard === undefined ? undefined : result.route.errors[guard];
+				return loader
 					? this.#routes
 							.load(loader)
 							.then((node) => node.component)
 							.catch(() => undefined)
-					: undefined
-			)
+					: undefined;
+			})
 		);
 		return () => this.#commit(result, state, errors, hydratePage);
 	}
@@ -91,6 +100,8 @@ export class View {
 		errors: Array<Component<any, any> | undefined>,
 		hydratePage: boolean
 	): void {
+		for (const reset of this.#resets) this.#pendingResets.add(reset);
+		this.#resets.clear();
 		let data: Record<string, any> = {};
 		let depth = 0;
 		let parent: Tree | undefined;
@@ -101,7 +112,7 @@ export class View {
 			changed ||= !this.#branches[index] || branch.data !== this.#branches[index]!.data;
 			data = changed ? { ...data, ...branch.data } : tree.data;
 			tree.component = branch.node.component;
-			tree.error = index ? errors[index] : undefined;
+			tree.error = errors[depth];
 			tree.data = data;
 			if (parent) parent.child = tree;
 			else this.#root.current = tree;
@@ -122,8 +133,6 @@ export class View {
 			state,
 			shallow: null
 		});
-		for (const reset of this.#resets) reset();
-		this.#resets.clear();
 		if (!this.#instance) {
 			const view = this;
 			const props: RootProps = {
@@ -138,9 +147,8 @@ export class View {
 				get error() {
 					return view.#state.page.error;
 				},
-				onerror: (error, reset) => {
+				onerror: (_error, reset) => {
 					this.#resets.add(reset);
-					this.#onerror(error);
 				}
 			};
 			this.#instance = this.#owner.run(() =>
@@ -148,10 +156,19 @@ export class View {
 					target: this.#target,
 					props,
 					format: this.#app.format,
-					intro: !hydratePage
+					intro: !hydratePage,
+					transformError: this.#transformError
 				})
 			);
 		}
+	}
+
+	async settle(): Promise<void> {
+		const resets = [...this.#pendingResets];
+		this.#pendingResets.clear();
+		await settled();
+		for (const reset of resets) reset();
+		if (resets.length) await settled();
 	}
 
 	error(html: string): void {

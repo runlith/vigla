@@ -745,6 +745,81 @@ test('reroute runs in the tab context and a thrown reroute yields no match', asy
 	await expect(preloadData('/missing')).rejects.toThrow('preload_url_outside_app');
 });
 
+test('SPA startup focuses a fragment target without interpreting its ID as a selector', async () => {
+	history.replaceState(null, '', '/one#an:invalid+selector');
+	const app = fixture(() => ({ value: 'page' }));
+	let button!: HTMLButtonElement;
+	app.root = (anchor) => {
+		button = document.createElement('button');
+		button.id = 'an:invalid+selector';
+		anchor.parentNode!.insertBefore(button, anchor);
+		return {};
+	};
+	await start(app, document.querySelector('main')!);
+	expect(document.activeElement).toBe(button);
+});
+
+test('render guards belong to descendants and consume sparse ancestor errors once', async () => {
+	let props!: RootProps;
+	const global = () => {};
+	const local = () => {};
+	const app = fixture(() => ({ value: 'page' }));
+	app.nodes[1] = async () => ({ component: global });
+	app.nodes.push(
+		async () => ({ component: () => {} }),
+		async () => ({ component: local }),
+		async () => ({ component: () => {} })
+	);
+	app.dictionary = { '/one': [2, [3, undefined, 5], [4]] };
+	app.root = (anchor, value) => {
+		props = value;
+		return root(anchor, value);
+	};
+	await start(app, document.querySelector('main')!);
+	const layout = props.tree.child!;
+	expect(props.tree.error).toBe(undefined);
+	expect(layout.error).toBe(global);
+	expect(layout.child?.error).toBe(local);
+	expect(layout.child?.child?.error).toBe(undefined);
+});
+
+test('an empty query marker is removed before the canonical URL enters history', async () => {
+	const app = fixture(({ params }) => ({ value: params.id }));
+	await start(app, document.querySelector('main')!);
+	await goto('/two/?');
+	expect(location.href).toBe(`${location.origin}/two`);
+	expect(page.url.href).toBe(location.href);
+});
+
+test('a redirect loop uses the root error page and leaves the tab alive', async () => {
+	let props!: RootProps;
+	const error = () => {};
+	const app = fixture(({ params }) => {
+		if (params.id === 'loop-a') redirect(307, '/loop-b');
+		if (params.id === 'loop-b') redirect(307, '/loop-a');
+		return { value: params.id };
+	});
+	app.nodes[0] = async () => ({
+		component: () => {},
+		universal: { load: () => ({ layout: 'root' }) }
+	});
+	app.nodes[1] = async () => ({ component: error });
+	app.root = (anchor, value) => {
+		props = value;
+		return root(anchor, value);
+	};
+	app.hooks.handleError = ({ kind, error }) =>
+		kind === 'unknown' && error instanceof Error ? { message: error.message } : {};
+	app.errorTemplate = async () => () => '<html><body>fatal</body></html>';
+	await start(app, document.querySelector('main')!);
+	await goto('/loop-a');
+	expect(page.status).toBe(500);
+	expect(page.error?.message).toContain('redirect_loop');
+	expect(props.tree.child?.component).toBe(error);
+	expect(props.tree.data.layout).toBe('root');
+	expect(owner.disposed).toBe(false);
+});
+
 test('a navigation source keeps the visible shallow route, params and URL together', async () => {
 	let source: unknown;
 	const app = fixture(() => ({ value: 'page' }));
