@@ -226,8 +226,8 @@ export class Client {
 			from:
 				this.started && this.current
 					? {
-							params: this.state.page.params,
-							route: { id: this.current.route.id },
+							params: this.state.page.shallow?.params ?? this.state.page.params,
+							route: this.state.page.shallow?.route ?? { id: this.current.route.id },
 							url: new URL(this.state.page.shallow?.url.href ?? this.current.url.href),
 							scroll: { x: window.scrollX, y: window.scrollY }
 						}

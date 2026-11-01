@@ -744,3 +744,23 @@ test('reroute runs in the tab context and a thrown reroute yields no match', asy
 	};
 	await expect(preloadData('/missing')).rejects.toThrow('preload_url_outside_app');
 });
+
+test('a navigation source keeps the visible shallow route, params and URL together', async () => {
+	let source: unknown;
+	const app = fixture(() => ({ value: 'page' }));
+	app.dictionary = { '/one': [2, []], '/modal/[id]': [2, []], '/three': [2, []] };
+	app.hooks.init = () => {
+		owner = getOwner()!;
+		beforeNavigate((event) => {
+			source = {
+				params: event.from?.params,
+				route: event.from?.route.id,
+				path: event.from?.url.pathname
+			};
+		});
+	};
+	await start(app, document.querySelector('main')!);
+	await goto('/modal/value', { shallow: true });
+	await goto('/three');
+	expect(source).toEqual({ params: { id: 'value' }, route: '/modal/[id]', path: '/modal/value' });
+});
