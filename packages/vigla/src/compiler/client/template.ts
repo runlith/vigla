@@ -5,6 +5,7 @@ import {
 	asyncStep,
 	dynamic,
 	hoisted,
+	richSelect,
 	unsupported,
 	type AsyncStep,
 	type ComponentAnalysis
@@ -302,6 +303,8 @@ function withElementChildren(context: TemplateContext, nodes: readonly Node[]): 
 	for (const node of nodes) {
 		result.push(node);
 		if (node.kind === 'element') {
+			if ((context.component.namespaces.get(node) ?? 'html') === 'html' && richSelect(node))
+				continue;
 			const body = cleaned(context, node.body);
 			result.push(
 				...withElementChildren(context, asyncStep(body, context.awaited)?.before ?? body)

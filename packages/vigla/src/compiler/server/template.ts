@@ -8,6 +8,7 @@ import {
 	declaring,
 	hasAwait,
 	hoisted,
+	richSelect,
 	unsupported,
 	type ComponentAnalysis
 } from '../analysis/index.ts';
@@ -406,7 +407,9 @@ function formElement(
 	};
 	const body: ES.Statement[] = [];
 	const content = new Buffer();
-	fragmentCode(inner, cleaned(inner, node.body), body, content, false, true);
+	const rich = html && richSelect(node);
+	fragmentCode(inner, cleaned(inner, node.body), body, content, false, !rich);
+	if (rich) content.text(empty);
 	content.flush(inner, body);
 	statements.push(
 		b.statement(
@@ -431,6 +434,7 @@ function element(
 		formElement(context, node, statements, buffer, html);
 		return;
 	}
+	const rich = html && richSelect(node);
 	buffer.text(`<${tag}`);
 	const { content, raw } = attributes(context, node, buffer);
 	buffer.text(isVoid(tag) ? '/>' : '>');
@@ -440,7 +444,7 @@ function element(
 		const value = context.names.unique('$$content');
 		statements.push(b.constant(value, raw ? content : runtime(context, 'escape', content)));
 		const fallback: ES.Statement[] = [];
-		fragmentCode(context, cleaned(context, node.body), fallback, buffer, false, true);
+		fragmentCode(context, cleaned(context, node.body), fallback, buffer, false, !rich);
 		buffer.flush(context, fallback);
 		statements.push({
 			type: 'IfStatement',
@@ -461,12 +465,13 @@ function element(
 	} else if (cleaned(context, node.body).some(declaring)) {
 		buffer.flush(context, statements);
 		const scoped: ES.Statement[] = [];
-		fragmentCode(context, cleaned(context, node.body), scoped, buffer, false, true);
+		fragmentCode(context, cleaned(context, node.body), scoped, buffer, false, !rich);
 		buffer.flush(context, scoped);
 		statements.push({ type: 'BlockStatement', body: scoped });
 	} else {
-		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
+		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, !rich);
 	}
+	if (rich) buffer.text(empty);
 	buffer.text(`</${tag}>`);
 }
 

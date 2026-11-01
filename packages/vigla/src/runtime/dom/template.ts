@@ -1,7 +1,7 @@
 import { template } from '../reactivity/effects.ts';
 import { derived } from '../reactivity/sources.ts';
 import { get } from '../reactivity/tracking.ts';
-import { advance, claim, cursor, hydrating, mismatch, TEXT } from './hydration.ts';
+import { advance, claim, cursor, hydrating, mismatch, setHydrating, TEXT } from './hydration.ts';
 
 export type Render = (anchor: ChildNode) => void;
 
@@ -25,6 +25,42 @@ function parse(html: string, flags: number): Node {
 	const fragment = document.createDocumentFragment();
 	while (root.firstChild !== null) fragment.append(root.firstChild);
 	return fragment;
+}
+
+const richOptions = new WeakMap<Document, boolean>();
+
+function preservesOptions(document: Document): boolean {
+	const cached = richOptions.get(document);
+	if (cached !== undefined) return cached;
+	const probe = document.createElement('select');
+	probe.innerHTML = '<option><span></span></option>';
+	const supported = probe.firstElementChild?.firstElementChild?.localName === 'span';
+	richOptions.set(document, supported);
+	return supported;
+}
+
+export function richSelect(element: Element, render: Render): void {
+	const wasHydrating = hydrating;
+	let completed = false;
+	try {
+		if (wasHydrating && !preservesOptions(element.ownerDocument)) {
+			setHydrating(false);
+			element.replaceChildren(element.ownerDocument.createComment(''));
+		}
+		const anchor = element.lastChild;
+		if (anchor === null || anchor.nodeType !== 8) mismatch();
+		if (hydrating) claim(element.firstChild);
+		render(anchor);
+		completed = true;
+	} finally {
+		if (wasHydrating) {
+			if (hydrating && completed) reset(element);
+			else {
+				setHydrating(true);
+				claim(element);
+			}
+		}
+	}
 }
 
 export function fragment(html: string, flags = 0): () => Node {

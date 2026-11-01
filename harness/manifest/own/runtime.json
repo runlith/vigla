@@ -134,6 +134,7 @@
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): layer's WorldHooks filled with public `vigla` API alone — `root`, `effect`, `cell`, `untrack`; upstream 5.57.3 has no such entry, so the sample cannot run there"
 		},
+		"rich-select-dom": "contract",
 		"server-derived-override": "contract",
 		"server-failure-pending-sibling": {
 			"status": "difference",

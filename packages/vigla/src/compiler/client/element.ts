@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { escapeAttribute } from '../../shared/escape.ts';
 import { isProperty, isVoid, propertyName } from '../../shared/html.ts';
-import { unsupported } from '../analysis/index.ts';
+import { richSelect, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
 	Attribute,
@@ -30,6 +30,7 @@ import {
 	isDynamic,
 	memo,
 	parts,
+	render,
 	scopeHash,
 	type Emit,
 	type Part,
@@ -553,8 +554,9 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const childNamespace = node.name === 'foreignObject' ? 'html' : namespace;
 	const body = cleaned(context, node.body);
 	const [only] = body;
+	const rich = html && richSelect(node);
 	const controlled =
-		body.length === 1 && only?.kind === 'raw-html' && awaiting(context, body).length === 0;
+		!rich && body.length === 1 && only?.kind === 'raw-html' && awaiting(context, body).length === 0;
 	const constantText =
 		body.length === 1 &&
 		only?.kind === 'expression' &&
@@ -580,7 +582,18 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		);
 	}
 	const childContext = hasContentBinding(node) ? { ...context, boundContent: true } : context;
-	const children = controlled || constantText ? [] : parts(childContext, body, childNamespace);
+	const children =
+		controlled || constantText || rich ? [] : parts(childContext, body, childNamespace);
+	if (rich) {
+		markup += '<!---->';
+		setups.push((element, emit) => {
+			const anchor = b.id(context.names.unique('anchor'));
+			const content = render(childContext, body, anchor, childNamespace, false);
+			emit.init.push(
+				b.statement(runtime(context, 'richSelect', element, b.arrow([anchor], content)))
+			);
+		});
+	}
 	for (const child of children) markup += child.html;
 	if (!isVoid(tag)) markup += `</${tag}>`;
 	for (const attribute of node.attributes) {

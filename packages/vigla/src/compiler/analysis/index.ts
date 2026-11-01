@@ -87,6 +87,50 @@ export function isSignal(binding: Binding): boolean {
 	}
 }
 
+export function richSelect(element: Element): boolean {
+	const name = element.name.toLowerCase();
+	if (name !== 'select' && name !== 'optgroup' && name !== 'option') return false;
+	const rich = (fragment: Fragment | null): boolean => {
+		if (fragment === null) return false;
+		return fragment.nodes.some((node) => {
+			switch (node.kind) {
+				case 'text':
+					return name !== 'option' && node.data.trim() !== '';
+				case 'element': {
+					const child = node.name.toLowerCase();
+					return (
+						name === 'option' || (child !== 'option' && (name !== 'select' || child !== 'optgroup'))
+					);
+				}
+				case 'branch':
+					return node.arms.some((arm) => rich(arm.body)) || rich(node.fallback);
+				case 'keyed-list':
+				case 'unkeyed-list':
+					return rich(node.body) || rich(node.fallback);
+				case 'keyed-block':
+				case 'boundary':
+					return rich(node.body);
+				case 'async-block':
+					return (
+						rich(node.pending) ||
+						rich(node.resolved?.body ?? null) ||
+						rich(node.rejected?.body ?? null)
+					);
+				case 'comment':
+				case 'expression':
+				case 'constant':
+				case 'declaration':
+				case 'snippet':
+				case 'debug':
+					return false;
+				default:
+					return true;
+			}
+		});
+	};
+	return rich(element.body);
+}
+
 export function dynamic(analysis: ScriptAnalysis, expression: ES.Node): boolean {
 	let found = false;
 	walk(expression, (node) => {

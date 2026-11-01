@@ -92,6 +92,7 @@ export {
 	fragment,
 	next,
 	reset,
+	richSelect,
 	sibling,
 	text
 } from '../../runtime/dom/template.ts';
