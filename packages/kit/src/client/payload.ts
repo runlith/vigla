@@ -10,7 +10,10 @@ export let version = '';
 export let env: Record<string, unknown> = {};
 export let hashRouting = false;
 
+let initialized: ClientGlobal | null = null;
+
 export function init(value: ClientPayload): ClientGlobal {
+	if (initialized === value) return initialized;
 	const channel = new Chunks();
 	chunks = channel;
 	payload = value;
@@ -20,8 +23,9 @@ export function init(value: ClientPayload): ClientGlobal {
 	appDir = value.app_dir ?? '_app';
 	version = value.version ?? '';
 	env = value.env ?? {};
-	return Object.assign(value, {
+	initialized = Object.assign(value, {
 		defer: channel.defer.bind(channel),
 		resolve: channel.resolve.bind(channel)
 	});
+	return initialized;
 }
