@@ -32,18 +32,16 @@ export function set<T>(target: Source<T>, value: T): T {
 	return write(target, value);
 }
 
-function step<T extends number | bigint>(value: T, delta: number): T {
-	return (typeof value === 'bigint' ? value + BigInt(delta) : (value as number) + delta) as T;
+export function update<T extends number | bigint>(source: Source<T>, delta: 1 | -1 = 1): T {
+	let value: number | bigint = get(source);
+	const result = delta === 1 ? value++ : value--;
+	set(source, value as T);
+	return result as T;
 }
 
-export function update<T extends number | bigint>(source: Source<T>, delta = 1): T {
-	const value = get(source);
-	set(source, step(value, delta));
-	return value;
-}
-
-export function updatePre<T extends number | bigint>(source: Source<T>, delta = 1): T {
-	return set(source, step(get(source), delta));
+export function updatePre<T extends number | bigint>(source: Source<T>, delta: 1 | -1 = 1): T {
+	let value: number | bigint = get(source);
+	return set(source, (delta === 1 ? ++value : --value) as T);
 }
 
 export interface Cell<T> {
