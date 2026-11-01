@@ -16,7 +16,7 @@ import {
 	type Reaction,
 	type Source
 } from './graph.ts';
-import { offscreen, run } from './effects.ts';
+import { fail, offscreen, run } from './effects.ts';
 import { queueEager, runEager } from './eager.ts';
 import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
@@ -407,6 +407,15 @@ function unmark(effect: Effect): void {
 		if (child.pending) unmark(child);
 }
 
+function due(effect: Effect): boolean {
+	try {
+		return stale(effect);
+	} catch (error) {
+		effect.status = CLEAN;
+		throw error;
+	}
+}
+
 function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 	effect.pending = false;
 	for (let child = effect.first; child !== null; child = child.next) {
@@ -422,7 +431,7 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 		if (batch.forced !== null && batch.forced.delete(child)) child.status = DIRTY;
 		switch (child.kind) {
 			case BLOCK:
-				if (child.status !== CLEAN && stale(child)) run(child);
+				if (child.status !== CLEAN && due(child)) run(child);
 				break;
 			case TEMPLATE:
 				if (child.status !== CLEAN) content.push(child);
@@ -449,7 +458,7 @@ function settle(
 			if (effect.destroyed || effect.running) continue;
 			if (walk ? excluded(effect, batch) : effect.inert) continue;
 			if (force) effect.status = DIRTY;
-			if (stale(effect)) run(effect);
+			if (due(effect)) run(effect);
 		}
 	} catch (error) {
 		for (let rest = index + 1; rest < effects.length; rest++) {
@@ -483,7 +492,10 @@ export function process(batch: Batch): void {
 		let passes = 0;
 		let merging = true;
 		while (batch.queued.length > 0 || (batch.commits.length > 0 && !holds(batch))) {
-			if (++passes > limit) exceeded(batch, content);
+			if (++passes > limit) {
+				exceeded(batch, content);
+				return;
+			}
 			batch.phase = 'structure';
 			const pass = batch.queued.splice(0);
 			batch.members = null;
@@ -557,11 +569,14 @@ export function flushSync<T = void>(fn?: () => T): T {
 	return result as T;
 }
 
-function exceeded(batch: Batch, content: readonly Effect[]): never {
+function exceeded(batch: Batch, content: readonly Effect[]): void {
 	if (batch === open) open = null;
+	const latest = batch.queued.at(-1);
 	abandon(batch, content);
 	if (DEV) reportLoop();
-	return depthExceeded();
+	const error = depthExceeded();
+	if (latest === undefined) throw error;
+	fail(latest, error);
 }
 
 function flush(tasks: boolean): void {
@@ -569,9 +584,13 @@ function flush(tasks: boolean): void {
 	if (DEV && processing === null) resetLoop();
 	drain();
 	for (let batch = next(); batch !== null; batch = next()) {
-		if (++rounds > limit) exceeded(batch, []);
-		if (batch === open) open = null;
-		process(batch);
+		if (++rounds > limit) {
+			exceeded(batch, []);
+			rounds = 0;
+		} else {
+			if (batch === open) open = null;
+			process(batch);
+		}
 		if (tasks) drain();
 	}
 	if (idle() && waiting.length > 0) {

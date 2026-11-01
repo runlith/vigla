@@ -251,7 +251,7 @@ class Boundary implements Contract {
 	failed(error: unknown): void {
 		if (error === MISMATCH) throw error;
 		const failed = this.#props.failed;
-		if (this.#falling || (!failed && !this.#props.onerror)) {
+		if (this.#falling || this.#effect?.destroyed === true || (!failed && !this.#props.onerror)) {
 			this.#escalate(error);
 			return;
 		}

@@ -89,6 +89,14 @@ export function fail(effect: Effect, error: unknown): void {
 	boundary.failed(error);
 }
 
+function dispose(effect: Effect, teardown: () => void): void {
+	try {
+		retire(teardown);
+	} catch (error) {
+		fail(effect, error);
+	}
+}
+
 export function run(effect: Effect): void {
 	const fn = effect.fn;
 	if (fn === null) return;
@@ -97,7 +105,7 @@ export function run(effect: Effect): void {
 	const teardown = effect.teardown;
 	if (teardown !== null) {
 		effect.teardown = null;
-		retire(teardown);
+		dispose(effect, teardown);
 	}
 	const tracked = effect.kind !== ROOT && effect.kind !== BRANCH;
 	const previous = setOwner(effect);
@@ -123,6 +131,7 @@ export function run(effect: Effect): void {
 	const hidden = tracked ? takeHidden() : null;
 	effect.forked = view !== null && view.batch.fork ? view.batch.order : 0;
 	if (failed) {
+		effect.status = CLEAN;
 		fail(effect, caught);
 		return;
 	}
@@ -256,7 +265,7 @@ export function destroy(effect: Effect): void {
 	effect.fn = null;
 	unlink(effect);
 	if (offscreen.delete(effect)) effect.inert = false;
-	if (teardown !== null) retire(teardown);
+	if (teardown !== null) dispose(effect, teardown);
 	if (effect.parent === null) orphaned(effect);
 	const units = effect.units;
 	if (units !== null) {
@@ -289,7 +298,7 @@ export function freeze(derived: Derived): void {
 		effect.status = CLEAN;
 		const teardown = effect.teardown;
 		effect.teardown = null;
-		if (teardown !== null) retire(teardown);
+		if (teardown !== null) dispose(effect, teardown);
 		(frozen ??= []).push(effect);
 	}
 	derived.frozen = frozen;

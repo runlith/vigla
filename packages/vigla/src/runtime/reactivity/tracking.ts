@@ -578,7 +578,11 @@ export function refresh(derived: Derived): void {
 				return;
 			}
 			derived.v = undefined as typeof derived.v;
-			if (!holder.destroyed) fail(holder, error);
+			if (holder.destroyed) return;
+			const status = derived.status;
+			derived.status = DIRTY;
+			fail(holder, error);
+			derived.status = status;
 			return;
 		}
 		if (derived.failure !== null) derived.failure = null;
