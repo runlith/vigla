@@ -4,6 +4,7 @@ import { walk } from '../ir/estree.ts';
 import type {
 	Attribute,
 	Component,
+	Declaration,
 	DynamicElement,
 	Element,
 	Fragment,
@@ -25,7 +26,7 @@ import {
 	type Scopes
 } from './scope.ts';
 import { clean, preserving, type Preserve } from './whitespace.ts';
-import { declaring } from './asynchronous.ts';
+import { declaring, pendingAwaits } from './asynchronous.ts';
 
 export interface ListFacts {
 	readonly names: readonly Binding[];
@@ -261,7 +262,6 @@ export class Template {
 				foreign
 			)
 		];
-		this.fragments.set(fragment, nodes);
 		this.fragmentNamespaces.set(fragment, own);
 		const root = this.#depth === 0;
 		for (const node of lifted) {
@@ -277,7 +277,31 @@ export class Template {
 		} finally {
 			this.#depth--;
 		}
-		return nodes;
+		let staged: Node[] | null = null;
+		for (let index = 0; index < nodes.length; index++) {
+			const node = nodes[index] as Node;
+			if (
+				node.kind !== 'declaration' ||
+				node.declaration.declarations.length < 2 ||
+				pendingAwaits(node, undefined).length === 0
+			) {
+				staged?.push(node);
+				continue;
+			}
+			staged ??= nodes.slice(0, index);
+			const codes = this.ignored.get(node);
+			for (const declarator of node.declaration.declarations) {
+				const part: Declaration = {
+					...node,
+					declaration: { ...node.declaration, declarations: [declarator] }
+				};
+				if (codes !== undefined) this.ignored.set(part, codes);
+				staged.push(part);
+			}
+		}
+		const result = staged ?? nodes;
+		this.fragments.set(fragment, result);
+		return result;
 	}
 
 	value(value: Extract<Attribute, { kind: 'attribute' }>['value'], scope: Scope): void {

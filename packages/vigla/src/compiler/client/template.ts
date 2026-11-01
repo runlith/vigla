@@ -6,6 +6,7 @@ import {
 	dynamic,
 	hoisted,
 	unsupported,
+	type AsyncStep,
 	type ComponentAnalysis
 } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
@@ -188,8 +189,11 @@ function anchorPart(setup: (node: ES.Identifier, emit: Emit) => void): Part {
 export function parts(
 	context: TemplateContext,
 	nodes: readonly Node[],
-	namespace: Namespace
+	namespace: Namespace,
+	step: AsyncStep | null = asyncStep(nodes, context.awaited)
 ): Part[] {
+	if (step !== null)
+		return [anchorPart(asyncSetup(context, step.rest, step.pending, namespace, render))];
 	const result: Part[] = [];
 	let run: (Text | Expression)[] = [];
 	const flush = (): void => {
@@ -285,8 +289,12 @@ function withElementChildren(context: TemplateContext, nodes: readonly Node[]): 
 	const result: Node[] = [];
 	for (const node of nodes) {
 		result.push(node);
-		if (node.kind === 'element')
-			result.push(...withElementChildren(context, cleaned(context, node.body)));
+		if (node.kind === 'element') {
+			const body = cleaned(context, node.body);
+			result.push(
+				...withElementChildren(context, asyncStep(body, context.awaited)?.before ?? body)
+			);
+		}
 	}
 	return result;
 }
@@ -427,10 +435,7 @@ export function render(
 	if (alone?.kind === 'component')
 		return [...declarations, ...componentCall(context, alone, anchor)];
 	if (alone?.kind === 'render') return [...declarations, ...renderCall(context, alone, anchor)];
-	const list =
-		step === null
-			? parts(context, nodes, namespace)
-			: [anchorPart(asyncSetup(context, step.rest, step.pending, namespace, render))];
+	const list = parts(context, nodes, namespace, step);
 	if (list.length === 0) return declarations;
 	const emit: Emit = { init: [...declarations], update: [], thunks: [], params: [] };
 	const html = list.map((part) => part.html).join('');

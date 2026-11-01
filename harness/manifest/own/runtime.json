@@ -20,6 +20,7 @@
 			"status": "difference",
 			"reason": "Scheduler trap, hunk 8 (rebase): on upstream 5.57.3 the asserted item holds, but the second rebase throws `invariant_violation` \"Batch has scheduled effects\" unhandled, failing the run"
 		},
+		"awaited-element-declarators": "contract",
 		"custom-element-async-props": "contract",
 		"custom-element-hmr": "contract",
 		"custom-element-named-slot": "contract",
