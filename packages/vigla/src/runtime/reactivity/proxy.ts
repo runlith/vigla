@@ -81,6 +81,11 @@ export function proxy<T>(value: T): T {
 	return wrap(value, true);
 }
 
+export function original<T>(value: T): T {
+	if (typeof value !== 'object' || value === null) return value;
+	return ((value as Indexed)[RAW] as T | undefined) ?? value;
+}
+
 function wrap<T>(value: T, aware: boolean): T {
 	if (!proxiable(value)) return value;
 	const target = value;
