@@ -16,6 +16,12 @@ import { overrideKey, queryId, resourceKey } from './updates.ts';
 
 export type QueryKind = 'query' | 'query_batch' | 'prerender';
 
+export interface QueryFlight {
+	key: string;
+	resource: Query<any>;
+	request: PromiseWithResolvers<void>;
+}
+
 interface Override<T> {
 	update: (value: T) => T;
 }
@@ -23,13 +29,13 @@ interface Override<T> {
 export class Query<T> extends Result<T> {
 	readonly #remotes: Remotes;
 	readonly #key: string;
-	readonly #load: () => Promise<T>;
+	readonly #load: (flight: QueryFlight) => Promise<T>;
 	readonly #overrides = cell<Override<T>[]>([]);
 
 	constructor(
 		remotes: Remotes,
 		key: string,
-		load: () => Promise<T>,
+		load: (flight: QueryFlight) => Promise<T>,
 		seed?: RemoteNode | Promise<RemoteNode>
 	) {
 		super();
@@ -68,7 +74,7 @@ export class Query<T> extends Result<T> {
 	}
 
 	override set(value: T, request?: PromiseWithResolvers<void>): void {
-		this.#remotes.forget(this.#key);
+		if (!request) this.#remotes.forget(this.#key);
 		if (this.#remotes.owner.disposed) {
 			super.fail(new HttpError({ status: 500, message: 'Remote client disposed' }), request);
 			return;
@@ -77,7 +83,7 @@ export class Query<T> extends Result<T> {
 	}
 
 	override fail(error: HttpError, request?: PromiseWithResolvers<void>): void {
-		this.#remotes.forget(this.#key);
+		if (!request) this.#remotes.forget(this.#key);
 		if (this.#remotes.owner.disposed) super.fail(error, request);
 		else this.#remotes.owner.run(() => super.fail(error, request));
 	}
@@ -86,7 +92,7 @@ export class Query<T> extends Result<T> {
 		this.#remotes.forget(this.#key);
 		const request = this.#remotes.owner.run(() => this.begin());
 		void Promise.resolve()
-			.then(this.#load)
+			.then(() => this.#load({ key: this.#key, resource: this, request }))
 			.then(
 				(value) => this.set(value, request),
 				async (error) => {

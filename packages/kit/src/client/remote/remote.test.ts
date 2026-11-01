@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { stringify } from 'devalue';
-import { effect, mount, root, unmount, type Owner } from 'vigla';
+import { effect, mount, root, tick, unmount, type Owner } from 'vigla';
 import { render } from 'vigla/server';
 import {
 	hydrated as serverHydrated,
@@ -77,7 +77,12 @@ afterEach(() => {
 
 test('a detached owner retains a query after component unmount, and its disposal releases the entry', async () => {
 	let generation = 0;
-	vi.stubGlobal('fetch', async () => response({ _: ++generation }));
+	vi.stubGlobal('fetch', async () =>
+		response({
+			_: ++generation,
+			q: { [getRemoteKey('hash/owned', '')]: { v: generation } }
+		})
+	);
 	const read = query<void, number>('hash/owned');
 	const service = owner();
 	const held = service.run(() => read());
@@ -184,7 +189,13 @@ test('batch queries deduplicate equal payloads into one microtask request', asyn
 			_: body.payloads.map((payload) => ({
 				type: 'result',
 				data: Number(decodeArgument(payload)) * 2
-			}))
+			})),
+			q: Object.fromEntries(
+				body.payloads.map((payload) => [
+					getRemoteKey('hash/batch', payload),
+					{ v: Number(decodeArgument(payload)) * 2 }
+				])
+			)
 		});
 	});
 	const read = query_batch<number, number>('hash/batch');
@@ -251,15 +262,66 @@ test('set and a later refresh supersede older in-flight responses', async () => 
 	await vi.waitFor(() => expect(replies).toHaveLength(1));
 	value.set(4);
 	await expect(initial).resolves.toBe(4);
-	replies[0]!.resolve(response({ _: 1 }));
+	replies[0]!.resolve(response({ _: 1, q: { [getRemoteKey('hash/race', '')]: { v: 1 } } }));
+	await tick();
+	expect(value.current).toBe(4);
 	const earlier = value.refresh();
 	const later = value.refresh();
 	await vi.waitFor(() => expect(replies).toHaveLength(3));
-	replies[2]!.resolve(response({ _: 6 }));
+	replies[2]!.resolve(response({ _: 6, q: { [getRemoteKey('hash/race', '')]: { v: 6 } } }));
 	await later;
-	replies[1]!.resolve(response({ _: 5 }));
+	replies[1]!.resolve(response({ _: 5, q: { [getRemoteKey('hash/race', '')]: { v: 5 } } }));
 	await earlier;
+	await tick();
 	expect(value.current).toBe(6);
+});
+
+test('refresh failures stay on retained queries during navigation, invalidation and a successful form', async () => {
+	runtime.dispose();
+	history.replaceState(null, '', '/one');
+	const application = app();
+	application.dictionary = { '/[id]': [2, []] };
+	application.nodes[2] = async () => ({
+		component: () => {},
+		universal: { load: ({ params }) => ({ value: params.id }) }
+	});
+	application.root = (anchor, props) => {
+		const text = document.createTextNode('');
+		anchor.parentNode!.insertBefore(text, anchor);
+		effect(() => {
+			text.data = String(props.page.data.value);
+		});
+		return {};
+	};
+	application.errorTemplate =
+		async () =>
+		({ message }) =>
+			`<p id="fatal">${message}</p>`;
+	runtime = new Client(application, document.querySelector('main')!);
+	let calls = 0;
+	vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
+		if (init?.method === 'POST') return response({ _: { result: 'saved' } });
+		if (++calls === 1) return response({ _: 1 });
+		return Response.json(
+			{ type: 'error', error: { status: 403, message: 'refused' } },
+			{ status: 403 }
+		);
+	});
+	await runtime.start();
+	const value = owner().run(() => query<void, number>('hash/refresh-error')());
+	await value;
+	await expect(runtime.goto('/two', { refreshAll: true })).resolves.toBeUndefined();
+	expect(document.querySelector('main')!.textContent).toBe('two');
+	expect(runtime.owner.disposed).toBe(false);
+	expect(value.error).toEqual({ status: 403, message: 'refused' });
+	await expect(runtime.invalidate(undefined, true)).resolves.toBeUndefined();
+	const save = form('hash/success');
+	const { detach } = connect(save);
+	await expect(save.submit()).resolves.toBe(true);
+	expect(save.result).toBe('saved');
+	expect(runtime.owner.disposed).toBe(false);
+	expect(document.querySelector('#fatal')).toBeNull();
+	detach();
 });
 
 test('disposing the tab aborts a pending one-shot query and settles its result', async () => {
@@ -329,6 +391,44 @@ test('live queries share their stream, reconnect after transport loss, and abort
 	service.dispose();
 	expect(aborted[1]).toBe(true);
 	await expect(iterator.next()).resolves.toMatchObject({ done: true });
+});
+
+test('a seeded ownerless live iterator starts its stream and releases it on return', async () => {
+	const live = query_live<void, number>('hash/seeded-live');
+	let stream: ReadableStreamDefaultController<Uint8Array> | undefined;
+	let signal: AbortSignal | undefined;
+	vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
+		if (init.method === 'POST')
+			return response({ _: true, l: { [getRemoteKey('hash/seeded-live', '')]: { v: 1 } } });
+		signal = init.signal!;
+		return new Response(
+			new ReadableStream<Uint8Array>({
+				start(controller) {
+					stream = controller;
+					signal!.addEventListener(
+						'abort',
+						() => controller.error(new DOMException('Aborted', 'AbortError')),
+						{ once: true }
+					);
+				}
+			}),
+			{ headers: { 'content-type': 'text/event-stream' } }
+		);
+	});
+	await command<void, boolean>('hash/seed-live')();
+	const value = live();
+	const iterator = value[Symbol.asyncIterator]();
+	await expect(iterator.next()).resolves.toEqual({ value: 1, done: false });
+	await vi.waitFor(() => expect(value.connected).toBe(true));
+	const next = iterator.next();
+	stream!.enqueue(
+		new TextEncoder().encode(
+			`data: ${JSON.stringify({ type: 'result', result: stringify(2) })}\n\n`
+		)
+	);
+	await expect(next).resolves.toEqual({ value: 2, done: false });
+	await iterator.return!();
+	expect(signal?.aborted).toBe(true);
 });
 
 test('remote forms project fields, validate preflight, and send keyed binary submissions with refreshes', async () => {

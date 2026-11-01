@@ -72,8 +72,9 @@ export class LiveQuery<T> extends Result<T> implements AsyncIterable<T> {
 
 	override start(): void {
 		if (this.#started || this.#disposed) return;
+		if (this.#transient && this.#subscribers.size === 0 && untrack(() => this.available.current))
+			return;
 		this.#started = true;
-		if (this.#transient && untrack(() => this.available.current)) return;
 		window.addEventListener('online', this.#resume);
 		window.addEventListener('offline', this.#pause);
 		window.addEventListener('pagehide', this.#pause);
@@ -229,7 +230,7 @@ export class LiveQuery<T> extends Result<T> implements AsyncIterable<T> {
 
 	[Symbol.asyncIterator](): AsyncIterableIterator<T> {
 		const subscriber: Subscriber<T> = {
-			done: untrack(() => this.#done.current),
+			done: this.#disposed || untrack(() => this.#done.current),
 			pending:
 				this.available.current && !this.failure.current
 					? { value: this.value.current as T }

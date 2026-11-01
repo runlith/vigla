@@ -6,7 +6,7 @@ import { HttpError } from '../../shared/outcomes.ts';
 import type { Client } from '../client.ts';
 import { payload } from '../payload.ts';
 import { Channel } from './channel.ts';
-import { Query, type QueryKind } from './query.ts';
+import { Query, type QueryFlight, type QueryKind } from './query.ts';
 import { LiveQuery } from './live.ts';
 import { Forms } from './form.ts';
 import { Command } from './command.ts';
@@ -20,8 +20,12 @@ interface Entry {
 	resource: Resource;
 	holders: Set<Owner>;
 }
+interface BatchCall {
+	result: PromiseWithResolvers<any>;
+	flight: QueryFlight;
+}
 interface Batch {
-	payloads: Map<string, PromiseWithResolvers<any>[]>;
+	payloads: Map<string, BatchCall[]>;
 }
 
 export class Remotes {
@@ -78,7 +82,7 @@ export class Remotes {
 			const resource = this.owner.run(() =>
 				kind === 'query_live'
 					? new LiveQuery(this, id, argument, seed, holder === null)
-					: new Query(this, key, () => this.load(kind, id, argument), seed)
+					: new Query(this, key, (flight) => this.load(kind, id, argument, flight), seed)
 			);
 			if (holder === null) return resource;
 			entry = { id, kind, resource, holders: new Set() };
@@ -125,13 +129,21 @@ export class Remotes {
 		return command;
 	}
 
-	apply(data: RemoteData, refreshes?: Set<string>): void {
+	apply(data: RemoteData, refreshes?: Set<string>, flights: readonly QueryFlight[] = []): void {
 		for (const [kind, nodes] of [
 			['query', data.q],
 			['query_live', data.l]
 		] as const) {
 			for (const [key, node] of Object.entries(nodes ?? {})) {
 				refreshes?.delete(key);
+				const origins = kind === 'query' ? flights.filter((flight) => flight.key === key) : [];
+				if (origins.length) {
+					for (const origin of origins) {
+						if (node.e) origin.resource.fail(new HttpError(node.e), origin.request);
+						else origin.resource.set(node.v, origin.request);
+					}
+					continue;
+				}
 				const entry = this.#entries.get(key);
 				if (entry) {
 					if (node.e) entry.resource.fail(new HttpError(node.e));
@@ -196,7 +208,7 @@ export class Remotes {
 				if (entry.resource instanceof LiveQuery) work.push(entry.resource.reconnect());
 				else if (entry.kind !== 'prerender') work.push(Promise.resolve(entry.resource));
 			}
-			await Promise.all(work);
+			await Promise.allSettled(work);
 		};
 	}
 
@@ -206,20 +218,23 @@ export class Remotes {
 			if (entry.resource instanceof LiveQuery) work.push(entry.resource.reconnect());
 			else if (entry.kind !== 'prerender') work.push(entry.resource.refresh());
 		}
-		await Promise.all(work);
+		await Promise.allSettled(work);
 	}
 
-	async load(kind: QueryKind, id: string, argument: string): Promise<any> {
-		if (kind === 'query_batch') return this.batch(id, argument);
+	async load(kind: QueryKind, id: string, argument: string, flight: QueryFlight): Promise<any> {
+		if (kind === 'query_batch') return this.batch(id, argument, flight);
 		if (kind === 'prerender') return this.prerender(id, argument);
 		const data = await this.channel.request(
-			this.channel.url(id) + (argument ? `?payload=${argument}` : '')
+			this.channel.url(id) + (argument ? `?payload=${argument}` : ''),
+			undefined,
+			undefined,
+			[flight]
 		);
 		if (data.redirect) await this.channel.redirect(data.redirect);
 		return data._;
 	}
 
-	batch(id: string, argument: string): Promise<any> {
+	batch(id: string, argument: string, flight: QueryFlight): Promise<any> {
 		let batch = this.#batches.get(id);
 		const request = Promise.withResolvers<any>();
 		if (!batch) {
@@ -228,7 +243,7 @@ export class Remotes {
 			queueMicrotask(() => void this.#flush(id, batch!));
 		}
 		const waiting = batch.payloads.get(argument) ?? [];
-		waiting.push(request);
+		waiting.push({ result: request, flight });
 		batch.payloads.set(argument, waiting);
 		return request.promise;
 	}
@@ -236,15 +251,20 @@ export class Remotes {
 	async #flush(id: string, batch: Batch): Promise<void> {
 		this.#batches.delete(id);
 		try {
-			const data = await this.channel.request(this.channel.url(id), {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ payloads: [...batch.payloads.keys()] })
-			});
+			const data = await this.channel.request(
+				this.channel.url(id),
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ payloads: [...batch.payloads.keys()] })
+				},
+				undefined,
+				[...batch.payloads.values()].flat().map((call) => call.flight)
+			);
 			if (data.redirect) {
 				await this.channel.redirect(data.redirect);
 				for (const waiting of batch.payloads.values())
-					for (const request of waiting) request.resolve(undefined);
+					for (const call of waiting) call.result.resolve(undefined);
 				return;
 			}
 			const results: unknown = data._;
@@ -259,14 +279,14 @@ export class Remotes {
 					(result.type !== 'error' && result.type !== 'result')
 				)
 					throw new TypeError('Invalid query.batch result');
-				for (const request of waiting) {
-					if (result.type === 'error') request.reject(new HttpError(result.error));
-					else request.resolve(result.data);
+				for (const call of waiting) {
+					if (result.type === 'error') call.result.reject(new HttpError(result.error));
+					else call.result.resolve(result.data);
 				}
 			}
 		} catch (error) {
 			for (const waiting of batch.payloads.values())
-				for (const request of waiting) request.reject(error);
+				for (const call of waiting) call.result.reject(error);
 		}
 	}
 

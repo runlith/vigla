@@ -4,6 +4,7 @@ import { HttpError, Redirect } from '../../shared/outcomes.ts';
 import type { Client } from '../client.ts';
 import { payload } from '../payload.ts';
 import { readStream } from '../stream.ts';
+import type { QueryFlight } from './query.ts';
 
 function object(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -106,11 +107,16 @@ export class Channel {
 		return result;
 	}
 
-	async request(url: string, init?: RequestInit, refreshes?: Set<string>): Promise<RemoteData> {
+	async request(
+		url: string,
+		init?: RequestInit,
+		refreshes?: Set<string>,
+		flights?: readonly QueryFlight[]
+	): Promise<RemoteData> {
 		const result = await this.fetch(url, init);
 		const encoded = await this.unwrap(response(await result.json()));
 		const decoded = data(encoded ? this.client.transport.parse(encoded) : {});
-		this.client.remote.apply(decoded, refreshes);
+		this.client.remote.apply(decoded, refreshes, flights);
 		return decoded;
 	}
 
