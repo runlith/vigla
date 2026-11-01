@@ -8,6 +8,11 @@
 			"status": "difference",
 			"reason": "Svelte #4313: anonymous public compilation with injected CSS gives equally authored but differently pruned sheets one id on upstream 5.57.3, so the later yellow element remains transparent"
 		},
-		"issue-4732-grid-flip": "contract"
+		"issue-4732-grid-flip": "contract",
+		"media-binding-lifetime": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 retains video resize listeners after the video branch disappears, so a retained element overwrites new parent dimensions with [0,0] instead of preserving [123,456]"
+		},
+		"rich-select-hydration": "contract"
 	}
 }

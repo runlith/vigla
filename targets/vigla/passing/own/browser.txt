@@ -1,3 +1,4 @@
 issue-17969-contenteditable (dom)
 issue-4313-equal-css (dom)
 issue-4732-grid-flip (dom)
+media-binding-lifetime (dom)

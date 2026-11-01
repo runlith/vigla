@@ -139,6 +139,24 @@ export function binding(
 			call('bindGroup', group(context, attribute), element, get, set);
 		} else if (name === 'files') {
 			call('bindFiles', element, get, set);
+		} else if (name === 'currentTime') {
+			call('bindCurrentTime', element, get, set);
+		} else if (name === 'paused') {
+			call('bindPaused', element, get, set);
+		} else if (name === 'muted' || name === 'volume' || name === 'playbackRate') {
+			call('bindMediaControl', element, b.literal(name), get, set);
+		} else if (
+			name === 'buffered' ||
+			name === 'seekable' ||
+			name === 'played' ||
+			name === 'duration' ||
+			name === 'seeking' ||
+			name === 'ended' ||
+			name === 'readyState'
+		) {
+			call('bindMedia', element, b.literal(name), set);
+		} else if (name === 'videoWidth' || name === 'videoHeight') {
+			call('bindProperty', b.literal(name), b.literal('resize'), element, set);
 		} else if (editable.has(name)) {
 			call('bindContentEditable', b.literal(name), element, get, set);
 		} else if (name === 'open') {

@@ -191,15 +191,13 @@ export function bindProperty(
 	const target = element as unknown as Record<string, unknown>;
 	const handler = (): void => unowned(() => set(target[property]));
 	element.addEventListener(type, handler);
+	teardown(() => element.removeEventListener(type, handler));
 	if (get !== undefined) {
 		template(() => {
 			target[property] = get();
 		});
 	} else {
 		handler();
-	}
-	if (element === document.body || element === window || element === document) {
-		teardown(() => element.removeEventListener(type, handler));
 	}
 }
 

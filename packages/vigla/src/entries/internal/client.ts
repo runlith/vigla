@@ -32,6 +32,12 @@ export {
 	bindThis,
 	bindValue
 } from '../../runtime/dom/bindings.ts';
+export {
+	bindCurrentTime,
+	bindMedia,
+	bindMediaControl,
+	bindPaused
+} from '../../runtime/dom/media.ts';
 export { async, deferredExports, save, script } from '../../runtime/dom/async.ts';
 export { awaited } from '../../runtime/dom/await.ts';
 export { animation, transition } from '../../runtime/transitions/manager.ts';
