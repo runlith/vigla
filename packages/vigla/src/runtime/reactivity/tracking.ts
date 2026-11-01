@@ -547,9 +547,11 @@ export function stale(target: Reaction): boolean {
 			for (let index = 0; index < deps.length; index++) {
 				const dep = deps[index] as Source;
 				if (isDerived(dep)) {
-					if (view !== null && affected(dep, view)) return true;
-					refresh(dep);
-					if (view !== null && view.values.has(dep)) return true;
+					if (view !== null) {
+						if (affected(dep, view)) return true;
+						refresh(dep);
+						if (view.values.has(dep)) return true;
+					} else if (dep.status !== CLEAN) refresh(dep);
 				}
 				if (dep.wv > target.rv) return true;
 			}
