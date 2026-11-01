@@ -9,4 +9,4 @@ fields:
     "status": "in_work"
   }
 ---
-Locate the seam losing a server-initiated query refresh during a command, reproduce the async app's reset failure with the upstream wire contract, and fix its producer. Verify the same scoped app picks with Kit's approval before recording first-attempt passes.
+Keep the dev manifest's remote table live as SSR discovers remote modules, so the first browser command reaches its registered implementation. Reproduce the cold-manifest 404 through the Vite plugin's HTTP seam and verify the agreed async dev picks before recording first-attempt passes.
