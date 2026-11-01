@@ -23,5 +23,8 @@ export const reporter: Reporter = {
 		const error = new Error(message === null ? link(code) : `${code}\n${message}\n${link(code)}`);
 		error.name = 'Svelte error';
 		return error;
+	},
+	formatFrame(frame) {
+		return frame.replace(/\bReactive(Map|Set|Date|URLSearchParams|URL)\./g, 'Svelte$1.');
 	}
 };

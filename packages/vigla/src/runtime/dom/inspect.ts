@@ -1,9 +1,10 @@
+import { formatFrame } from '../../shared/diagnostics.ts';
 import { eager, template } from '../reactivity/effects.ts';
 import { snapshot } from '../reactivity/proxy.ts';
 import { untrack } from '../reactivity/tracking.ts';
 
 const internal =
-	/\/vigla\/src\/(runtime\/(reactivity|dom|server)|shared)\/|\/svelte\/src\/entries\//;
+	/\/vigla\/src\/(runtime\/(reactivity|dom|server)|shared)\/|\/vigla\/src\/runtime\/classes\/subscriber\.ts|\/svelte\/src\/entries\//;
 
 function stackOf(label: string): Error | null {
 	const limit = Error.stackTraceLimit;
@@ -13,7 +14,8 @@ function stackOf(label: string): Error | null {
 	if (stack === undefined) return null;
 	const lines = stack
 		.split('\n')
-		.filter((line) => line.trim() !== 'Error' && !internal.test(line.replaceAll('\\', '/')));
+		.filter((line) => line.trim() !== 'Error' && !internal.test(line.replaceAll('\\', '/')))
+		.map(formatFrame);
 	if (lines.length === 0) return null;
 	const error = new Error();
 	Object.defineProperty(error, 'stack', { value: ['\n', ...lines].join('\n') });

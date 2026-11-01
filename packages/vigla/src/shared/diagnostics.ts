@@ -3,6 +3,7 @@ import { DEV } from 'esm-env';
 export interface Reporter {
 	warn(code: string, message: string | null): void;
 	error(code: string, message: string | null): Error;
+	formatFrame?(frame: string): string;
 }
 
 let reporter: Reporter = {
@@ -26,4 +27,8 @@ export function warn(code: string, message: string): void {
 
 export function failure(code: string, message: string): Error {
 	return reporter.error(code, DEV ? message : null);
+}
+
+export function formatFrame(frame: string): string {
+	return reporter.formatFrame?.(frame) ?? frame;
 }
