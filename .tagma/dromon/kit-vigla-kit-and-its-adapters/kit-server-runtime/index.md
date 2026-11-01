@@ -8,6 +8,12 @@ fields:
     "entries": [
       {
         "at": "."
+      },
+      {
+        "at": "origin.ts",
+        "for": [
+          "7526d608"
+        ]
       }
     ],
     "id": "kit-server"
