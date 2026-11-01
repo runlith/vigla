@@ -3,11 +3,10 @@ import type {
 	Logger,
 	Prerendered,
 	PrerenderOption,
-	RouteDefinition,
 	ValidatedConfig
 } from '../types/builder.ts';
-import type { RouteTree } from '../types/internal/routes.ts';
-import type { ClientBuild, FontDependency } from '../types/internal/server.ts';
+import type { Route, RouteTree } from '../types/internal/routes.ts';
+import type { ClientBuild, FontDependency, Style } from '../types/internal/server.ts';
 
 export type AppManifest = typeof import('$app/manifest');
 
@@ -24,6 +23,12 @@ export interface BuiltNode {
 	imports: string[];
 	stylesheets: string[];
 	fonts: FontDependency[];
+	inlineStyles?: Record<string, string>;
+}
+
+export interface CompiledStyle {
+	source: string;
+	render: Style;
 }
 
 export interface Artifacts {
@@ -34,6 +39,7 @@ export interface Artifacts {
 	remotes: Record<string, string>;
 	chunks: Record<string, Chunk>;
 	serviceWorker: string | null;
+	inlineStyle?: CompiledStyle;
 }
 
 export interface NodeMetadata {
@@ -78,6 +84,6 @@ export interface BuildContext {
 
 export interface ManifestInput {
 	context: BuildContext;
-	routes: RouteDefinition[];
+	routes: Route[];
 	relativePath: string;
 }

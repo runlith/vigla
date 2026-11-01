@@ -140,7 +140,9 @@ export async function renderDocument(
 	}
 	for (const css of [
 		...inlined.values(),
-		...(manifest.client?.inline?.style ? [manifest.client.inline.style] : [])
+		...(manifest.client?.inline?.style
+			? [manifest.client.inline.style(paths.assets, paths.base)]
+			: [])
 	]) {
 		await csp.style(css);
 		head.push(`<style${csp.styleNonce ? ` nonce="${csp.nonce}"` : ''}>${css}</style>`);

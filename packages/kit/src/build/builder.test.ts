@@ -8,7 +8,6 @@ import { resolveConfig, validateConfig } from '../config/index.ts';
 import type { ServerManifest } from '../types/internal/server.ts';
 import { createBuilder, createLogger } from './builder.ts';
 import { specifier, write } from './files.ts';
-import { manifestSource } from './manifest.ts';
 import type { BuildContext } from './types.ts';
 
 let directory: string;
@@ -83,7 +82,7 @@ test('the adapter Builder produces compressed representations without changing s
 	expect(await builder.compress(path.join(input.root, 'absent'))).toEqual([]);
 });
 
-test('generated deployment manifests retain root nodes and reindex selected routes', () => {
+test('generated deployment manifests retain root nodes and reindex selected routes', async () => {
 	const input = context('manifest');
 	input.tree.nodes = Array.from({ length: 4 }, () => ({ depth: 0, parent: null, options: null }));
 	input.artifacts.nodes = input.tree.nodes.map((_, index) => ({
@@ -113,12 +112,15 @@ test('generated deployment manifests retain root nodes and reindex selected rout
 			prerender: false
 		});
 	const builder = createBuilder(input);
-	const source = manifestSource({
-		context: input,
-		routes: [builder.routes[1]!],
-		relativePath: './server'
-	});
-	const manifest = new Function('return ' + source)() as ServerManifest;
+	write(path.join(input.root, 'package.json'), '{"type":"module"}');
+	write(
+		path.join(builder.getServerDirectory(), 'index.js'),
+		'export class Server { constructor(manifest) { this.manifest = manifest; } }'
+	);
+	const destination = path.join(input.root, 'entry.js');
+	builder.generateServerInstance(destination, { routes: [builder.routes[1]!] });
+	const { server } = await import(pathToFileURL(destination).href);
+	const manifest = server.manifest as ServerManifest;
 	expect(manifest.nodes).toHaveLength(3);
 	expect(manifest.routes.map((route) => route.id)).toEqual(['/two']);
 	expect(manifest.routes[0]!.page).toEqual({ layouts: [0], errors: [1], leaf: 2 });

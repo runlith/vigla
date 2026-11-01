@@ -2,15 +2,13 @@ import { statSync } from 'node:fs';
 import path from 'node:path';
 import { uneval } from 'devalue';
 import { lookup } from '../shared/mime.ts';
-import type { RouteDefinition } from '../types/builder.ts';
 import type { Route } from '../types/internal/routes.ts';
 import { posix, write } from './files.ts';
 import type { BuildContext, ManifestInput } from './types.ts';
 
-export function serverAssets(context: BuildContext, routes: RouteDefinition[]): string[] {
+export function serverAssets(context: BuildContext, routes: Route[]): string[] {
 	const roots = ['index.js'];
-	for (const definition of routes) {
-		const route = context.tree.routes.find((route) => route.id === definition.id)!;
+	for (const route of routes) {
 		if (route.endpoint) roots.push(context.artifacts.endpoints[route.id]!);
 		if (route.page)
 			for (const index of [...route.page.layouts, ...route.page.errors, route.page.leaf]) {
@@ -37,9 +35,7 @@ export function serverAssets(context: BuildContext, routes: RouteDefinition[]): 
 }
 
 export function manifestSource({ context, routes, relativePath }: ManifestInput): string {
-	const selected = routes.map((definition) =>
-		context.tree.routes.find((route) => route.id === definition.id)!
-	);
+	const selected = routes;
 	const used = new Set([0, 1]);
 	for (const route of selected)
 		if (route.page) {
@@ -65,6 +61,11 @@ export function manifestSource({ context, routes, relativePath }: ManifestInput)
 					leaf: reindex.get(route.page.leaf)
 				}
 			: null;
+	const client = uneval(context.artifacts.client, (value) =>
+		context.artifacts.inlineStyle && value === context.artifacts.inlineStyle.render
+			? context.artifacts.inlineStyle.source
+			: undefined
+	);
 	const assets = [
 		...context.tree.assets.map((asset) => asset.file),
 		...[context.artifacts.serviceWorker].filter((file): file is string => !!file)
@@ -83,7 +84,7 @@ export function manifestSource({ context, routes, relativePath }: ManifestInput)
 		if (path.extname(pathname)) mime[path.extname(pathname)] ??= lookup(pathname) ?? '';
 	return `(() => { const memo = (load) => { let value; return () => value ??= load(); }; return {
 app_dir: ${uneval(context.config.appDir)}, app_path: ${uneval([context.config.paths.base.slice(1), context.config.appDir].filter(Boolean).join('/'))},
-assets: new Set(${uneval(assets)}), mime_types: ${uneval(mime)}, client: ${uneval(context.artifacts.client)},
+assets: new Set(${uneval(assets)}), mime_types: ${uneval(mime)}, client: ${client},
 nodes: [${indices.map((index) => load(`nodes/${index}.js`)).join(',')}],
 remotes: {${Object.entries(context.artifacts.remotes)
 		.map(([id, file]) => `${JSON.stringify(id)}: ${load(file)}`)
@@ -106,7 +107,13 @@ export function writeNodes(context: BuildContext): void {
 		const source = (name: string) => JSON.stringify('../' + posix(name));
 		write(
 			file,
-			`export const index = ${index};\nexport const imports = ${uneval(node.imports)}, stylesheets = ${uneval(node.stylesheets)}, fonts = ${uneval(node.fonts)};\nexport const component = () => import(${source(node.component)}).then(module => module.default);\n${node.universal ? `export * as universal from ${source(node.universal)};` : ''}\n${node.server ? `export * as server from ${source(node.server)};` : ''}\n`
+			`export const index = ${index};\nexport const imports = ${uneval(node.imports)}, stylesheets = ${uneval(node.stylesheets)}, fonts = ${uneval(node.fonts)};\nexport const universal_id = ${uneval(context.tree.nodes[index]?.universal)}, server_id = ${uneval(context.tree.nodes[index]?.server)};\n${
+				node.inlineStyles
+					? `export const inline_styles = () => ({${Object.entries(node.inlineStyles)
+							.map(([file, expression]) => `${JSON.stringify(file)}: (${expression})`)
+							.join(',')}});`
+					: ''
+			}\nexport const component = () => import(${source(node.component)}).then(module => module.default);\n${node.universal ? `export * as universal from ${source(node.universal)};` : ''}\n${node.server ? `export * as server from ${source(node.server)};` : ''}\n`
 		);
 	}
 }

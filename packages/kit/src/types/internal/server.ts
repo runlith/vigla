@@ -65,6 +65,8 @@ export type EntryGenerator = () => MaybePromise<Array<Record<string, string>>>;
 export type ComponentLoader = () => Promise<Component<any>>;
 export type NodeLoader = () => Promise<PageNode>;
 
+export type Style = (assets: string, base: string) => string;
+
 export interface PageNode {
 	index: number;
 	imports: string[];
@@ -72,9 +74,7 @@ export interface PageNode {
 	fonts: FontDependency[];
 	universal_id?: string;
 	server_id?: string;
-	inline_styles?(): MaybePromise<
-		Record<string, string | ((assets: string, base: string) => string)>
-	>;
+	inline_styles?(): MaybePromise<Record<string, string | Style>>;
 	component?: ComponentLoader;
 	universal?: UniversalNode;
 	server?: ServerNode;
@@ -116,7 +116,7 @@ export interface ClientBuild {
 	stylesheets: string[];
 	fonts: FontDependency[];
 	uses_env_dynamic_public: boolean;
-	inline?: { script: string; style: string | undefined };
+	inline?: { script: string; style: Style | undefined };
 }
 
 export interface RemoteModule {

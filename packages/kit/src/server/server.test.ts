@@ -1028,7 +1028,7 @@ it('emits an inline client stylesheet and its CSP hash without an external style
 		stylesheets: [],
 		fonts: [],
 		uses_env_dynamic_public: false,
-		inline: { script: 'bootstrap()', style: css }
+		inline: { script: 'bootstrap()', style: () => css }
 	};
 	app.nodes[2] = async () => node(2, { ssr: false }, undefined, layout);
 	app.routes = [route('/', null, true)];

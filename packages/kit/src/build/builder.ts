@@ -80,7 +80,7 @@ export function createBuilder(context: BuildContext): Builder {
 			const files = [
 				...serverAssets(
 					context,
-					routes.filter((route) => route.prerender !== true)
+					tree.routes.filter((route) => context.prerenderMap.get(route.id) !== true)
 				),
 				...walk(path.join(output, 'client')),
 				...walk(path.join(output, 'prerendered'))
@@ -92,7 +92,10 @@ export function createBuilder(context: BuildContext): Builder {
 			return types;
 		},
 		findServerAssets(selected) {
-			return serverAssets(context, selected);
+			return serverAssets(
+				context,
+				selected.map((route) => tree.routes.find((candidate) => candidate.id === route.id)!)
+			);
 		},
 		async generateFallback(destination) {
 			const html = await renderFallback(context);
@@ -112,7 +115,9 @@ export function createBuilder(context: BuildContext): Builder {
 		generateServerInstance(destination, options = {}) {
 			const directory = options.serverDirectory ?? serverDirectory;
 			const relative = specifier(path.dirname(destination), directory);
-			const selected = options.routes ?? routes.filter((route) => route.prerender !== true);
+			const selected = options.routes
+				? options.routes.map((route) => tree.routes.find((candidate) => candidate.id === route.id)!)
+				: tree.routes.filter((route) => context.prerenderMap.get(route.id) !== true);
 			write(
 				destination,
 				`import { Server } from ${JSON.stringify(relative + '/index.js')};\nconst manifest = ${manifestSource({ context, routes: selected, relativePath: relative })};\nexport const server = new Server(manifest);\n`

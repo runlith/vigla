@@ -362,8 +362,8 @@
       "reason": "drives Kit's internal `src/core/postbuild/entities.js` code; covered by the `kit-build` module"
     },
     "core/postbuild/entities.spec.js > &#deaf;": {
-      "status": "covered",
-      "reason": "drives Kit's internal `src/core/postbuild/entities.js` code; covered by the `kit-build` module"
+      "status": "difference",
+      "reason": "HTML leaves `&#` followed by no digit as text; upstream's decoder accepts hex letters without `x` and yields U+FFFD"
     },
     "core/postbuild/entities.spec.js > &#x1f600;": {
       "status": "covered",

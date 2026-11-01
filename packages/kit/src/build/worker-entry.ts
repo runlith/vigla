@@ -1,59 +1,38 @@
-import { existsSync } from 'node:fs';
-import { AsyncLocalStorage } from 'node:async_hooks';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { createReadableStream } from '../node/index.ts';
-import type {
-	RequestStore,
-	ServerInstance,
-	ServerManifest,
-	ServerOptions
-} from '../types/internal/server.ts';
-import { prerender_fallback_failed } from './messages.ts';
-import type { FallbackJob, FallbackResult } from './worker.ts';
+import { enableVerboseErrors } from '../shared/diagnostics.ts';
+import { analyse } from './analysis.ts';
+import type { PolicyIssue, PolicyReply, WorkerJob, WorkerMessage } from './jobs.ts';
+import { prerender, renderShell } from './prerender.ts';
+import { loadRuntime } from './runtime.ts';
 
-interface ServerModule {
-	Server: new (manifest: ServerManifest) => ServerInstance;
-	options: ServerOptions;
-}
-
-async function fallback(job: FallbackJob): Promise<string> {
-	const directory = path.join(job.directory, 'server');
-	const module = (await import(
-		pathToFileURL(path.join(directory, 'index.js')).href
-	)) as ServerModule;
-	const { manifest } = (await import(
-		pathToFileURL(path.join(directory, 'manifest-full.js')).href
-	)) as { manifest: ServerManifest };
-	module.options.building = true;
-	module.options.prerendering = true;
-	const server = new module.Server(manifest);
-	const read = (file: string) => {
-		const name = path.join(directory, file);
-		return existsSync(name) ? createReadableStream(name) : null;
-	};
-	await server.init({ env: job.environment, read, scope: new AsyncLocalStorage<RequestStore>() });
-	const response = await server.respond(new Request(job.origin + '/[fallback]'), {
-		getClientAddress() {
-			throw new Error('Cannot read client address while prerendering');
-		},
-		prerendering: { fallback: true, insideReroute: false, dependencies: new Map() },
-		read: (file) => {
-			const name = path.join(job.assets, file);
-			return existsSync(name) ? createReadableStream(name) : null;
-		}
+enableVerboseErrors();
+let sequence = 0;
+const answers = new Map<number, () => void>();
+const report = (issue: PolicyIssue) =>
+	new Promise<void>((resolve) => {
+		const id = sequence++;
+		answers.set(id, resolve);
+		process.send!({ kind: 'policy', id, issue });
 	});
-	if (!response.ok) prerender_fallback_failed();
-	return response.text();
-}
-
-process.once('message', async (job: FallbackJob) => {
-	let result: FallbackResult;
+process.on('message', (message: WorkerJob | PolicyReply) => {
+	if (!('id' in message)) return;
+	answers.get(message.id)?.();
+	answers.delete(message.id);
+});
+process.on('disconnect', () => process.exit(1));
+process.once('message', async (job: WorkerJob) => {
+	let message: WorkerMessage;
 	try {
-		result = { value: await fallback(job) };
+		const runtime = await loadRuntime(job, job.kind !== 'analyse');
+		if (job.kind === 'analyse') {
+			const value = await analyse(runtime.manifest, job.hash);
+			value.environment = runtime.environment.rendered;
+			message = { kind: 'result', value };
+		} else if (job.kind === 'fallback')
+			message = { kind: 'result', value: await renderShell(runtime, job.origin, job.assets) };
+		else message = { kind: 'result', value: await prerender(job, runtime, report) };
 	} catch (cause) {
 		const error = cause instanceof Error ? cause : new Error(String(cause));
-		result = { error: { message: error.message, stack: error.stack } };
+		message = { kind: 'error', error: { message: error.message, stack: error.stack } };
 	}
-	process.send!(result, () => process.exit(0));
+	process.send!(message, () => process.exit(0));
 });
