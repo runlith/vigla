@@ -31,6 +31,8 @@ edges:
     to: 01a193f7-755e-71d4-ad4c-01b08be3f25c
   - kind: imports
     to: 01a19427-2696-7829-b2b9-466f3171b467
+  - kind: imports-tests
+    to: 01a193f1-4d9c-7780-903d-88cd7526d608
 sources:
   - kind: dir
     ref: packages/kit/src/vite

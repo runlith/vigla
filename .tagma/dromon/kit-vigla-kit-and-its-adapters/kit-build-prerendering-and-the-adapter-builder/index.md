@@ -23,6 +23,8 @@ edges:
     to: 01a193f7-7559-796d-9944-6bc3a5ea7546
   - kind: imports
     to: 01a193f7-755e-71d4-ad4c-01b08be3f25c
+  - kind: imports-tests
+    to: 01a193f1-4d9c-7780-903d-88cd7526d608
 sources:
   - kind: dir
     ref: packages/kit/src/build
