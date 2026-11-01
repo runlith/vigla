@@ -373,6 +373,11 @@ export function atMerge(fn: Transfer): void {
 	if (processing !== null && processing.phase === 'structure') (processing.merges ??= []).push(fn);
 }
 
+export function onMerge(batch: Batch, fn: Transfer): void {
+	const found = alias(batch);
+	if (!found.done) (found.merges ??= []).push(fn);
+}
+
 export function skip(effect: Effect): void {
 	if (processing !== null) (processing.skipped ??= new Set()).add(effect);
 }
