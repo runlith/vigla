@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import { spanOf, unsupported, type StateField } from '../analysis/index.ts';
+import { fieldName, spanOf, unsupported, type StateField } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import { runtime, type Context } from './script.ts';
 import { tagged } from './inspect.ts';
@@ -114,7 +114,7 @@ export function classBody(
 		const left = field.node.left as ES.MemberExpression;
 		members.push(
 			definition(field.key, null),
-			...accessors(context, field, left.property as ES.Expression, false)
+			...accessors(context, field, left.property as ES.Expression, left.computed)
 		);
 	}
 	for (const item of body.body) {
@@ -122,14 +122,7 @@ export function classBody(
 			members.push(next(item));
 			continue;
 		}
-		const name =
-			item.key.type === 'PrivateIdentifier'
-				? `#${item.key.name}`
-				: item.key.type === 'Identifier' && !item.computed
-					? item.key.name
-					: item.key.type === 'Literal' && typeof item.key.value === 'string'
-						? item.key.value
-						: null;
+		const name = fieldName(item.key, item.computed);
 		const field = name === null ? undefined : fields.get(name);
 		if (
 			field?.node.type === 'AssignmentExpression' &&

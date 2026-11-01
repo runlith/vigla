@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import { spanOf, unsupported, type StateField } from '../analysis/index.ts';
+import { fieldName, spanOf, unsupported, type StateField } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import { runtime, type Context } from './script.ts';
 
@@ -79,7 +79,7 @@ export function classBody(
 		const left = field.node.left as ES.MemberExpression;
 		members.push(
 			definition(field.key, null),
-			...accessors(field, left.property as ES.Expression, false)
+			...accessors(field, left.property as ES.Expression, left.computed)
 		);
 	}
 	for (const item of body.body) {
@@ -87,8 +87,17 @@ export function classBody(
 			members.push(next(item));
 			continue;
 		}
-		const field = [...fields.values()].find((candidate) => candidate.node === item);
-		if (field === undefined) {
+		const name = fieldName(item.key, item.computed);
+		const field = name === null ? undefined : fields.get(name);
+		if (
+			field?.node.type === 'AssignmentExpression' &&
+			derivedField(field) &&
+			item.value == null &&
+			name !== null &&
+			!name.startsWith('#')
+		)
+			continue;
+		if (field === undefined || field.node !== item) {
 			members.push(next(item));
 			continue;
 		}
@@ -119,13 +128,9 @@ export function constructorField(
 	node: ES.AssignmentExpression
 ): StateField | undefined {
 	const left = node.left;
-	if (left.type !== 'MemberExpression' || left.object.type !== 'ThisExpression' || left.computed)
-		return undefined;
-	if (left.property.type !== 'Identifier' && left.property.type !== 'PrivateIdentifier')
-		return undefined;
-	const field = context.fields?.get(
-		`${left.property.type === 'PrivateIdentifier' ? '#' : ''}${left.property.name}`
-	);
+	if (left.type !== 'MemberExpression' || left.object.type !== 'ThisExpression') return undefined;
+	const name = fieldName(left.property, left.computed);
+	const field = name === null ? undefined : context.fields?.get(name);
 	return field?.node === node ? field : undefined;
 }
 

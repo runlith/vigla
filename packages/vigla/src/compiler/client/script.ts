@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import {
+	fieldName,
 	hasAwait,
 	inspection,
 	isSignal,
@@ -318,18 +319,13 @@ function assignField(
 	const left = node.left as ES.MemberExpression;
 	const mutable = mutateProp(context, node, next);
 	if (mutable !== undefined) return mutable;
+	const name = fieldName(left.property, left.computed);
 	const declared =
-		left.object.type === 'ThisExpression' &&
-		!left.computed &&
-		(left.property.type === 'Identifier' || left.property.type === 'PrivateIdentifier')
-			? context.fields?.get(
-					`${left.property.type === 'PrivateIdentifier' ? '#' : ''}${left.property.name}`
-				)
-			: undefined;
+		left.object.type === 'ThisExpression' && name !== null ? context.fields?.get(name) : undefined;
 	if (declared !== undefined && declared.node === node) {
 		return {
 			...node,
-			left: { ...left, property: declared.key },
+			left: { ...left, property: declared.key, computed: false },
 			right: fieldValue(context, declared, next)
 		};
 	}

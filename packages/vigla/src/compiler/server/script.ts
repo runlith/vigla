@@ -207,7 +207,9 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					const declared = constructorField(context, current);
 					if (declared !== undefined) {
 						const left = current.left as ES.MemberExpression;
-						const target = isDerivedField(declared) ? { ...left, property: declared.key } : left;
+						const target = isDerivedField(declared)
+							? { ...left, property: declared.key, computed: false }
+							: left;
 						return { ...current, left: target, right: fieldValue(context, declared, next) };
 					}
 					if (current.left.type === 'MemberExpression' && privateDerived(context, current.left)) {

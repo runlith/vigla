@@ -27,7 +27,7 @@ import { collectNames, Template, type ListFacts } from './template.ts';
 import { hasAwait } from './asynchronous.ts';
 import type { Preserve } from './whitespace.ts';
 
-export type { ClassFields, FieldRune, StateField } from './classes.ts';
+export { fieldName, type ClassFields, type FieldRune, type StateField } from './classes.ts';
 export type { Binding, BindingKind, Prop } from './scope.ts';
 export type { ListFacts } from './template.ts';
 export {

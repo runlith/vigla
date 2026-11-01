@@ -16,11 +16,11 @@ export interface StateField {
 
 export type ClassFields = ReadonlyMap<ES.ClassBody, ReadonlyMap<string, StateField>>;
 
-function nameOf(key: ES.Node, computed: boolean): string | null {
+export function fieldName(key: ES.Node, computed: boolean): string | null {
+	if (key.type === 'Literal') return String(key.value);
 	if (computed) return null;
 	if (key.type === 'Identifier') return key.name;
 	if (key.type === 'PrivateIdentifier') return `#${key.name}`;
-	if (key.type === 'Literal' && typeof key.value === 'string') return key.value;
 	return null;
 }
 
@@ -63,7 +63,8 @@ function fieldsOf(runes: Runes, body: ES.ClassBody, placed: Set<ES.Node>): Map<s
 	}
 	const backing = (name: string): ES.PrivateIdentifier => {
 		if (name.startsWith('#')) return { type: 'PrivateIdentifier', name: name.slice(1) };
-		let candidate = name;
+		let candidate = name.replace(/[^A-Za-z0-9_$]/g, '_') || '_';
+		if (/^[0-9]/.test(candidate) || candidate === 'constructor') candidate = `_${candidate}`;
 		while (privates.has(candidate)) candidate = `_${candidate}`;
 		privates.add(candidate);
 		return { type: 'PrivateIdentifier', name: candidate };
@@ -84,11 +85,11 @@ function fieldsOf(runes: Runes, body: ES.ClassBody, placed: Set<ES.Node>): Map<s
 	};
 	for (const member of body.body) {
 		if (member.type !== 'PropertyDefinition' || member.static) continue;
-		add(nameOf(member.key, member.computed), member, member.value);
+		add(fieldName(member.key, member.computed), member, member.value);
 	}
 	for (const assignment of constructorAssignments(body)) {
 		const left = assignment.left as ES.MemberExpression;
-		add(nameOf(left.property, left.computed), assignment, assignment.right);
+		add(fieldName(left.property, left.computed), assignment, assignment.right);
 	}
 	return fields;
 }
