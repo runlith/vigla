@@ -1,9 +1,8 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { Alias, DevEnvironment, Plugin, RunnableDevEnvironment } from 'vite';
-import type { ValidatedConfig } from '../types/builder.ts';
+import { fileURLToPath } from 'node:url';
+import type { Plugin } from 'vite';
 
 export const packageDirectory = fileURLToPath(new URL('../../', import.meta.url));
 export const packageImporter = path.join(packageDirectory, 'src/vite/index.ts');
@@ -41,34 +40,6 @@ export function moduleUrl(file: string, root: string): string {
 		: '/' + relative;
 }
 
-export function resolveEntry(file: string, extensions: readonly string[]): string | null {
-	if (existsSync(file)) {
-		if (statSync(file).isFile()) return file;
-		for (const extension of extensions) {
-			const candidate = path.join(file, `index${extension}`);
-			if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
-		}
-	}
-	for (const extension of extensions) {
-		const candidate = file + extension;
-		if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
-	}
-	return null;
-}
-
-export async function importVite(root: string): Promise<typeof import('vite')> {
-	const require = createRequire(path.join(root, 'package.json'));
-	return import(pathToFileURL(require.resolve('vite')).href);
-}
-
-export function isRunnable(
-	environment: DevEnvironment | undefined
-): environment is RunnableDevEnvironment {
-	if (!environment || !('runner' in environment)) return false;
-	const runner = environment.runner as RunnableDevEnvironment['runner'];
-	return !!runner && typeof runner.import === 'function';
-}
-
 export function installedName(root: string): string {
 	const require = createRequire(path.join(root, 'package.json'));
 	for (const name of ['@sveltejs/kit', '@vigla/kit']) {
@@ -78,26 +49,6 @@ export function installedName(root: string): string {
 		} catch {}
 	}
 	throw new Error(`Cannot resolve @vigla/kit from ${root}`);
-}
-
-function escapePattern(text: string): string {
-	return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-export function configAliases(config: ValidatedConfig, root: string): Alias[] {
-	return Object.entries(config.alias).map(([key, value]) => {
-		const replacement = posix(path.resolve(root, posix(value).replace(/\/\*$/, '')));
-		if (key.endsWith('/*')) {
-			return {
-				find: new RegExp(`^${escapePattern(key.slice(0, -2))}/(.+)$`),
-				replacement: `${replacement}/$1`
-			};
-		}
-		return {
-			find: `${key}/*` in config.alias ? new RegExp(`^${escapePattern(key)}$`) : key,
-			replacement
-		};
-	});
 }
 
 function targets(value: unknown): string[] {

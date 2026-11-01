@@ -3,7 +3,8 @@ import path from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createServer, type ViteDevServer } from 'vite';
 import { sveltekit } from './index.ts';
-import { importVite, packageDirectory } from './paths.ts';
+import { importVite } from '../config/file.ts';
+import { packageDirectory } from './paths.ts';
 
 let root: string;
 let server: ViteDevServer;

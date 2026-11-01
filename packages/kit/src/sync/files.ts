@@ -22,8 +22,8 @@ export function importPath(from: string, file: string): string {
 export function resolveEntry(file: string, extensions: readonly string[]): string | null {
 	const candidates = [
 		file,
-		...extensions.map((extension) => file + extension),
-		...extensions.map((extension) => join(file, 'index' + extension))
+		...extensions.map((extension) => join(file, 'index' + extension)),
+		...extensions.map((extension) => file + extension)
 	];
 	return (
 		candidates.find((candidate) => existsSync(candidate) && statSync(candidate).isFile()) ?? null

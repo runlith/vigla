@@ -55,6 +55,9 @@
     "packages/kit": {
       "name": "@vigla/kit",
       "version": "3.1.0",
+      "bin": {
+        "svelte-kit": "./src/sync/cli.ts",
+      },
       "dependencies": {
         "@opentelemetry/api": "^1.9.1",
         "@standard-schema/spec": "^1.1.0",

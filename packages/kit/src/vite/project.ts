@@ -1,9 +1,8 @@
 import type { ResolvedConfig } from 'vite';
 import type { Format } from 'vigla/compiler';
-import type { Sync } from '../sync/index.ts';
+import type { Sync, Environment } from '../sync/index.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
-import type { Environment } from './env.ts';
 import type { BuildContext } from '../build/index.ts';
 import type { RemoteIntegration } from './remote.ts';
 

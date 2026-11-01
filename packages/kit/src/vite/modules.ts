@@ -1,5 +1,7 @@
 import path from 'node:path';
-import type { Plugin, Rolldown } from 'vite';
+import type { Plugin, ResolvedConfig, Rolldown } from 'vite';
+import type { ValidatedConfig } from '../types/builder.ts';
+import { resolveEntry } from '../sync/index.ts';
 import { compileComponent, componentNames } from '../components/index.ts';
 import { clientApp, clientNode } from './client.ts';
 import {
@@ -13,6 +15,7 @@ import * as e from './messages.ts';
 import {
 	fileUrl,
 	importAliases,
+	installedName,
 	isServerOnly,
 	normalizeId,
 	packageImporter,
@@ -43,17 +46,26 @@ export function scanVirtualModules(): Rolldown.Plugin {
 	};
 }
 
-export function virtualModules(getProject: () => Project): Plugin {
+export function virtualModules(
+	getConfig: () => ValidatedConfig,
+	getProject: () => Project
+): Plugin {
+	let vite: ResolvedConfig;
+	let name: string;
 	return {
 		name: 'kit:modules',
 		enforce: 'pre',
+		configResolved(resolved) {
+			vite = resolved;
+			name = installedName(vite.root);
+		},
 		async resolveId(id, importer, options) {
-			const project = getProject();
+			const config = getConfig();
 			if (id.startsWith('/@fs/')) id = id.slice(4);
 			if (id.startsWith(virtualDirectory)) return path.posix.normalize(id);
-			const nodes = clientDirectory(project) + '/nodes/';
+			const nodes = clientDirectory(config, vite) + '/nodes/';
 			if (id.startsWith(nodes)) return path.posix.normalize(id);
-			const url = moduleUrl(clientDirectory(project), project.root) + '/nodes/';
+			const url = moduleUrl(clientDirectory(config, vite), vite.root) + '/nodes/';
 			if (id.startsWith(url)) return nodes + id.slice(url.length);
 			if (id === '$app/manifest' || id === '<sveltekit:generated>/app-manifest.js')
 				return ids.appManifest;
@@ -69,12 +81,12 @@ export function virtualModules(getProject: () => Project): Plugin {
 				const resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
 				if (resolved) return resolved;
 				const name = id.startsWith('$lib') ? '$lib' : '$service-worker';
-				if (name in project.config.alias || `${name}/*` in project.config.alias) return null;
+				if (name in config.alias || `${name}/*` in config.alias) return null;
 				if (name === '$lib') e.module_removed_lib();
 				e.module_removed_service_worker();
 			}
-			if (importer?.startsWith(virtualDirectory) && id.startsWith(project.name + '/')) {
-				return await this.resolve(id, path.join(project.root, 'package.json'), {
+			if (importer?.startsWith(virtualDirectory) && id.startsWith(name + '/')) {
+				return await this.resolve(id, path.join(vite.root, 'package.json'), {
 					...options,
 					skipSelf: true
 				});
@@ -84,6 +96,8 @@ export function virtualModules(getProject: () => Project): Plugin {
 			}
 		},
 		load(id) {
+			const nodes = clientDirectory(getConfig(), vite) + '/nodes/';
+			if (!id.startsWith(virtualDirectory) && !id.startsWith(nodes)) return;
 			const project = getProject();
 			const { config, tree, root, name, format, environment } = project;
 			const client = this.environment.config.consumer === 'client';
@@ -118,7 +132,6 @@ export function virtualModules(getProject: () => Project): Plugin {
 					name,
 					project.vite.command === 'serve'
 				);
-			const nodes = clientDirectory(project) + '/nodes/';
 			const node = /^(\d+)\.js$/.exec(id.slice(nodes.length));
 			if (id.startsWith(nodes) && node) {
 				const index = Number(node[1]);
@@ -137,17 +150,18 @@ export function virtualModules(getProject: () => Project): Plugin {
 			}
 		},
 		transform(code, id) {
-			const project = getProject();
-			if (
-				this.environment.config.consumer === 'client' &&
-				id.split('?')[0] === project.serviceWorker
-			)
+			if (this.environment.config.consumer !== 'client') return;
+			const config = getConfig();
+			const file = id.split('?')[0]!;
+			if (!file.startsWith(config.files.serviceWorker)) return;
+			if (file === resolveEntry(config.files.serviceWorker, config.moduleExtensions))
 				return { code: `import ${JSON.stringify(ids.workerEnv)};\n${code}`, map: null };
 		}
 	};
 }
 
-export function serverGuard(getProject: () => Project): Plugin {
+export function serverGuard(getConfig: () => ValidatedConfig): Plugin {
+	let root: string;
 	const importers = new Map<string, Set<string>>();
 	const special = new Map<string, string>();
 	function chain(id: string, seen = new Set<string>()): string[] {
@@ -162,6 +176,9 @@ export function serverGuard(getProject: () => Project): Plugin {
 	return {
 		name: 'kit:server-only',
 		enforce: 'pre',
+		configResolved(vite) {
+			root = vite.root;
+		},
 		applyToEnvironment(environment) {
 			return environment.config.consumer === 'client';
 		},
@@ -177,10 +194,10 @@ export function serverGuard(getProject: () => Project): Plugin {
 				special.set(file, id);
 		},
 		load(id) {
-			const project = getProject();
+			const config = getConfig();
 			id = posix(id.split('?')[0]!);
-			const alias = importAliases(project.root);
-			const pretty = (file: string) => special.get(file) ?? normalizeId(file, alias, project.root);
+			const alias = importAliases(root);
+			const pretty = (file: string) => special.get(file) ?? normalizeId(file, alias, root);
 			const legacyPrivate =
 				id.startsWith(virtualDirectory) &&
 				/^env\/(static|dynamic)\/private\.js$/.test(id.slice(virtualDirectory.length));
@@ -190,10 +207,10 @@ export function serverGuard(getProject: () => Project): Plugin {
 				id === ids.privateEnv ||
 				id === ids.env ||
 				isServerOnly(id, {
-					root: posix(project.root),
-					node_modules: posix(path.join(project.root, 'node_modules')),
-					routes: posix(project.config.files.routes),
-					assets: posix(project.config.files.assets)
+					root: posix(root),
+					node_modules: posix(path.join(root, 'node_modules')),
+					routes: posix(config.files.routes),
+					assets: posix(config.files.assets)
 				})
 			) {
 				const names = [...chain(id), id]

@@ -10,6 +10,9 @@ import { writeTsconfig } from './typescript.ts';
 
 export { discover } from './discover.ts';
 export { analyseOptions } from './options.ts';
+export { loadEnvironment, validateEnvironment, isRunnable, type Environment } from './env.ts';
+export { resolveEntry } from './files.ts';
+export { vite_ssr_environment_not_runnable } from './errors.ts';
 
 export interface Sync {
 	initial(mode: string): Promise<RouteTree>;

@@ -18,7 +18,8 @@ import type { ServerManifest } from '../types/internal/server.ts';
 import { namespace } from './ids.ts';
 import { walk } from '../build/index.ts';
 import { sveltekit } from './index.ts';
-import { importVite, packageDirectory } from './paths.ts';
+import { importVite } from '../config/file.ts';
+import { packageDirectory } from './paths.ts';
 
 let root: string;
 let preview: PreviewServer;

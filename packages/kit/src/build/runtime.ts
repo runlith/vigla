@@ -1,7 +1,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { createRequire } from 'node:module';
-import type { Emulator, ValidatedConfig } from '../types/builder.ts';
+import { loadConfig } from '../config/file.ts';
+import type { Emulator } from '../types/builder.ts';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createReadableStream } from '../node/index.ts';
@@ -40,17 +40,8 @@ export function reader(directory: string): Read {
 
 export async function loadEmulator(job: PrerenderJob): Promise<Emulator | undefined> {
 	if (!job.configFile) return;
-	const require = createRequire(path.join(job.root, 'package.json'));
-	const api: typeof import('vite') = await import(pathToFileURL(require.resolve('vite')).href);
-	const config = await api.resolveConfig(
-		{ root: job.root, configFile: job.configFile },
-		'build',
-		job.mode
-	);
-	const options: ValidatedConfig | undefined = config.plugins.find(
-		(plugin) => plugin.name === 'kit:setup'
-	)?.api.options;
-	return options?.adapter?.emulate?.();
+	const { config } = await loadConfig(job.root, job.configFile, job.mode);
+	return config.adapter?.emulate?.();
 }
 
 export async function loadRuntime(job: WorkerPlatform, prerendering: boolean): Promise<Runtime> {

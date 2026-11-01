@@ -3,7 +3,8 @@ import type { Plugin, Rolldown, ViteDevServer } from 'vite';
 import type { RemoteMetadata } from '../build/index.ts';
 import { hash } from '../shared/hash.ts';
 import type { RemoteExport, RemoteInternals } from '../types/internal/remote.ts';
-import { fileUrl, isRemoteModule, isRunnable, posix, remotePattern } from './paths.ts';
+import { isRunnable } from '../sync/index.ts';
+import { fileUrl, isRemoteModule, posix, remotePattern } from './paths.ts';
 import type { Project } from './project.ts';
 
 export interface RemoteEntry {

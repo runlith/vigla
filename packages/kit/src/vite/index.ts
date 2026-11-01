@@ -1,26 +1,17 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { svelte, type Options, type PluginAPI } from '@vigla/vite-plugin';
-import type { CorsOptions, Plugin, UserConfig } from 'vite';
+import type { CorsOptions, Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { resolveConfig, splitConfig, validateConfig } from '../config/index.ts';
-import { createSync } from '../sync/index.ts';
+import { createSync, loadEnvironment, validateEnvironment, resolveEntry } from '../sync/index.ts';
+import { configAliases, importVite } from '../config/file.ts';
 import type { Config } from '../types/config.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import { configureDev } from './dev.ts';
-import { loadEnvironment } from './env.ts';
 import { namespace } from './ids.ts';
 import * as e from './messages.ts';
 import { scanVirtualModules, serverGuard, virtualModules } from './modules.ts';
-import {
-	configAliases,
-	importAliases,
-	importVite,
-	installedName,
-	posix,
-	packageDirectory,
-	resolveEntry,
-	usesHtmlHook
-} from './paths.ts';
+import { importAliases, installedName, posix, packageDirectory, usesHtmlHook } from './paths.ts';
 import type { Project } from './project.ts';
 import { createRemotePlugin } from './remote.ts';
 import { buildPlugin } from './build.ts';
@@ -95,7 +86,40 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 	let project: Project;
 	let runtime: typeof import('vite');
 	let globalName: string;
+	let resolved: ResolvedConfig;
+	let initialisation: Promise<Project> | undefined;
 	const remote = createRemotePlugin(() => project);
+	function initialise(): Promise<Project> {
+		return (initialisation ??= (async () => {
+			const sync = createSync(config, root);
+			const tree = await sync.initial(resolved.mode);
+			const environment = await loadEnvironment(config, root, resolved.mode, runtime);
+			validateEnvironment(environment);
+			sync.writeEnvironment(environment.file, environment.variables);
+			const firstFormat = api.frontEnds[0]?.compiler.format;
+			const sameFormat = api.frontEnds.every(
+				({ compiler }) =>
+					compiler.format?.global === firstFormat?.global &&
+					compiler.format?.meta === firstFormat?.meta &&
+					compiler.format?.cssWrapper === firstFormat?.cssWrapper
+			);
+			project = {
+				root,
+				name,
+				global: globalName,
+				remote,
+				config,
+				vite: resolved,
+				api: runtime,
+				sync,
+				tree,
+				environment,
+				format: sameFormat ? firstFormat : undefined,
+				serviceWorker: resolveEntry(config.files.serviceWorker, config.moduleExtensions)
+			};
+			return project;
+		})());
+	}
 	const setup: Plugin = {
 		name: 'kit:setup',
 		enforce: 'pre',
@@ -110,6 +134,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 				}
 				name = installedName(root);
 				config = resolveConfig(validated, root);
+				setup.api.options = config;
 				const dev = env.command === 'serve';
 				globalName = namespace(config.version.name, dev);
 				const aliases = importAliases(root);
@@ -174,17 +199,10 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 				return result;
 			}
 		},
-		async configResolved(vite) {
+		configResolved(vite) {
+			resolved = vite;
 			if (!input.extensions)
 				config.extensions = [...new Set(api.frontEnds.flatMap((frontEnd) => frontEnd.components))];
-			const firstFormat = api.frontEnds[0]?.compiler.format;
-			const sameFormat = api.frontEnds.every(
-				({ compiler }) =>
-					compiler.format?.global === firstFormat?.global &&
-					compiler.format?.meta === firstFormat?.meta &&
-					compiler.format?.cssWrapper === firstFormat?.cssWrapper
-			);
-			const format = sameFormat ? firstFormat : undefined;
 			for (const env of Object.values(vite.environments)) {
 				if (env.consumer !== 'client') continue;
 				const entries = env.optimizeDeps.entries;
@@ -193,43 +211,31 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 						...config.extensions.map((extension) => `${config.files.routes}/**/+*${extension}`)
 					);
 			}
-			const sync = createSync(config, root);
-			const tree = await sync.initial(vite.mode);
-			const environment = await loadEnvironment(config, root, vite.mode, runtime);
-			sync.writeEnvironment(environment.file, environment.variables);
-			project = {
-				root,
-				name,
-				global: globalName,
-				remote,
-				config,
-				vite,
-				api: runtime,
-				sync,
-				tree,
-				environment,
-				format,
-				serviceWorker: resolveEntry(config.files.serviceWorker, config.moduleExtensions)
-			};
 			const html = vite.plugins.filter(usesHtmlHook);
 			if (html.length)
 				e.transform_index_html_unsupported({
 					plugins: html.map((plugin) => `  - ${plugin.name}`).join('\n')
 				});
 		},
-		configureServer(server) {
-			return configureDev(server, project);
+		async buildStart() {
+			await initialise();
 		},
-		configurePreviewServer(server) {
-			return configurePreview(server, project);
+		async configureServer(server) {
+			return configureDev(server, await initialise());
+		},
+		async configurePreviewServer(server) {
+			return configurePreview(server, await initialise());
 		}
 	};
 	return [
 		...compiler,
 		setup,
-		serverGuard(() => project),
-		virtualModules(() => project),
+		serverGuard(() => config),
+		virtualModules(
+			() => config,
+			() => project
+		),
 		...remote.plugins,
-		buildPlugin(validated, () => project)
+		buildPlugin(validated, initialise)
 	];
 }

@@ -21,7 +21,8 @@ import { dependencies } from './dependencies.ts';
 import { styleExpression } from './styles.ts';
 import { pruneRemotes } from './remote-build.ts';
 import { ids, nodeId } from './ids.ts';
-import { packageDirectory, resolveEntry } from './paths.ts';
+import { resolveEntry } from '../sync/index.ts';
+import { packageDirectory } from './paths.ts';
 import type { Project } from './project.ts';
 
 function json(file: string): Manifest {
@@ -84,7 +85,10 @@ function fresh(project: Project): BuildContext {
 	};
 }
 
-export function buildPlugin(validated: ValidatedConfig, getProject: () => Project): Plugin {
+export function buildPlugin(
+	validated: ValidatedConfig,
+	getProject: () => Promise<Project>
+): Plugin {
 	return {
 		name: 'kit:build',
 		apply: 'build',
@@ -181,17 +185,18 @@ export function buildPlugin(validated: ValidatedConfig, getProject: () => Projec
 				}
 			};
 		},
-		generateBundle() {
+		async generateBundle() {
 			if (this.environment.name === 'client') {
+				const project = await getProject();
 				this.emitFile({
 					type: 'asset',
-					fileName: getProject().config.appDir + '/version.json',
-					source: JSON.stringify({ version: getProject().config.version.name })
+					fileName: project.config.appDir + '/version.json',
+					source: JSON.stringify({ version: project.config.version.name })
 				});
 			}
 		},
 		async buildApp(builder) {
-			const project = getProject();
+			const project = await getProject();
 			const context = fresh(project);
 			project.build = context;
 			const output = path.join(context.config.outDir, 'output');

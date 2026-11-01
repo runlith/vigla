@@ -3,9 +3,6 @@ import { throwDiagnostic, warnDiagnostic } from '../shared/diagnostics.ts';
 interface FileMessage {
 	file: string;
 }
-interface NameMessage {
-	name: string;
-}
 interface MatcherMessage {
 	name: string;
 	file?: string;
@@ -13,10 +10,6 @@ interface MatcherMessage {
 interface ImportMessage {
 	module: string;
 	chain: string;
-}
-interface EnvCycle {
-	type: string;
-	importer?: string;
 }
 interface ConfigMessage {
 	options: string;
@@ -54,43 +47,6 @@ export function server_only_import({ module, chain }: ImportMessage): never {
 		'server_only_import',
 		`Cannot import \`${module}\` into code that runs in the browser, as this could leak sensitive information.\n\n${chain}\n\nIf you're only using the import as a type, change it to \`import type\`.`,
 		server_only_import
-	);
-}
-export function env_invalid_variable_name({ name }: NameMessage): never {
-	throwDiagnostic(
-		'env_invalid_variable_name',
-		`Invalid environment variable name \`${name}\``,
-		env_invalid_variable_name
-	);
-}
-export function env_variables_missing({ file }: FileMessage): never {
-	throwDiagnostic(
-		'env_variables_missing',
-		`\`${file}\` must export a variables object`,
-		env_variables_missing
-	);
-}
-export function env_app_import(): never {
-	throwDiagnostic(
-		'env_app_import',
-		'Cannot import `$app/*` modules other than `$app/env` inside `src/env`',
-		env_app_import
-	);
-}
-export function env_circular_import({ type, importer }: EnvCycle): never {
-	throwDiagnostic(
-		'env_circular_import',
-		importer
-			? `Module \`${importer}\` imports \`$app/env/${type}\`, which creates a circular dependency with \`src/env\``
-			: `Cannot import \`$app/env/${type}\` inside \`src/env\` or its dependencies because it creates a circular dependency`,
-		env_circular_import
-	);
-}
-export function vite_ssr_environment_not_runnable(): never {
-	throwDiagnostic(
-		'vite_ssr_environment_not_runnable',
-		'The configured Vite SSR environment must be a `RunnableDevEnvironment`',
-		vite_ssr_environment_not_runnable
 	);
 }
 export function params_export_missing({ file }: FileMessage): never {

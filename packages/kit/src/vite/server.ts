@@ -5,7 +5,8 @@ import { escapeHtml } from '../shared/escape.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { Project } from './project.ts';
 import { ids, nodeId } from './ids.ts';
-import { fileUrl, moduleUrl, packageDirectory, posix, resolveEntry } from './paths.ts';
+import { resolveEntry } from '../sync/index.ts';
+import { fileUrl, moduleUrl, packageDirectory, posix } from './paths.ts';
 
 export function serverEntry(name: string, dev: boolean): string {
 	return `import { Server as Runtime } from ${JSON.stringify(`${name}/internal/server`)};

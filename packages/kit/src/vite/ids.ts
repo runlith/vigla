@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { packageDirectory, posix } from './paths.ts';
 import { hash } from '../shared/hash.ts';
+import type { ResolvedConfig } from 'vite';
+import type { ValidatedConfig } from '../types/builder.ts';
 import type { Project } from './project.ts';
 
 export function namespace(version: string, dev: boolean): string {
@@ -25,17 +27,12 @@ export const ids = {
 	privateEnv: `${virtualDirectory}env/private.js`
 };
 
-export function clientDirectory(project: Project): string {
+export function clientDirectory(config: ValidatedConfig, vite: ResolvedConfig): string {
 	return posix(
-		path.join(
-			project.config.outDir,
-			'generated',
-			project.vite.command === 'serve' ? 'dev' : 'build',
-			'client'
-		)
+		path.join(config.outDir, 'generated', vite.command === 'serve' ? 'dev' : 'build', 'client')
 	);
 }
 
 export function nodeId(project: Project, index: number): string {
-	return `${clientDirectory(project)}/nodes/${index}.js`;
+	return `${clientDirectory(project.config, project.vite)}/nodes/${index}.js`;
 }

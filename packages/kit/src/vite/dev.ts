@@ -12,10 +12,16 @@ import type {
 	ServerModule
 } from '../types/internal/server.ts';
 import { outsideBase, serveAsset } from './assets.ts';
-import { loadEnvironment } from './env.ts';
+import {
+	loadEnvironment,
+	validateEnvironment,
+	isRunnable,
+	resolveEntry,
+	vite_ssr_environment_not_runnable
+} from '../sync/index.ts';
 import { clientDirectory, ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
-import { fileUrl, isRunnable, moduleUrl, posix, resolveEntry } from './paths.ts';
+import { fileUrl, moduleUrl, posix } from './paths.ts';
 import type { Project } from './project.ts';
 
 interface DevelopmentModule extends ServerModule {
@@ -84,7 +90,7 @@ async function styles(
 
 export async function configureDev(server: ViteDevServer, project: Project): Promise<() => void> {
 	const environment = server.environments.ssr;
-	if (!isRunnable(environment)) e.vite_ssr_environment_not_runnable();
+	if (!isRunnable(environment)) vite_ssr_environment_not_runnable();
 	const storage = new AsyncLocalStorage<RequestStore>();
 	const scope: AsyncContext = {
 		run: (store, fn) => storage.run(store, fn),
@@ -100,7 +106,10 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 	const invalidate = () => {
 		for (const env of Object.values(server.environments)) {
 			for (const [id, module] of env.moduleGraph.idToModuleMap) {
-				if (id.startsWith(virtualDirectory) || id.startsWith(clientDirectory(project) + '/'))
+				if (
+					id.startsWith(virtualDirectory) ||
+					id.startsWith(clientDirectory(project.config, project.vite) + '/')
+				)
 					env.moduleGraph.invalidateModule(module);
 			}
 		}
@@ -115,7 +124,10 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 			evaluated.invalidateModule(module);
 		};
 		for (const id of evaluated.idToModuleMap.keys())
-			if (id.startsWith(virtualDirectory) || id.startsWith(clientDirectory(project) + '/'))
+			if (
+				id.startsWith(virtualDirectory) ||
+				id.startsWith(clientDirectory(project.config, project.vite) + '/')
+			)
 				invalidateRunner(id);
 		current = undefined;
 	};
@@ -144,13 +156,16 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 				if (
 					project.environment.dependencies.has(file) ||
 					changed.startsWith(posix(path.join(config.files.src, 'env')) + '.')
-				)
-					project.environment = await loadEnvironment(
+				) {
+					const environment = await loadEnvironment(
 						config,
 						project.root,
 						server.config.mode,
 						project.api
 					);
+					validateEnvironment(environment);
+					project.environment = environment;
+				}
 				project.sync.writeEnvironment(project.environment.file, project.environment.variables);
 				project.serviceWorker = resolveEntry(config.files.serviceWorker, config.moduleExtensions);
 				invalidate();
