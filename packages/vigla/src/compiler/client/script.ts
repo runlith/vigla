@@ -103,6 +103,8 @@ export function read(
 		const member = propsMember(context, (binding.prop as NonNullable<Binding['prop']>).key);
 		return { ...member, property: { ...member.property, loc: node.loc } };
 	}
+	if (binding.kind === 'snippet')
+		return { ...node, name: context.names.bound(binding.declaration!) };
 	if (binding.kind === 'slot-info') return runtime(context, 'slots', context.props!);
 	if (binding.kind === 'index') return runtime(context, 'get', node);
 	if (binding.kind === 'argument') return b.call(node);
@@ -387,6 +389,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			});
 		}
 		switch (current.type) {
+			case 'ExportSpecifier':
+				return { ...current, local: next(current.local), exported: current.exported };
 			case 'FunctionDeclaration':
 			case 'FunctionExpression':
 			case 'ArrowFunctionExpression':

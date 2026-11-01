@@ -327,8 +327,13 @@ export function analyzeComponent(
 		template.placed,
 		template.statements
 	);
-	if (unit.module !== null) scopes.resolve(unit.module, top);
 	if (unit.instance !== null) scopes.resolve(unit.instance, scope);
+	const lifted = template.lifted(scope);
+	for (const snippet of lifted) {
+		const binding = scopes.declarations.get(snippet.name)!;
+		if (!top.bindings.has(binding.name)) top.bindings.set(binding.name, binding);
+	}
+	if (unit.module !== null) scopes.resolve(unit.module, top);
 	if (customElement !== null) {
 		for (const binding of scope.bindings.values()) {
 			if (binding.kind === 'prop') binding.reassigned = true;
@@ -358,7 +363,7 @@ export function analyzeComponent(
 		fragmentNamespaces: template.fragmentNamespaces,
 		ignored: template.ignored,
 		separate: template.separate,
-		lifted: template.lifted(scope),
+		lifted,
 		root,
 		namespace: template.fragmentNamespaces.get(unit.template) ?? namespace,
 		asynchronous: unit.instance !== null && hasAwait(unit.instance)

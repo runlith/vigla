@@ -9,6 +9,7 @@ import { accessor, rewrite, runtime } from './script.ts';
 import { scoped } from './meta.ts';
 import {
 	cleaned,
+	hasCall,
 	isDynamic,
 	render,
 	type Emit,
@@ -86,7 +87,24 @@ function bindingProperties(
 	];
 }
 
-export function propsObject(context: TemplateContext, node: Component): ES.Expression {
+function memoValue(
+	context: TemplateContext,
+	declarations: ES.Statement[],
+	sources: readonly ES.Expression[],
+	value: ES.Expression,
+	force = false
+): ES.Expression {
+	if (!force && !sources.some(hasCall)) return value;
+	const cell = b.id(context.names.unique('value'));
+	declarations.push(b.constant(cell.name, runtime(context, 'derived', b.arrow([], value))));
+	return runtime(context, 'get', cell);
+}
+
+export function propsObject(
+	context: TemplateContext,
+	node: Component,
+	declarations: ES.Statement[]
+): ES.Expression {
 	const groups: (ES.Property[] | ES.Expression)[] = [];
 	const push = (...properties: ES.Property[]): void => {
 		const last = groups.at(-1);
@@ -97,7 +115,14 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 		switch (attribute.kind) {
 			case 'attribute': {
 				if (attribute.name.startsWith('--')) break;
-				const value = valueOf(context, null, attribute.value);
+				const sources =
+					attribute.value.kind === 'expression'
+						? [attribute.value.expression]
+						: attribute.value.kind === 'text'
+							? attribute.value.parts.flatMap((part) =>
+									part.kind === 'expression' ? [part.expression] : []
+								)
+							: [];
 				const reactive =
 					attribute.value.kind !== 'boolean' &&
 					(attribute.value.kind === 'expression'
@@ -105,11 +130,26 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 						: attribute.value.parts.some(
 								(part) => part.kind === 'expression' && isDynamic(context, part.expression)
 							));
+				const value = memoValue(
+					context,
+					declarations,
+					sources,
+					valueOf(context, null, attribute.value),
+					reactive &&
+						sources.some(
+							(source) => source.type !== 'Identifier' && source.type !== 'MemberExpression'
+						)
+				);
 				push(reactive ? getter(attribute.name, value) : plain(attribute.name, value));
 				break;
 			}
 			case 'spread': {
-				const value = rewrite(context, attribute.expression);
+				const value = memoValue(
+					context,
+					declarations,
+					[attribute.expression],
+					rewrite(context, attribute.expression)
+				);
 				groups.push(isDynamic(context, attribute.expression) ? b.arrow([], value) : value);
 				break;
 			}
@@ -174,7 +214,7 @@ export function propsObject(context: TemplateContext, node: Component): ES.Expre
 	const regular: Node[] = [];
 	for (const child of nodes) {
 		if (child.kind === 'snippet') {
-			push(plain(child.name.name, b.id(child.name.name)));
+			push(plain(child.name.name, { ...child.name, name: context.names.bound(child.name) }));
 			slots[child.name.name === 'children' ? 'default' : child.name.name] = b.literal(true);
 		} else {
 			regular.push(child);
@@ -267,7 +307,7 @@ export function componentCall(
 	anchor: ES.Expression
 ): ES.Statement[] {
 	const declarations = snippetDeclarations(context, cleaned(context, node.body));
-	const props = propsObject(context, node);
+	const props = propsObject(context, node, declarations);
 	const self = node.attributes.find(
 		(attribute): attribute is Extract<typeof attribute, { kind: 'binding' }> =>
 			attribute.kind === 'binding' && attribute.name === 'this'
@@ -316,7 +356,9 @@ export function boundaryCall(
 		) {
 			named.add(child.name.name);
 			handed.push(child);
-			properties.push(plain(child.name.name, b.id(child.name.name)));
+			properties.push(
+				plain(child.name.name, { ...child.name, name: context.names.bound(child.name) })
+			);
 		}
 	}
 	const declarations = snippetDeclarations(context, handed);
@@ -373,7 +415,7 @@ function snippetDeclaration(context: TemplateContext, node: Snippet): ES.Functio
 	const body = render(context, cleaned(context, node.body), anchor, namespace, true);
 	return {
 		type: 'FunctionDeclaration',
-		id: node.name,
+		id: { ...node.name, name: context.names.bound(node.name) },
 		params: [anchor, ...params],
 		body: { type: 'BlockStatement', body: [...declarations, ...body] },
 		async: false,
@@ -402,18 +444,21 @@ export function renderCall(
 	anchor: ES.Expression
 ): ES.Statement[] {
 	const { call } = callOf(node);
+	const declarations: ES.Statement[] = [];
 	const args = call.arguments.map((argument) => {
 		if (argument.type === 'SpreadElement')
 			throw unsupported(spanOf(argument), 'A spread argument to a snippet');
-		return b.arrow([], rewrite(context, argument));
+		return b.arrow([], memoValue(context, declarations, [argument], rewrite(context, argument)));
 	});
 	if (isStaticRender(context, node)) {
 		return scoped(context, node, 'render', [
-			b.statement(b.call(call.callee as ES.Identifier, anchor, ...args))
+			...declarations,
+			b.statement(b.call(rewrite(context, call.callee as ES.Identifier), anchor, ...args))
 		]);
 	}
 	const callee = rewrite(context, call.callee as ES.Expression);
 	return scoped(context, node, 'render', [
+		...declarations,
 		b.statement(runtime(context, 'render', anchor, b.arrow([], callee), ...args))
 	]);
 }

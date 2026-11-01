@@ -176,10 +176,15 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			});
 		}
 		switch (current.type) {
-			case 'Identifier':
-				if (references.get(current)?.kind === 'slot-info')
-					return runtime(context, 'slots', context.props!);
-				return derived(references.get(current)) ? b.call(current) : undefined;
+			case 'ExportSpecifier':
+				return { ...current, local: next(current.local), exported: current.exported };
+			case 'Identifier': {
+				const binding = references.get(current);
+				if (binding?.kind === 'slot-info') return runtime(context, 'slots', context.props!);
+				if (binding?.kind === 'snippet')
+					return { ...current, name: context.names.bound(binding.declaration!) };
+				return derived(binding) ? b.call(current) : undefined;
+			}
 			case 'Property': {
 				if (current.computed || current.kind !== 'init') return undefined;
 				const value = next(current.value);

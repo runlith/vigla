@@ -82,7 +82,11 @@ export function hasCall(expression: ES.Node): boolean {
 	b.walk(expression, (node) => {
 		if (found) return false;
 		if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') return false;
-		if (node.type === 'CallExpression' || node.type === 'NewExpression') {
+		if (
+			node.type === 'CallExpression' ||
+			node.type === 'NewExpression' ||
+			node.type === 'TaggedTemplateExpression'
+		) {
 			found = true;
 			return false;
 		}

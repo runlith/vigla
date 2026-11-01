@@ -16,6 +16,7 @@ function isNode(value: unknown): value is ES.Node {
 
 export class Names {
 	readonly #used: Set<string>;
+	readonly #bindings = new WeakMap<ES.Identifier, string>();
 
 	constructor(used: ReadonlySet<string>) {
 		this.#used = new Set(used);
@@ -25,6 +26,15 @@ export class Names {
 		let name = base;
 		for (let suffix = 1; this.#used.has(name); suffix++) name = `${base}_${suffix}`;
 		this.#used.add(name);
+		return name;
+	}
+
+	bound(declaration: ES.Identifier): string {
+		let name = this.#bindings.get(declaration);
+		if (name === undefined) {
+			name = this.unique(declaration.name);
+			this.#bindings.set(declaration, name);
+		}
 		return name;
 	}
 }

@@ -134,7 +134,7 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 	const regular: Node[] = [];
 	for (const child of nodes) {
 		if (child.kind === 'snippet') {
-			push(property(child.name.name, b.id(child.name.name)));
+			push(property(child.name.name, { ...child.name, name: context.names.bound(child.name) }));
 			slots[child.name.name === 'children' ? 'default' : child.name.name] = b.literal(true);
 		} else regular.push(child);
 	}
@@ -222,8 +222,11 @@ export function boundary(
 		child.kind === 'snippet' && (child.name.name === 'failed' || child.name.name === 'pending');
 	const declarations = snippetDeclarations(context, nodes.filter(handed));
 	const snippet = (name: string): ES.Expression | null => {
-		if (nodes.some((child) => child.kind === 'snippet' && child.name.name === name))
-			return b.id(name);
+		const declared = nodes.find(
+			(child): child is Snippet => child.kind === 'snippet' && child.name.name === name
+		);
+		if (declared !== undefined)
+			return { ...declared.name, name: context.names.bound(declared.name) };
 		const attribute = node.attributes.find(
 			(candidate) => candidate.kind === 'attribute' && candidate.name === name
 		);
@@ -294,7 +297,7 @@ function snippetDeclaration(context: TemplateContext, node: Snippet): ES.Functio
 	buffer.flush(inner, statements);
 	return {
 		type: 'FunctionDeclaration',
-		id: node.name,
+		id: { ...node.name, name: context.names.bound(node.name) },
 		params: [out, ...node.parameters.map((parameter) => rewrite(context, parameter))],
 		body: { type: 'BlockStatement', body: statements },
 		async: false,
