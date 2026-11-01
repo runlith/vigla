@@ -11,7 +11,8 @@ import { isCapture, isDelegated, namespaces, propertyName } from '../../shared/h
 import { spreadAttachments } from './attachments.ts';
 import { delegated, delegate, listen } from './events.ts';
 import { claim, cursor, hydrating, setHydrating } from './hydration.ts';
-import { setOwner, withoutReaction } from '../reactivity/tracking.ts';
+import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
+import { teardown } from '../reactivity/effects.ts';
 
 type Directives = Readonly<Record<string, unknown>>;
 
@@ -339,10 +340,28 @@ export const STYLE = Symbol('style');
 
 type Spread = Record<string | symbol, unknown>;
 
-interface Listener {
-	readonly handle: EventListener;
-	readonly capture: boolean;
-	readonly type: string;
+const listeners = Symbol('listeners');
+
+type Listener = () => void;
+
+function listenerSet(current: Spread): Set<Listener> {
+	let set = current[listeners] as Set<Listener> | undefined;
+	if (set !== undefined) return set;
+	set = new Set();
+	current[listeners] = set;
+	const parent = owner?.parent ?? null;
+	const previous = setOwner(parent);
+	try {
+		withoutReaction(() =>
+			teardown(() => {
+				for (const remove of set) remove();
+				set.clear();
+			})
+		);
+	} finally {
+		setOwner(previous);
+	}
+	return set;
 }
 
 export function attributes(
@@ -419,15 +438,17 @@ export function attributes(
 			const existing = current[slot] as Listener | undefined;
 			if (existing !== undefined) {
 				if (value != null) continue;
-				element.removeEventListener(existing.type, existing.handle, existing.capture);
+				existing();
+				(current[listeners] as Set<Listener>).delete(existing);
 				current[slot] = undefined;
 			}
 			if (value != null) {
 				const handle: EventListener = function (this: Element, event) {
 					(current[key] as EventListener).call(this, event);
 				};
-				listen(element, type, handle, capture);
-				current[slot] = { handle, capture, type } satisfies Listener;
+				const remove = listen(element, type, handle, capture);
+				listenerSet(current).add(remove);
+				current[slot] = remove;
 			}
 			continue;
 		}

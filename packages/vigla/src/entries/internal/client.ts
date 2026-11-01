@@ -60,7 +60,7 @@ export {
 } from '../../runtime/dom/targets.ts';
 export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
-export { delegate, delegated, listen } from '../../runtime/dom/events.ts';
+export { delegate, delegated, event as listen } from '../../runtime/dom/events.ts';
 export {
 	forwardProps,
 	mutableProps,

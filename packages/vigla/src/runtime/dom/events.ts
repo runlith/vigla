@@ -1,5 +1,6 @@
 import { isPassive } from '../../shared/html.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
+import { teardown } from '../reactivity/effects.ts';
 
 const handlers = Symbol('events');
 
@@ -52,6 +53,24 @@ export function listen(
 		removed = true;
 		target.removeEventListener(type, wrapped, options);
 	};
+}
+
+export function event(
+	target: EventTarget,
+	type: string,
+	handler: EventListener,
+	capture = false,
+	passive?: boolean
+): void {
+	const remove = listen(target, type, handler, capture, passive);
+	if (
+		target === window ||
+		target === document ||
+		target === document.body ||
+		target instanceof HTMLMediaElement
+	) {
+		teardown(remove);
+	}
 }
 
 export function delegated(element: EventTarget, type: string, handler: EventListener | null): void {
