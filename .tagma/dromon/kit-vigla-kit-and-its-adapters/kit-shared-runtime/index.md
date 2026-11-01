@@ -56,6 +56,9 @@ fields:
       },
       {
         "at": "form-fields.ts"
+      },
+      {
+        "at": "render.ts"
       }
     ],
     "id": "kit-shared"
