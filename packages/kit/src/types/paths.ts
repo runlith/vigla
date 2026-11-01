@@ -16,7 +16,13 @@ export type RouteMatch = { [Id in RouteId]: { id: Id; params: RouteParams<Id> } 
 export interface ManifestPath<Path extends string = string> {
 	path: Path;
 }
+type Only<Id extends string, Other extends string> = string extends Id
+	? string
+	: Exclude<Id, Other>;
+type Both<Id extends string, Other extends string> = string extends Id
+	? string
+	: Extract<Id, Other>;
 export type ManifestRoute =
-	| { id: Exclude<PageRouteId, EndpointRouteId>; page: true; endpoint: false }
-	| { id: Exclude<EndpointRouteId, PageRouteId>; page: false; endpoint: true }
-	| { id: Extract<PageRouteId, EndpointRouteId>; page: true; endpoint: true };
+	| { id: Only<PageRouteId, EndpointRouteId>; page: true; endpoint: false }
+	| { id: Only<EndpointRouteId, PageRouteId>; page: false; endpoint: true }
+	| { id: Both<PageRouteId, EndpointRouteId>; page: true; endpoint: true };
