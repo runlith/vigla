@@ -1,7 +1,7 @@
 ---
 id: 01a1940d-6dac-74e9-9df2-afb7864d3287
 title: Hydration preserves network attributes and diagnoses different resolved URLs
-ord: 15
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: file

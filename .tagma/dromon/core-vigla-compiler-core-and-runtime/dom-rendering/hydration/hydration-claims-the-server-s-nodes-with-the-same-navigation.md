@@ -1,7 +1,7 @@
 ---
 id: 01a18775-3e82-7063-8ffa-aa9331a81701
 title: Hydration claims the server's nodes with the same navigation calls that walk a fresh clone
-ord: 2
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

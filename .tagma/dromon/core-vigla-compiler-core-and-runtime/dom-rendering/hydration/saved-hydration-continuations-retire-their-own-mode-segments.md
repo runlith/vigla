@@ -1,7 +1,7 @@
 ---
 id: 01a19411-be13-7467-8202-df2ec6b463ba
 title: Saved hydration continuations retire their own mode segments
-ord: 17
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol

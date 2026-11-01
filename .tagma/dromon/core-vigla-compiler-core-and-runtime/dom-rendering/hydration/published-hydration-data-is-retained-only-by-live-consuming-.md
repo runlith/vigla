@@ -1,7 +1,7 @@
 ---
 id: 01a19411-bd0e-7d82-8c1c-d1003fa6b706
 title: Published hydration data is retained only by live consuming roots
-ord: 16
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: file
