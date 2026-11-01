@@ -38,6 +38,7 @@ export interface TemplateContext extends Context {
 	readonly scoping: Scoping;
 	readonly format: Format;
 	readonly hoisted: (ES.Statement | ES.ModuleDeclaration)[];
+	readonly optionValue?: Expression;
 }
 
 function scopeHash(context: TemplateContext, node: Host): string | null {
@@ -104,6 +105,19 @@ export function valueOf(context: TemplateContext, value: Value): ES.Expression {
 		}
 	}
 	return b.template(quasis, expressions);
+}
+
+function attributeValue(context: TemplateContext, name: string, value: Value): ES.Expression {
+	if ((name !== 'class' && name !== 'style') || value.kind !== 'text') {
+		return valueOf(context, value);
+	}
+	const parts = value.parts.map((part) =>
+		part.kind === 'text' ? { ...part, data: part.data.replace(/[\t\n\f\r ]+/g, ' ') } : part
+	);
+	if (parts.length === 1 && parts[0]?.kind === 'text') {
+		return b.literal(parts[0].data.trim());
+	}
+	return valueOf(context, { ...value, parts });
 }
 
 function property(
@@ -181,12 +195,12 @@ function spreadAttributes(
 	buffer.value(attributesCall(context, node, html, bound));
 }
 
-export function attributesCall(
+function attributesArgs(
 	context: TemplateContext,
 	node: Element | DynamicElement,
 	html: boolean,
 	bound?: Bound
-): ES.Expression {
+): ES.Expression[] {
 	const name = node.kind === 'element' ? node.name : '';
 	const properties: (ES.Property | ES.SpreadElement)[] = [];
 	const toggles: ClassToggle[] = [];
@@ -199,7 +213,13 @@ export function attributesCall(
 			properties.push({ type: 'SpreadElement', argument: rewrite(context, attribute.expression) });
 		} else if (attribute.kind === 'attribute') {
 			if (isEvent(attribute)) continue;
-			properties.push(property(attribute.name, valueOf(context, attribute.value)));
+			const key =
+				name === 'select' && attribute.name.toLowerCase() === 'defaultvalue'
+					? 'defaultValue'
+					: attribute.name;
+			properties.push(
+				property(key, attributeValue(context, attribute.name.toLowerCase(), attribute.value))
+			);
 		} else if (attribute.kind === 'class') {
 			toggles.push(attribute);
 		} else if (attribute.kind === 'style') {
@@ -212,21 +232,36 @@ export function attributesCall(
 	if (!html) flags |= NAMESPACED | PRESERVE_CASE;
 	if (name.includes('-')) flags |= PRESERVE_CASE;
 	if (name === 'input') flags |= INPUT;
-	return runtime(
-		context,
-		'attributes',
+	return [
 		{ type: 'ObjectExpression', properties },
 		b.literal(scopeHash(context, node)),
 		toggles.length > 0 ? directives(context, toggles) : b.literal(null),
 		list.length > 0 ? styles(context, list) : b.literal(null),
 		b.literal(flags)
-	);
+	];
+}
+
+export function attributesCall(
+	context: TemplateContext,
+	node: Element | DynamicElement,
+	html: boolean,
+	bound?: Bound
+): ES.Expression {
+	return runtime(context, 'attributes', ...attributesArgs(context, node, html, bound));
 }
 
 function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bound {
 	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
-	const bound = bindings(context, node, buffer);
-	if (node.attributes.some((attribute) => attribute.kind === 'spread')) {
+	const bound = bindings(context, node);
+	if (
+		node.attributes.some(
+			(attribute) =>
+				attribute.kind === 'spread' ||
+				(node.name === 'input' &&
+					attribute.kind === 'attribute' &&
+					(attribute.name === 'defaultValue' || attribute.name === 'defaultChecked'))
+		)
+	) {
 		spreadAttributes(context, node, html, buffer, bound);
 		return bound;
 	}
@@ -257,7 +292,6 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 			throw unsupported(attribute, `The ${attribute.kind} directive`);
 		if (isEvent(attribute)) continue;
 		const name = html ? attribute.name.toLowerCase() : attribute.name;
-		if (node.name === 'select' && name === 'value' && bound.select !== null) continue;
 		if (name === 'class') {
 			classValue = attribute.value;
 			continue;
@@ -291,14 +325,20 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 	}
 	const hash = scopeHash(context, node);
 	if (toggles.length > 0 || (classValue !== null && !isStatic(classValue))) {
-		let value: ES.Expression = classValue === null ? b.literal(null) : valueOf(context, classValue);
+		let value: ES.Expression =
+			classValue === null ? b.literal(null) : attributeValue(context, 'class', classValue);
 		if (classValue?.kind === 'expression') value = runtime(context, 'clsx', value);
 		const args: ES.Expression[] = [value];
 		if (toggles.length > 0) args.push(b.literal(hash), directives(context, toggles));
 		else if (hash !== null) args.push(b.literal(hash));
 		buffer.value(runtime(context, 'attrClass', ...args));
 	} else {
-		const given = classValue === null ? null : staticText(classValue);
+		const given =
+			classValue === null
+				? null
+				: staticText(classValue)
+						.replace(/[\t\n\f\r ]+/g, ' ')
+						.trim();
 		const name = hash === null ? given : given ? `${given} ${hash}` : hash;
 		if (name !== null) {
 			buffer.text(
@@ -309,7 +349,8 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 		}
 	}
 	if (list.length > 0 || (styleValue !== null && !isStatic(styleValue))) {
-		const value = styleValue === null ? b.literal(null) : valueOf(context, styleValue);
+		const value =
+			styleValue === null ? b.literal(null) : attributeValue(context, 'style', styleValue);
 		const args: ES.Expression[] = [value];
 		if (list.length > 0) args.push(styles(context, list));
 		buffer.value(runtime(context, 'attrStyle', ...args));
@@ -317,7 +358,11 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 		buffer.text(
 			styleValue.kind === 'boolean'
 				? ' style=""'
-				: ` style="${escapeAttribute(staticText(styleValue))}"`
+				: ` style="${escapeAttribute(
+						staticText(styleValue)
+							.replace(/[\t\n\f\r ]+/g, ' ')
+							.trim()
+					)}"`
 		);
 	}
 	return { ...bound, content };
@@ -343,6 +388,37 @@ function dynamicCode(context: TemplateContext, node: DynamicElement): ES.Stateme
 	);
 }
 
+function formElement(
+	context: TemplateContext,
+	node: Element,
+	statements: ES.Statement[],
+	buffer: Buffer,
+	html: boolean
+): void {
+	buffer.flush(context, statements);
+	const out = b.id(context.names.unique('$$out'));
+	const single =
+		node.name === 'option' && node.body.nodes.length === 1 ? node.body.nodes[0] : undefined;
+	const inner: TemplateContext = {
+		...context,
+		out,
+		optionValue: single?.kind === 'expression' ? single : undefined
+	};
+	const body: ES.Statement[] = [];
+	const content = new Buffer();
+	fragmentCode(inner, cleaned(inner, node.body), body, content, false, true);
+	content.flush(inner, body);
+	statements.push(
+		b.statement(
+			b.call(
+				b.member(context.out, node.name),
+				...attributesArgs(context, node, html, bindings(context, node)),
+				b.arrow([out], body)
+			)
+		)
+	);
+}
+
 function element(
 	context: TemplateContext,
 	node: Element,
@@ -351,18 +427,37 @@ function element(
 ): void {
 	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
 	const tag = html && !node.name.includes('-') ? node.name.toLowerCase() : node.name;
+	if (html && (tag === 'select' || tag === 'option')) {
+		formElement(context, node, statements, buffer, html);
+		return;
+	}
 	buffer.text(`<${tag}`);
-	const { content, raw, select } = attributes(context, node, buffer);
+	const { content, raw } = attributes(context, node, buffer);
 	buffer.text(isVoid(tag) ? '/>' : '>');
 	if (isVoid(tag)) return;
 	if (content !== null) {
-		buffer.value(raw ? runtime(context, 'html', content) : runtime(context, 'escape', content));
-	} else if (select !== null) {
 		buffer.flush(context, statements);
-		statements.push(b.statement(runtime(context, 'pushSelect', select)));
-		fragmentCode(context, cleaned(context, node.body), statements, buffer, false, true);
-		buffer.flush(context, statements);
-		statements.push(b.statement(runtime(context, 'popSelect')));
+		const value = context.names.unique('$$content');
+		statements.push(b.constant(value, raw ? content : runtime(context, 'escape', content)));
+		const fallback: ES.Statement[] = [];
+		fragmentCode(context, cleaned(context, node.body), fallback, buffer, false, true);
+		buffer.flush(context, fallback);
+		statements.push({
+			type: 'IfStatement',
+			test: b.id(value),
+			consequent: {
+				type: 'BlockStatement',
+				body: [
+					b.statement(
+						b.call(
+							b.member(context.out, 'push'),
+							raw ? runtime(context, 'html', b.id(value)) : b.id(value)
+						)
+					)
+				]
+			},
+			alternate: { type: 'BlockStatement', body: fallback }
+		});
 	} else if (cleaned(context, node.body).some(declaring)) {
 		buffer.flush(context, statements);
 		const scoped: ES.Statement[] = [];
@@ -481,9 +576,13 @@ function single(
 			case 'comment':
 				buffer.text(`<!--${node.data}-->`);
 				break;
-			case 'expression':
-				buffer.value(runtime(context, 'escape', rewrite(context, node.expression)));
+			case 'expression': {
+				let value = rewrite(context, node.expression);
+				if (context.optionValue === node)
+					value = b.call(b.member(context.out, 'optionValue'), value);
+				buffer.value(runtime(context, 'escape', value));
 				break;
+			}
 			case 'raw-html':
 				buffer.value(runtime(context, 'rawHtml', rewrite(context, node.expression)));
 				break;

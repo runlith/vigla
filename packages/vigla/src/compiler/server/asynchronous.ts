@@ -60,6 +60,12 @@ export function asyncChild(
 	content.text(close);
 	content.flush(inner, body);
 	statements.push(
-		b.statement(b.call(b.member(context.out, 'child'), { ...b.arrow([out], body), async: true }))
+		b.statement(
+			b.call(
+				b.member(context.out, 'child'),
+				{ ...b.arrow([out], body), async: true },
+				b.literal(true)
+			)
+		)
 	);
 }

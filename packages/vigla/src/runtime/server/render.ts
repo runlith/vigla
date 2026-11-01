@@ -7,6 +7,8 @@ import { close, empty, open } from '../../shared/markers.ts';
 import { destroy, detached } from '../reactivity/effects.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { begin, capture, end, push, storeOf } from './context.ts';
+import { attributes } from './attributes.ts';
+import type { StyleDirectives } from '../../shared/attributes.ts';
 
 export type Props = Record<string, unknown>;
 
@@ -72,26 +74,127 @@ interface Recovery {
 	readonly restore: () => void;
 }
 
+interface Selection {
+	readonly value: unknown;
+	readonly multiple: boolean;
+}
+
+interface OptionValue {
+	value: unknown;
+	present: boolean;
+}
+
 export class Output {
-	readonly #parts: (string | Output)[] = [];
+	readonly #parts: (string | Output | (() => string))[] = [];
 	readonly #parent: Output | null;
 	readonly #channel: Channel;
 	#pending: Promise<void> | null = null;
 	#recovery: Recovery | null = null;
+	#selection: Selection | null;
+	#optionValue: OptionValue | null;
+	#valueTransparent = false;
 	readonly global: Global;
 
 	constructor(global: Global, parent: Output | null = null, channel?: Channel) {
 		this.global = global;
 		this.#parent = parent;
 		this.#channel = channel ?? (parent === null || parent.#channel === 'body' ? 'body' : 'head');
+		this.#selection = parent === null ? null : parent.#selection;
+		this.#optionValue = parent === null ? null : parent.#optionValue;
 	}
 
 	push(html: string): void {
 		this.#parts.push(html);
 	}
 
-	child(fn: (out: Output) => void | Promise<void>): void {
-		this.#run(new Output(this.global, this), fn);
+	child(fn: (out: Output) => void | Promise<void>, valueTransparent = false): void {
+		const inner = new Output(this.global, this);
+		inner.#valueTransparent = valueTransparent;
+		this.#run(inner, fn);
+	}
+
+	select(
+		given: Record<string, unknown>,
+		hash: string | null,
+		classes: Readonly<Record<string, unknown>> | null,
+		styles: StyleDirectives | null,
+		flags: number,
+		fn: (out: Output) => void
+	): void {
+		const { value, defaultValue, ...rest } = given;
+		if (rest.multiple === '') rest.multiple = true;
+		this.push(`<select${attributes(rest, hash, classes, styles, flags)}>`);
+		const inner = new Output(this.global, this);
+		inner.#selection = {
+			value: value === undefined ? defaultValue : value,
+			multiple: !!rest.multiple
+		};
+		this.#run(inner, fn);
+		this.push('</select>');
+	}
+
+	option(
+		given: Record<string, unknown>,
+		hash: string | null,
+		classes: Readonly<Record<string, unknown>> | null,
+		styles: StyleDirectives | null,
+		flags: number,
+		fn: (out: Output) => void
+	): void {
+		const inner = new Output(this.global, this);
+		const body = new Output(this.global, inner);
+		const implicit: OptionValue = { value: undefined, present: false };
+		const selected = Object.keys(given).some((key) => {
+			const value = given[key];
+			return (
+				key.toLowerCase() === 'selected' &&
+				typeof value !== 'function' &&
+				value != null &&
+				(value === '' || !!value)
+			);
+		});
+		const serialized = attributes(given, hash, classes, styles, flags);
+		body.#optionValue = implicit;
+		inner.#parts.push(() => {
+			const value = Object.hasOwn(given, 'value')
+				? given.value
+				: implicit.present
+					? implicit.value
+					: body.#optionText().replaceAll(empty, '');
+			const selection = inner.#selection;
+			const matched =
+				selection !== null &&
+				(selection.multiple && Array.isArray(selection.value)
+					? selection.value.includes(value)
+					: selection.value === value);
+			return `<option${serialized}${matched && !selected ? ' selected=""' : ''}>`;
+		});
+		this.#parts.push(inner);
+		inner.#run(body, fn);
+		inner.push('</option>');
+	}
+
+	optionValue<T>(value: T): T {
+		if (this.#optionValue !== null) {
+			this.#optionValue.value = value;
+			this.#optionValue.present = true;
+		}
+		return value;
+	}
+
+	#optionText(): string {
+		let text = '';
+		for (const part of this.#parts) {
+			if (part instanceof Output) {
+				if (part.#channel === this.#channel) text += part.#optionText();
+			} else {
+				text += typeof part === 'function' ? part() : part;
+			}
+		}
+		if (this.#valueTransparent && text.startsWith(open) && text.endsWith(close)) {
+			return text.slice(open.length, -close.length);
+		}
+		return text;
 	}
 
 	head(fn: (out: Output) => void | Promise<void>): void {
@@ -118,7 +221,7 @@ export class Output {
 	get asynchronous(): boolean {
 		return (
 			this.#pending !== null ||
-			this.#parts.some((part) => typeof part !== 'string' && part.asynchronous)
+			this.#parts.some((part) => part instanceof Output && part.asynchronous)
 		);
 	}
 
@@ -126,7 +229,7 @@ export class Output {
 		try {
 			await this.#pending;
 			const children: Promise<void>[] = [];
-			for (const part of this.#parts) if (typeof part !== 'string') children.push(part.settle());
+			for (const part of this.#parts) if (part instanceof Output) children.push(part.settle());
 			await Promise.all(children);
 		} catch (error) {
 			this.#recover(error);
@@ -183,10 +286,13 @@ export class Output {
 
 	collect(content: Content = { head: '', body: '' }, title = false): Content {
 		for (const part of this.#parts) {
-			if (typeof part !== 'string') {
+			if (part instanceof Output) {
 				if (part.#channel !== 'title' || title) part.collect(content, title);
-			} else if (this.#channel === 'body') content.body += part;
-			else content.head += part;
+			} else {
+				const html = typeof part === 'function' ? part() : part;
+				if (this.#channel === 'body') content.body += html;
+				else content.head += html;
+			}
 		}
 		return content;
 	}

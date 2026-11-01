@@ -11,9 +11,6 @@ export {
 	attrStyle,
 	clsx,
 	html,
-	optionSelected,
-	popSelect,
-	pushSelect,
 	rawHtml
 } from '../../runtime/server/attributes.ts';
 export { phase, pop, push, save } from '../../runtime/server/context.ts';
