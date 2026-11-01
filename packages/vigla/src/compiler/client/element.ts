@@ -93,22 +93,24 @@ function update(
 	value: ES.Expression,
 	attributes: readonly Attribute[]
 ): ES.Expression {
-	if (name === 'muted')
+	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
+	if (html && name === 'muted')
 		return {
 			type: 'AssignmentExpression',
 			operator: '=',
 			left: b.member(element, 'muted'),
 			right: value
 		};
-	if (name === 'value') {
+	if (html && name === 'value') {
 		const grouped = attributes.some((other) => other.kind === 'binding' && other.name === 'group');
 		if (node.name === 'option' || grouped) return runtime(context, 'optionValue', element, value);
 		if (node.name === 'select') return runtime(context, 'selectValue', element, value);
 		return runtime(context, 'value', element, value);
 	}
-	if (name === 'checked') return runtime(context, 'checked', element, value);
-	if (name === 'selected') return runtime(context, 'selected', element, value);
+	if (html && name === 'checked') return runtime(context, 'checked', element, value);
+	if (html && name === 'selected') return runtime(context, 'selected', element, value);
 	if (
+		html &&
 		name === 'defaultValue' &&
 		(attributes.some(
 			(other) => other.kind === 'attribute' && other.name === 'value' && isStatic(other.value)
@@ -118,6 +120,7 @@ function update(
 		return runtime(context, 'defaultValue', element, value);
 	}
 	if (
+		html &&
 		name === 'defaultChecked' &&
 		attributes.some(
 			(other) =>
@@ -126,7 +129,7 @@ function update(
 	) {
 		return runtime(context, 'defaultChecked', element, value);
 	}
-	if (isProperty(name)) {
+	if (html && isProperty(name)) {
 		return {
 			type: 'AssignmentExpression',
 			operator: '=',
