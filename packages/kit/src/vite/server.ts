@@ -117,7 +117,7 @@ endpoint: ${route.endpoint ? `() => import(${absolute(route.endpoint.file)})` : 
 app_dir: ${JSON.stringify(config.appDir)}, app_path: ${JSON.stringify([config.paths.base.slice(1), config.appDir].filter(Boolean).join('/'))},
 assets: new Set(${uneval(tree.assets.map((asset) => asset.file))}), mime_types: ${uneval(mimeTypes)},
 client: ${uneval({ start: fileUrl(path.join(packageDirectory, 'src/entries/internal/client.ts')), app: fileUrl(ids.client), imports: [], stylesheets: [], fonts: [], uses_env_dynamic_public: true, nodes: config.router.resolution === 'server' ? tree.nodes.map((_, index) => moduleUrl(nodeId(project, index), root)) : undefined, routes: clientRoutes })},
-nodes: [${nodes.join(',\n')}], routes: [${routes.join(',\n')}], remotes: {${[...project.remote.entries].map(([id, entry]) => `${JSON.stringify(id)}: () => import(${absolute(entry.file)}).then(module => ({ default: module }))`).join(',')}}, prerendered_routes: new Set(), server_assets: {},
+nodes: [${nodes.join(',\n')}], routes: [${routes.join(',\n')}], remotes: {}, prerendered_routes: new Set(), server_assets: {},
 async matchers() { return ${tree.params && hasMatchers ? `(await import(${absolute(tree.params)})).params` : '{}'}; }
 };`;
 }

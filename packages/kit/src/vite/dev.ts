@@ -299,6 +299,16 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 					const tree = project.tree;
 					loaded.options.fixStack = fixStack;
 					loaded.manifest.server_assets = serverAssets;
+					Object.defineProperty(loaded.manifest, 'remotes', {
+						get: () =>
+							Object.fromEntries(
+								[...project.remote.entries].map(([id, entry]) => [
+									id,
+									() =>
+										environment.runner.import(entry.file).then((module) => ({ default: module }))
+								])
+							)
+					});
 					loaded.manifest.nodes = loaded.manifest.nodes.map((load, index) => {
 						const source = tree.nodes[index];
 						return async () => {

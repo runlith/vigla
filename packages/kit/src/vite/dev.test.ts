@@ -7,6 +7,7 @@ import type { ViteDevServer } from 'vite';
 import { sveltekit } from './index.ts';
 import { importVite } from '../config/file.ts';
 import { packageDirectory } from './paths.ts';
+import { hash } from '../shared/hash.ts';
 
 let root: string;
 let external: string;
@@ -59,6 +60,18 @@ beforeAll(async () => {
 		'src/routes/read/+server.js',
 		`import { read } from '$app/server'; import local from '../../asset.txt?url'; import external from ${JSON.stringify(path.join(external, 'asset.txt') + '?url')}; export async function GET() { const first = read(local), second = read(external); return Response.json({ local: await first.text(), external: await second.text(), length: first.headers.get('content-length') }); }`
 	);
+	write(
+		'src/routes/updates/items.remote.js',
+		'import { command, query } from "$app/server"; let count = 999; export const read = query(() => count); export const reset = command(() => { count = 0; read().refresh(); return count; });'
+	);
+	write(
+		'src/routes/updates/+page.server.js',
+		'import { read } from "./items.remote.js"; export async function load() { return { count: await read() }; }'
+	);
+	write(
+		'src/routes/updates/+page.view.js',
+		'export default function Page(output, props) { output.push("<output>" + props.data.count + "</output>"); }'
+	);
 	write('src/routes/styles/encöded/dynamic.js', 'import "./dynamic.css";');
 	write('src/routes/styles/encöded/dynamic.css', '#dynamic { color: purple; }');
 	write('src/routes/styles/encöded/styles.css', '@import "./base.css"; .ordered { color: green; }');
@@ -110,6 +123,23 @@ test('SSR includes ordered and dynamically imported CSS without applying raw, ur
 	expect(html).toContain(
 		JSON.stringify({ config: { owner: 'universal', server: true }, prerender: true })
 	);
+});
+
+test('remote functions discovered during SSR are served by the existing dev manifest', async () => {
+	const page = await fetch(origin + '/updates');
+	expect(page.status).toBe(200);
+	expect(await page.text()).toContain('<output>999</output>');
+	const id = hash('src/routes/updates/items.remote.js');
+	const response = await fetch(`${origin}/_app/remote/${id}/reset`, {
+		method: 'POST',
+		headers: { origin, 'content-type': 'application/json' },
+		body: JSON.stringify({ payload: '', refreshes: [] })
+	});
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual({
+		type: 'result',
+		data: `[{"_":1,"r":2,"q":3},0,true,{"${id}/read/":4},{"v":1}]`
+	});
 });
 
 test('dev read streams imported project and filesystem URLs with their asset sizes', async () => {
