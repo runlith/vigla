@@ -81,17 +81,27 @@ export function virtualModules(getProject: () => Project): Plugin {
 			const project = getProject();
 			const { config, tree, root, name, format, environment } = project;
 			const client = this.environment.config.consumer === 'client';
+			const placeholders =
+				project.vite.command === 'build' && this.environment.name !== 'serviceWorker';
 			if (id === ids.appManifest)
-				return `export const immutable = [], prerendered = []; export const assets = ${JSON.stringify(tree.assets.map((asset) => ({ path: asset.file })))}; export const routes = ${JSON.stringify(tree.routes.filter((route) => route.page || route.endpoint).map((route) => ({ id: route.id, page: !!route.page, endpoint: !!route.endpoint })))};`;
-			if (id === ids.client) return clientApp(config, tree, root, format);
-			if (id === ids.server) return serverEntry(name);
-			if (id === ids.manifest) return serverManifest(config, tree, root);
-			if (id === ids.options) return serverOptions(config, tree, root, format);
+				return `export const immutable = ${placeholders ? '__SVELTEKIT_MANIFEST_IMMUTABLE__' : JSON.stringify(project.build?.manifest.immutable ?? [])}, prerendered = ${placeholders ? '__SVELTEKIT_MANIFEST_PRERENDERED__' : JSON.stringify(project.build?.manifest.prerendered ?? [])}; export const assets = ${JSON.stringify(tree.assets.map((asset) => ({ path: asset.file })))}; export const routes = ${JSON.stringify(tree.routes.filter((route) => route.page || route.endpoint).map((route) => ({ id: route.id, page: !!route.page, endpoint: !!route.endpoint })))};`;
+			if (id === ids.bootstrap)
+				return `import { init } from ${JSON.stringify(name + '/internal/payload')}; init(globalThis[${JSON.stringify(project.global)}]);`;
+			if (id === ids.client) return clientApp(project);
+			if (id === ids.bundle)
+				return `import ${JSON.stringify(ids.bootstrap)}; import { init, start as boot } from ${JSON.stringify(name + '/internal/client')}; import * as app from ${JSON.stringify(ids.client)}; export { init }; export const decode = app.decode; export function start(target,hydrate) { return boot(app,target,hydrate); }`;
+			if (id === ids.server) return serverEntry(name, project.vite.command === 'serve');
+			if (id === ids.manifest) return serverManifest(project);
+			if (id === ids.options) return serverOptions(project);
 			if (id === ids.errorTemplate) return errorTemplate(config);
-			if (id === ids.env) return environmentConfig(environment, name);
-			if (id === ids.workerEnv) return workerEnvironment(environment, config, name);
-			if (id === ids.publicEnv) return environmentModule(environment, 'public', client);
-			if (id === ids.privateEnv) return environmentModule(environment, 'private', false);
+			if (id === ids.env)
+				return environmentConfig(environment, name, project.vite.command === 'serve');
+			if (id === ids.workerEnv)
+				return workerEnvironment(environment, config, name, project.vite.command === 'serve');
+			if (id === ids.publicEnv)
+				return environmentModule(environment, 'public', client, project.vite.command === 'serve');
+			if (id === ids.privateEnv)
+				return environmentModule(environment, 'private', false, project.vite.command === 'serve');
 			const legacy = /^env\/(static|dynamic)\/(public|private)\.js$/.exec(
 				id.slice(virtualDirectory.length)
 			);

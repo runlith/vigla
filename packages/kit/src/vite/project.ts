@@ -5,10 +5,13 @@ import type { ValidatedConfig } from '../types/builder.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
 import type { Environment } from './env.ts';
 import type { BuildContext } from '../build/index.ts';
+import type { RemoteIntegration } from './remote.ts';
 
 export interface Project {
 	root: string;
 	name: string;
+	global: string;
+	remote: RemoteIntegration;
 	build?: BuildContext;
 	config: ValidatedConfig;
 	vite: ResolvedConfig;

@@ -1,6 +1,9 @@
 import { packageDirectory, posix } from './paths.ts';
+import { hash } from '../shared/hash.ts';
 
-export const globalName = '__sveltekit_dev';
+export function namespace(version: string, dev: boolean): string {
+	return dev ? '__sveltekit_dev' : `__sveltekit_${hash(version)}`;
+}
 export const virtualDirectory = `${posix(packageDirectory)}src/vite/__generated__/`;
 export const ids = {
 	server: `${virtualDirectory}server.js`,
@@ -8,6 +11,8 @@ export const ids = {
 	appManifest: `${virtualDirectory}app-manifest.js`,
 	options: `${virtualDirectory}options.js`,
 	client: `${virtualDirectory}client/app.js`,
+	bundle: `${virtualDirectory}client/bundle.js`,
+	bootstrap: `${virtualDirectory}client/bootstrap.js`,
 	errorTemplate: `${virtualDirectory}error-template.js`,
 	root: `${virtualDirectory}components/root.js`,
 	layout: `${virtualDirectory}components/layout.js`,

@@ -140,7 +140,12 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 					project.environment.dependencies.has(file) ||
 					changed.startsWith(posix(path.join(config.files.src, 'env')) + '.')
 				)
-					project.environment = await loadEnvironment(config, project.root, server.config.mode);
+					project.environment = await loadEnvironment(
+						config,
+						project.root,
+						server.config.mode,
+						project.api
+					);
 				project.sync.writeEnvironment(project.environment.file, project.environment.variables);
 				project.serviceWorker = resolveEntry(config.files.serviceWorker, config.moduleExtensions);
 				invalidate();

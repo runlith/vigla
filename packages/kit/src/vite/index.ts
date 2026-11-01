@@ -8,7 +8,7 @@ import type { Config } from '../types/config.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import { configureDev } from './dev.ts';
 import { loadEnvironment } from './env.ts';
-import { globalName } from './ids.ts';
+import { namespace } from './ids.ts';
 import * as e from './messages.ts';
 import { scanVirtualModules, serverGuard, virtualModules } from './modules.ts';
 import {
@@ -22,6 +22,9 @@ import {
 	usesHtmlHook
 } from './paths.ts';
 import type { Project } from './project.ts';
+import { createRemotePlugin } from './remote.ts';
+import { buildPlugin } from './build.ts';
+import { configurePreview } from './preview.ts';
 
 export type { Config } from '../types/config.ts';
 
@@ -43,7 +46,8 @@ function resolveCors(
 function definitions(
 	config: ValidatedConfig,
 	dev: boolean,
-	worker: boolean
+	worker: boolean,
+	globalName: string
 ): Record<string, string> {
 	const values: Record<string, unknown> = {
 		__SVELTEKIT_APP_DIR__: config.appDir,
@@ -90,6 +94,8 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 	let config: ValidatedConfig;
 	let project: Project;
 	let runtime: typeof import('vite');
+	let globalName: string;
+	const remote = createRemotePlugin(() => project);
 	const setup: Plugin = {
 		name: 'kit:setup',
 		enforce: 'pre',
@@ -105,6 +111,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 				name = installedName(root);
 				config = resolveConfig(validated, root);
 				const dev = env.command === 'serve';
+				globalName = namespace(config.version.name, dev);
 				const aliases = importAliases(root);
 				const allow = new Set([
 					config.files.routes,
@@ -123,7 +130,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 					appType: 'custom',
 					base: config.paths.base || '/',
 					publicDir: config.files.assets,
-					define: definitions(config, dev, !!worker),
+					define: definitions(config, dev, !!worker, globalName),
 					resolve: { alias: configAliases(config, root) },
 					environments: {
 						client: {
@@ -147,7 +154,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 					},
 					preview: { cors: resolveCors(user.preview?.cors, 'preview.cors', dev) },
 					optimizeDeps: {
-						rolldownOptions: { plugins: [scanVirtualModules()] },
+						rolldownOptions: { plugins: [scanVirtualModules(), remote.scan] },
 						entries: [
 							`${config.files.routes}/**/+*.{js,ts}`,
 							`!${config.files.routes}/**/+*server.*`
@@ -155,7 +162,10 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 						exclude: [name, '@vigla/kit', '$app', '$env'],
 						include: [`${name} > devalue`, `${name} > esm-env`]
 					},
-					ssr: { noExternal: [name, '@vigla/kit', 'esm-env'], external: ['@opentelemetry/api'] }
+					ssr: {
+						noExternal: [name, '@vigla/kit', 'vigla', 'esm-env', 'devalue', 'cookie'],
+						external: ['@opentelemetry/api']
+					}
 				};
 				const overridden = (['appType', 'base', 'publicDir'] as const).filter(
 					(key) => user[key] !== undefined && user[key] !== result[key]
@@ -191,6 +201,8 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 			project = {
 				root,
 				name,
+				global: globalName,
+				remote,
 				config,
 				vite,
 				api: runtime,
@@ -208,7 +220,17 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 		},
 		configureServer(server) {
 			return configureDev(server, project);
+		},
+		configurePreviewServer(server) {
+			return configurePreview(server, project);
 		}
 	};
-	return [...compiler, setup, serverGuard(() => project), virtualModules(() => project)];
+	return [
+		...compiler,
+		setup,
+		serverGuard(() => project),
+		virtualModules(() => project),
+		...remote.plugins,
+		buildPlugin(validated, () => project)
+	];
 }

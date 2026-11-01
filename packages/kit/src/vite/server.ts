@@ -1,19 +1,18 @@
 import path from 'node:path';
 import { uneval } from 'devalue';
-import type { Format } from 'vigla/compiler';
 import { loadErrorPage, loadTemplate } from '../config/index.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
-import type { RouteTree } from '../types/internal/routes.ts';
-import { globalName, ids, nodeId } from './ids.ts';
+import type { Project } from './project.ts';
+import { ids, nodeId } from './ids.ts';
 import { fileUrl, packageDirectory, posix, resolveEntry } from './paths.ts';
 
-export function serverEntry(name: string): string {
+export function serverEntry(name: string, dev: boolean): string {
 	return `import { Server as Runtime } from ${JSON.stringify(`${name}/internal/server`)};
 import { options } from ${JSON.stringify(ids.options)};
 export { options };
-export { manifest } from ${JSON.stringify(ids.manifest)};
-export class Server extends Runtime { constructor(manifest) { super(manifest, options); } }`;
+${dev ? `export { manifest } from ${JSON.stringify(ids.manifest)};` : ''}
+export class Server extends Runtime { constructor(manifest) { super(manifest, { ...options, remote: async (call) => { await manifest.remotes[call.id]?.(); const { handleRemote } = await import(${JSON.stringify(name + '/internal/server')}); return handleRemote(call); } }); } }`;
 }
 
 function templateExpression(template: string, expressions: Record<string, string>): string {
@@ -36,15 +35,14 @@ export function errorTemplate(config: ValidatedConfig): string {
 	return `export default ({ status, message }) => ${templateExpression(loadErrorPage(config), { status: 'status', 'error.message': 'message' })};`;
 }
 
-export function serverOptions(
-	config: ValidatedConfig,
-	tree: RouteTree,
-	root: string,
-	format?: Format
-): string {
+export function serverOptions(project: Project): string {
+	const { config, tree, root, format } = project;
+	const dev = project.vite.command === 'serve';
 	const template = loadTemplate(root, config);
 	const app = templateExpression(template, {
-		head: `head + ${JSON.stringify(`<script type="module" src="${config.paths.base}/@vite/client"></script>`)}`,
+		head: dev
+			? `head + ${JSON.stringify(`<script type="module" src="${config.paths.base}/@vite/client"></script>`)}`
+			: 'head',
 		body: 'body',
 		assets: 'assets',
 		nonce: 'nonce',
@@ -55,15 +53,15 @@ export function serverOptions(
 import error from ${JSON.stringify(ids.errorTemplate)};
 import { setEnv } from ${JSON.stringify(ids.env)};
 export const options = {
-root, format: ${uneval(format)}, global: ${JSON.stringify(globalName)},
+root, format: ${uneval(format)}, global: ${JSON.stringify(project.global)},
 appTemplateContainsNonce: ${template.includes('%sveltekit.nonce%')},
 csp: ${uneval(config.csp)},
 csrf: ${uneval({ checkOrigin: !config.csrf.trustedOrigins.includes('*'), trustedOrigins: config.csrf.trustedOrigins })},
 paths: ${uneval(config.paths)}, env: { set: setEnv },
 serviceWorker: ${uneval(config.serviceWorker.register && worker ? { file: 'service-worker.js', options: config.serviceWorker.options ?? {} } : null)},
-version: ${uneval({ name: config.version.name, pollInterval: 0 })},
+version: ${uneval({ name: config.version.name, pollInterval: dev ? 0 : config.version.pollInterval })},
 output: ${uneval(config.output)}, router: ${uneval(config.router)}, embedded: ${config.embedded},
-tracing: ${uneval(config.tracing)}, dev: true, building: false, prerendering: false,
+tracing: ${uneval(config.tracing)}, dev: ${dev}, building: false, prerendering: false,
 templates: { app: ({ head, body, assets, nonce, env }) => ${app}, error },
 async getHooks() {
 const server = ${tree.hooks.server ? `await import(${JSON.stringify(posix(path.resolve(root, tree.hooks.server)))})` : '{}'};
@@ -73,7 +71,8 @@ return { handle: server.handle, handleFetch: server.handleFetch, handleError: se
 };`;
 }
 
-export function serverManifest(config: ValidatedConfig, tree: RouteTree, root: string): string {
+export function serverManifest(project: Project): string {
+	const { config, tree, root } = project;
 	const absolute = (file: string) => JSON.stringify(posix(path.resolve(root, file)));
 	const nodes = tree.nodes.map((node, index) => {
 		const component = node.component
@@ -117,7 +116,7 @@ endpoint: ${route.endpoint ? `() => import(${absolute(route.endpoint.file)})` : 
 app_dir: ${JSON.stringify(config.appDir)}, app_path: ${JSON.stringify([config.paths.base.slice(1), config.appDir].filter(Boolean).join('/'))},
 assets: new Set(${uneval(tree.assets.map((asset) => asset.file))}), mime_types: ${uneval(mimeTypes)},
 client: ${uneval({ start: fileUrl(path.join(packageDirectory, 'src/entries/internal/client.ts')), app: fileUrl(ids.client), imports: [], stylesheets: [], fonts: [], uses_env_dynamic_public: true, nodes: config.router.resolution === 'server' ? tree.nodes.map((_, index) => fileUrl(nodeId(index))) : undefined, routes: clientRoutes })},
-nodes: [${nodes.join(',\n')}], routes: [${routes.join(',\n')}], remotes: {}, prerendered_routes: new Set(), server_assets: {},
+nodes: [${nodes.join(',\n')}], routes: [${routes.join(',\n')}], remotes: {${[...project.remote.entries].map(([id, entry]) => `${JSON.stringify(id)}: () => import(${absolute(entry.file)}).then(module => ({ default: module }))`).join(',')}}, prerendered_routes: new Set(), server_assets: {},
 async matchers() { return ${tree.params && hasMatchers ? `(await import(${absolute(tree.params)})).params` : '{}'}; }
 };`;
 }

@@ -1,8 +1,7 @@
 import path from 'node:path';
-import type { Format } from 'vigla/compiler';
-import type { ValidatedConfig } from '../types/builder.ts';
-import type { PageNode, RouteTree } from '../types/internal/routes.ts';
-import { globalName, ids, nodeId } from './ids.ts';
+import type { PageNode } from '../types/internal/routes.ts';
+import type { Project } from './project.ts';
+import { ids, nodeId } from './ids.ts';
 import { posix } from './paths.ts';
 
 export function clientNode(node: PageNode, index: number, root: string): string {
@@ -20,13 +19,14 @@ export function clientNode(node: PageNode, index: number, root: string): string 
 	return lines.join('\n');
 }
 
-export function clientApp(
-	config: ValidatedConfig,
-	tree: RouteTree,
-	root: string,
-	format?: Format
-): string {
-	const lines: string[] = [`export { default as root } from ${JSON.stringify(ids.root)};`];
+export function clientApp(project: Project): string {
+	const { config, tree, root, format } = project;
+	const hasServerLoad = (index: number) =>
+		project.build?.analysis.nodes[index]?.hasServerLoad ?? !!tree.nodes[index]?.server;
+	const lines: string[] = [];
+	if (project.vite.command === 'build' && config.output.bundleStrategy !== 'split')
+		lines.push(`import ${JSON.stringify(ids.bootstrap)};`);
+	lines.push(`export { default as root } from ${JSON.stringify(ids.root)};`);
 	for (const side of ['client', 'universal'] as const) {
 		const file = tree.hooks[side];
 		lines.push(
@@ -54,10 +54,10 @@ export function clientApp(
 		if (!route.page) continue;
 		const { leaf, layouts, errors } = route.page;
 		for (const index of layouts) {
-			if (index !== undefined && tree.nodes[index]?.server) serverLoads.add(index);
+			if (index !== undefined && hasServerLoad(index)) serverLoads.add(index);
 		}
 		dictionary.push(
-			`${JSON.stringify(route.id)}: [${tree.nodes[leaf]?.server ? ~leaf : leaf},${sparse(layouts)},${sparse(errors)}]`
+			`${JSON.stringify(route.id)}: [${hasServerLoad(leaf) ? ~leaf : leaf},${sparse(layouts)},${sparse(errors)}]`
 		);
 	}
 	const clientRouting = config.router.resolution === 'client';
@@ -72,7 +72,7 @@ export function clientApp(
 		'export const encoders = Object.fromEntries(Object.entries(hooks.transport).map(([name, value]) => [name, value.encode]));',
 		'export const decoders = Object.fromEntries(Object.entries(hooks.transport).map(([name, value]) => [name, value.decode]));',
 		'export const decode = (name, value) => decoders[name](value);',
-		`export const global = ${JSON.stringify(globalName)};`,
+		`export const global = ${JSON.stringify(project.global)};`,
 		`export const clientRouting = ${clientRouting};`,
 		`export const versionChecks = ${config.output.bundleStrategy !== 'inline'};`,
 		`export const format = ${JSON.stringify(format) ?? 'undefined'};`,
