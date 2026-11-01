@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import { unsupported } from '../analysis/index.ts';
+import { unsupported, type Binding } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Binding as BindingNode, Element } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
@@ -44,8 +44,14 @@ function source(expression: ES.Node): string {
 	return `${located.start ?? 0}:${located.end ?? 0}`;
 }
 
+export type GroupKey = Binding | string;
+
 function group(context: TemplateContext, attribute: BindingNode): ES.Identifier {
-	const key = source(attribute.expression);
+	const expression = attribute.expression;
+	const key =
+		expression.type === 'Identifier'
+			? (context.analysis.references.get(expression) ?? `global:${expression.name}`)
+			: source(expression);
 	let found = context.groups.get(key);
 	if (found === undefined) {
 		found = b.id(context.names.unique('$$group'));
@@ -70,7 +76,7 @@ export function bindThisCall(
 		if (node.type !== 'Identifier') return;
 		const binding = context.analysis.references.get(node);
 		if (binding === undefined || (binding.kind !== 'item' && binding.kind !== 'index')) return;
-		if (!parts.some((part) => part.name === node.name)) parts.push(b.id(node.name));
+		if (!parts.some((part) => part.name === node.name)) parts.push(node);
 		plain.add(binding);
 	});
 	const inner = { ...context, plain };
@@ -90,7 +96,7 @@ export function bindThisCall(
 		args.push(
 			b.arrow([], {
 				type: 'ArrayExpression',
-				elements: parts.map((part) => rewrite(context, { ...part }))
+				elements: parts.map((part) => rewrite(context, part))
 			})
 		);
 	}

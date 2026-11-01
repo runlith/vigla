@@ -13,6 +13,7 @@ import type { Expression, Fragment, Namespace, Node, RawHtml, Text } from '../ir
 import type { Host, Scoping } from '../css/index.ts';
 import { asyncSetup, awaiting } from './asynchronous.ts';
 import { blockCode } from './blocks.ts';
+import type { GroupKey } from './bindings.ts';
 import {
 	boundaryCall,
 	componentCall,
@@ -32,7 +33,7 @@ import { rewrite, runtime, type Context } from './script.ts';
 export interface TemplateContext extends Context {
 	readonly component: ComponentAnalysis;
 	readonly events: Set<string>;
-	readonly groups: Map<string, ES.Identifier>;
+	readonly groups: Map<GroupKey, ES.Identifier>;
 	readonly instance: ES.Statement[];
 	readonly scoping: Scoping;
 	readonly format: Format;
