@@ -1,7 +1,7 @@
 ---
 id: 01a19578-1752-7f66-94e4-36508e03bce0
 title: Form resets retire SSR defaults before bindings read the reset value
-ord: 25
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: file

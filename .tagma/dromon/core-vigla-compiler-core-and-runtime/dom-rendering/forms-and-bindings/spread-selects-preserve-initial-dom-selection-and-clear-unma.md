@@ -1,7 +1,7 @@
 ---
 id: 01a19542-2042-7a59-be1a-137dfa1be013
 title: Spread selects preserve initial DOM selection and clear unmatched later values
-ord: 1
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: file

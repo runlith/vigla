@@ -1,7 +1,7 @@
 ---
 id: 01a19578-1981-77f9-8f13-4cce5fd60710
 title: Select defaults and live selection have separate lifetimes
-ord: 26
+ord: 5
 tags: ["explanation"]
 sources:
   - kind: symbol
