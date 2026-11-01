@@ -1,6 +1,8 @@
 import path from 'node:path';
 import type { Plugin, Rolldown, ViteDevServer } from 'vite';
+import type { RemoteMetadata } from '../build/index.ts';
 import { hash } from '../shared/hash.ts';
+import type { RemoteExport, RemoteInternals } from '../types/internal/remote.ts';
 import { fileUrl, isRemoteModule, isRunnable, posix, remotePattern } from './paths.ts';
 import type { Project } from './project.ts';
 
@@ -87,15 +89,12 @@ export function createRemotePlugin(getProject: () => Project): RemoteIntegration
 					map: null
 				};
 			}
-			let exports: Iterable<[string, { type: string }]>;
+			let exports: Iterable<[string, RemoteInternals | RemoteMetadata]>;
 			if (server) {
 				const environment = server.environments.ssr;
 				if (!isRunnable(environment)) throw new Error('The Vite SSR environment is not runnable');
-				const module = await environment.runner.import(id);
-				exports = Object.entries(module).map(([name, value]) => [
-					name,
-					(value as { __: { type: string } }).__
-				]);
+				const module = (await environment.runner.import(id)) as Record<string, RemoteExport>;
+				exports = Object.entries(module).map(([name, value]) => [name, value.__]);
 			} else {
 				const metadata = project.build?.analysis.remotes.get(key);
 				if (!metadata) throw new Error(`Missing remote analysis for ${file}`);
