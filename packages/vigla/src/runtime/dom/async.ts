@@ -2,7 +2,7 @@ import { asyncDerived, work } from '../reactivity/async.ts';
 import { resumed, suspend } from '../reactivity/batch.ts';
 import { fail } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
-import { get, owner } from '../reactivity/tracking.ts';
+import { endReading, get, owner } from '../reactivity/tracking.ts';
 import { derived, set, state } from '../reactivity/sources.ts';
 import type { Exports } from './mount.ts';
 import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';
@@ -101,6 +101,7 @@ export function async(
 
 export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
 	const restore = suspend();
+	endReading();
 	const mode = hydrating;
 	const resolved = await value;
 	return () => {

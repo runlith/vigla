@@ -4,6 +4,7 @@ import {
 	hasAwait,
 	inspection,
 	isSignal,
+	resuming,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -181,6 +182,14 @@ export function declare(
 	next: <T extends ES.Node>(node: T) => T
 ): ES.Expression {
 	const given = single(init);
+	if (rune === '$derived' && given !== null && hasAwait(given, context.awaited)) {
+		const pending = runtime(
+			context,
+			'save',
+			runtime(context, 'asyncDerived', asyncThunk(context, given))
+		);
+		return b.call({ type: 'AwaitExpression', argument: pending });
+	}
 	const value = given === null ? b.id('undefined') : next(given);
 	const source = binding !== undefined && isSignal(binding);
 	switch (rune) {
@@ -190,14 +199,8 @@ export function declare(
 		}
 		case '$state.raw':
 			return source ? runtime(context, 'state', value) : value;
-		case '$derived': {
-			if (given !== null && hasAwait(given, context.awaited)) {
-				const thunk = { ...b.arrow([], value), async: true };
-				const pending = runtime(context, 'save', runtime(context, 'asyncDerived', thunk));
-				return b.call({ type: 'AwaitExpression', argument: pending });
-			}
+		case '$derived':
 			return runtime(context, 'derived', b.arrow([], value));
-		}
 		case '$derived.by':
 			return runtime(context, 'derived', value);
 		case '$props.id':
@@ -369,6 +372,25 @@ function mutateProp(
 			? { ...node, left: next(target) as ES.Pattern, right: next(node.right) }
 			: { ...node, argument: next(target) as ES.Expression };
 	return runtime(context, 'mutateProp', base, mutation);
+}
+
+export function asyncThunk(
+	context: Context,
+	expression: ES.Expression,
+	wrap: (value: ES.Expression) => ES.Expression = (value) => value
+): ES.ArrowFunctionExpression {
+	const found = resuming(expression);
+	if (found.length === 0)
+		return { ...b.arrow([], wrap(rewrite(context, expression))), async: true };
+	const saved = new Set([...(context.saved ?? []), ...found]);
+	const value = wrap(rewrite({ ...context, saved }, expression));
+	const guarded: ES.TryStatement = {
+		type: 'TryStatement',
+		block: { type: 'BlockStatement', body: [{ type: 'ReturnStatement', argument: value }] },
+		handler: null,
+		finalizer: { type: 'BlockStatement', body: [b.statement(runtime(context, 'unsave'))] }
+	};
+	return { ...b.arrow([], [guarded]), async: true };
 }
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {

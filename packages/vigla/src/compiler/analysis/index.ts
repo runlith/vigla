@@ -36,7 +36,8 @@ export {
 	declaring,
 	hasAwait,
 	ownExpressions,
-	pendingAwaits
+	pendingAwaits,
+	resuming
 } from './asynchronous.ts';
 export { hoisted } from './template.ts';
 export type { AsyncStep, Settled } from './asynchronous.ts';

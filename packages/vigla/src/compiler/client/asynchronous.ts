@@ -2,7 +2,7 @@ import type * as ES from 'estree';
 import { hasAwait, ownExpressions } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Namespace, Node } from '../ir/nodes.ts';
-import { rewrite, runtime } from './script.ts';
+import { asyncThunk, runtime } from './script.ts';
 import type { Emit, TemplateContext } from './template.ts';
 
 export function awaiting(context: TemplateContext, nodes: readonly Node[]): ES.Expression[] {
@@ -28,10 +28,9 @@ export function asyncThunks(
 	context: TemplateContext,
 	expressions: readonly ES.Expression[]
 ): ES.ArrowFunctionExpression[] {
-	return expressions.map((expression) => ({
-		...b.arrow([], b.object({ value: rewrite(context, expression) })),
-		async: true
-	}));
+	return expressions.map((expression) =>
+		asyncThunk(context, expression, (value) => b.object({ value }))
+	);
 }
 
 export function asyncSetup(

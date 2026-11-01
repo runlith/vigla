@@ -1,8 +1,9 @@
 import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
-import { computed, traced, tracedRun, tracing, updated } from './trace.ts';
+import { computed, traced, tracedRun, tracing } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
-import { destroy, fail, freeze, thaw } from './effects.ts';
+import { refresh } from './deriveds.ts';
+import { destroy, freeze, thaw } from './effects.ts';
 import { past, recall, setPast } from './past.ts';
 import {
 	BLOCK,
@@ -12,7 +13,6 @@ import {
 	EAGER,
 	MAYBE,
 	ROOT,
-	equal,
 	isDerived,
 	now,
 	stamp,
@@ -33,6 +33,13 @@ interface Frame {
 	invalidated: boolean;
 	hidden: Set<Batch> | null;
 	local: Set<Source> | null;
+	keep: boolean;
+	run: Resumption | null;
+}
+
+export interface Resumption {
+	readonly reaction: Reaction;
+	readonly reads: Set<Source>;
 }
 
 let versions = 0;
@@ -56,7 +63,9 @@ function opened(target: Reaction): Frame {
 			marks: 0,
 			invalidated: false,
 			hidden: null,
-			local: null
+			local: null,
+			keep: false,
+			run: null
 		};
 		frames.push(current);
 	}
@@ -70,6 +79,7 @@ function opened(target: Reaction): Frame {
 	current.invalidated = false;
 	current.hidden = null;
 	current.local = null;
+	current.keep = false;
 	depth++;
 	frame = current;
 	return current;
@@ -102,7 +112,7 @@ export function ownEffect(effect: Effect): void {
 	if (effect.parent === derived.owner) (derived.effects ??= []).push(effect);
 }
 
-function destroyEffects(derived: Derived): void {
+export function destroyEffects(derived: Derived): void {
 	const effects = derived.effects;
 	if (effects === null) return;
 	derived.effects = derived.frozen = null;
@@ -157,7 +167,27 @@ function record(at: Frame, source: Source): void {
 	const old = at.old;
 	if (at.extra === null && old !== null && at.matched < old.length && old[at.matched] === source)
 		at.matched++;
+	else if (at === late) adopt(at.run as Resumption, source);
 	else (at.extra ??= []).push(source);
+}
+
+function adopt(run: Resumption, source: Source): void {
+	run.reads.add(source);
+	const deps = (run.reaction.deps ??= []);
+	if (deps.includes(source)) return;
+	deps.push(source);
+	subscribe(source, run.reaction);
+}
+
+export function settleReads(run: Resumption): void {
+	const deps = run.reaction.deps;
+	if (deps === null || (run.reaction as Effect).destroyed === true) return;
+	let count = 0;
+	for (const dep of deps) {
+		if (run.reads.has(dep)) deps[count++] = dep;
+		else unsubscribe(dep, run.reaction);
+	}
+	deps.length = count;
 }
 
 function readBy(at: Frame, source: Source): boolean {
@@ -183,6 +213,8 @@ export interface View {
 }
 
 let frame: Frame | null = null;
+let late: Frame | null = null;
+let awaited: Resumption | null = null;
 let executing: Reaction | null = null;
 const frames: Frame[] = [];
 let hiddenByLast: Set<Batch> | null = null;
@@ -247,6 +279,52 @@ export function untrack<T>(fn: () => T): T {
 	} finally {
 		frame = previous;
 	}
+}
+
+export function awaiting<T>(run: Resumption, fn: () => T): T {
+	const previous = awaited;
+	awaited = run;
+	try {
+		return fn();
+	} finally {
+		awaited = previous;
+		const at = frame;
+		if (at !== null && at.target === run.reaction) {
+			at.keep = true;
+			for (const source of reads(at)) run.reads.add(source);
+		}
+	}
+}
+
+export function suspendReading(): Resumption | null {
+	if (late !== null && frame === late) return late.run;
+	return awaited !== null && executing === awaited.reaction ? awaited : null;
+}
+
+export function resumeReading(run: Resumption | null): void {
+	endReading();
+	if (run === null || frame !== null || (run.reaction as Effect).destroyed === true) return;
+	late = {
+		target: run.reaction,
+		started: 0,
+		version: (versions += 3),
+		old: null,
+		matched: 0,
+		extra: null,
+		marks,
+		invalidated: false,
+		hidden: null,
+		local: null,
+		keep: false,
+		run
+	};
+	frame = late;
+}
+
+export function endReading(): void {
+	if (late === null) return;
+	if (frame === late) frame = null;
+	late = null;
 }
 
 function note(hidden: Iterable<Batch>): void {
@@ -476,7 +554,11 @@ function settleRun(target: Reaction, current: Frame): void {
 		if (!invalidated && current.extra !== null)
 			for (const dep of current.extra) if (dirtyRead(dep)) invalidated = true;
 	}
-	reconcile(target, current, view !== null && (view.batch.fork || current.hidden !== null));
+	reconcile(
+		target,
+		current,
+		current.keep || (view !== null && (view.batch.fork || current.hidden !== null))
+	);
 	target.rv = now();
 	target.status = invalidated ? DIRTY : CLEAN;
 }
@@ -508,59 +590,4 @@ export function stale(target: Reaction): boolean {
 		target.status = CLEAN;
 	}
 	return false;
-}
-
-export function refresh(derived: Derived): void {
-	if (derived.deps !== null && !stale(derived)) return;
-	if (view !== null && affected(derived, view)) return;
-	destroyEffects(derived);
-	const previous = setOwner(derived.owner);
-	try {
-		let value: unknown;
-		try {
-			value = track(derived, derived.fn);
-		} catch (error) {
-			hiddenByLast = null;
-			derived.computed = false;
-			derived.wv = stamp();
-			const holder = derived.owner;
-			if (holder === null) {
-				derived.failure = { error };
-				return;
-			}
-			derived.v = undefined as typeof derived.v;
-			if (holder.destroyed) return;
-			const status = derived.status;
-			derived.status = DIRTY;
-			fail(holder, error);
-			derived.status = status;
-			return;
-		}
-		if (derived.failure !== null) derived.failure = null;
-		const hidden = hiddenByLast;
-		hiddenByLast = null;
-		if (hidden !== null && view !== null) {
-			derived.status = DIRTY;
-			view.values.set(derived, value);
-			view.reached.set(derived, hidden);
-			view.checked.set(derived, true);
-			return;
-		}
-		if (!derived.computed || !equal(derived, derived.v, value)) {
-			derived.v = value;
-			derived.wv = stamp();
-			derived.computed = true;
-			if (DEV) updated(derived);
-		}
-	} finally {
-		setOwner(previous);
-	}
-}
-
-export function disconnect(derived: Derived): void {
-	destroyEffects(derived);
-	for (const dep of derived.deps ?? []) unsubscribe(dep, derived);
-	derived.deps = null;
-	derived.status = DIRTY;
-	marks++;
 }

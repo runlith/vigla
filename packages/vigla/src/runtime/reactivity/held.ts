@@ -147,13 +147,17 @@ function record(reader: Batch, writer: Batch, effects: Iterable<Effect>): void {
 	for (const effect of effects) found.add(effect);
 }
 
-export function revisit(effect: Effect, hidden: Set<Batch>): void {
+export function revisit(effect: Effect, hidden: Set<Batch> | null): void {
 	const reader = active ?? processing;
-	for (const found of hidden) {
+	for (const found of hidden ?? []) {
 		const writer = alias(found);
 		if (writer.done) continue;
 		if (members(writer).has(effect)) (writer.forced ??= new Set()).add(effect);
 		if (reader !== null && reader !== writer) record(reader, writer, [effect]);
+	}
+	for (const other of pending) {
+		if (other === reader || other.done || other.fork || other.queued.length === 0) continue;
+		if (members(other).has(effect)) (other.forced ??= new Set()).add(effect);
 	}
 }
 

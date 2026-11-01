@@ -1,6 +1,7 @@
 import { write } from './batch.ts';
 import { DERIVED, DIRTY, SOURCE, isDerived, type Derived, type Source } from './graph.ts';
-import { get, guard, localize, owner, refresh } from './tracking.ts';
+import { refresh } from './deriveds.ts';
+import { get, guard, localize, owner } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
 	return { kind: SOURCE, v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };

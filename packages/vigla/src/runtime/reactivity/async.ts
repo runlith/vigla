@@ -1,10 +1,20 @@
-import { alias, collect, current, holds, request, within, write, type Batch } from './batch.ts';
+import {
+	alias,
+	collect,
+	current,
+	holds,
+	quieted,
+	request,
+	within,
+	write,
+	type Batch
+} from './batch.ts';
 import { staleReaction } from '../../shared/abort.ts';
 import { block, fail } from './effects.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
 import type { Boundary, Effect, Source } from './graph.ts';
 import { source } from './sources.ts';
-import { get, owner } from './tracking.ts';
+import { awaiting, get, owner, running, settleReads, type Resumption } from './tracking.ts';
 
 export interface AsyncRun {
 	supersede(): void;
@@ -59,11 +69,19 @@ function count(boundary: Boundary | null, delta: 1 | -1): void {
 	});
 }
 
+let outstanding = 0;
+
+export function unsettled(): boolean {
+	return outstanding > 0;
+}
+
 export function work(): () => void {
 	const batch = current();
 	const holder = owner;
 	const boundary = holder === null ? null : holder.boundary;
 	const blocking = !showing(boundary);
+	const counted = !batch.fork;
+	if (counted) outstanding++;
 	count(boundary, 1);
 	if (blocking) {
 		batch.work += 1;
@@ -78,6 +96,7 @@ export function work(): () => void {
 		unsettled = false;
 		holder?.units?.delete(settle);
 		count(boundary, -1);
+		if (counted && --outstanding === 0) quieted();
 		if (!blocking) return;
 		const target = alias(batch);
 		target.work -= 1;
@@ -129,9 +148,10 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		};
 		latest.set(batch, token);
 		(batch.runs ??= new Map()).set(owner as Effect, token);
+		const run: Resumption = { reaction: running() as Effect, reads: new Set() };
 		let promise: Promise<T>;
 		try {
-			promise = Promise.resolve(fn());
+			promise = Promise.resolve(awaiting(run, fn));
 		} catch (error) {
 			promise = Promise.reject(error);
 		}
@@ -144,6 +164,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		promise.then(
 			(value) => {
 				if (own()) {
+					if (latest.size === 0) settleReads(run);
 					within(batch, () => write(signal, value));
 					resolved = true;
 					first(signal);

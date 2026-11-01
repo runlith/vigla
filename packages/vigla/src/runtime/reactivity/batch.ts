@@ -1,6 +1,6 @@
 import { DEV } from 'esm-env';
 import { applied, forgotten, loopWrite, reportLoop, resetLoop, updated } from './trace.ts';
-import { parked, showing, type AsyncRun } from './async.ts';
+import { parked, showing, unsettled, type AsyncRun } from './async.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -35,13 +35,16 @@ import {
 } from './held.ts';
 import {
 	conceal,
+	endReading,
 	forget,
 	marked,
 	owner,
 	readDuringRun,
+	resumeReading,
 	setOwner,
 	setView,
 	stale,
+	suspendReading,
 	withoutReaction,
 	view
 } from './tracking.ts';
@@ -188,14 +191,17 @@ export function inside<T>(batch: Batch, fn: () => T): T {
 export function suspend(): () => void {
 	const effect = owner;
 	const batch = active ?? processing;
+	const reaction = suspendReading();
 	return () => {
 		setOwner(effect);
 		active = live(batch);
 		if (processing === null) setView(active !== null && others(active) ? viewOf(active) : null);
+		resumeReading(reaction);
 	};
 }
 
 export function resumed(): void {
+	endReading();
 	if (processing !== null) return;
 	setOwner(null);
 	active = null;
@@ -594,11 +600,14 @@ function flush(tasks: boolean): void {
 		}
 		if (tasks) drain();
 	}
-	if (idle() && waiting.length > 0) {
-		const resolved = waiting;
-		waiting = [];
-		for (const done of resolved) done();
-	}
+	quieted();
+}
+
+export function quieted(): void {
+	if (!idle() || waiting.length === 0 || unsettled()) return;
+	const resolved = waiting;
+	waiting = [];
+	for (const done of resolved) done();
 }
 
 export function settled(): Promise<void> {

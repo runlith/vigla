@@ -24,6 +24,61 @@ export function awaits(node: ES.Node): ES.AwaitExpression[] {
 	return found;
 }
 
+function evaluatedLast(node: ES.Node, parents: ReadonlyMap<ES.Node, ES.Node>): boolean {
+	let child = node;
+	for (let parent = parents.get(child); parent !== undefined; parent = parents.get(child)) {
+		switch (parent.type) {
+			case 'ArrayExpression':
+				if (child !== parent.elements.at(-1)) return false;
+				break;
+			case 'AssignmentExpression':
+			case 'BinaryExpression':
+			case 'LogicalExpression':
+				if (child === parent.left) return false;
+				break;
+			case 'CallExpression':
+			case 'NewExpression':
+				if (child !== parent.arguments.at(-1)) return false;
+				break;
+			case 'ConditionalExpression':
+				if (child === parent.test) return false;
+				break;
+			case 'ObjectExpression':
+				if (child !== parent.properties.at(-1)) return false;
+				break;
+			case 'Property':
+				if (child === parent.key) return false;
+				break;
+			case 'SequenceExpression':
+			case 'TemplateLiteral':
+				if (child !== parent.expressions.at(-1)) return false;
+				break;
+			default:
+				return false;
+		}
+		child = parent;
+	}
+	return true;
+}
+
+export function resuming(expression: ES.Node): ES.AwaitExpression[] {
+	const parents = new Map<ES.Node, ES.Node>();
+	const found: ES.AwaitExpression[] = [];
+	walk(expression, (child, parent) => {
+		if (parent !== null) parents.set(child, parent);
+		if (
+			child.type === 'FunctionDeclaration' ||
+			child.type === 'FunctionExpression' ||
+			child.type === 'ArrowFunctionExpression' ||
+			child.type === 'ClassBody'
+		)
+			return false;
+		if (child.type === 'AwaitExpression' && (found.length > 0 || !evaluatedLast(child, parents)))
+			found.push(child);
+	});
+	return found;
+}
+
 export function hasAwait(node: ES.Node, settled?: Settled): boolean {
 	let found = false;
 	walk(node, (child) => {

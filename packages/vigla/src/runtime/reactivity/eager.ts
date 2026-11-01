@@ -20,6 +20,14 @@ export function holdEager<T>(fn: () => T): T {
 	}
 }
 
+function due(effect: Effect): boolean {
+	try {
+		return stale(effect);
+	} catch {
+		return true;
+	}
+}
+
 export function runEager(): void {
 	if (queued.size === 0 || running || held > 0) return;
 	running = true;
@@ -27,7 +35,7 @@ export function runEager(): void {
 		present(() => {
 			for (const effect of queued) {
 				queued.delete(effect);
-				if (!effect.destroyed && stale(effect)) run(effect);
+				if (!effect.destroyed && due(effect)) run(effect);
 			}
 		});
 	} finally {

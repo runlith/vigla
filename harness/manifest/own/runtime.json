@@ -132,6 +132,10 @@
 		},
 		"select-spread-undefined": "contract",
 		"tagged-input-cache": "contract",
+		"async-context-batch": { "status": "difference", "reason": "Svelte #16942: a read after an await in a template expression must use the batch that started it; upstream 5.57.3 shows 3/3 instead of 2/2 when the first of two held batches resolves" },
+		"async-each-overlap": { "status": "difference", "reason": "Svelte #18355: two overlapping reversals of an awaited each; upstream 5.57.3 reevaluates the rows derived 25 times instead of fewer than 12" },
+		"destroy-read-current": { "status": "difference", "reason": "Svelte #17375: onDestroy reads after a same-tick write; upstream 5.57.3 logs initial|initial|initial instead of changed|changed|changed" },
+		"pending-snippet-switch": { "status": "difference", "reason": "Svelte #19107: a boundary's pending prop switching to a snippet mid-await; upstream 5.57.3 remounts the pending branch until about 500 <p>DIV</p> remain instead of one" },
 		"store-nested-read": {
 			"status": "difference",
 			"reason": "Svelte #5052: a nested writable reset leaves compiled store reads stale inside the subscriber on upstream 5.57.3 (1|1|0 rather than 0|0|0)"

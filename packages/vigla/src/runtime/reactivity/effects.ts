@@ -13,11 +13,11 @@ import {
 	type Kind
 } from './graph.ts';
 import { abort } from './abort.ts';
-import { collect, orphaned, retire, revisit, schedule } from './batch.ts';
+import { collect, orphaned, pending, retire, revisit, schedule } from './batch.ts';
+import { disconnect } from './deriveds.ts';
 import { orphan } from './errors.ts';
 import { presently } from './past.ts';
 import {
-	disconnect,
 	marked,
 	owner,
 	ownEffect,
@@ -138,7 +138,7 @@ export function run(effect: Effect): void {
 		return;
 	}
 	if (typeof result === 'function') effect.teardown = result as () => void;
-	if (hidden !== null) revisit(effect, hidden);
+	if (hidden !== null || pending.length > 0) revisit(effect, hidden);
 	if (effect.status === DIRTY && !effect.destroyed) schedule(effect);
 }
 

@@ -131,10 +131,12 @@ class Boundary implements Contract {
 
 	#render(): void {
 		const pending = this.#props.pending;
+		this.#building = true;
+		for (const built of [this.#main, this.#pending]) if (built !== null) discard(built);
+		this.#main = this.#pending = null;
 		this.showing = pending != null;
 		this.#units = 0;
 		this.#errored = false;
-		this.#building = true;
 		let built: Built;
 		try {
 			built = this.#branch(this.#content, true);
