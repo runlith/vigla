@@ -1,5 +1,9 @@
 {
 	"samples": {
+		"issue-10252-initial-flip": {
+			"status": "difference",
+			"reason": "Svelte #10252: the first simultaneous crossfade with keyed FLIP displaces visible rows by 80px before their animations begin on upstream 5.57.3 Chromium"
+		},
 		"issue-17969-contenteditable": {
 			"status": "difference",
 			"reason": "Svelte #17969: deleting dynamic plaintext-only contenteditable text, toggling editing off/on and inserting abc produces abcabc in the heading while the model remains abc on upstream 5.57.3 Chromium"

@@ -299,15 +299,16 @@ class List<T> {
 			moved.push(mover);
 		}
 		for (const row of previous) {
+			if (!selected.has(row) && !needed?.has(row)) moverOf(row.effect)?.measure();
+		}
+		for (const row of previous) {
 			if (selected.has(row)) continue;
 			if (needed?.has(row)) {
 				stash(row);
 				hide(row.effect);
 				continue;
 			}
-			const mover = moverOf(row.effect);
-			mover?.measure();
-			mover?.fix();
+			moverOf(row.effect)?.fix();
 			this.#leave(row);
 		}
 		if (this.#empty !== null) {
