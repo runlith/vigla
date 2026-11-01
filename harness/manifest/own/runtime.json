@@ -101,6 +101,10 @@
 			"status": "difference",
 			"reason": "Svelte #17220: spreading a real module namespace before an explicit prop throws Cannot redefine property: foo on upstream 5.57.3 in sync and async SSR; Vigla renders the explicit value"
 		},
+		"issue-17379-spread-listener": {
+			"status": "difference",
+			"reason": "Svelte #17379: upstream 5.57.3 invokes delegated spread and dynamic-element handlers after removed nodes are reattached"
+		},
 		"issue-17379-static-listener": {
 			"status": "difference",
 			"reason": "Svelte #17379: upstream 5.57.3 still invokes static focus and click handlers after the input is removed and retained"

@@ -6,7 +6,11 @@ const handlers = Symbol('events');
 
 const handled = Symbol('handled');
 
-type Handlers = Record<string, EventListener | null | undefined>;
+interface Registration {
+	readonly handler: EventListener | null | undefined;
+}
+
+type Handlers = Record<string, Registration | undefined>;
 
 interface Holder {
 	[handlers]?: Handlers;
@@ -70,15 +74,16 @@ export function delegated(
 	type: string,
 	handler: EventListener | null,
 	owned = false
-): void {
+): () => void {
 	const holder = element as EventTarget & Holder;
 	const events = (holder[handlers] ??= {});
-	events[type] = handler;
-	if (owned) {
-		teardown(() => {
-			if (events[type] === handler) delete events[type];
-		});
-	}
+	const registration: Registration = { handler };
+	events[type] = registration;
+	const remove = (): void => {
+		if (events[type] === registration) delete events[type];
+	};
+	if (owned) teardown(remove);
+	return remove;
 }
 
 const registered = new Set<string>();
@@ -187,7 +192,7 @@ function dispatch(event: Event, path: EventTarget[], walk: Walk, root: EventTarg
 	while (walk.current !== null && walk.current !== root) {
 		const current = walk.current;
 		try {
-			const handler = (current as EventTarget & Holder)[handlers]?.[event.type];
+			const handler = (current as EventTarget & Holder)[handlers]?.[event.type]?.handler;
 			if (
 				handler != null &&
 				(!(current as HTMLButtonElement).disabled || event.target === current)

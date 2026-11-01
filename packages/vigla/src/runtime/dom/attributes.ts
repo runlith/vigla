@@ -429,7 +429,14 @@ export function attributes(
 			if (capture) type = type.slice(0, -7);
 			const slot = `$$${key}`;
 			if (!capture && isDelegated(type)) {
-				delegated(element, type, value as EventListener | null);
+				const existing = current[slot] as Listener | undefined;
+				if (existing !== undefined) {
+					existing();
+					(current[listeners] as Set<Listener>).delete(existing);
+				}
+				const remove = delegated(element, type, value as EventListener | null);
+				listenerSet(current).add(remove);
+				current[slot] = remove;
 				delegate(type);
 				continue;
 			}
