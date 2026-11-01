@@ -18,6 +18,8 @@ sources:
 ---
 Compiled client code navigates a template with one sequence of calls — `fragment()`, `first`, `child`, `sibling`, `next`, `reset`, `append` — that clones and walks a fresh copy when mounting and claims the server's nodes when hydrating, so client rendering and hydration cannot drift apart. While hydrating, `fragment()` returns the cursor instead of a clone and every navigation call moves the cursor, ignoring the node it was handed.
 
+Rich children of a select, optgroup or option form a separate fragment ending at a server marker. A browser whose select parser strips rich descendants clears and mounts that fragment without hydration, then restores the cursor to the preserved element; a parser that preserves them claims the fragment in place.
+
 The cursor obeys three positional rules the generated code depends on:
 - A fragment's or element's navigation ends with the cursor on its last node: trailing static nodes are passed with `next(n)`, `reset(element)` returns the cursor to an element after its children and fails when server nodes remain after the last child, and `append` steps past the fragment's last node.
 - A block stands at one position: the cursor reaches its open marker (`<!--[-->`, `<!--[n-->`, `<!--[!-->`), the block reads it, claims its arm or rows, and leaves the cursor on the close marker `<!--]-->`, which is its anchor from then on, so sibling navigation continues past it as if past the client template's `<!>`.
