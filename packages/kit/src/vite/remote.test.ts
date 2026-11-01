@@ -12,6 +12,7 @@ import {
 } from 'vite';
 import { hash } from '../shared/hash.ts';
 import type { Project } from './project.ts';
+import { packageDirectory } from './paths.ts';
 import { createRemotePlugin } from './remote.ts';
 
 const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'kit-remote-')));
@@ -111,6 +112,25 @@ test('server builds publish remote chunks and client builds use analysed kinds',
 	expect(code).toContain(`${key}/load`);
 	expect(code).toContain(`${key}/default`);
 	expect(code).not.toContain('server secret');
+});
+
+test('Kit runtime modules are not treated as app remote functions', async () => {
+	const remote = createRemotePlugin(() => ({ root, name: '@vigla/kit' }) as Project);
+	const result = (await build({
+		root,
+		configFile: false,
+		logLevel: 'silent',
+		plugins: remote.plugins,
+		resolve: { alias: aliases },
+		build: { ssr: path.join(packageDirectory, 'src/shared/remote.ts'), write: false, minify: false }
+	})) as Rolldown.RolldownOutput;
+	const chunk = result.output.find(
+		(output) =>
+			output.type === 'chunk' &&
+			output.facadeModuleId === path.join(packageDirectory, 'src/shared/remote.ts')
+	);
+	expect(chunk?.type === 'chunk' && chunk.exports).toContain('encodeArgument');
+	expect([...remote.entries]).toEqual([]);
 });
 
 test('dependency optimization externalizes remote modules', async () => {
