@@ -11,4 +11,4 @@ sources:
     ref: packages/vite-plugin/src/plugins/optimizer.ts
     symbol: setupOptimizer
 ---
-A framework can import the core from source while its components import an optimized frontend runtime. Inlining the core into that runtime would duplicate owners, contexts, signals and hydration cursors. During serve, the default optimizer configuration excludes `vigla` and its subpaths in each environment, leaving ordinary package resolution intact; forcing deduplication from the app root would require alias-only apps to declare a direct core dependency they otherwise do not need.
+A framework can import the core from source while its components import an optimized frontend runtime. Inlining the core into that runtime would duplicate owners, contexts, signals and hydration cursors. During serve, each optimizer environment resolves bare core runtime imports from their original importer before externalizing them as file URLs. A bare exclusion alone would lose that package origin when frontend entries share an optimizer chunk. This keeps ordinary package resolution intact without forcing alias-only apps to declare a direct core dependency.
