@@ -14,11 +14,6 @@ edges:
   - kind: implements
     to: 01a185b6-09f2-796e-90b2-9fa9658ccea4
 ---
-Ten of the frozen reports [[5ed381c8]] verified stay with the DOM runtime:
-- #17395 and #16139, as the unrecorded own/runtime progress samples `option-spread-null` and `props-own-spread`;
-- #17379: a forced-GC retained detached input keeps the listener's payload on both targets;
-- #16168: typing orders effect and handler differently on Chromium and Firefox; the order to keep is settled with the scheduler;
-- transitions #10252, #6668, #4389, #15627;
-- the affected-engine checks of #6914 and #4712, still selected because their engines are unavailable here.
+Complete the ten DOM reports routed by [[5ed381c8]]: the option and component prop spreads (#17395/#16139), retained static-listener payloads (#17379), native input scheduling (#16168), crossfade/FLIP and lazy-outro cases (#10252/#6668/#4389/#15627), and the affected supported Safari checks (#6914/#4712). Fix each selected producer with a public regression red on Svelte 5.57.3 and green on the fork, or exclude it in [[2e546434]] with retained evidence.
 
-Measurements stand in [[2e546434]]. Fix each producer with a public regression red on 5.57.3, or remove the report from the selection there with fork-base evidence.
+The input contract preserves native ancestor-listener order and stopPropagation, binding updates even when propagation stops, and microtask effects. The browser checkpoint difference in #16168 is excluded under those guarantees. Crossfade promises two transforming fades; #6668's full-opacity composite expectation is excluded, preserving the default. Blocks owns forms and its landed #17395 producer; this task integrates that proof. The remaining listener, prop and transition producers stay in this unit. A modern Safari pass does not settle the unavailable affected iOS 15/Safari 15/17 engines for #6914/#4712.
