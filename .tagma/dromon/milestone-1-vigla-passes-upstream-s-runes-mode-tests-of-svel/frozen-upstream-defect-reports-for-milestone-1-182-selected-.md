@@ -1,6 +1,6 @@
 ---
 id: 01a1863d-db39-787b-8f72-b03a2e546434
-title: "Frozen upstream defect reports for milestone 1: 183 selected from 291 open reports"
+title: "Frozen upstream defect reports for milestone 1: 182 selected from 291 open reports"
 ord: 9
 tags: ["research"]
 fields:
@@ -28,12 +28,12 @@ Read on **2026-10-29**. This freezes the issue selection under [[658ccea4]]. Lat
 | --- | ---: | ---: | ---: | ---: |
 | sveltejs/svelte | 51 | 51 | 37 | 14 |
 | sveltejs/kit | 230 | 223 | 140 | 90: 34 uncertain, 56 excluded |
-| sveltejs/vite-plugin-svelte | 10 | 6 | 6 | 4 inspector issues |
-| **Total** | **291** | **280** | **183 reports** | **108** |
+| sveltejs/vite-plugin-svelte | 10 | 6 | 5 | 5: 4 inspector issues, 1 fork-base non-reproduction |
+| **Total** | **291** | **280** | **182 reports** | **109** |
 
 Svelte's inventory is the union of 19 `bug`, 30 type Bug and 3 `triage: bug` reports, with one overlap. All 51 bodies were read and discussions inspected, with detailed comments read for selected and disputed cases. Kit's full bodies and discussions were read for 223 reports; seven enhanced-img reports were screened out by category. The six non-inspector plugin reports were read with their discussions; four inspector reports were screened out by title. Inventory queries used `gh issue list --state open --label bug --limit 1000` and `gh search issues --state open type:Bug --limit 1000`, with Svelte's `triage: bug` inventory added. Kit has no open `bug`-labelled report; plugin has no open type-Bug report. These are snapshot counts, not a claim to cover unclassified upstream reports.
 
-**No reproduction was executed.** Whether each selected report reproduces on Svelte **5.57.3**, Kit **3.1.0** or vite-plugin-svelte **7.3.1** remains unverified. Reported measurements and causes below are upstream evidence, not measurements made here. Some playground source was fetched without executing it to distinguish modes. Reproduction links were recorded, not comprehensively checked for continued availability. Shared-path applicability is a classification inference, not proof that an older reproduction still fails. Each fix must establish a public-contract test red on upstream and green on Vigla; green on upstream establishes no defect to fix. Report count is not a count of distinct root causes: Svelte #18993 and Kit #17383 share a reproduction, and other overlaps are noted. No selected report established a released fix after the fork base; proposed or unreleased fixes are described as such.
+**No reproduction was executed during the frozen reading.** Later fork-base measurements and selection removals are recorded below; remaining rows have no execution evidence here unless their resolution record supplies it. Reported measurements and causes below are upstream evidence, not measurements made here. Some playground source was fetched without executing it to distinguish modes. Reproduction links were recorded, not comprehensively checked for continued availability. Shared-path applicability is a classification inference, not proof that an older reproduction still fails. Each fix must establish a public-contract test red on upstream and green on Vigla; green on upstream establishes no defect to fix. Report count is not a count of distinct root causes: Svelte #18993 and Kit #17383 share a reproduction, and other overlaps are noted. No selected report established a released fix after the fork base; proposed or unreleased fixes are described as such.
 
 Selections concerning stores, remote functions or node/static adapters remain conditional on the existing decisions in [[658ccea4]]; this reading does not decide those questions. Other unresolved classifications are explicitly outside the frozen selection below.
 
@@ -111,7 +111,7 @@ The fork-base shared queue (`packages/svelte/src/store/shared/index.js:45–59`)
 | [#4389 — Strange behaviour with interrupted crossfade transitions](https://github.com/sveltejs/svelte/issues/4389) | mode-independent; L | [Playground](https://svelte.dev/repl/7b633681d5a849968771c4fe9b7e7536?version=3.18.1) | Open; later transition reversals lose continuity; latest contributor discusses WAAPI interruptibility, no fix. |
 | [#15627 — `{#if a.deep != null}` runs when `a.deep` is null if used as a transition parameter](https://github.com/sveltejs/svelte/issues/15627) | runes; B | [Maintainer's remaining-crash playground on 5.55.8](https://github.com/sveltejs/svelte/issues/15627#issuecomment-4487142714) | Open; maintainer supplies a remaining lazy outro-parameter crash after improvements; contributor proposes old teardown values and local tests, not a released fix. |
 
-## vite-plugin-svelte (6)
+## vite-plugin-svelte (5)
 
 | Issue and title | Area; mode; marker | Reproduction | Latest upstream state read |
 | --- | --- | --- | --- |
@@ -120,7 +120,6 @@ The fork-base shared queue (`packages/svelte/src/store/shared/index.js:45–59`)
 | [#1320 — Bug: HMR stops working on child component after updating parent](https://github.com/sveltejs/vite-plugin-svelte/issues/1320) | HMR; mode-independent; L | [Repository](https://github.com/mwojick/svelte-vite-hmr-bug) | Open; child-parent-child edits leave stale child output on plugin 7 and earlier combinations; no comments. |
 | [#1310 — Paths in `@import`-ed css files with `vitePreprocess` aren't rebased](https://github.com/sveltejs/vite-plugin-svelte/issues/1310) | preprocessing/assets; mode-independent; L | [StackBlitz](https://stackblitz.com/edit/vitejs-vite-da2rskgq?file=src%2FApp.svelte) | Open, triage; latest contributor attributes relative-path loss to Vite CSS preprocessing before Svelte receives content; no plugin fix. |
 | [#1254 — style tag in string literal causes incorrect `*{}` injection into template during dev](https://github.com/sveltejs/vite-plugin-svelte/issues/1254) | development CSS transform; runes; L | [StackBlitz](https://stackblitz.com/edit/vitejs-vite-o39yk1ja) | Open, has-workaround; literal style tags confuse injection; ordering/obfuscation workarounds given, no accepted fix. |
-| [#1066 — Snippet import breaks dev server on first run after npm install](https://github.com/sveltejs/vite-plugin-svelte/issues/1066) | dependency scanning; mode-independent snippets; L | [Repository](https://github.com/glupi-borna/svelte-snippet-bug-repro) | Open, has-workaround, upstream; Vite's snippet-unaware scanner and a language-sensitive re-export workaround identified; Vite #20511 filed, no released fix established. |
 
 ## Svelte and plugin exclusions and unresolved classification
 
@@ -141,7 +140,9 @@ These 14 Svelte reports are outside the frozen selection:
 
 Four plugin reports were screened out as inspector-only: [#1407](https://github.com/sveltejs/vite-plugin-svelte/issues/1407), [#1312](https://github.com/sveltejs/vite-plugin-svelte/issues/1312), [#1240](https://github.com/sveltejs/vite-plugin-svelte/issues/1240), [#997](https://github.com/sveltejs/vite-plugin-svelte/issues/997).
 
-Among selected reports, particular classification risks remain: Svelte #4313/#9961 have positive later-version reports without comprehensive/base resolution; #16942 may have a masked symptom; #7379 names an older hydration implementation; #18199/#16130 may concern CSS configuration contracts; #15104 may concern environment/third-party compilation routing; #4712/#16168 involve browser behavior; plugin #1349/#1310/#1066 may be owned by Vite/Rolldown. They retain upstream defect classification, reproduction and area eligibility, not a proved Vigla-owned fix.
+Plugin [#1066](https://github.com/sveltejs/vite-plugin-svelte/issues/1066) was removed after a non-failing fork-base reproduction on Darwin arm64, Node 26.8.1, vite-plugin-svelte 7.3.1, Svelte 5.57.3, Vite 8.2.2 and Rolldown 1.2.9 with runes and async forced. `App.svelte` and `Snippet.svelte` are byte-identical to reproduction repository revision `8a0c85aa3fe9b039aa4cfd4080b1e13794833407`; only the entry's import of the absent `app.css` was omitted. A fresh explicit public optimizer completed after its observer resolved `./Snippet.svelte`; a separate empty-cache automatic dev scan resolved the same module without errors and served HTTP 200. The retained experiment is `/Users/teunlao/.tagma-dev/scratch/01a19419-fa27-7204-bc06-cbc76894cb95/issue-1066/exact/run.mjs`, with its evidence in `../brief.md`. Outputs: `exact source optimizer completed, resolved: ./Snippet.svelte` and `exact source fresh dev scan completed without errors, resolved: ./Snippet.svelte ; HTTP status: 200`. This establishes no fork-base scan failure for the original sources, not a browser-execution result or an attribution to a particular intervening fix.
+
+Among selected reports, particular classification risks remain: Svelte #4313/#9961 have positive later-version reports without comprehensive/base resolution; #16942 may have a masked symptom; #7379 names an older hydration implementation; #18199/#16130 may concern CSS configuration contracts; #15104 may concern environment/third-party compilation routing; #4712/#16168 involve browser behavior; plugin #1349/#1310 may be owned by Vite/Rolldown. They retain upstream defect classification, reproduction and area eligibility, not a proved Vigla-owned fix.
 
 ## Scheduler traps already required by the milestone
 
