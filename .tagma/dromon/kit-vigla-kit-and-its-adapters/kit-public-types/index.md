@@ -53,6 +53,18 @@ fields:
       },
       {
         "at": "internal/"
+      },
+      {
+        "at": "fields.ts"
+      },
+      {
+        "at": "remote.ts"
+      },
+      {
+        "at": "remote-form.ts"
+      },
+      {
+        "at": "remote-functions.ts"
       }
     ],
     "id": "kit-types"
