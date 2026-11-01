@@ -89,6 +89,12 @@ fields:
       },
       {
         "at": "custom-element.ts"
+      },
+      {
+        "at": "media.ts",
+        "for": [
+          "33d45c4b"
+        ]
       }
     ],
     "id": "dom",
