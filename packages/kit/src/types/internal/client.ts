@@ -74,8 +74,6 @@ export interface ClientPayload {
 	env?: Record<string, unknown>;
 	version?: string;
 	version_poll_interval?: number;
-	service_worker?: string;
-	service_worker_options?: RegistrationOptions;
 	embedded?: boolean;
 }
 

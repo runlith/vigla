@@ -215,11 +215,6 @@ export async function renderDocument(
 		const prepare = eagerEnvironment
 			? `import(${escapeJson(`${paths.base}/${manifest.app_dir}/env.js`)}).then(({env})=>{${namespace}.env=env;})`
 			: 'Promise.resolve()';
-		if (options.serviceWorker)
-			properties.push(
-				`service_worker:${escapeJson(clientPath(options.serviceWorker.file, paths))}`,
-				`service_worker_options:${escapeJson(options.serviceWorker.options)}`
-			);
 		const hydrated = document.ssr
 			? `()=>({node_ids:${escapeJson(document.branch.map((branch) => branch.node.index))},data:${serialized.data},form:${inlineValue(document.form, server)},error:${inlineValue(document.error, server)},status:${document.status},params:${uneval(event.params)},route:${escapeJson(event.route)}${
 					client.routes?.find((route) => route.id === event.route.id)

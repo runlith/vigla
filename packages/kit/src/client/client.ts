@@ -190,11 +190,6 @@ export class Client {
 				onDestroy(listen(this));
 				this.state.poll();
 			});
-			if (payload.service_worker && 'serviceWorker' in navigator) {
-				void navigator.serviceWorker
-					.register(payload.service_worker, { ...payload.service_worker_options, type: 'module' })
-					.catch(console.error);
-			}
 			this.ready.resolve();
 		} catch (error) {
 			closeInput();

@@ -1321,7 +1321,7 @@ it('embeds service worker registration and its options in CSP-authorized documen
 	app.nodes[2] = async () => node(2, { ssr: false });
 	app.routes = [route('/', null, true)];
 	const config = options();
-	app.client.inline = { script: '__sveltekit_contract.app={init(){},start(){}}' };
+	app.client.inline = { script: '__sveltekit_contract.app={init(){},start(){}}', style: undefined };
 	config.serviceWorker = { file: 'service-worker.js', options: { updateViaCache: 'imports' } };
 	config.csp = { mode: 'hash', directives: { 'default-src': ['self'] } };
 	const server = await start(app, config);
