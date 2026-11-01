@@ -14,7 +14,7 @@
     "kit-async/src/routes/+page.svelte": "`$lib` imports replaced by the `#lib` subpath import Kit 3.1 uses",
     "kit-async/svelte.config.js": "removed; Kit 3.1 refuses a `svelte.config.js` and takes its options through `sveltekit()`",
     "kit-async/vite.config.js": "the Kit 2 `svelte.config.js` options passed to `sveltekit()`, as Kit 3.1 requires",
-    "kit-node/__tests__/kit.spec.ts": "resolved-config expectations follow Kit 3.1.0 and the installed frontend's public exports and dependencies rather than VERSION; the edit of Counter.svelte's initial count follows its `$state` declaration",
+    "kit-node/__tests__/kit.spec.ts": "resolved-config expectations follow Kit 3.1.0 and installed public package metadata rather than VERSION; a plugin depending on the core keeps it external to optimization; the edit of Counter.svelte's initial count follows its `$state` declaration",
     "kit-node/jsconfig.json": "extends `$app/tsconfig`, as Kit 3.1 requires",
     "kit-node/package.json": "declares the `#lib` subpath import that replaces Kit 2’s `$lib` in Kit 3.1",
     "kit-node/src/lib/Child.svelte": "`export let` replaced by `$props()`",
@@ -168,7 +168,7 @@
     },
     "kit-node/kit.spec.ts > kit-node > resolved config > should have generated values": {
       "status": "converted",
-      "reason": "resolved-config expectations follow Kit 3.1.0 and the installed frontend's public exports and dependencies rather than VERSION"
+      "reason": "resolved-config expectations follow Kit 3.1.0 and installed public package metadata rather than VERSION; a plugin depending on the core keeps it external to optimization"
     },
     "package-json-svelte-field/package-json-svelte-field.spec.ts > should render component imported via svelte field in package.json": "contract",
     "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works": {

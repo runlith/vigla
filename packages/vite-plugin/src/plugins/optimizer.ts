@@ -1,6 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Environment, Plugin, ResolvedConfig, Rolldown, UserConfig } from 'vite';
+import { pathToFileURL } from 'node:url';
+import {
+	createIdResolver,
+	type Environment,
+	type Plugin,
+	type ResolvedConfig,
+	type Rolldown,
+	type UserConfig
+} from 'vite';
 import { isDepExcluded } from 'vitefu';
 import type { PluginAPI } from '../api.ts';
 import type { CompileError, CompileOptions } from '../compiler.ts';
@@ -164,17 +172,53 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 		name: 'vite-plugin-svelte:setup-optimizer',
 		apply: 'serve',
 		configEnvironment(name, config) {
-			if (api.frontEnds.length === 0) return;
 			const consumer = config.consumer ?? (name === 'client' ? 'client' : 'server');
-			const optimizeDeps: UserConfig['optimizeDeps'] = {
-				extensions: [...new Set(api.frontEnds.flatMap((frontEnd) => frontEnd.components))],
-				rolldownOptions: {
-					plugins: [
-						optimizerPlugin(api, name, consumer, true),
-						optimizerPlugin(api, name, consumer, false)
-					]
+			let resolve: ReturnType<typeof createIdResolver> | undefined;
+			let legacy: ReturnType<ResolvedConfig['createResolver']> | undefined;
+			const plugins: Rolldown.Plugin[] = [
+				{
+					name: 'vite-plugin-svelte:shared-core',
+					resolveId: {
+						order: 'pre',
+						filter: { id: /^vigla(?:\/[^?#]+)?$/ },
+						async handler(source, importer) {
+							const environment = api.options.server?.environments[name];
+							const resolved = environment
+								? await (resolve ??= createIdResolver(viteConfig, { scan: true }))(
+										environment,
+										source,
+										importer
+									)
+								: await (legacy ??= viteConfig.createResolver({ scan: true }))(
+										source,
+										importer,
+										false,
+										consumer === 'server'
+									);
+							if (resolved === undefined)
+								return this.error(
+									`Cannot resolve core runtime ${source} from ${importer ?? viteConfig.root}`
+								);
+							return {
+								id: resolved.startsWith('file://') ? resolved : pathToFileURL(resolved).href,
+								external: 'absolute'
+							};
+						}
+					}
 				}
+			];
+			const optimizeDeps: UserConfig['optimizeDeps'] = {
+				exclude: ['vigla'],
+				rolldownOptions: { plugins }
 			};
+			if (api.frontEnds.length === 0) return { optimizeDeps };
+			optimizeDeps.extensions = [
+				...new Set(api.frontEnds.flatMap((frontEnd) => frontEnd.components))
+			];
+			plugins.push(
+				optimizerPlugin(api, name, consumer, true),
+				optimizerPlugin(api, name, consumer, false)
+			);
 			if (consumer === 'server') {
 				const exclude = config.optimizeDeps?.exclude ?? [];
 				optimizeDeps.include = api.frontEnds

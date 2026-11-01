@@ -22,7 +22,9 @@ const { defaultClientConditions, defaultClientMainFields } = vite;
 import { describe, expect, it } from 'vitest';
 import { createRequire } from 'node:module';
 
-const sveltePackage = createRequire(import.meta.url)('svelte/package.json');
+const require = createRequire(import.meta.url);
+const sveltePackage = require('svelte/package.json');
+const pluginPackage = require('@sveltejs/vite-plugin-svelte/package.json');
 const runtimeImports = Object.entries(sveltePackage.exports)
 	.filter(([name, entry]) =>
 		name !== './package.json' &&
@@ -328,6 +330,7 @@ describe('kit-node', () => {
 					`ssr.noExternal in ${filename}`
 				);
 				const expectedExcludes = ['@sveltejs/kit', '$app', '$env'];
+				if (isServe && pluginPackage.dependencies?.vigla) expectedExcludes.push('vigla');
 				if (!isServe) {
 					expectedExcludes.push(
 						'e2e-test-dep-svelte-nested-workspace-devdep',

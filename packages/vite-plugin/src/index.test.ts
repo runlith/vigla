@@ -1,7 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { createServer, optimizeDeps } from 'vite';
+import { dirname, join, relative } from 'node:path';
+import { findDepPkgJsonPath } from 'vitefu';
+import { createServer, normalizePath, optimizeDeps } from 'vite';
 import { expect, onTestFinished, test } from 'vitest';
 import { svelte, type PluginAPI } from './index.ts';
 
@@ -126,6 +128,80 @@ test('leaves ordinary JavaScript and dependencies alone when no front end is ins
 		await optimizeDeps(server.config, true);
 		const output = await server.ssrLoadModule('/entry.js');
 		expect(output.answer).toBe(42);
+	} finally {
+		await server.close();
+	}
+});
+
+test('frontend prebundles share the native core owner', async () => {
+	interface Runtime {
+		readOwner: typeof import('vigla').getOwner;
+	}
+	const require = createRequire(import.meta.url);
+	const core =
+		require('vigla/internal/index-client') as typeof import('vigla/internal/index-client');
+	const manifest = await findDepPkgJsonPath('vigla', import.meta.dirname);
+	if (manifest === undefined) throw new Error('core package not found');
+	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
+	onTestFinished(() => rm(root, { recursive: true, force: true }));
+	const frontend = join(root, 'node_modules', 'owner-frontend');
+	await mkdir(join(frontend, 'node_modules'), { recursive: true });
+	await symlink(dirname(manifest), join(frontend, 'node_modules', 'vigla'), 'dir');
+	await writeFile(
+		join(root, 'package.json'),
+		JSON.stringify({ type: 'module', dependencies: { 'owner-frontend': '1.0.0' } })
+	);
+	await writeFile(
+		join(frontend, 'package.json'),
+		JSON.stringify({
+			name: 'owner-frontend',
+			version: '1.0.0',
+			type: 'module',
+			dependencies: { vigla: '*' },
+			exports: { '.': './index.js', './other': './other.js', './compiler': './compiler.js' },
+			vigla: {
+				frontEnd: {
+					compiler: './compiler',
+					components: ['.owner'],
+					modules: { infixes: ['.owner.'], extensions: ['.js'] },
+					condition: 'owner',
+					config: 'owner.config'
+				}
+			}
+		})
+	);
+	await writeFile(join(frontend, 'index.js'), 'export { readOwner } from "./shared.js";');
+	await writeFile(join(frontend, 'other.js'), 'export { readOwner } from "./shared.js";');
+	await writeFile(
+		join(frontend, 'shared.js'),
+		'import { getOwner } from "vigla/internal/index-client"; export function readOwner() { return getOwner(); }'
+	);
+	await writeFile(
+		join(frontend, 'compiler.js'),
+		'export function compile(source) { return { js: { code: "export default null", map: null }, css: null, warnings: [] }; } export { compile as compileModule }; export async function preprocess(source) { return { code: source }; }'
+	);
+	const server = await createServer({
+		root,
+		configFile: false,
+		logLevel: 'silent',
+		plugins: svelte({ configFile: false }),
+		optimizeDeps: { noDiscovery: true },
+		server: { middlewareMode: true, hmr: false, watch: null }
+	});
+	try {
+		const metadata = await optimizeDeps(server.config, true);
+		for (const chunk of Object.values(metadata.chunks)) {
+			await server.transformRequest(`/${normalizePath(relative(root, chunk.file))}`);
+		}
+		const runtimes = ['owner-frontend', 'owner-frontend/other'].map(
+			(name) => require(metadata.optimized[name]!.file) as Runtime
+		);
+		const owner = core.root();
+		try {
+			for (const runtime of runtimes) expect(owner.run(() => runtime.readOwner())).toBe(owner);
+		} finally {
+			owner.dispose();
+		}
 	} finally {
 		await server.close();
 	}
