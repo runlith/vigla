@@ -41,10 +41,10 @@ export function render(
 
 export function component(
 	node: ChildNode,
-	reference: () => Mountable | null | undefined,
+	reference: () => Mountable | false | 0 | '' | null | undefined,
 	mount: (anchor: ChildNode, component: Mountable) => void
 ): void {
-	swap(node, reference, (fn) => (anchor) => mount(anchor, fn), true);
+	swap(node, reference, (fn) => (fn ? (anchor) => mount(anchor, fn) : null), true);
 }
 
 type Props = Record<PropertyKey, unknown>;

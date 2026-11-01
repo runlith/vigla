@@ -1,5 +1,6 @@
 import { tick } from '../reactivity/batch.ts';
 import { effect, teardown, template } from '../reactivity/effects.ts';
+import { original } from '../reactivity/proxy.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
 import { hydrating } from './hydration.ts';
 
@@ -312,6 +313,10 @@ export function bindSize(element: Element, name: string, set: Set<unknown>): voi
 	});
 }
 
+function matches(value: unknown, reference: unknown): boolean {
+	return value === reference || original(value) === reference;
+}
+
 export function bindThis<T>(
 	value: T,
 	update: (value: T | null, ...parts: unknown[]) => void,
@@ -325,13 +330,13 @@ export function bindThis<T>(
 			const next = parts?.() ?? [];
 			current = next;
 			untrack(() => {
-				if (read(...next) === value) return;
+				if (matches(read(...next), value)) return;
 				update(value, ...next);
-				if (previous !== null && read(...previous) === value) update(null, ...previous);
+				if (previous !== null && matches(read(...previous), value)) update(null, ...previous);
 			});
 		});
 		return () => {
-			if (current !== null && read(...current) === value) update(null, ...current);
+			if (current !== null && matches(read(...current), value)) update(null, ...current);
 		};
 	});
 	return value;
