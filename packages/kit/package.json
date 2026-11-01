@@ -99,6 +99,7 @@
 		"cookie": "^2.0.1",
 		"devalue": "^5.9.4",
 		"esm-env": "^1.2.2",
+		"magic-string": "^0.30.21",
 		"mrmime": "^2.0.1",
 		"parse5": "^8.0.1",
 		"vigla": "workspace:*"
@@ -108,6 +109,7 @@
 	},
 	"devDependencies": {
 		"@types/estree": "^1.0.9",
+		"@types/node": "22.20.1",
 		"vite": "8.2.2",
 		"vitest": "5.0.1"
 	}
