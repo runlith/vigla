@@ -64,21 +64,21 @@ export function cell<T>(value: T): Cell<T> {
 export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolean): Derived<T> {
 	const created: Derived<T> = {
 		kind: DERIVED,
+		status: DIRTY,
+		reactions: null,
+		deps: null,
+		wv: 0,
+		rv: 0,
+		v: undefined as T,
 		fn,
 		owner,
 		effects: null,
 		frozen: null,
 		failure: null,
 		computed: false,
-		v: undefined as T,
-		wv: 0,
-		reactions: null,
 		logged: 0,
 		slot: 0,
-		read: 0,
-		status: DIRTY,
-		deps: null,
-		rv: 0
+		read: 0
 	};
 	if (equals !== undefined) created.equals = equals;
 	return created;

@@ -49,6 +49,10 @@ export function show(effect: Effect): void {
 function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effect | null): Effect {
 	const effect: Effect = {
 		kind,
+		status: DIRTY,
+		forked: 0,
+		deps: null,
+		rv: 0,
 		fn,
 		teardown: null,
 		parent,
@@ -61,10 +65,6 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		boundary: parent === null ? null : parent.boundary,
 		context: parent === null ? null : parent.context,
 		order: ++created,
-		forked: 0,
-		status: DIRTY,
-		deps: null,
-		rv: 0,
 		running: false,
 		destroyed: false,
 		inert: false,
