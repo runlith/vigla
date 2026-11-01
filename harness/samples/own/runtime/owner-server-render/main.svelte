@@ -6,6 +6,8 @@
 	probe.owner = getOwner();
 	probe.signal = getAbortSignal();
 	const value = hydratable('greeting', () => 'hello');
+	await Promise.resolve();
+	probe.finished?.();
 </script>
 
 <p>{getContext('scope')} {value}</p>

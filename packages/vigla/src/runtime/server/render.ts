@@ -253,7 +253,7 @@ export function render<P extends Props>(
 		for (const { hash, code } of global.styles) head += `<style id="${hash}">${code}</style>`;
 		return { head, body: content.body, hashes: { script: script?.hash ? [script.hash] : [] } };
 	};
-	if (!out.asynchronous && data.size === 0) {
+	if (!out.asynchronous && !data.needsSnapshot) {
 		const rendered = result();
 		destroy(scope);
 		return {

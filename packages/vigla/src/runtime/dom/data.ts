@@ -59,6 +59,7 @@ function serverData(view: Window, format: Format): Map<string, unknown> | undefi
 export interface HydrationOptions {
 	readonly format?: Format;
 	readonly target?: ParentNode;
+	readonly beforeSnapshot?: () => void;
 }
 
 export function openHydration(options: HydrationOptions = {}): () => void {

@@ -4,6 +4,7 @@ import { failure, warn } from '../../shared/diagnostics.ts';
 import { escapeAttribute } from '../../shared/escape.ts';
 import type { Format } from '../../shared/format.ts';
 import { hydrationData, openStore } from './context.ts';
+import { getOwner } from '../reactivity/owners.ts';
 
 export interface Csp {
 	readonly nonce?: string;
@@ -131,6 +132,15 @@ class Entry {
 export class Data {
 	readonly #entries = new Map<string, Entry>();
 	readonly #comparisons: [Entry, Entry][] = [];
+	readonly #beforeSnapshot?: () => void;
+
+	constructor(beforeSnapshot?: () => void) {
+		this.#beforeSnapshot = beforeSnapshot;
+	}
+
+	get needsSnapshot(): boolean {
+		return this.size > 0 || this.#beforeSnapshot !== undefined;
+	}
 
 	get size(): number {
 		return this.#entries.size;
@@ -148,6 +158,7 @@ export class Data {
 	}
 
 	async script(format: Format, csp: Csp | undefined): Promise<Script> {
+		this.#beforeSnapshot?.();
 		if (this.size === 0) return { html: '', hash: null };
 		if (DEV)
 			for (const [key, entry] of this.#entries) {
@@ -216,9 +227,12 @@ export function hydrated<T>(key: string, fn: () => T): T {
 export interface HydrationOptions {
 	readonly format?: Format;
 	readonly target?: ParentNode;
+	readonly beforeSnapshot?: () => void;
 }
 
-export function openHydration(_options?: HydrationOptions): () => void {
-	openStore(new Data());
+export function openHydration(options: HydrationOptions = {}): () => void {
+	const owner = getOwner();
+	const publish = options.beforeSnapshot;
+	openStore(new Data(owner && publish ? () => owner.run(publish) : undefined));
 	return () => {};
 }
