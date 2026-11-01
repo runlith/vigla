@@ -25,7 +25,7 @@
 	onMount(show_modal);
 </script>
 
-<svelte:window on:popstate={show_modal} />
+<svelte:window onpopstate={show_modal} />
 
 <h1>{modal?.title ?? ''}</h1>
 <p>Loaded {data.calls} times.</p>

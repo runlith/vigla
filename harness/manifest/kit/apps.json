@@ -158,6 +158,7 @@
     "basics/src/routes/routing/matched/+layout.svelte": "`<slot>` replaced by `children`",
     "basics/src/routes/routing/missing-href/+page.svelte": "dash-case `svelte-ignore` codes replaced by their underscore forms, which runes mode requires; legacy-mode reactive `let` replaced by `$state`",
     "basics/src/routes/routing/preloading/error/+page.svelte": "legacy-mode reactive `let` replaced by `$state`",
+    "basics/src/routes/routing/preloading/hash-route/+page.svelte": "`on:popstate` on `<svelte:window>` replaced by the `onpopstate` event attribute",
     "basics/src/routes/routing/preloading/preloaded/+page.svelte": "`export let` replaced by `$props()`",
     "basics/src/routes/routing/rest/complex/prefix-[...parts]/+page.svelte": "`export let` replaced by `$props()`",
     "basics/src/routes/routing/rest/non-greedy/+layout.svelte": "`<slot>` replaced by `children`",
