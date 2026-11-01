@@ -65,3 +65,21 @@ test('snapshots and scroll survive a history-entry session-storage restore', () 
 	expect(value).toBe('draft');
 	expect(after.position(4)).toEqual({ x: 7, y: 8 });
 });
+
+test('a captured void snapshot still invokes its restore callback', () => {
+	let restored = 0;
+	const components = [
+		{
+			snapshot: {
+				capture: () => {},
+				restore: () => {
+					restored++;
+				}
+			}
+		}
+	];
+	const restoration = new Restoration('void', false);
+	restoration.capture(1, components);
+	restoration.restore(1, components);
+	expect(restored).toBe(1);
+});

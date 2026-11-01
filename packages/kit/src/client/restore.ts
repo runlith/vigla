@@ -67,7 +67,7 @@ export class Restoration {
 
 	restore(index: number, components: ComponentInstance[]): void {
 		this.#entries[index]?.snapshots.forEach((value, depth) => {
-			if (value !== undefined) components[depth]?.snapshot?.restore(value);
+			components[depth]?.snapshot?.restore(value);
 		});
 		const saved = this.#entries[index]?.registered;
 		for (const [id, registration] of this.#registrations) {

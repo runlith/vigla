@@ -108,7 +108,7 @@ export class FetchCache {
 						url: requested,
 						body: value,
 						init: response,
-						expires: ttl * 1000
+						expires: performance.now() + ttl * 1000
 					});
 				return new Response(value, response);
 			}

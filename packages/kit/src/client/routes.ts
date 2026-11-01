@@ -114,9 +114,13 @@ export class Routes {
 		if (this.#app.hooks.reroute) {
 			let rerouted = this.#rerouted.get(url.href);
 			if (!rerouted) {
-				rerouted = Promise.resolve()
-					.then(() => this.#app.hooks.reroute!({ url: new URL(url), fetch }))
-					.then((result) => result ?? path);
+				try {
+					rerouted = Promise.resolve(this.#app.hooks.reroute({ url: new URL(url), fetch })).then(
+						(result) => result ?? path
+					);
+				} catch {
+					return null;
+				}
 				this.#rerouted.set(url.href, rerouted);
 				rerouted.catch(() => this.#rerouted.delete(url.href));
 			}

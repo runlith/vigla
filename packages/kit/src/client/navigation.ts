@@ -43,7 +43,8 @@ export function refreshAll(): Promise<void> {
 	return client('refreshAll').invalidate(undefined, true);
 }
 export function preloadCode(id: string): Promise<void> {
-	return client('preloadCode').routes.preload(id);
+	const runtime = client('preloadCode');
+	return runtime.owner.run(() => runtime.routes.preload(id));
 }
 export function preloadData(
 	url: string | URL

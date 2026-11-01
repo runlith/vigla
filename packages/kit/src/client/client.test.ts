@@ -730,3 +730,17 @@ test('native fragment entries update page.url and traverse without navigation li
 	await vi.waitFor(() => expect(page.url.hash).toBe(''));
 	expect(events).toEqual(['enter']);
 });
+
+test('reroute runs in the tab context and a thrown reroute yields no match', async () => {
+	const owners: Array<Owner | null> = [];
+	const app = fixture(() => ({ value: 'page' }));
+	app.hooks.reroute = () => {
+		owners.push(getOwner());
+	};
+	await start(app, document.querySelector('main')!);
+	expect(owners).toEqual([owner]);
+	app.hooks.reroute = () => {
+		throw new Error('failed reroute');
+	};
+	await expect(preloadData('/missing')).rejects.toThrow('preload_url_outside_app');
+});
