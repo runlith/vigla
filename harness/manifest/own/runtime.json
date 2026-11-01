@@ -22,6 +22,7 @@
 		},
 		"async-select-isolation": "contract",
 		"awaited-element-declarators": "contract",
+		"binding-native-input-order": "contract",
 		"contenteditable-falsy-ssr": "contract",
 		"custom-element-async-props": "contract",
 		"custom-element-hmr": "contract",
@@ -92,9 +93,18 @@
 			"status": "contract",
 			"reason": "Scheduler invariant 5: green on upstream 5.57.3"
 		},
+		"issue-15627-outro-derived": "contract",
 		"issue-17220-module-spread": {
 			"status": "difference",
 			"reason": "Svelte #17220: spreading a real module namespace before an explicit prop throws Cannot redefine property: foo on upstream 5.57.3 in sync and async SSR; Vigla renders the explicit value"
+		},
+		"issue-17379-static-listener": {
+			"status": "difference",
+			"reason": "Svelte #17379: upstream 5.57.3 still invokes static focus and click handlers after the input is removed and retained"
+		},
+		"issue-4389-crossfade-reversal": {
+			"status": "difference",
+			"reason": "Svelte #4389: repeated interrupted paired crossfades invoke the unmatched fallback on upstream 5.57.3"
 		},
 		"key-undefined-outro": "contract",
 		"leading-nested-block": "contract",

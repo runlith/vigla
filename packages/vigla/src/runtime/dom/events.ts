@@ -1,4 +1,4 @@
-import { isPassive, namespaces } from '../../shared/html.ts';
+import { isPassive } from '../../shared/html.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
 
@@ -62,19 +62,23 @@ export function event(
 	capture = false,
 	passive?: boolean
 ): void {
-	const remove = listen(target, type, handler, capture, passive);
-	const element = target as Element;
-	const media =
-		element.namespaceURI === namespaces.html &&
-		(element.localName === 'video' || element.localName === 'audio');
-	if (target === window || target === document || target === document.body || media) {
-		teardown(remove);
-	}
+	teardown(listen(target, type, handler, capture, passive));
 }
 
-export function delegated(element: EventTarget, type: string, handler: EventListener | null): void {
+export function delegated(
+	element: EventTarget,
+	type: string,
+	handler: EventListener | null,
+	owned = false
+): void {
 	const holder = element as EventTarget & Holder;
-	(holder[handlers] ??= {})[type] = handler;
+	const events = (holder[handlers] ??= {});
+	events[type] = handler;
+	if (owned) {
+		teardown(() => {
+			if (events[type] === handler) delete events[type];
+		});
+	}
 }
 
 const registered = new Set<string>();

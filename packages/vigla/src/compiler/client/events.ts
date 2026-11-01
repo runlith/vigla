@@ -64,7 +64,9 @@ export function event(
 	const fn = named(context, type, handler(context, expression));
 	if (!capture && isDelegated(type)) {
 		context.events.add(type);
-		return b.statement(runtime(context, 'delegated', element, b.literal(type), fn));
+		return b.statement(
+			runtime(context, 'delegated', element, b.literal(type), fn, b.literal(true))
+		);
 	}
 	const args: ES.Expression[] = [element, b.literal(type), fn];
 	if (capture) args.push(b.literal(true));
