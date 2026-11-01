@@ -236,7 +236,15 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					const operator = current.operator.slice(0, -1) as ES.BinaryOperator;
 					return b.call(id, b.binary(operator, b.call(id), right));
 				}
-				if (derived(binding) || binding?.kind === 'item' || binding?.kind === 'index') {
+				if (derived(binding) && current.type === 'UpdateExpression')
+					return runtime(
+						context,
+						'updateDerived',
+						target as ES.Identifier,
+						b.literal(current.operator === '++' ? 1 : -1),
+						b.literal(current.prefix)
+					);
+				if (binding?.kind === 'item' || binding?.kind === 'index') {
 					throw unsupported(spanOf(current), `Assigning to a ${binding?.kind ?? ''} binding`);
 				}
 				return undefined;

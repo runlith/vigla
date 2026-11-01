@@ -25,5 +25,6 @@ export {
 	Output,
 	propsId,
 	snapshot,
-	spreadProps
+	spreadProps,
+	updateDerived
 } from '../../runtime/server/render.ts';

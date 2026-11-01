@@ -453,7 +453,9 @@ export function propsId(out: Output): string {
 	return id;
 }
 
-export function derived<T>(fn: () => T): (value?: T) => T {
+export type Derived<T> = (value?: T) => T;
+
+export function derived<T>(fn: () => T): Derived<T> {
 	const memoize = isRendering();
 	let computed = false;
 	let value = undefined as T;
@@ -472,7 +474,18 @@ export function derived<T>(fn: () => T): (value?: T) => T {
 	};
 }
 
-export function held<T>(value: T): (next?: T) => T {
+export function updateDerived<T extends number | bigint>(
+	target: Derived<T>,
+	delta: 1 | -1 = 1,
+	prefix = false
+): number | bigint {
+	let value = target();
+	const previous = delta === 1 ? value++ : value--;
+	target(value);
+	return prefix ? value : previous;
+}
+
+export function held<T>(value: T): Derived<T> {
 	return derived(() => value);
 }
 

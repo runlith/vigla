@@ -238,18 +238,33 @@ export function boundary(
 	const out = failed === null ? context.out : b.id(context.names.unique('$$out'));
 	const inner: TemplateContext = { ...context, out };
 	const body: ES.Statement[] = [];
-	if (pending !== null) {
-		body.push(
-			b.statement(b.call(b.member(out, 'push'), b.literal(openElse))),
-			b.statement(b.call(pending, out)),
-			b.statement(b.call(b.member(out, 'push'), b.literal(close)))
-		);
+	const showing = (handler: ES.Expression): ES.Statement[] => [
+		b.statement(b.call(b.member(out, 'push'), b.literal(openElse))),
+		b.statement(b.call(handler, out)),
+		b.statement(b.call(b.member(out, 'push'), b.literal(close)))
+	];
+	if (
+		pending !== null &&
+		nodes.some((child) => child.kind === 'snippet' && child.name.name === 'pending')
+	) {
+		body.push(...showing(pending));
 	} else {
+		const content: ES.Statement[] = [];
 		const children = new Buffer();
 		children.text(open);
-		fragmentCode(inner, regular, body, children, true);
+		fragmentCode(inner, regular, content, children, true);
 		children.text(close);
-		children.flush(inner, body);
+		children.flush(inner, content);
+		if (pending === null) body.push(...content);
+		else {
+			const handler = b.id(context.names.unique('pending'));
+			body.push(b.constant(handler.name, pending), {
+				type: 'IfStatement',
+				test: handler,
+				consequent: { type: 'BlockStatement', body: showing(handler) },
+				alternate: { type: 'BlockStatement', body: content }
+			});
+		}
 	}
 	if (failed === null) {
 		statements.push({ type: 'BlockStatement', body: [...declarations, ...body] });
