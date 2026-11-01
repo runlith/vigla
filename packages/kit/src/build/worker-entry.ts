@@ -2,7 +2,7 @@ import { enableVerboseErrors } from '../shared/diagnostics.ts';
 import { analyse } from './analysis.ts';
 import type { PolicyIssue, PolicyReply, WorkerJob, WorkerMessage } from './jobs.ts';
 import { prerender, renderShell } from './prerender.ts';
-import { loadRuntime } from './runtime.ts';
+import { loadEmulator, loadRuntime } from './runtime.ts';
 
 enableVerboseErrors();
 let sequence = 0;
@@ -22,7 +22,9 @@ process.on('disconnect', () => process.exit(1));
 process.once('message', async (job: WorkerJob) => {
 	let message: WorkerMessage;
 	try {
+		const emulator = job.kind === 'prerender' ? await loadEmulator(job) : undefined;
 		const runtime = await loadRuntime(job, job.kind !== 'analyse');
+		runtime.emulator = emulator;
 		if (job.kind === 'analyse') {
 			const value = await analyse(runtime.manifest, job.hash);
 			value.environment = runtime.environment.rendered;

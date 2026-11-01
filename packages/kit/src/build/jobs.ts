@@ -23,6 +23,9 @@ export interface AnalysisJob extends WorkerPlatform {
 }
 export interface PrerenderJob extends WorkerPlatform {
 	kind: 'prerender';
+	root: string;
+	mode: string;
+	configFile?: string;
 	analysis: Analysis;
 	base: string;
 	hash: boolean;

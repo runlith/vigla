@@ -1,5 +1,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { createRequire } from 'node:module';
+import type { Emulator, ValidatedConfig } from '../types/builder.ts';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createReadableStream } from '../node/index.ts';
@@ -12,7 +14,7 @@ import type {
 	ServerModule,
 	ServerOptions
 } from '../types/internal/server.ts';
-import type { WorkerPlatform } from './jobs.ts';
+import type { PrerenderJob, WorkerPlatform } from './jobs.ts';
 
 export interface Runtime {
 	server: ServerInstance;
@@ -20,6 +22,7 @@ export interface Runtime {
 	options: ServerOptions;
 	environment: Environment;
 	read: Read;
+	emulator?: Emulator;
 }
 
 export function reader(directory: string): Read {
@@ -33,6 +36,21 @@ export function reader(directory: string): Read {
 			return null;
 		return createReadableStream(absolute);
 	};
+}
+
+export async function loadEmulator(job: PrerenderJob): Promise<Emulator | undefined> {
+	if (!job.configFile) return;
+	const require = createRequire(path.join(job.root, 'package.json'));
+	const api: typeof import('vite') = await import(pathToFileURL(require.resolve('vite')).href);
+	const config = await api.resolveConfig(
+		{ root: job.root, configFile: job.configFile },
+		'build',
+		job.mode
+	);
+	const options: ValidatedConfig | undefined = config.plugins.find(
+		(plugin) => plugin.name === 'kit:setup'
+	)?.api.options;
+	return options?.adapter?.emulate?.();
 }
 
 export async function loadRuntime(job: WorkerPlatform, prerendering: boolean): Promise<Runtime> {

@@ -104,11 +104,17 @@ export function analyseBuild(context: BuildContext): Promise<Analysis> {
 export function renderFallback(context: BuildContext): Promise<string> {
 	return run({ ...platform(context), kind: 'fallback' }, context);
 }
-export function prerenderBuild(context: BuildContext): Promise<PrerenderResult> {
+export function prerenderBuild(
+	context: BuildContext,
+	configFile?: string
+): Promise<PrerenderResult> {
 	return run(
 		{
 			...platform(context),
 			kind: 'prerender',
+			root: context.root,
+			mode: context.mode,
+			configFile,
 			analysis: context.analysis,
 			base: context.config.paths.base,
 			hash: context.config.router.type === 'hash',

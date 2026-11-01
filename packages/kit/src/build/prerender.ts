@@ -2,6 +2,7 @@ import path from 'node:path';
 import { resolveRoute } from '../shared/routing/index.ts';
 import { addDataSuffix } from '../shared/pathname.ts';
 import { escapeHtml } from '../shared/escape.ts';
+import { encodeArgument } from '../shared/remote.ts';
 import type { PrerenderDependency } from '../types/internal/server.ts';
 import { crawl } from './crawl.ts';
 import { walk, write } from './files.ts';
@@ -47,6 +48,22 @@ export async function prerender(
 		result.prerendered.paths.push(job.base + '/');
 		return result;
 	}
+	const remotePrefix = `/${runtime.manifest.app_path}/remote/`;
+	const remoteEntries: string[] = [];
+	const { transport } = await runtime.options.getHooks();
+	for (const load of Object.values(runtime.manifest.remotes)) {
+		const { default: functions } = await load();
+		for (const value of Object.values(functions)) {
+			const internals = value.__;
+			if (internals.type !== 'prerender') continue;
+			const inputs = (await internals.inputs?.()) ?? [];
+			if (internals.has_arg)
+				for (const input of inputs)
+					remoteEntries.push(remotePrefix + internals.id + '/' + encodeArgument(input, transport));
+			else remoteEntries.push(remotePrefix + internals.id);
+		}
+	}
+	const remoteResponses = new Map<string, Promise<any>>();
 	const queue = new Queue(job.concurrency);
 	const known = new Set(walk(path.join(job.directory, 'client')));
 	known.add(runtime.manifest.app_dir + '/env.js');
@@ -118,7 +135,11 @@ export async function prerender(
 		const type = response.headers.get('content-type') ?? 'application/octet-stream';
 		const html = type.split(';')[0] === 'text/html';
 		const file = filename(pathname, html);
-		const category = html ? 'pages' : pathname.endsWith('/__data.json') ? 'data' : 'dependencies';
+		const category = html
+			? 'pages'
+			: pathname.startsWith(remotePrefix) || pathname.endsWith('/__data.json')
+				? 'data'
+				: 'dependencies';
 		const destination = path.resolve(target, category, file);
 		if (!destination.startsWith(path.resolve(target, category) + path.sep))
 			throw new Error(`Prerender path escapes its output: ${pathname}`);
@@ -158,7 +179,8 @@ export async function prerender(
 			getClientAddress() {
 				e.prerender_client_address();
 			},
-			prerendering: { fallback: false, insideReroute: false, dependencies },
+			prerendering: { fallback: false, insideReroute: false, dependencies, remoteResponses },
+			emulator: runtime.emulator,
 			read: reader(job.assets)
 		});
 		await save(url, response, new Uint8Array(await response.arrayBuffer()), referrer, expected);
@@ -234,6 +256,7 @@ export async function prerender(
 	for (const [id, metadata] of job.analysis.routes)
 		if (metadata.prerender)
 			for (const entry of metadata.entries ?? []) enqueue(job.base + entry, null, id);
+	for (const entry of remoteEntries) enqueue(entry, null);
 	await queue.done();
 	for (const [pathname, targets] of fragments) {
 		const found = ids.get(pathname);
