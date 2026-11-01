@@ -27,12 +27,15 @@ import {
 	afterNavigate,
 	onNavigate,
 	snapshot,
-	refreshAll
+	refreshAll,
+	pushState,
+	replaceState
 } from '../entries/app/navigation/client.ts';
 import { page, navigating, updated } from '../entries/app/state/client.ts';
 import { applyAction, deserialize, enhance } from '../entries/app/forms/client.ts';
 import { resolve, asset } from '../entries/app/paths/client.ts';
 import { init } from './payload.ts';
+import { redirect } from '../entries/index.ts';
 
 let owner: Owner;
 const key = {};
@@ -80,9 +83,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	vi.unstubAllGlobals();
 	owner?.dispose();
 	vi.restoreAllMocks();
-	vi.unstubAllGlobals();
 	vi.useRealTimers();
 });
 
@@ -206,7 +209,7 @@ test('navigation can be cancelled or awaited, publishes navigating and finishes 
 		afterNavigate((event) => events.push(event.type));
 	};
 	await start(app, document.querySelector('main')!);
-	await expect(goto('/blocked')).rejects.toThrow('Navigation cancelled');
+	await goto('/blocked');
 	expect(page.url.pathname).toBe('/one');
 	const moving = goto('/two');
 	await vi.waitFor(() => expect(navigating.type).toBe('goto'));
@@ -483,10 +486,8 @@ test('history traversal restores the rendered page behind a shallow destination'
 	expect(page.data.value).toBe('one');
 	expect(page.shallow?.url.pathname).toBe('/two');
 	expect(page.state).toEqual({ modal: true });
-	popped = Promise.withResolvers<void>();
 	history.back();
-	await popped.promise;
-	expect(page.shallow).toBe(null);
+	await vi.waitFor(() => expect(page.shallow).toBe(null));
 	expect(page.url.pathname).toBe('/one');
 });
 
@@ -534,4 +535,198 @@ test('snapshots restore on popstate and refresh preserves shallow page state', a
 	expect(page.shallow?.url.pathname).toBe('/two');
 	await invalidate('custom:irrelevant');
 	expect(page.state).toEqual({});
+});
+
+test('enter has no source and snapshots restore after navigation callbacks', async () => {
+	let draft = 'saved';
+	const order: string[] = [];
+	const events: unknown[] = [];
+	const app = fixture(({ params }) => ({ value: params.id }));
+	app.hooks.init = () => {
+		owner = getOwner()!;
+		afterNavigate((event) => {
+			events.push({ from: event.from?.url.pathname, scroll: event.to?.scroll });
+			order.push('after');
+		});
+	};
+	app.root = (anchor, props) => {
+		snapshot({
+			id: 'ordered',
+			capture: () => draft,
+			restore: (value) => {
+				draft = value;
+				order.push('restore');
+			}
+		});
+		return root(anchor, props);
+	};
+	await start(app, document.querySelector('main')!);
+	expect(events[0]).toEqual({ from: undefined, scroll: { x: 0, y: 0 } });
+	await goto('/two');
+	draft = 'other';
+	order.length = 0;
+	history.back();
+	await vi.waitFor(() => expect(order).toEqual(['after', 'restore']));
+	expect(draft).toBe('saved');
+});
+
+test('unchanged branch data keeps its identity and mutations of page.url do not redirect invalidation', async () => {
+	const loaded: string[] = [];
+	const app = fixture(({ depends, untrack, url }) => {
+		depends('custom:stable');
+		loaded.push(untrack(() => url.pathname));
+		return { value: 'stable' };
+	});
+	await start(app, document.querySelector('main')!);
+	const data = page.data;
+	await goto('/two?unused=1');
+	expect(page.data).toBe(data);
+	Reflect.set(page.url, 'pathname', '/mutated');
+	await invalidate('custom:stable');
+	expect(loaded).toEqual(['/one', '/two']);
+	expect(page.url.pathname).toBe('/two');
+});
+
+test('synchronous invalidations share one load while a later microtask and same-URL goto reload', async () => {
+	let count = 0;
+	const app = fixture(({ depends }) => {
+		depends('custom:batch');
+		return { value: count++ };
+	});
+	await start(app, document.querySelector('main')!);
+	await Promise.all([
+		invalidate('custom:batch'),
+		invalidate('custom:batch'),
+		Promise.resolve().then(() => invalidate('custom:batch'))
+	]);
+	expect(page.data.value).toBe(2);
+	await goto('/one');
+	expect(page.data.value).toBe(3);
+});
+
+test('a consumed preloaded redirect reloads the returning route without replacing the source entry', async () => {
+	let resolved = false;
+	const app = fixture(({ params }) => {
+		if (params.id === 'target' && !resolved) redirect(307, '/resolve');
+		if (params.id === 'resolve') {
+			resolved = true;
+			redirect(307, '/target');
+		}
+		return { value: params.id };
+	});
+	await start(app, document.querySelector('main')!);
+	expect(await preloadData('/target')).toEqual({
+		type: 'redirect',
+		status: 307,
+		location: '/resolve'
+	});
+	await goto('/target');
+	expect(page.data.value).toBe('target');
+	expect(owner.disposed).toBe(false);
+	history.back();
+	await vi.waitFor(() => expect(page.url.pathname).toBe('/one'));
+});
+
+test('legacy shallow state is detached and does not run navigation callbacks', async () => {
+	const events: string[] = [];
+	const app = fixture(({ params }) => ({ value: params.id }));
+	app.hooks.init = () => {
+		owner = getOwner()!;
+		afterNavigate((event) => events.push(event.type));
+	};
+	await start(app, document.querySelector('main')!);
+	const state = { nested: { count: 0 } };
+	await pushState('/two', state);
+	state.nested.count++;
+	expect(page.state).toEqual({ nested: { count: 0 } });
+	await replaceState('/three', { done: true });
+	expect(page.url.pathname).toBe('/one');
+	expect(page.shallow?.url.pathname).toBe('/three');
+	expect(events).toEqual(['enter']);
+});
+
+test('action errors select a destination boundary before its page load and preserve HTTP error kinds', async () => {
+	let props!: RootProps;
+	const local = () => {};
+	const app = fixture(() => ({ value: 'source' }));
+	app.nodes[0] = async () => ({
+		component: () => {},
+		universal: { load: () => ({ layout: 'kept' }) }
+	});
+	app.nodes.push(async () => ({
+		component: () => {},
+		universal: {
+			load: () => {
+				throw new Error('unexpected page load');
+			}
+		}
+	}));
+	app.nodes.push(async () => ({ component: local }));
+	app.dictionary = { '/one': [2, []], '/destination': [3, [undefined], [4]] };
+	app.root = (anchor, value) => {
+		props = value;
+		return root(anchor, value);
+	};
+	await start(app, document.querySelector('main')!);
+	const form = document.createElement('form');
+	form.method = 'post';
+	form.action = '/destination';
+	form.innerHTML = '<button>submit</button>';
+	document.body.append(form);
+	const enhancement = enhance(form);
+	const responses = [
+		new Response(
+			JSON.stringify({
+				type: 'error',
+				status: 403,
+				location: '/destination',
+				error: { status: 403, message: 'action denied' }
+			}),
+			{ status: 403 }
+		),
+		new Response(JSON.stringify({ message: 'forbidden' }), { status: 403 }),
+		new Response('<p>gateway</p>', { status: 502, statusText: 'Bad Gateway' })
+	];
+	for (const [index, response] of responses.entries()) {
+		vi.stubGlobal('fetch', async () => response);
+		form.dispatchEvent(
+			new SubmitEvent('submit', {
+				bubbles: true,
+				cancelable: true,
+				submitter: form.querySelector('button')!
+			})
+		);
+		const expected = ['action denied', 'forbidden', 'Bad Gateway'][index];
+		await vi.waitFor(() => expect(page.error?.message).toBe(expected));
+		expect(props.tree.child?.component).toBe(local);
+		expect(props.tree.child?.data.layout).toBe('kept');
+	}
+	expect(page.url.pathname).toBe('/destination');
+	expect(page.status).toBe(502);
+	enhancement.destroy();
+});
+
+test('native fragment entries update page.url and traverse without navigation lifecycle callbacks', async () => {
+	const events: string[] = [];
+	const app = fixture(() => ({ value: 'page' }));
+	app.hooks.init = () => {
+		owner = getOwner()!;
+		beforeNavigate(() => events.push('before'));
+		afterNavigate((event) => events.push(event.type));
+	};
+	await start(app, document.querySelector('main')!);
+	const link = document.createElement('a');
+	link.href = '#section';
+	link.setAttribute('data-sveltekit-reload', '');
+	document.body.append(link);
+	const index = history.state['sveltekit:metadata'].historyIndex;
+	link.click();
+	await vi.waitFor(() => {
+		expect(location.hash).toBe('#section');
+		expect(history.state['sveltekit:metadata'].historyIndex).toBe(index + 1);
+		expect(page.url.hash).toBe('#section');
+	});
+	history.back();
+	await vi.waitFor(() => expect(page.url.hash).toBe(''));
+	expect(events).toEqual(['enter']);
 });

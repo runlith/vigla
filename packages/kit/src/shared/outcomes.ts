@@ -21,6 +21,18 @@ export class HttpError implements HttpErrorContract {
 	}
 }
 
+export class HandledError extends HttpError {}
+
+export class FrameworkError extends Error {
+	readonly status: number;
+	readonly text: string;
+	constructor(status: number, text: string, detail = text) {
+		super(detail);
+		this.status = status;
+		this.text = text;
+	}
+}
+
 export class Redirect implements RedirectContract {
 	status: RedirectStatus;
 	location: string;

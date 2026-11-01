@@ -15,7 +15,7 @@ import type {
 	TrailingSlash
 } from '../types/internal/data.ts';
 import type { NavigationEvent, LoadEvent } from '../types/request.ts';
-import { HttpError, Redirect } from '../shared/outcomes.ts';
+import { HttpError, Redirect, FrameworkError, HandledError } from '../shared/outcomes.ts';
 import { load_invalid_response } from '../shared/errors.ts';
 import { makeTrackable, stripHash, normalizePath } from '../shared/url.ts';
 import { fetchData } from './data.ts';
@@ -52,6 +52,7 @@ export interface Changes {
 	dependencies: Array<(url: URL) => boolean>;
 }
 const span = trace.wrapSpanContext(INVALID_SPAN_CONTEXT);
+const empty = {};
 
 function uses(value: SerializedUses = {}): Uses {
 	return {
@@ -116,11 +117,19 @@ export class Pages {
 	}
 
 	async error(error: unknown, intent: NavigationEvent<MatchedParams>): Promise<App.Error> {
-		if (error instanceof HttpError) return error.body;
+		if (error instanceof HandledError) return error.body;
+		const caught =
+			error instanceof HttpError
+				? { kind: 'app' as const, error: error.body }
+				: error instanceof FrameworkError
+					? { kind: 'framework' as const, error: { status: error.status, message: error.text } }
+					: { kind: 'unknown' as const, error };
+		const fallback =
+			caught.kind === 'unknown' ? { status: 500, message: 'Internal Error' } : caught.error;
 		const body = await this.owner.run(() =>
-			this.app.hooks.handleError?.({ kind: 'unknown', error, event: intent as NavigationEvent })
+			this.app.hooks.handleError?.({ ...caught, event: intent as NavigationEvent })
 		);
-		return { status: 500, message: 'Internal Error', ...body };
+		return { ...fallback, ...body };
 	}
 
 	async node(
@@ -191,11 +200,20 @@ export class Pages {
 			tracing: { enabled: false, root: span, current: span }
 		};
 		if (node.universal?.load) {
-			data = await this.owner.run(() => node.universal!.load!(event as LoadEvent));
+			data = await this.fetches.load(() =>
+				this.owner.run(() => node.universal!.load!(event as LoadEvent))
+			);
 			if (data != null && Object.getPrototypeOf(data) !== Object.prototype) {
 				load_invalid_response({
 					location: `related to route '${intent.route.id}'`,
-					type: typeof data
+					type:
+						typeof data !== 'object'
+							? `a ${typeof data}`
+							: data instanceof Response
+								? 'a Response object'
+								: Array.isArray(data)
+									? 'an array'
+									: 'a non-plain object'
 				});
 			}
 		}
@@ -204,7 +222,7 @@ export class Pages {
 			node,
 			server,
 			uses: node.universal?.load ? usage : null,
-			data: data! ?? server?.data ?? {},
+			data: data! ?? server?.data ?? empty,
 			slash: node.universal?.trailingSlash ?? server?.slash
 		};
 	}
@@ -215,36 +233,46 @@ export class Pages {
 			: this.routes.get(value.route.id ?? '');
 		const route = resolved ?? this.fallback(value.route.id ?? '/');
 		const intent: Intent = { route, params: value.params, url };
-		const pending: Array<Promise<Branch>> = value.node_ids.map((id, index) =>
-			this.node(this.app.nodes[id]!, value.data[index] ?? null, intent, async () => {
-				const ancestors = await Promise.all(pending.slice(0, index));
-				return Object.assign({}, ...ancestors.map((branch) => branch.data));
-			})
+		const ids: Array<number | undefined> = [...value.node_ids];
+		const data = [...value.data];
+		resolved?.layouts.forEach((entry, depth) => {
+			if (!entry) {
+				ids.splice(depth, 0, undefined);
+				data.splice(depth, 0, null);
+			}
+		});
+		const pending: Array<Promise<Branch | undefined>> = ids.map((id, index) =>
+			id === undefined
+				? Promise.resolve(undefined)
+				: this.node(this.app.nodes[id]!, data[index] ?? null, intent, async () => {
+						const ancestors = await Promise.all(pending.slice(0, index));
+						return Object.assign({}, ...ancestors.map((branch) => branch?.data));
+					})
 		);
-		try {
-			const branch: Array<Branch | undefined> = await Promise.all(pending);
-			if (resolved)
-				resolved.layouts.forEach((entry, depth) => {
-					if (!entry) branch.splice(depth, 0, undefined);
-				});
-			return {
-				...intent,
-				type: 'loaded',
-				branch,
-				status: value.status ?? value.error?.status ?? 200,
-				error: value.error,
-				form: value.form
-			};
-		} catch (error) {
-			if (error instanceof Redirect)
-				return { type: 'redirect', status: error.status, location: error.location };
-			return this.failure(
-				intent,
-				[],
-				0,
-				await this.error(error, { ...intent, params: intent.params })
-			);
+		for (const promise of pending) void promise.catch(() => {});
+		const branch: Array<Branch | undefined> = [];
+		for (let depth = 0; depth < pending.length; depth++) {
+			try {
+				branch.push(await pending[depth]);
+			} catch (error) {
+				if (error instanceof Redirect)
+					return { type: 'redirect', status: error.status, location: error.location };
+				return this.failure(
+					intent,
+					branch,
+					depth,
+					await this.error(error, { ...intent, params: intent.params })
+				);
+			}
 		}
+		return {
+			...intent,
+			type: 'loaded',
+			branch,
+			status: value.status ?? value.error?.status ?? 200,
+			error: value.error,
+			form: value.form
+		};
 	}
 
 	fallback(id = '/'): Route {
@@ -261,7 +289,8 @@ export class Pages {
 	async load(
 		intent: Intent,
 		previous: Loaded | null,
-		changes: Changes
+		changes: Changes,
+		actionError?: App.Error
 	): Promise<Loaded | DataRedirectNode> {
 		const entries = [...intent.route.layouts, intent.route.leaf];
 		for (const loader of intent.route.errors)
@@ -271,6 +300,7 @@ export class Pages {
 		const invalid = entries.map((entry, depth) => {
 			const old = previous?.branch[depth];
 			const reload =
+				!(actionError && depth === entries.length - 1) &&
 				!!entry?.[0] &&
 				(entry[1] !== old?.loader ||
 					changed(old.server ? uses(old.server.uses) : null, previous, intent, changes, parent));
@@ -297,7 +327,8 @@ export class Pages {
 		if (response?.type === 'redirect') return response;
 		parent = false;
 		const pending: Array<Promise<Branch | undefined>> = entries.map((entry, depth) => {
-			if (!entry) return Promise.resolve(undefined);
+			if (!entry || (actionError && depth === entries.length - 1))
+				return Promise.resolve(undefined);
 			const old = previous?.branch[depth];
 			const data = response?.nodes[depth];
 			if (
@@ -307,7 +338,7 @@ export class Pages {
 			)
 				return Promise.resolve(old);
 			parent = true;
-			if (data?.type === 'error') return Promise.reject(new HttpError(data.error));
+			if (data?.type === 'error') return Promise.reject(new HandledError(data.error));
 			return this.node(
 				entry[1],
 				data?.type === 'data' ? data : old?.loader === entry[1] ? old.server : null,
@@ -338,6 +369,7 @@ export class Pages {
 				);
 			}
 		}
+		if (actionError) return this.failure(intent, branch, entries.length, actionError);
 		const url = new URL(intent.url);
 		if (!this.routes.hash) {
 			let slash: TrailingSlash = 'never';
@@ -353,10 +385,27 @@ export class Pages {
 		depth: number,
 		error: App.Error
 	): Promise<Loaded> {
-		let index = Math.min(depth, intent.route.errors.length - 1);
-		while (index > 0 && (!intent.route.errors[index] || !branch[index])) index--;
-		const loader = intent.route.errors[index] ?? this.app.nodes[1]!;
-		const node = await this.routes.load(loader);
+		let index = Math.max(0, Math.min(depth - 1, intent.route.errors.length - 1));
+		while (index > 0 && !intent.route.errors[index]) index--;
+		let loader = intent.route.errors[index] ?? this.app.nodes[1]!;
+		let node: ClientNode;
+		for (;;) {
+			try {
+				node = await this.routes.load(loader);
+				break;
+			} catch (failure) {
+				if (index === 0) throw failure;
+				do {
+					index--;
+				} while (index > 0 && !intent.route.errors[index]);
+				loader = intent.route.errors[index] ?? this.app.nodes[1]!;
+			}
+		}
+		while (
+			index > 0 &&
+			(!branch[index] || branch[index]!.loader !== intent.route.layouts[index]?.[1])
+		)
+			index--;
 		const kept = branch.slice(0, index + 1);
 		if (!kept[0]) {
 			kept[0] = {

@@ -10,7 +10,7 @@ import { addResolutionSuffix } from '../shared/pathname.ts';
 import { decodePathname } from '../shared/url.ts';
 import { base, appDir, hashRouting } from './payload.ts';
 import { preload_invalid_route_id } from './errors.ts';
-import { preload_route_missing } from './warnings.ts';
+import { preload_route_missing, preload_route_is_pathname } from './warnings.ts';
 
 export type NodeEntry = [server: boolean, loader: NodeLoader];
 export interface Route extends RoutePattern {
@@ -114,13 +114,17 @@ export class Routes {
 		if (this.#app.hooks.reroute) {
 			let rerouted = this.#rerouted.get(url.href);
 			if (!rerouted) {
-				rerouted = Promise.resolve(this.#app.hooks.reroute({ url: new URL(url), fetch })).then(
-					(result) => result ?? path
-				);
+				rerouted = Promise.resolve()
+					.then(() => this.#app.hooks.reroute!({ url: new URL(url), fetch }))
+					.then((result) => result ?? path);
 				this.#rerouted.set(url.href, rerouted);
 				rerouted.catch(() => this.#rerouted.delete(url.href));
 			}
-			path = await rerouted;
+			try {
+				path = await rerouted;
+			} catch {
+				return null;
+			}
 		}
 		if (this.#app.clientRouting === false) {
 			const module: { route?: ServerRoute; params?: MatchedParams } = await import(
@@ -182,7 +186,9 @@ export class Routes {
 			} catch {}
 		}
 		if (!route) {
-			preload_route_missing({ id });
+			if (await this.match(new URL(`${base}${id}`, location.href)))
+				preload_route_is_pathname({ id });
+			else preload_route_missing({ id });
 			return;
 		}
 		await Promise.all([...route.layouts, route.leaf].map((entry) => entry && this.load(entry[1])));

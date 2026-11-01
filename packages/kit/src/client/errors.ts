@@ -30,7 +30,7 @@ export function navigation_external_url(values: Destination): never {
 	if (DEV)
 		throwDiagnostic(
 			'navigation_external_url',
-			`Cannot use \`${values.caller}\` with an external URL. Use \`window.location = "${values.url}"\` instead`,
+			`Cannot use \`${values.caller}\` with an external URL (${values.url}). Use \`window.location = "${values.url}"\` instead`,
 			navigation_external_url
 		);
 	throw new Error('https://svelte.dev/e/kit/navigation_external_url');

@@ -44,6 +44,7 @@ class Tree implements RenderNode {
 export class View {
 	readonly components: ComponentInstance[] = [];
 	readonly #trees: Tree[] = [];
+	#branches: Loaded['branch'] = [];
 	readonly #root = cell<RenderNode>(null!);
 	readonly #resets = new Set<() => void>();
 	readonly #app: ClientApp;
@@ -93,10 +94,12 @@ export class View {
 		let data: Record<string, any> = {};
 		let depth = 0;
 		let parent: Tree | undefined;
+		let changed = false;
 		for (const [index, branch] of result.branch.entries()) {
 			if (!branch) continue;
 			const tree = (this.#trees[depth] ??= new Tree());
-			data = { ...data, ...branch.data };
+			changed ||= !this.#branches[index] || branch.data !== this.#branches[index]!.data;
+			data = changed ? { ...data, ...branch.data } : tree.data;
 			tree.component = branch.node.component;
 			tree.error = index ? errors[index] : undefined;
 			tree.data = data;
@@ -107,8 +110,9 @@ export class View {
 		}
 		if (parent) parent.child = null;
 		this.#trees.length = depth;
+		this.#branches = result.branch;
 		this.#state.update({
-			url: result.url,
+			url: new URL(result.url),
 			params: result.params,
 			route: { id: result.route.id },
 			status: result.status,

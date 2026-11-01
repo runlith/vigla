@@ -56,6 +56,11 @@ export class Restoration {
 		};
 	}
 
+	clear(index: number, onward = true): void {
+		for (const key of Object.keys(this.#entries))
+			if (+key === index || (onward && +key > index)) delete this.#entries[key];
+	}
+
 	position(index: number): ScrollPosition | null {
 		return this.#entries[index]?.scroll ?? null;
 	}

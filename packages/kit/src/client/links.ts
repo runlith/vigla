@@ -1,5 +1,6 @@
 import { DEV } from 'esm-env';
 import type { Client } from './client.ts';
+import type { Metadata } from './history.ts';
 import { preload_data_failed, link_option_invalid, link_option_replaced } from './warnings.ts';
 
 interface Options {
@@ -78,6 +79,7 @@ export function listen(client: Client): () => void {
 	const abort = new AbortController();
 	const container = client.container;
 	let hover: ReturnType<typeof setTimeout> | undefined;
+	let fragment: { source: Metadata; reset: boolean } | undefined;
 	const listener = <K extends keyof WindowEventMap>(
 		target: Window,
 		name: K,
@@ -133,6 +135,20 @@ export function listen(client: Client): () => void {
 		if (!element) return;
 		const link = info(element);
 		if (!link || link.ignore) return;
+		const same = client.routes.key(link.url) === client.routes.key(new URL(location.href));
+		const hasHash = (client.routes.hash ? link.url.hash.slice(1) : link.url.href).includes('#');
+		if (!link.external && same && hasHash && !link.options.replace) {
+			client.restoration.capture(client.history.index, client.view.components);
+			if (link.url.href === location.href) {
+				event.preventDefault();
+				client.restoration.scroll(link.url, true);
+				client.restoration.focus(link.url);
+			} else {
+				fragment = { source: client.history.current, reset: link.options.reset };
+				client.updateUrl(link.url);
+			}
+			return;
+		}
 		if (link.external || link.options.reload) {
 			if (!client.leave(link.url, event)) event.preventDefault();
 			return;
@@ -142,7 +158,8 @@ export function listen(client: Client): () => void {
 			.navigate(link.url, {
 				type: 'link',
 				event,
-				replace: link.options.replace,
+				replace: link.options.replace || link.url.href === location.href,
+				refreshAll: link.url.href === location.href,
 				reset: link.options.reset
 			})
 			.catch(console.error);
@@ -165,24 +182,53 @@ export function listen(client: Client): () => void {
 		client.state.navigation.current = null;
 	});
 	listener(window, 'popstate', (event) => {
+		const url = new URL(location.href);
 		const metadata = client.history.metadata(event.state);
-		if (!metadata) return;
-		if (
-			metadata.historyIndex === client.history.index &&
-			location.href === client.current?.url.href
-		)
+		if (!metadata) {
+			if (!fragment) {
+				if (client.routes.hash) location.reload();
+				else client.updateUrl(url);
+			}
 			return;
-		const delta = metadata.historyIndex - client.history.index;
-		const shallow = metadata.navigationIndex === client.history.navigation;
+		}
+		if (metadata.historyIndex === client.history.index) return;
+		const source = client.history.current;
+		const delta = metadata.historyIndex - source.historyIndex;
+		const reset = metadata.resetIndex !== source.resetIndex;
+		const hash =
+			!!client.current &&
+			(url.hash !== '' || client.current.url.hash !== '') &&
+			client.routes.key(url) === client.routes.key(client.current.url);
+		const shallow =
+			metadata.navigationIndex === client.history.navigation &&
+			(hash ||
+				(client.navigated &&
+					(metadata.pageUrl === undefined || metadata.pageUrl === location.href)));
+		client.restoration.capture(client.history.index, client.view.components);
+		client.history.accept(metadata);
 		void client
 			.navigate(new URL(location.href), {
 				type: 'popstate',
 				event,
 				delta,
 				popped: metadata,
+				source,
+				reset,
 				shallow
 			})
 			.catch(console.error);
+	});
+	listener(window, 'hashchange', () => {
+		const url = new URL(location.href);
+		if (fragment) {
+			client.history.fragment(url, fragment.source, fragment.reset);
+			client.restoration.clear(client.history.index);
+			fragment = undefined;
+		} else if (
+			!client.routes.hash &&
+			client.routes.key(url) === client.routes.key(client.current?.url ?? url)
+		)
+			client.updateUrl(url);
 	});
 	listener(window, 'beforeunload', (event) => {
 		client.restoration.capture(client.history.index, client.view.components);
@@ -280,6 +326,8 @@ export function listen(client: Client): () => void {
 		]
 	});
 	scan(container);
+	for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]'))
+		link.href = link.href;
 	return () => {
 		clearTimeout(hover);
 		abort.abort();

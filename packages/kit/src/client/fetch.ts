@@ -1,5 +1,7 @@
 import { hashRequest } from '../shared/hash.ts';
 import { decodeBase64 } from './stream.ts';
+import { DEV } from 'esm-env';
+import { window_fetch_in_load } from './warnings.ts';
 
 interface Cached {
 	body: BodyInit | null;
@@ -11,6 +13,43 @@ interface Cached {
 export class FetchCache {
 	initial = true;
 	readonly #cache = new Map<string, Cached>();
+	readonly #internal = new WeakSet<RequestInit>();
+	#loading = 0;
+
+	async load<T>(callback: () => T | Promise<T>): Promise<T> {
+		this.#loading++;
+		try {
+			return await callback();
+		} finally {
+			this.#loading--;
+		}
+	}
+
+	observe(): () => void {
+		const native = globalThis.fetch;
+		let active = true;
+		const observed: typeof fetch = (input, init) => {
+			if (active) {
+				const url = new URL(input instanceof Request ? input.url : input, location.href);
+				if (DEV && this.#loading && (!init || !this.#internal.has(init)))
+					window_fetch_in_load({ url: url.href });
+				const method = init?.method ?? (input instanceof Request ? input.method : 'GET');
+				if (method.toUpperCase() !== 'GET') {
+					const requested =
+						url.origin === location.origin ? url.href.slice(url.origin.length) : url.href;
+					for (const [key, cached] of this.#cache)
+						if (cached.url === requested) this.#cache.delete(key);
+				}
+			}
+			return native(input, init);
+		};
+		globalThis.fetch = observed;
+		return () => {
+			active = false;
+			this.#cache.clear();
+			if (globalThis.fetch === observed) globalThis.fetch = native;
+		};
+	}
 
 	async fetch(
 		input: RequestInfo | URL,
@@ -47,11 +86,6 @@ export class FetchCache {
 				? hashRequest(init?.headers, body as string | ArrayBufferView | undefined)
 				: '';
 		const key = JSON.stringify([requested, digest]);
-		const method = init?.method?.toUpperCase() ?? 'GET';
-		if (method !== 'GET' && method !== 'HEAD') {
-			for (const [key, cached] of this.#cache)
-				if (cached.url === requested) this.#cache.delete(key);
-		}
 		if (this.initial && replayable) {
 			const script = [
 				...document.querySelectorAll<HTMLScriptElement>('script[data-sveltekit-fetched]')
@@ -89,6 +123,8 @@ export class FetchCache {
 			}
 			this.#cache.delete(key);
 		}
-		return fetch(url, init);
+		const outgoing = { ...init };
+		this.#internal.add(outgoing);
+		return globalThis.fetch(url, outgoing);
 	}
 }

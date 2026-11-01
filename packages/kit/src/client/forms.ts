@@ -6,7 +6,7 @@ import type {
 	SubmitFunction,
 	SubmitResult
 } from '../types/forms.ts';
-import { HttpError } from '../shared/outcomes.ts';
+import { HttpError, FrameworkError } from '../shared/outcomes.ts';
 import { client } from './client.ts';
 import { enhance_file_without_enctype, enhance_invalid_method } from './errors.ts';
 import { enhance_invalidate_all_deprecated } from './warnings.ts';
@@ -119,7 +119,7 @@ export function enhance<
 			else if (!response.ok) {
 				if (parsed && typeof parsed.message === 'string')
 					throw new HttpError({ ...parsed, status: response.status });
-				throw new Error(response.statusText || `HTTP ${response.status}`);
+				throw new FrameworkError(response.status, response.statusText || `HTTP ${response.status}`);
 			} else throw new TypeError('Invalid action response');
 		} catch (error) {
 			if (error instanceof Error && error.name === 'AbortError') return;
@@ -143,7 +143,7 @@ export function enhance<
 		} else await update(result);
 	}
 	const listener = (event: Event) => {
-		void handle(event as SubmitEvent).catch(console.error);
+		void handle(event as SubmitEvent);
 	};
 	HTMLFormElement.prototype.addEventListener.call(form, 'submit', listener);
 	return {

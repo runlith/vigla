@@ -1,21 +1,10 @@
 import type { CaughtError } from '../types/hooks.ts';
 import type { RequestStore } from '../types/internal/server.ts';
-import { HttpError, ValidationError } from '../shared/outcomes.ts';
+import { HttpError, ValidationError, FrameworkError, HandledError } from '../shared/outcomes.ts';
+export { FrameworkError, HandledError } from '../shared/outcomes.ts';
 import { runRequest } from './scope.ts';
 import { appEvent } from './hooks.ts';
 import * as errors from './errors.ts';
-
-export class FrameworkError extends Error {
-	readonly status: number;
-	readonly text: string;
-	constructor(status: number, text: string, detail = text) {
-		super(detail);
-		this.status = status;
-		this.text = text;
-	}
-}
-
-export class HandledError extends HttpError {}
 
 export async function handleError(store: RequestStore, error: unknown): Promise<App.Error> {
 	if (error instanceof HandledError) return error.body;

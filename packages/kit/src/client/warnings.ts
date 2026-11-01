@@ -12,6 +12,33 @@ interface Preload {
 	message: string;
 }
 
+export function push_state_deprecated(): void {
+	warnDiagnostic('push_state_deprecated', 'Use goto with shallow: true instead of pushState');
+}
+export function replace_state_deprecated(): void {
+	warnDiagnostic(
+		'replace_state_deprecated',
+		'Use goto with shallow: true and replace: true instead of replaceState'
+	);
+}
+export function window_fetch_in_load(values: { url: string }): void {
+	warnDiagnostic(
+		'window_fetch_in_load',
+		`Use the fetch provided to load instead of window.fetch for ${values.url}`
+	);
+}
+export function goto_replace_state_deprecated(values: { value: string }): void {
+	warnDiagnostic(
+		'goto_replace_state_deprecated',
+		`The replaceState: ${values.value} option is deprecated; use replace instead`
+	);
+}
+export function preload_route_is_pathname(values: Route): void {
+	warnDiagnostic(
+		'preload_route_is_pathname',
+		`\`${values.id}\` is a pathname, not a route ID. Use match to find its route ID.`
+	);
+}
 export function preload_route_missing(values: Route): void {
 	warnDiagnostic('preload_route_missing', `\`${values.id}\` did not match any route`);
 }
