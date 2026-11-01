@@ -3,6 +3,7 @@ import type { Batch } from './batch.ts';
 import { computed, traced, tracedRun, tracing, updated } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
 import { destroy, fail, freeze, thaw } from './effects.ts';
+import { past, recall, setPast } from './past.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -173,17 +174,6 @@ function reads(at: Frame): Source[] {
 	return found;
 }
 
-export const NONE: unique symbol = Symbol('none');
-
-export type Prior = (source: Source) => unknown;
-
-interface Past {
-	readonly before: Prior;
-	readonly later: Prior | null;
-	written: Set<Source> | null;
-	derived: Map<Derived, unknown> | null;
-}
-
 export interface View {
 	readonly batch: Batch;
 	readonly values: Map<Source, unknown>;
@@ -195,7 +185,6 @@ export interface View {
 let frame: Frame | null = null;
 let executing: Reaction | null = null;
 const frames: Frame[] = [];
-let past: Past | null = null;
 let hiddenByLast: Set<Batch> | null = null;
 
 export let view: View | null = null;
@@ -225,7 +214,7 @@ export function get<T>(source: Source<T>): T {
 	return source.v;
 }
 
-function settled(derived: Derived): unknown {
+export function settled(derived: Derived): unknown {
 	if (derived.status !== CLEAN) refresh(derived);
 	const failure = derived.failure;
 	if (failure !== null) throw failure.error;
@@ -312,7 +301,7 @@ function compute(derived: Derived, given: View): unknown {
 	}
 }
 
-function through(source: Source, given: View): unknown {
+export function through(source: Source, given: View): unknown {
 	if (given.values.has(source)) {
 		const hidden = given.hidden.get(source);
 		if (hidden !== undefined) note([hidden]);
@@ -334,6 +323,15 @@ function through(source: Source, given: View): unknown {
 		return given.values.get(source);
 	}
 	const value = compute(source, given);
+	if ((source.deps as Source[]).length === 0) {
+		given.checked.set(source, false);
+		source.v = value;
+		source.wv = stamp();
+		source.rv = now();
+		source.computed = true;
+		source.status = CLEAN;
+		return value;
+	}
 	given.values.set(source, value);
 	return value;
 }
@@ -362,69 +360,15 @@ export function forget(source: Source): void {
 }
 
 export function present<T>(fn: () => T): T {
-	const previousPast = past;
+	const previousPast = setPast(null);
 	const previousView = view;
-	past = null;
 	view = null;
 	try {
 		return fn();
 	} finally {
-		past = previousPast;
+		setPast(previousPast);
 		view = previousView;
 	}
-}
-
-export function recalling(before: Prior, later: Prior | null, fn: () => void): void {
-	const previousPast = past;
-	const previousFrame = frame;
-	const previousReaction = executing;
-	past = { before, later, written: null, derived: null };
-	frame = null;
-	executing = null;
-	try {
-		fn.call(null);
-	} finally {
-		past = previousPast;
-		frame = previousFrame;
-		executing = previousReaction;
-	}
-}
-
-function dated(derived: Derived, given: Past): boolean {
-	if (derived.deps === null) return true;
-	for (const dep of derived.deps) {
-		if (given.written?.has(dep)) continue;
-		if (given.before(dep) !== NONE || (given.later !== null && given.later(dep) !== NONE))
-			return true;
-		if (isDerived(dep) && dated(dep, given)) return true;
-	}
-	return false;
-}
-
-function recall(source: Source, given: Past): unknown {
-	if (given.written === null || !given.written.has(source)) {
-		const before = given.before(source);
-		if (before !== NONE) return before;
-		if (given.later !== null) {
-			const later = given.later(source);
-			if (later !== NONE) return later;
-		}
-	}
-	if (!isDerived(source)) return view === null ? source.v : through(source, view);
-	if (given.derived !== null && given.derived.has(source)) return given.derived.get(source);
-	if (!dated(source, given)) {
-		if (view !== null) return through(source, view);
-		return settled(source);
-	}
-	const value = source.fn();
-	(given.derived ??= new Map()).set(source, value);
-	return value;
-}
-
-export function written(source: Source): void {
-	if (past === null) return;
-	(past.written ??= new Set()).add(source);
-	past.derived = null;
 }
 
 export function readDuringRun(source: Source): void {

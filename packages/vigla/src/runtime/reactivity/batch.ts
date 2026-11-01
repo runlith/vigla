@@ -20,7 +20,7 @@ import { fail, offscreen, run } from './effects.ts';
 import { queueEager, runEager } from './eager.ts';
 import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
-import { clear, History, prior, record } from './history.ts';
+import { clear, earlier, History, prior, record } from './history.ts';
 import {
 	abandon,
 	absorb,
@@ -39,14 +39,13 @@ import {
 	marked,
 	owner,
 	readDuringRun,
-	recalling,
 	setOwner,
 	setView,
 	stale,
 	withoutReaction,
-	view,
-	written
+	view
 } from './tracking.ts';
+import { recalling, written } from './past.ts';
 
 export { orphaned, revisit } from './held.ts';
 export { detach } from './history.ts';
@@ -289,7 +288,7 @@ function staged<T>(fork: Batch, source: Source<T>, value: T): T {
 	const after = (fork.after ??= new Map());
 	const shown = after.has(source) ? after.get(source) : source.v;
 	if (equal(source, shown as T, value)) return value;
-	record(fork, source, source.v);
+	record(fork, source, source.v, false);
 	after.set(source, value);
 	if (DEV) updated(source, value, fork);
 	if (view !== null && view.batch === fork) {
@@ -311,7 +310,7 @@ export function write<T>(source: Source<T>, value: T): T {
 	const previous = source.v;
 	if (equal(source, previous, value)) return value;
 	const batch = target ?? opening();
-	record(batch, source, previous);
+	record(batch, source, previous, processing !== null && processing !== batch);
 	if (batch.after !== null) batch.after.set(source, value);
 	source.v = value;
 	source.wv = stamp();
@@ -349,7 +348,7 @@ export function retire(teardown: () => void): void {
 		return;
 	}
 	const later = open !== null && open !== batch ? prior(open) : null;
-	recalling(prior(batch), later, teardown);
+	recalling(earlier(batch), later, teardown);
 }
 
 export function atCommit(apply: () => void): void {

@@ -179,8 +179,12 @@ function remap(reader: Batch, from: Batch, into: Batch): void {
 function fold(from: Batch, into: Batch): void {
 	if (DEV) merged(from, into);
 	const older = from.order < into.order;
-	for (const [source, value] of from.before)
-		if (older || !into.before.has(source)) into.before.set(source, value);
+	for (const [source, value] of from.before) {
+		if (!older && into.before.has(source)) continue;
+		into.before.set(source, value);
+		if (from.passed?.has(source)) (into.passed ??= new Set()).add(source);
+		else into.passed?.delete(source);
+	}
 	if (from.after !== null || into.after !== null) {
 		const merged = (into.after ??= materialize(into));
 		for (const [source, value] of from.after ?? materialize(from))
