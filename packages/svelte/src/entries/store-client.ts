@@ -32,8 +32,13 @@ export function toStore<T>(read: () => T, write?: (value: T) => void): Readable<
 		return stop;
 	});
 	return write === undefined
-		? { subscribe: store.subscribe }
-		: { subscribe: store.subscribe, set: write, update: (fn) => write(fn(read())) };
+		? { subscribe: store.subscribe, subscribeSync: store.subscribeSync }
+		: {
+				subscribe: store.subscribe,
+				subscribeSync: store.subscribeSync,
+				set: write,
+				update: (fn) => write(fn(read()))
+			};
 }
 
 export function fromStore<T>(store: Writable<T>): { current: T };
@@ -42,10 +47,15 @@ export function fromStore<T>(store: Readable<T>): { readonly current: T } {
 	let value: T;
 	const track = createSubscriber((update) => {
 		let active = false;
-		const release = subscribe(store, (next) => {
-			value = next;
-			if (active) update();
-		});
+		const release = subscribe(
+			store,
+			(next) => {
+				value = next;
+				if (active) update();
+			},
+			undefined,
+			true
+		);
 		active = true;
 		return release;
 	});

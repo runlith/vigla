@@ -6,6 +6,7 @@ export interface Subscription {
 
 export interface Subscribable<T> {
 	subscribe(run: (value: T) => void): (() => void) | Subscription;
+	subscribeSync?(run: (value: T) => void): (() => void) | Subscription;
 }
 
 export interface WritableSource<T> extends Subscribable<T> {
@@ -53,7 +54,8 @@ export class Connection<T> {
 			return;
 		}
 		let synchronous = true;
-		const subscription = source.subscribe((value) => {
+		const subscribe = source.subscribeSync ?? source.subscribe;
+		const subscription = subscribe.call(source, (value) => {
 			const before = this.value;
 			this.value = value;
 			if (!synchronous) this.#notify(before, value);

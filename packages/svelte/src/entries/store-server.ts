@@ -15,8 +15,13 @@ export function toStore<T>(read: () => T): Readable<T>;
 export function toStore<T>(read: () => T, write?: (value: T) => void): Readable<T> | Writable<T> {
 	const store = writable(read());
 	return write === undefined
-		? { subscribe: store.subscribe }
-		: { subscribe: store.subscribe, set: write, update: (fn) => write(fn(read())) };
+		? { subscribe: store.subscribe, subscribeSync: store.subscribeSync }
+		: {
+				subscribe: store.subscribe,
+				subscribeSync: store.subscribeSync,
+				set: write,
+				update: (fn) => write(fn(read()))
+			};
 }
 
 export function fromStore<T>(store: Writable<T>): { current: T };

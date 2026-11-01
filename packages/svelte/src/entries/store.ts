@@ -1,4 +1,5 @@
 import { untrack } from 'vigla/internal/index-client';
+import type { Subscribable } from 'vigla';
 
 export type Subscriber<T> = (value: T) => void;
 export type Unsubscriber = () => void;
@@ -8,8 +9,9 @@ export type StartStopNotifier<T> = (
 	update: (fn: Updater<T>) => void
 ) => void | Unsubscriber;
 
-export interface Readable<T> {
+export interface Readable<T> extends Subscribable<T> {
 	subscribe(this: void, run: Subscriber<T>, invalidate?: () => void): Unsubscriber;
+	subscribeSync?(run: Subscriber<T>): Unsubscriber;
 }
 
 export interface Writable<T> extends Readable<T> {
@@ -20,6 +22,8 @@ export interface Writable<T> extends Readable<T> {
 interface Subscription<T> {
 	readonly run: Subscriber<T>;
 	readonly invalidate: () => void;
+	readonly sync: boolean;
+	version: number;
 }
 
 export type Stores = Readable<unknown> | readonly Readable<unknown>[];
@@ -27,6 +31,7 @@ export type StoresValues<S> =
 	S extends Readable<infer T> ? T : { [K in keyof S]: S[K] extends Readable<infer T> ? T : never };
 
 const notifications: (() => void)[] = [];
+let publishing = false;
 const noop = (): void => {};
 
 function changed<T>(before: T, after: T): boolean {
@@ -40,14 +45,17 @@ function changed<T>(before: T, after: T): boolean {
 export function subscribe<T>(
 	store: Readable<T> | null | undefined,
 	run: Subscriber<T>,
-	invalidate?: () => void
+	invalidate?: () => void,
+	sync = false
 ): Unsubscriber {
 	if (store == null) {
 		run(undefined as T);
 		invalidate?.();
 		return noop;
 	}
-	const release = untrack(() => store.subscribe(run, invalidate));
+	const release = untrack(() =>
+		sync && store.subscribeSync ? store.subscribeSync(run) : store.subscribe(run, invalidate)
+	);
 	return typeof release === 'function'
 		? release
 		: () => (release as { unsubscribe(): void }).unsubscribe();
@@ -56,44 +64,64 @@ export function subscribe<T>(
 export function writable<T = undefined>(value?: T, start?: StartStopNotifier<T>): Writable<T> {
 	let current = value as T;
 	let stop: Unsubscriber | undefined;
+	let version = 0;
 	const subscribers = new Set<Subscription<T>>();
 	const set = (next: T): void => {
 		if (!changed(current, next)) return;
 		current = next;
 		if (stop === undefined) return;
-		const drain = notifications.length === 0;
-		for (const subscriber of subscribers) {
-			subscriber.invalidate();
-			const value = current;
-			notifications.push(() => subscriber.run(value));
-		}
-		if (drain) {
-			for (let index = 0; index < notifications.length; index++) notifications[index]?.();
-			notifications.length = 0;
+		const publication = ++version;
+		const drain = !publishing;
+		publishing = true;
+		try {
+			for (const subscriber of subscribers) {
+				subscriber.invalidate();
+				if (!subscriber.sync) {
+					const value = current;
+					notifications.push(() => subscriber.run(value));
+				}
+			}
+			for (const subscriber of subscribers) {
+				if (subscriber.sync && subscriber.version < publication) {
+					subscriber.version = publication;
+					subscriber.run(current);
+				}
+			}
+			if (drain) {
+				for (let index = 0; index < notifications.length; index++) notifications[index]?.();
+			}
+		} finally {
+			if (drain) {
+				notifications.length = 0;
+				publishing = false;
+			}
 		}
 	};
 	const update = (fn: Updater<T>): void => set(fn(current));
+	const listen = (run: Subscriber<T>, invalidate: () => void, sync: boolean): Unsubscriber => {
+		const subscriber = { run, invalidate, sync, version };
+		subscribers.add(subscriber);
+		if (subscribers.size === 1) stop = start?.(set, update) || noop;
+		run(current);
+		return () => {
+			subscribers.delete(subscriber);
+			if (subscribers.size === 0 && stop !== undefined) {
+				stop();
+				stop = undefined;
+			}
+		};
+	};
 	return {
 		set,
 		update,
-		subscribe(run, invalidate = noop) {
-			const subscriber = { run, invalidate };
-			subscribers.add(subscriber);
-			if (subscribers.size === 1) stop = start?.(set, update) || noop;
-			run(current);
-			return () => {
-				subscribers.delete(subscriber);
-				if (subscribers.size === 0 && stop !== undefined) {
-					stop();
-					stop = undefined;
-				}
-			};
-		}
+		subscribe: (run, invalidate = noop) => listen(run, invalidate, false),
+		subscribeSync: (run) => listen(run, noop, true)
 	};
 }
 
 export function readable<T = undefined>(value?: T, start?: StartStopNotifier<T>): Readable<T> {
-	return { subscribe: writable(value, start).subscribe };
+	const store = writable(value, start);
+	return { subscribe: store.subscribe, subscribeSync: store.subscribeSync };
 }
 
 export function derived<S extends Stores, T>(
@@ -159,7 +187,11 @@ export function derived<S extends Stores, T>(
 }
 
 export function readonly<T>(store: Readable<T>): Readable<T> {
-	return { subscribe: (run, invalidate) => store.subscribe(run, invalidate) };
+	const sync = store.subscribeSync;
+	return {
+		subscribe: (run, invalidate) => store.subscribe(run, invalidate),
+		...(sync ? { subscribeSync: (run: Subscriber<T>) => sync.call(store, run) } : {})
+	};
 }
 
 export function get<T>(store: Readable<T>): T {
