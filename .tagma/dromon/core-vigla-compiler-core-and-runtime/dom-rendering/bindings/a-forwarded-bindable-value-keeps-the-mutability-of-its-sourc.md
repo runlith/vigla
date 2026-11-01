@@ -1,7 +1,7 @@
 ---
 id: 01a19402-35db-7fb2-9239-b4df16708ab4
 title: A forwarded bindable value keeps the mutability of its source
-ord: 13
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: symbol

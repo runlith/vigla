@@ -1,7 +1,7 @@
 ---
 id: 01a19579-ee9c-7f23-9055-fb47dbce8d17
 title: Current-time bindings retire their event and frame subscriptions with the media owner
-ord: 27
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: file

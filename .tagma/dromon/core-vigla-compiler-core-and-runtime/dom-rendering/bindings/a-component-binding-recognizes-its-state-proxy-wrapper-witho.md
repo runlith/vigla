@@ -1,7 +1,7 @@
 ---
 id: 01a1947c-aacf-7786-a2d3-2507075834b6
 title: A component binding recognizes its state-proxy wrapper without clearing a replacement
-ord: 23
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol
