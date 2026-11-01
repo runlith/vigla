@@ -15,6 +15,7 @@ import {
 import { abort } from './abort.ts';
 import { collect, orphaned, retire, revisit, schedule } from './batch.ts';
 import { orphan } from './errors.ts';
+import { presently } from './past.ts';
 import {
 	disconnect,
 	marked,
@@ -229,6 +230,10 @@ export function teardown(fn: () => void): Effect {
 	created.status = CLEAN;
 	created.teardown = fn;
 	return created;
+}
+
+export function destroyed(fn: () => void): Effect {
+	return teardown(() => presently(fn));
 }
 
 export function tracking(): boolean {

@@ -1,7 +1,7 @@
 import { DEV } from 'esm-env';
 import { keyed, type Context } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { detached, effect, teardown } from '../reactivity/effects.ts';
+import { destroyed, detached, effect } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner, running, setOwner, untrack } from '../reactivity/tracking.ts';
 
@@ -137,7 +137,7 @@ export function onMount(fn: () => unknown): void {
 }
 
 export function onDestroy(fn: () => unknown): void {
-	teardown(() => {
+	destroyed(() => {
 		untrack(fn);
 	});
 }

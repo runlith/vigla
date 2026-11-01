@@ -29,6 +29,15 @@ export function recalling(before: Prior, later: Prior | null, fn: () => void): v
 	}
 }
 
+export function presently(fn: () => void): void {
+	const previous = setPast(null);
+	try {
+		fn();
+	} finally {
+		past = previous;
+	}
+}
+
 function dated(derived: Derived, given: Past): boolean {
 	if (derived.deps === null) return true;
 	for (const dep of derived.deps) {
