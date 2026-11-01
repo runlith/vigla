@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a19580-799b-7da5-afbc-95041f1f381a",
-    "status": "in_work"
+    "status": "done"
   }
 ---
 Preserve rich descendants of select, option and optgroup across client parsing and server hydration, including browsers whose HTML parser strips them, and record the newly passing routed compatibility entries.
