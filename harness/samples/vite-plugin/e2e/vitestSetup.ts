@@ -178,13 +178,14 @@ beforeAll(
 				await (testMode !== 'serve' ? page.goto(url) : goToUrlAndWaitForViteWSConnect(page, url));
 			}
 		} catch (e) {
-			console.error(`beforeAll failed for ${testName}.`, e);
+			console.error(`beforeAll failed for ${testName}.`, e, e2eServer?.logs);
 			// tests are still executed so close page to shorten
 			try {
 				await page.close();
 			} catch (e2) {
 				console.error('failed to close page on error', e2);
 			}
+			await e2eServer?.close();
 			throw e;
 		}
 

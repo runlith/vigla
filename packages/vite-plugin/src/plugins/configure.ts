@@ -5,6 +5,7 @@ import { frontEnds } from '../front-end.ts';
 import { buildIdFilter, buildIdParser } from '../id.ts';
 import { log } from '../log.ts';
 import {
+	arraify,
 	preResolveOptions,
 	resolveOptions,
 	validateInlineOptions,
@@ -12,6 +13,7 @@ import {
 	type PreResolvedOptions
 } from '../options.ts';
 import type { Options } from '../public.ts';
+import { configureStyles } from '../preprocess.ts';
 import { buildExtraViteConfig, ensureEnvironmentResolve } from '../vite-config.ts';
 
 export function configure(api: PluginAPI, inline?: Partial<Options>): Plugin {
@@ -28,6 +30,7 @@ export function configure(api: PluginAPI, inline?: Partial<Options>): Plugin {
 				else if (config.logLevel) log.setLevel(config.logLevel);
 				api.frontEnds = await frontEnds(viteRoot(config));
 				preResolved = await preResolveOptions(inline, config, env, api.frontEnds);
+				await configureStyles(arraify(preResolved.preprocess), config);
 				const extra = await buildExtraViteConfig(preResolved, config, api.frontEnds);
 				log.debug('additional vite config', extra, 'config');
 				return extra;

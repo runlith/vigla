@@ -42,15 +42,20 @@ function createPreprocess(groups: PreprocessorGroup[], config: ResolvedConfig): 
 	};
 }
 
+function dependencyKey(file: string): string {
+	if (!/^[a-z]:/i.test(file) && !file.startsWith(path.win32.sep.repeat(2))) return file;
+	return file.replaceAll(path.win32.sep, path.posix.sep);
+}
+
 class Dependencies {
-	readonly #dependencies = new Map<string, string[]>();
+	readonly #dependencies = new Map<string, Set<string>>();
 	readonly #dependants = new Map<string, Set<string>>();
 	readonly #server: ViteDevServer;
 
 	constructor(server: ViteDevServer) {
 		this.#server = server;
 		const changed = (filename: string) => {
-			for (const dependant of this.#dependants.get(filename) ?? []) {
+			for (const dependant of this.#dependants.get(dependencyKey(filename)) ?? []) {
 				if (!fs.existsSync(dependant)) continue;
 				log.debug(
 					`emitting virtual change event for "${dependant}" because dependency "${filename}" changed`,
@@ -78,20 +83,24 @@ class Dependencies {
 
 	update(request: ComponentRequest, dependencies: string[]): void {
 		const id = request.normalizedFilename;
-		const previous = this.#dependencies.get(id) ?? [];
-		this.#dependencies.set(id, dependencies);
+		const previous = this.#dependencies.get(id) ?? new Set<string>();
+		const next = new Set<string>();
 		for (const dependency of dependencies) {
-			if (previous.includes(dependency)) continue;
+			const key = dependencyKey(dependency);
+			if (next.has(key)) continue;
+			next.add(key);
+			if (previous.has(key)) continue;
 			this.#watch(dependency);
-			let dependants = this.#dependants.get(dependency);
+			let dependants = this.#dependants.get(key);
 			if (dependants === undefined) {
 				dependants = new Set();
-				this.#dependants.set(dependency, dependants);
+				this.#dependants.set(key, dependants);
 			}
 			dependants.add(request.filename);
 		}
+		this.#dependencies.set(id, next);
 		for (const dependency of previous) {
-			if (!dependencies.includes(dependency)) {
+			if (!next.has(dependency)) {
 				this.#dependants.get(dependency)?.delete(request.filename);
 			}
 		}

@@ -3,7 +3,8 @@ import { stripTypeScriptTypes } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { compile, compileModule } from 'svelte/compiler';
 import { afterAll, assert, describe, inject, it } from 'vitest';
-import { faults, load, root, ruling, runs, type Manifest } from '../manifest.ts';
+import { faults, load, root, ruling, runsOn, type Manifest } from '../manifest.ts';
+import type { Target } from '../target.ts';
 import { forced } from '../reference.ts';
 import { suiteNamed, unitFile, type Suite } from '../suites.ts';
 import { govern, it as rule, registered } from './vitest.ts';
@@ -31,14 +32,15 @@ async function runes(source: string, out: string): Promise<string> {
 }
 
 async function collect(
-	suite: string,
+	suite: Suite,
 	manifest: Manifest,
 	dir: string,
 	work: string,
 	file: string,
-	prefix: readonly string[]
+	prefix: readonly string[],
+	target: Target
 ): Promise<void> {
-	govern(suite, manifest, prefix);
+	govern(suite, manifest, target, prefix);
 	const lead = prefix.length === 0 ? '' : `${prefix.join(' > ')} > `;
 	const own = Object.keys(manifest.samples).filter((key) => key.startsWith(lead));
 	const loaded = registered.length;
@@ -47,7 +49,11 @@ async function collect(
 			await import(await runes(join(dir, file), join(work, `${file}.js`)));
 			return;
 		}
-		if (own.some((key) => runs(ruling(manifest, key)?.status ?? 'contract'))) {
+		if (
+			own.some((key) =>
+				runsOn(ruling(manifest, key)?.status ?? 'contract', suite.project, target.name)
+			)
+		) {
 			await import(join(dir, file));
 			return;
 		}
@@ -74,14 +80,14 @@ export async function unitSuite(suite: string): Promise<void> {
 	const target = inject('target');
 	await import(target.fresh);
 	const named = suiteNamed(suite);
-	const manifest = load('svelte', suite);
-	const dir = join(root, 'samples', 'svelte', suite);
+	const manifest = load(named.project, named.name);
+	const dir = join(root, 'samples', named.project, named.name);
 	const work = join(target.root, '.work', `units-${suite}-${process.pid}`);
 	afterAll(() => rmSync(work, { recursive: true, force: true }));
 	if (Object.keys(manifest.conversions ?? {}).length > 0) await reference(work);
 	for (const file of unitFiles(named, dir)) {
-		if (named.include === undefined) await collect(suite, manifest, dir, work, file, []);
-		else describe(file, () => collect(suite, manifest, dir, work, file, [file]));
+		if (named.include === undefined) await collect(named, manifest, dir, work, file, [], target);
+		else describe(file, () => collect(named, manifest, dir, work, file, [file], target));
 	}
 	it('manifest', () => {
 		const missing = Object.keys(manifest.samples).filter((name) => !registered.includes(name));

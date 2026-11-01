@@ -2,13 +2,12 @@ import { expect, test } from 'vitest';
 import { isBuild, findAssetFile, page } from '~utils';
 
 test('should prefix position: sticky for code in source tree', async () => {
-	let stickyStyle = isBuild
-		? await getStyleFromDist('sticky')
-		: await getStyleFromPage(page, 'sticky');
-
-	// minify style to have a more stable expect
-	stickyStyle = stickyStyle.replace(/\s/g, '').replace(/;$/, '');
-	expect(stickyStyle).toBe('position:-webkit-sticky;position:sticky');
+	await expect.poll(async () => {
+		const stickyStyle = isBuild
+			? await getStyleFromDist('sticky')
+			: await getStyleFromPage(page, 'sticky');
+		return stickyStyle.replace(/\s/g, '').replace(/;$/, '');
+	}).toBe('position:-webkit-sticky;position:sticky');
 });
 
 /* unfortunately this test fails. the dependency has a different absolute path and .browerslist is not picked up

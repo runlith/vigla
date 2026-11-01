@@ -87,5 +87,5 @@ for (const run of runs) {
 		}
 	);
 }
-rmSync(work, { recursive: true, force: true });
 writeRuns(results, runs);
+rmSync(work, { recursive: true, force: true });

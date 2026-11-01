@@ -1,18 +1,31 @@
 import * as vitest from 'vitest';
-import { ruling, runs, type Manifest } from '../manifest.ts';
+import { ruling, runsOn, type Manifest } from '../manifest.ts';
 import { selects } from '../scope.ts';
+import { suiteId, type Suite } from '../suites.ts';
+import type { Target } from '../target.ts';
 
 export * from 'vitest';
 
 type Body = () => unknown;
 
+interface Context {
+	suite: Suite;
+	manifest: Manifest;
+	target: Target;
+}
+
 const path: string[] = [];
-let governed: { suite: string; manifest: Manifest } | null = null;
+let governed: Context | null = null;
 
 export const registered: string[] = [];
 
-export function govern(suite: string, manifest: Manifest, prefix: readonly string[] = []): void {
-	governed = { suite, manifest };
+export function govern(
+	suite: Suite,
+	manifest: Manifest,
+	target: Target,
+	prefix: readonly string[] = []
+): void {
+	governed = { suite, manifest, target };
 	path.splice(0, path.length, ...prefix);
 }
 
@@ -32,12 +45,13 @@ function register(name: string, body: Body, skipped: boolean, timeout?: number):
 	const key = [...path, name].join(' > ');
 	registered.push(key);
 	if (governed === null) throw new Error(`${key} registered outside a governed suite`);
-	const suite = governed.suite;
-	if (!selects(`svelte/${suite}`, key)) return;
-	const rule = ruling(governed.manifest, key);
+	const { suite, manifest, target } = governed;
+	const id = suiteId(suite);
+	if (!selects(id, key)) return;
+	const rule = ruling(manifest, key);
 	if (rule === undefined) {
-		vitest.it(name, () => vitest.assert.fail(`${suite}/${key} has no status in the manifest`));
-	} else if (runs(rule.status) && !skipped) {
+		vitest.it(name, () => vitest.assert.fail(`${id}/${key} has no status in the manifest`));
+	} else if (runsOn(rule.status, suite.project, target.name) && !skipped) {
 		vitest.it(name, body, timeout);
 	} else {
 		vitest.it.skip(name, body);

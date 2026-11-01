@@ -187,9 +187,11 @@ if (!isBuild) {
 			  preprocess:[{markup:${injectPreprocessor.toString()}}]};`
 			);
 			await waitForServerRestartAndPageReload();
-			expect(await getText('#preprocess-inject')).toBe('Injected');
-			expect(await getText('#hmr-test-1 .counter')).toBe('0');
-			expect(await getColor('#hmr-test-1 .label')).toBe('red');
+				await expect.poll(() => Promise.all([
+					getText('#preprocess-inject'),
+					getText('#hmr-test-1 .counter'),
+					getColor('#hmr-test-1 .label')
+				])).toEqual(['Injected', '0', 'red']);
 			await (await getEl('#hmr-test-1 .increment')).click();
 			await sleep(50);
 			expect(await getText('#hmr-test-1 .counter')).toBe('1');
@@ -202,10 +204,12 @@ if (!isBuild) {
 					.replace('Injected', 'Injected 2')
 			);
 			await waitForServerRestartAndPageReload();
-			expect(await getText('#preprocess-inject-2')).toBe('Injected 2');
-			expect(await getEl('#preprocess-inject')).toBe(null);
-			expect(await getColor('#hmr-test-1 .label')).toBe('green');
-			expect(await getText('#hmr-test-1 .counter')).toBe('0');
+				await expect.poll(() => Promise.all([
+					getText('#preprocess-inject-2'),
+					getEl('#preprocess-inject').then(Boolean),
+					getColor('#hmr-test-1 .label'),
+					getText('#hmr-test-1 .counter')
+				])).toEqual(['Injected 2', false, 'green', '0']);
 			await (await getEl('#hmr-test-1 .increment')).click();
 			await sleep(50);
 			expect(await getText('#hmr-test-1 .counter')).toBe('1');
@@ -214,10 +218,12 @@ if (!isBuild) {
 			expect(await getText('#hmr-test-1 .counter')).toBe('1');
 			await removeFile('svelte.config.js');
 			await waitForServerRestartAndPageReload();
-			expect(await getEl('#preprocess-inject-2')).toBe(null);
-			expect(await getEl('#preprocess-inject')).toBe(null);
-			expect(await getColor('#hmr-test-1 .label')).toBe('red');
-			expect(await getText('#hmr-test-1 .counter')).toBe('0');
+				await expect.poll(() => Promise.all([
+					getEl('#preprocess-inject-2').then(Boolean),
+					getEl('#preprocess-inject').then(Boolean),
+					getColor('#hmr-test-1 .label'),
+					getText('#hmr-test-1 .counter')
+				])).toEqual([false, false, 'red', '0']);
 		});
 	});
 }

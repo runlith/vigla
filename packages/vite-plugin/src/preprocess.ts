@@ -1,4 +1,8 @@
+import path from 'node:path';
 import process from 'node:process';
+import loadPostcss from 'postcss-load-config';
+import type { Plugin as PostcssPlugin } from 'postcss';
+import parseValue, { type Node as ValueNode } from 'postcss-value-parser';
 import * as vite from 'vite';
 import type { InlineConfig, ResolvedConfig } from 'vite';
 import type { Preprocessor, PreprocessorGroup } from './compiler.ts';
@@ -44,6 +48,101 @@ function resolved(config: ResolvedConfig | InlineConfig): config is ResolvedConf
 	return !!(config as ResolvedConfig).inlineConfig;
 }
 
+function assetUrls(style: Tagged): PostcssPlugin {
+	let resolve: ReturnType<ResolvedConfig['createResolver']> | undefined;
+	return {
+		postcssPlugin: 'vite-preprocess-urls',
+		async OnceExit(root, { result }) {
+			const from = result.opts.from;
+			if (!from || !/\.vite-preprocess\.[^./]+$/.test(from)) return;
+			if (!style.__resolvedConfig)
+				throw new Error('style preprocessing has no resolved Vite config');
+			resolve ??= style.__resolvedConfig.createResolver({
+				preferRelative: true,
+				tryIndex: false,
+				extensions: []
+			});
+			const resolveAsset = resolve;
+			const declarations: Promise<void>[] = [];
+			root.walkDecls((declaration) => {
+				if (!/(?:url|image-set)\(/i.test(declaration.value)) return;
+				const importer = declaration.source?.input.file ?? from;
+				const parsed = parseValue(declaration.value);
+				const assets: Promise<void>[] = [];
+				const rebase = async (node: ValueNode): Promise<void> => {
+					const url = node.value;
+					if (!url || /^(?:[a-z][a-z\d+.-]*:|[/#~])/i.test(url)) return;
+					const suffix = url.search(/[?#]/);
+					const pathname = suffix < 0 ? url : url.slice(0, suffix);
+					const tail = suffix < 0 ? '' : url.slice(suffix);
+					const file = await resolveAsset(decodeURI(pathname), importer);
+					if (!file) return;
+					const relative = vite.normalizePath(path.relative(path.dirname(from), file));
+					node.value = `${encodeURI(relative)}${tail}`;
+				};
+				parsed.walk((node) => {
+					if (node.type !== 'function') return;
+					if (node.value.toLowerCase() === 'url') {
+						const value = node.nodes.find((part) => part.type === 'string' || part.type === 'word');
+						if (value) assets.push(rebase(value));
+						return false;
+					}
+					if (/^(?:-webkit-)?image-set$/i.test(node.value)) {
+						for (const value of node.nodes) {
+							if (value.type === 'string') assets.push(rebase(value));
+						}
+					}
+				});
+				if (assets.length > 0)
+					declarations.push(
+						Promise.all(assets).then(() => {
+							declaration.value = parsed.toString();
+						})
+					);
+			});
+			await Promise.all(declarations);
+		}
+	};
+}
+
+export async function configureStyles(
+	groups: PreprocessorGroup[],
+	config: InlineConfig
+): Promise<void> {
+	for (const group of groups) {
+		const style = group.style as (PreprocessorGroup['style'] & Tagged) | undefined;
+		if (style && '__resolvedConfig' in style) {
+			await cssConfig(style, config);
+			return;
+		}
+	}
+}
+
+async function cssConfig(style: Tagged, config: InlineConfig): Promise<void> {
+	if (config.css?.transformer === 'lightningcss') return;
+	const root = path.resolve(config.root ?? process.cwd());
+	const inline = config.css?.postcss;
+	const postcss =
+		typeof inline === 'object'
+			? inline
+			: await loadPostcss({}, inline ?? root, {
+					stopDir: vite.searchForWorkspaceRoot(root)
+				})
+					.then(({ options, plugins }) => ({ ...options, plugins }))
+					.catch((error: unknown) => {
+						if (!(error instanceof Error) || !error.message.includes('No PostCSS Config found'))
+							throw error;
+						return { plugins: [] };
+					});
+	config.css = {
+		...config.css,
+		postcss: {
+			...postcss,
+			plugins: [...(postcss.plugins ?? []), assetUrls(style)]
+		} as ResolvedConfig['css']['postcss']
+	};
+}
+
 async function cssTransform(
 	style: Tagged,
 	config: ResolvedConfig | InlineConfig
@@ -54,8 +153,11 @@ async function cssTransform(
 	else {
 		const build = !process.env.NODE_ENV || process.env.NODE_ENV === 'production';
 		const mode = build ? 'production' : 'development';
-		resolvedConfig = await resolveConfig(config, build ? 'build' : 'serve', mode, mode, false);
+		const standalone = { ...config };
+		await cssConfig(style, standalone);
+		resolvedConfig = await resolveConfig(standalone, build ? 'build' : 'serve', mode, mode, false);
 	}
+	style.__resolvedConfig = resolvedConfig;
 	return (code, filename) =>
 		preprocessCSS(code, filename, resolvedConfig) as ReturnType<CssTransform>;
 }

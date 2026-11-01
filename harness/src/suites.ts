@@ -181,6 +181,14 @@ export const suites: readonly Suite[] = [
 	compiler('css'),
 	{
 		project: 'own',
+		name: 'vite-plugin',
+		kind: 'units',
+		source: 'vite-plugin',
+		files: ['vite-plugin.test.ts'],
+		upstream: []
+	},
+	{
+		project: 'own',
 		name: 'runtime',
 		kind: 'runtime',
 		source: 'runtime/samples',

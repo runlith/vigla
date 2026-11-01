@@ -1,3 +1,4 @@
+import { basename, combine } from 'vigla/compiler';
 import type { Environment } from 'vite';
 import type { CompileError, CompileOptions, CompileResult } from './compiler.ts';
 import { enhanceCompileError } from './error.ts';
@@ -60,7 +61,7 @@ export async function compileComponent(
 		'compile'
 	);
 	const final: CompileOptions = dynamic ? { ...compileOptions, ...dynamic } : compileOptions;
-	if (sourcemap) final.sourcemap = sourcemap;
+	delete final.sourcemap;
 	let compiled: CompileResult;
 	try {
 		compiled = frontEnd.compiler.compile(code, { ...final, filename });
@@ -76,6 +77,11 @@ export async function compileComponent(
 	} catch (error) {
 		enhanceCompileError(error as CompileError, code, options.preprocess);
 		throw error;
+	}
+	if (compiled.css?.map && sourcemap) {
+		compiled.css.map = combine(basename(filename), [compiled.css.map, sourcemap] as Parameters<
+			typeof combine
+		>[1]) as typeof compiled.css.map;
 	}
 	mapToRelative(compiled.js?.map, filename);
 	mapToRelative(compiled.css?.map, filename);

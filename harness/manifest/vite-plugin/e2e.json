@@ -1,5 +1,10 @@
 {
   "conversions": {
+    "vitestSetup.ts": "closes a fixture server when startup fails before teardown registration and includes its logs in the startup failure",
+    "autoprefixer-browerslist/__tests__/autoprefixer-browerslist.spec.ts": "waits for the prefixed stylesheet state across Vite's optimizer reload instead of reading transient element handles",
+    "hmr/__tests__/hmr.spec.ts": "waits for post-restart DOM state across Vite optimizer reloads",
+    "kit-async/__tests__/kit-async.spec.ts": "waits for resolved async output instead of assuming a fixed 700ms wall-clock delay",
+    "package-json-svelte-field/__tests__/package-json-svelte-field.spec.ts": "waits for imported component output across Vite's optimizer reload",
     "_test_dependencies/svelte-nested-workspace-devdep/src/components/Message.svelte": "`export let` replaced by `$props()`",
     "_test_dependencies/svelte-nested/src/components/Message.svelte": "`export let` replaced by `$props()`",
     "build-watch/src/App.svelte": "`<svelte:component>` replaced by a component tag on a `$derived` capitalized binding; `on:` directives on elements replaced by event attributes; legacy-mode reactive `let` replaced by `$state`",
@@ -33,7 +38,10 @@
     "vite-ssr-esm/src/App.svelte": "`export let` replaced by `$props()`"
   },
   "samples": {
-    "autoprefixer-browerslist/autoprefixer-browerslist.spec.ts > should prefix position: sticky for code in source tree": "contract",
+    "autoprefixer-browerslist/autoprefixer-browerslist.spec.ts > should prefix position: sticky for code in source tree": {
+      "status": "converted",
+      "reason": "waits for the prefixed stylesheet state across Vite's optimizer reload"
+    },
     "build-multiple/build-multiple.spec.ts > build-multiple": "contract",
     "build-watch/build-watch.spec.ts > build-watch > edit files > should apply css changes in HmrTest.svelte": "contract",
     "build-watch/build-watch.spec.ts > build-watch > edit files > should apply js change in HmrTest.svelte ": "contract",
@@ -72,28 +80,31 @@
     "hmr-css-first/hmr-css-first.spec.ts > hmr > should apply html change in App.svelte": "contract",
     "hmr-css-first/hmr-css-first.spec.ts > hmr > should apply js change in App.svelte": "contract",
     "hmr-css-first/hmr-css-first.spec.ts > should render App": "contract",
-    "hmr/hmr.spec.ts > hmr > should apply css changes in HmrTest.svelte": "contract",
-    "hmr/hmr.spec.ts > hmr > should apply js change in HmrTest.svelte ": "contract",
-    "hmr/hmr.spec.ts > hmr > should detect changes in svelte config and restart": "contract",
-    "hmr/hmr.spec.ts > hmr > should have expected initial state": "contract",
-    "hmr/hmr.spec.ts > hmr > should have working increment button": "contract",
-    "hmr/hmr.spec.ts > hmr > should keep state of external store intact on change of HmrTest.svelte": "contract",
-    "hmr/hmr.spec.ts > hmr > should preserve state of external store used by HmrTest.svelte when editing App.svelte": "contract",
-    "hmr/hmr.spec.ts > hmr > should preserve state of store when editing hmr-stores.js": "contract",
-    "hmr/hmr.spec.ts > hmr > should work when editing script context=\"module\"": "contract",
-    "hmr/hmr.spec.ts > hmr > should work with emitCss: false in svelte config": "contract",
-    "hmr/hmr.spec.ts > hmr > should work with emitCss: false in vite config": "contract",
-    "hmr/hmr.spec.ts > should not have failed requests": "contract",
-    "hmr/hmr.spec.ts > should render App": "contract",
-    "hmr/hmr.spec.ts > should render dependency import": "contract",
-    "hmr/hmr.spec.ts > should render dynamic import": "contract",
-    "hmr/hmr.spec.ts > should render static import": "contract",
-    "hmr/hmr.spec.ts > should respect transforms": "contract",
+    "hmr/hmr.spec.ts > hmr > should apply css changes in HmrTest.svelte": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should apply js change in HmrTest.svelte ": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should detect changes in svelte config and restart": { "status": "converted", "reason": "waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should have expected initial state": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should have working increment button": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should keep state of external store intact on change of HmrTest.svelte": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should preserve state of external store used by HmrTest.svelte when editing App.svelte": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should preserve state of store when editing hmr-stores.js": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should work when editing script context=\"module\"": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should work with emitCss: false in svelte config": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > hmr > should work with emitCss: false in vite config": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > should not have failed requests": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > should render App": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > should render dependency import": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > should render dynamic import": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > should render static import": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
+    "hmr/hmr.spec.ts > should respect transforms": { "status": "converted", "reason": "this spec waits for post-restart DOM state across optimizer reloads" },
     "import-queries/import-queries.spec.ts > raw > does not have failed requests": "contract",
     "import-queries/import-queries.spec.ts > raw > Dummy.svelte": "contract",
     "import-queries/import-queries.spec.ts > raw > Dummy.svelte?raw": "contract",
     "import-queries/import-queries.spec.ts > ssrLoadModule > ?raw": "contract",
-    "kit-async/kit-async.spec.ts > kit-async > works": "contract",
+    "kit-async/kit-async.spec.ts > kit-async > works": {
+      "status": "converted",
+      "reason": "waits for resolved async output instead of assuming a fixed 700ms delay"
+    },
     "kit-node/kit.spec.ts > kit-node > index route > hmr > child component update > should apply changed initial state": {
       "status": "converted",
       "reason": "the edit of Counter.svelte's initial count follows its `$state` declaration"
@@ -170,7 +181,10 @@
       "status": "converted",
       "reason": "resolved-config expectations follow Kit 3.1.0 and installed public package metadata rather than VERSION; a plugin depending on the core keeps it external to optimization"
     },
-    "package-json-svelte-field/package-json-svelte-field.spec.ts > should render component imported via svelte field in package.json": "contract",
+    "package-json-svelte-field/package-json-svelte-field.spec.ts > should render component imported via svelte field in package.json": {
+      "status": "converted",
+      "reason": "waits for imported component output across Vite's optimizer reload"
+    },
     "prebundle-svelte-deps/prebundle-svelte-deps.spec.ts > page works": {
       "status": "converted",
       "reason": "the clsx expectation in this spec follows the installed package's dependencies rather than VERSION"

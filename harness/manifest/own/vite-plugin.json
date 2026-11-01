@@ -1,0 +1,27 @@
+{
+  "samples": {
+    "preprocessed styles keep each project's aliases": {
+      "status": "contract"
+    },
+    "imported style URLs retain their source directory and scoping": {
+      "status": "difference",
+      "reason": "Frozen vite-plugin-svelte #1310: plugin 7.3.1 / Svelte 5.57.3 public Vite build flattens nested CSS imports before resolving URLs and emits no imported image asset"
+    },
+    "preprocessed component maps generated code to its original lines": {
+      "status": "difference",
+      "reason": "Frozen Svelte #9961: on Svelte 5.57.3 / vite-plugin-svelte 7.3.1 public Vite transformRequest maps new Example(41) and sample.read() one original line too low after TypeScript preprocessing"
+    },
+    "dependency events match normalized and native Windows paths": {
+      "status": "difference",
+      "reason": "Frozen vite-plugin-svelte #1394: public preprocess dependencies report C:/ paths while public watcher change events carry native C:\\ paths; on 7.3.1 the native Sass control updates but PostCSS stays red"
+    },
+    "parent replacement keeps child hot updates live": {
+      "status": "difference",
+      "reason": "Frozen vite-plugin-svelte #1320: on plugin 7.3.1 / Svelte 5.57.3 the final child HMR notification arrives but the DOM stays at child two after a child-parent-child edit sequence"
+    },
+    "style tags in strings retain their literal value": {
+      "status": "difference",
+      "reason": "Frozen vite-plugin-svelte #1254: plugin 7.3.1 / Svelte 5.57.3 renders <style>Style3 *{}</style> instead of the source string <style>Style3</style>"
+    }
+  }
+}

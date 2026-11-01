@@ -9,6 +9,9 @@
 	"dependencies": {
 		"deepmerge": "^4.3.1",
 		"obug": "^2.1.0",
+		"postcss": "^8.5.28",
+		"postcss-load-config": "^6.0.1",
+		"postcss-value-parser": "^4.2.0",
 		"vigla": "workspace:*",
 		"vitefu": "^1.1.2"
 	},
@@ -16,6 +19,7 @@
 		"vite": "^8.0.0"
 	},
 	"devDependencies": {
+		"@types/node": "22.20.1",
 		"vite": "8.2.2",
 		"vitest": "4.1.11"
 	}
