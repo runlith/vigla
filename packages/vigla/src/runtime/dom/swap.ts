@@ -58,7 +58,7 @@ function resolve(source: PropsSource): Props | null | undefined {
 function owning(sources: readonly PropsSource[], key: PropertyKey): Props | undefined {
 	for (let index = sources.length - 1; index >= 0; index--) {
 		const found = resolve(sources[index] as PropsSource);
-		if (found != null && key in found) return found;
+		if (found != null && Object.hasOwn(found, key)) return found;
 	}
 	return undefined;
 }
