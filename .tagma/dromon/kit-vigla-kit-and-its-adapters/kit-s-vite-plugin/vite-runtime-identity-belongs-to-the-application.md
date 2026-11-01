@@ -16,5 +16,9 @@ sources:
     ref: packages/kit/src/vite/dev.ts
   - kind: file
     ref: packages/kit/src/vite/remote-build.ts
+  - kind: file
+    ref: packages/kit/src/config/file.ts
+  - kind: file
+    ref: packages/kit/src/sync/env.ts
 ---
 An app and a linked Kit package can resolve different installations of Vite. Testing an app environment against Kit's constructor would reject a usable runner, so the boundary checks the runner's callable import operation and resolves the complete Vite API from the app root. Environment discovery and runtime helpers use that retained API; build workers evaluate bundled output without importing a Vite runtime.
