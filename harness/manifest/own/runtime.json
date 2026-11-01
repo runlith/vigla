@@ -93,7 +93,10 @@
 			"status": "contract",
 			"reason": "Scheduler invariant 5: green on upstream 5.57.3"
 		},
-		"issue-15627-outro-derived": "contract",
+		"issue-15627-outro-derived": {
+			"status": "difference",
+			"reason": "Svelte #15627: a lazy child derived used as an outro parameter reads a deleted guarded prop on upstream 5.57.3 and throws"
+		},
 		"issue-17220-module-spread": {
 			"status": "difference",
 			"reason": "Svelte #17220: spreading a real module namespace before an explicit prop throws Cannot redefine property: foo on upstream 5.57.3 in sync and async SSR; Vigla renders the explicit value"
