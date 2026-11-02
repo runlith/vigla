@@ -211,11 +211,15 @@ test('owner failures reach the nearest live handler and leave siblings updating'
 		const removeThrowing = service.onError(() => {
 			throw escalated;
 		});
-		nested.run(
+		assert.throws(
 			() =>
-				core.derived(() => {
-					throw original;
-				}).current
+				nested.run(
+					() =>
+						core.derived(() => {
+							throw original;
+						}).current
+				),
+			(thrown) => thrown === original
 		);
 		assert.deepEqual(outer, [original, escalated]);
 		removeThrowing();
@@ -224,6 +228,49 @@ test('owner failures reach the nearest live handler and leave siblings updating'
 		assert.equal(shown, 2);
 	} finally {
 		app.dispose();
+	}
+});
+
+test('a derived keeps a handled failure for its readers until a dependency changes or an assignment publishes', async () => {
+	const owner = root();
+	const input = cell(0);
+	const failure = new Error('derived');
+	const handled: unknown[] = [];
+	const value = owner.run(() =>
+		core.derived(() => {
+			if (input.current === 0) throw failure;
+			return input.current;
+		})
+	);
+	try {
+		owner.onError((error) => handled.push(error));
+		assert.throws(
+			() => value.current,
+			(thrown) => thrown === failure
+		);
+		assert.throws(
+			() => value.current,
+			(thrown) => thrown === failure
+		);
+		assert.deepEqual(handled, [failure]);
+		core.fork(() => (value.current = 42)).discard();
+		assert.throws(
+			() => value.current,
+			(thrown) => thrown === failure
+		);
+		await core.fork(() => (value.current = 42)).commit();
+		assert.equal(value.current, 42);
+		input.current = 1;
+		assert.equal(value.current, 1);
+		owner.dispose();
+		input.current = 0;
+		assert.throws(
+			() => value.current,
+			(thrown) => thrown === failure
+		);
+		assert.deepEqual(handled, [failure]);
+	} finally {
+		owner.dispose();
 	}
 });
 

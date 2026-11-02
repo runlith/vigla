@@ -26,7 +26,8 @@ import { getAbortSignal } from './src/runtime/reactivity/abort.ts';
 import { proxy } from './src/runtime/reactivity/proxy.ts';
 import { fork } from './src/runtime/reactivity/fork.ts';
 import type { Derived, Effect } from './src/runtime/reactivity/graph.ts';
-import { derived, set, state } from './src/runtime/reactivity/sources.ts';
+import { ownerOf } from './src/runtime/reactivity/owners.ts';
+import { derived, memo, set, state, type Cell } from './src/runtime/reactivity/sources.ts';
 import { get, untrack } from './src/runtime/reactivity/tracking.ts';
 
 test('an outgoing derived keeps one transitive view and local state without publishing its cache', () => {
@@ -79,6 +80,52 @@ test('an outgoing derived keeps one transitive view and local state without publ
 		assert.equal(end(), false);
 		assert.deepEqual(cleanups, [3]);
 		assert.equal(get(selected), 33);
+	} finally {
+		destroy(tree);
+		flushSync();
+	}
+});
+
+test('an outgoing public derived rethrows a failure its owner handled without evaluating again', () => {
+	const value = state(0);
+	const visible = state(true);
+	const failure = new Error('outgoing');
+	const handled: unknown[] = [];
+	let runs = 0;
+	let child!: Effect;
+	let seen!: Cell<number>;
+	let unseen!: Cell<number>;
+	let end!: () => boolean;
+	const failing = (): number => {
+		runs++;
+		if (get(value) === 0) throw failure;
+		return get(value);
+	};
+	const tree = root(() => {
+		child = branch(() => {
+			seen = memo(failing);
+			unseen = memo(failing);
+		});
+		block(() => {
+			if (!get(visible))
+				atCommit({
+					apply() {
+						end = leaving(child);
+					}
+				});
+		});
+	});
+	const thrown = (caught: unknown): boolean => caught === failure;
+	try {
+		ownerOf(child).onError((error) => handled.push(error));
+		assert.throws(() => seen.current, thrown);
+		flushSync(() => set(visible, false));
+		for (let read = 0; read < 2; read++) {
+			assert.throws(() => seen.current, thrown);
+			assert.throws(() => unseen.current, thrown);
+		}
+		assert.deepEqual([runs, handled.length], [2, 2]);
+		end();
 	} finally {
 		destroy(tree);
 		flushSync();

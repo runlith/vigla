@@ -1,5 +1,13 @@
 import { write } from './batch.ts';
-import { DERIVED, DIRTY, SOURCE, isDerived, type Derived, type Source } from './graph.ts';
+import {
+	DERIVED,
+	DIRTY,
+	SOURCE,
+	isDerived,
+	retainFailures,
+	type Derived,
+	type Source
+} from './graph.ts';
 import { refresh } from './deriveds.ts';
 import { sequence } from './history.ts';
 import { get, guard, localize, owner, present, untrack, view } from './tracking.ts';
@@ -33,8 +41,10 @@ export function set<T>(target: Source<T>, value: T): T {
 		if (batch !== null) {
 			present(() => refresh(target));
 			reads = untrack(() => new Map((target.deps ?? []).map((dep) => [dep, get(dep)])));
-		} else refresh(target);
-		target.failure = null;
+		} else {
+			refresh(target);
+			target.failure = null;
+		}
 	}
 	const result = write(target, value, sequence());
 	if (batch !== null && reads !== undefined) {
@@ -65,7 +75,9 @@ export function cell<T>(value: T): Cell<T> {
 }
 
 export function memo<T>(fn: () => T, equals?: (before: T, after: T) => boolean): Cell<T> {
-	return valueCell(derived(fn, equals));
+	const created = derived(fn, equals);
+	retainFailures(created);
+	return valueCell(created);
 }
 
 function valueCell<T>(held: Source<T>): Cell<T> {

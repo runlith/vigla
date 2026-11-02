@@ -43,6 +43,16 @@ export interface Failure {
 	readonly error: unknown;
 }
 
+const retaining = new WeakSet<Derived>();
+
+export function retainFailures(derived: Derived): void {
+	retaining.add(derived);
+}
+
+export function retainsFailures(derived: Derived): boolean {
+	return retaining.has(derived);
+}
+
 export interface Derived<T = unknown> extends Source<T>, Reaction {
 	readonly kind: typeof DERIVED;
 	readonly fn: () => T;

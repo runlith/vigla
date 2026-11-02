@@ -381,6 +381,7 @@ export function apply(batch: Batch): void {
 			});
 			derived.status = CLEAN;
 			derived.rv = stamp();
+			derived.failure = null;
 		}
 		if (equal(source, source.v, value)) continue;
 		remember(source, source.v);

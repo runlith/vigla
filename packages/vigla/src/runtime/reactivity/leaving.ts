@@ -4,9 +4,11 @@ import { viewOf } from './held.ts';
 import {
 	CLEAN,
 	isDerived,
+	retainsFailures,
 	ROOT,
 	type Derived,
 	type Effect,
+	type Failure,
 	type Reaction,
 	type Source
 } from './graph.ts';
@@ -32,6 +34,7 @@ interface Epoch {
 
 interface Cached {
 	value: unknown;
+	failure: Failure | null;
 	ready: boolean;
 	readonly locals: Map<Source, number>;
 	effects: Effect[] | null;
@@ -249,16 +252,22 @@ function cached(source: Derived, given: LeavingView): unknown {
 			}
 		if (found.ready) {
 			inherit(given, found.locals);
+			if (found.failure !== null) throw found.failure.error;
 			return found.value;
 		}
 	}
 	if (found === undefined) {
-		found = { value: undefined, ready: false, locals: new Map(), effects: null };
+		found = { value: undefined, failure: null, ready: false, locals: new Map(), effects: null };
 		given.values.set(source, found);
-		if (source.computed && source.status === CLEAN && unchanged(source, given.epoch, new Set())) {
-			if (source.failure !== null) throw source.failure.error;
+		if (
+			(source.computed || source.failure !== null) &&
+			source.status === CLEAN &&
+			unchanged(source, given.epoch, new Set())
+		) {
 			found.value = source.v;
+			found.failure = source.failure;
 			found.ready = true;
+			if (found.failure !== null) throw found.failure.error;
 			return found.value;
 		}
 	}
@@ -267,6 +276,7 @@ function cached(source: Derived, given: LeavingView): unknown {
 		destroy(effect);
 	}
 	found.effects = null;
+	found.failure = null;
 	found.locals.clear();
 	const previousCache = given.cache;
 	const previousDerived = given.computing;
@@ -282,7 +292,9 @@ function cached(source: Derived, given: LeavingView): unknown {
 		if (!source.owner.destroyed) fail(source.owner, error);
 		found.value = undefined;
 		found.ready = true;
-		return undefined;
+		if (!retainsFailures(source)) return undefined;
+		found.failure = { error };
+		throw error;
 	} finally {
 		given.cache = previousCache;
 		given.computing = previousDerived;

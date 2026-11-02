@@ -3,7 +3,15 @@ import { fail } from './effects.ts';
 import { referencesSelf } from './errors.ts';
 import { inside } from './batch.ts';
 import { changed } from './reads.ts';
-import { DIRTY, equal, isDerived, stamp, type Derived, type Source } from './graph.ts';
+import {
+	DIRTY,
+	equal,
+	isDerived,
+	retainsFailures,
+	stamp,
+	type Derived,
+	type Source
+} from './graph.ts';
 import { updated } from './trace.ts';
 import { leavingCount, selecting, withoutLeaving } from './leaving.ts';
 import {
@@ -47,10 +55,8 @@ export function refresh(derived: Derived): void {
 			derived.computed = false;
 			derived.wv = stamp();
 			const holder = derived.owner;
-			if (holder === null) {
-				derived.failure = { error };
-				return;
-			}
+			if (holder === null || retainsFailures(derived)) derived.failure = { error };
+			if (holder === null) return;
 			derived.v = undefined as typeof derived.v;
 			if (holder.destroyed) return;
 			const status = derived.status;
