@@ -18,7 +18,7 @@ edges:
 **Scenarios the public surface must carry**, each through public `vigla` only:
 1. A service graph of at least ten layers: nested and sibling owners, context read through the live owner chain regardless of when it was set, dependents released before their dependencies, a lifetime abort signal per owner.
 2. Memoized derived values outside components, owned by the current owner, on client and server.
-3. Failure isolation: a failing effect or derived under an owner reaches the nearest handler on its owner chain; siblings keep updating; unhandled failures keep today's propagation.
+3. Failure isolation: a failing effect or derived under an owner reaches the nearest handler on its owner chain; siblings keep updating; an unhandled failure is thrown to a synchronous creator, and inside a flush leaves through its application's front end — reported to the host for a native tree, rethrown into the flush for a Svelte tree.
 4. Async services: work started under an owner counts in `settled()`, is cancelled through the owner's signal on dispose, and re-enters its owner after `await` through `owner.run`. Without a platform async store, plain JavaScript continuations carry no ambient owner and compiled code restores it itself. With one installed through `carryAcrossAwait`, the owner and every `AsyncVariable` survive `await`.
 5. Server request scopes: a request owner carries services and context into `render()`, and disposing it ends every render owner, signal and teardown beneath it.
 6. External sources and subscribers (`external`, `createSubscriber`) live under service owners and release on dispose.
