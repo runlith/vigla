@@ -11,7 +11,7 @@
 		"@playwright/test": "1.63.0",
 		"@standard-schema/spec": "1.1.0",
 		"@sveltejs/adapter-auto": "8.0.0",
-		"@sveltejs/adapter-bun": "1.0.0",
+		"@sveltejs/adapter-bun": "workspace:@vigla/adapter-bun@*",
 		"@sveltejs/adapter-node": "workspace:@vigla/adapter-node@*",
 		"@sveltejs/adapter-static": "4.0.0",
 		"@sveltejs/kit": "workspace:@vigla/kit@*",
