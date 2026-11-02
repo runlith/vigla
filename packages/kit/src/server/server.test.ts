@@ -17,7 +17,7 @@ import type {
 } from '../types/internal/server.ts';
 import { parseRoute } from '../shared/routing/index.ts';
 import { ActionFailure, HttpError, Redirect } from '../shared/outcomes.ts';
-import { deserialize } from '../shared/serialization.ts';
+import { deserialize, serialize } from '../shared/serialization.ts';
 import { sha256 } from '../shared/hash.ts';
 import { redirect } from '../entries/index.ts';
 import { Server, getRequestEvent, getRequestOwner, read } from './index.ts';
@@ -1865,4 +1865,23 @@ it('reads imported and inline assets through the supplied Web-stream reader', as
 		filesystem: 'hello',
 		inline: 'hello'
 	});
+});
+
+it('decodes outside a request with the only configured transport, never with another app', async () => {
+	vi.resetModules();
+	const { Server: Fresh } = await import('./index.ts');
+	const { deserialize: decode } = await import('../entries/app/forms/server.ts');
+	const box = (name: string) => ({
+		encode: (value: unknown) => (value as { app?: string })?.app === name && name,
+		decode: (value: string) => ({ decoded: value })
+	});
+	const result = JSON.stringify({
+		type: 'success',
+		status: 200,
+		data: serialize({ value: { app: 'first' } }, { Box: box('first') })
+	});
+	await new Fresh(manifest(), options({ transport: { Box: box('first') } })).init({ env: {} });
+	expect(decode(result)).toMatchObject({ data: { value: { decoded: 'first' } } });
+	await new Fresh(manifest(), options({ transport: { Box: box('second') } })).init({ env: {} });
+	expect(() => decode(result)).toThrow();
 });
