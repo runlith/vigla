@@ -119,7 +119,7 @@ export class Branches<K> {
 			else skip(built.effect);
 		}
 		if (known) return;
-		atCommit(() => this.#commit(batch));
+		atCommit({ apply: () => this.#commit(batch) });
 		atDiscard(() => this.#discard(batch));
 		atMerge((from, into) => this.#merge(from, into));
 	}

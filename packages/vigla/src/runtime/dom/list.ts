@@ -241,7 +241,7 @@ class List<T> {
 			else skip(this.#empty.effect);
 		}
 		if (known) return;
-		atCommit(() => this.#commit(batch));
+		atCommit({ apply: () => this.#commit(batch) });
 		atDiscard(() => this.#discard(batch));
 		atMerge((from, into) => this.#merge(from, into));
 	}

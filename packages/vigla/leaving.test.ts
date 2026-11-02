@@ -55,8 +55,10 @@ test('an outgoing derived keeps one transitive view and local state without publ
 		});
 		block(() => {
 			if (!get(visible))
-				atCommit(() => {
-					end = leaving(child);
+				atCommit({
+					apply() {
+						end = leaving(child);
+					}
 				});
 		});
 	});
@@ -95,8 +97,10 @@ test('a leaving view includes writes concealed by a held batch even when its com
 		});
 		block(() => {
 			if (!get(visible))
-				atCommit(() => {
-					end = leaving(child);
+				atCommit({
+					apply() {
+						end = leaving(child);
+					}
 				});
 		});
 	});
@@ -135,8 +139,10 @@ test('merged commit callbacks seed the combined batch and fork apply preserves o
 		});
 		block(() => {
 			if (!get(visible))
-				atCommit(() => {
-					end ??= leaving(child);
+				atCommit({
+					apply() {
+						end ??= leaving(child);
+					}
 				});
 		});
 	});
@@ -183,15 +189,19 @@ test('a held selection runs in its own view while unowned outgoing readers keep 
 		block(() => {
 			if (!get(visible)) {
 				skip(child);
-				atCommit(() => {
-					hide(child);
-					leaving(child);
+				atCommit({
+					apply() {
+						hide(child);
+						leaving(child);
+					}
 				});
 			} else if (child !== undefined) {
 				unskip(child);
-				atCommit(() => {
-					stayed(child);
-					show(child);
+				atCommit({
+					apply() {
+						stayed(child);
+						show(child);
+					}
 				});
 			}
 		});
@@ -277,8 +287,10 @@ test('speculative fork removal starts its outgoing lifetime only at the real com
 		});
 		block(() => {
 			if (!get(visible))
-				atCommit(() => {
-					end = leaving(child);
+				atCommit({
+					apply() {
+						end = leaving(child);
+					}
 				});
 		});
 	});
@@ -318,8 +330,10 @@ test('reentrant destruction reads current lifecycle values without ending the ac
 		});
 		block(() => {
 			if (!get(visible))
-				atCommit(() => {
-					leaving(child);
+				atCommit({
+					apply() {
+						leaving(child);
+					}
 				});
 		});
 	});
@@ -348,8 +362,10 @@ test('a removal flushed by an unrelated continuation uses the processing batch',
 		});
 		block(() => {
 			if (!get(visible))
-				atCommit(() => {
-					leaving(child);
+				atCommit({
+					apply() {
+						leaving(child);
+					}
 				});
 		});
 	});

@@ -66,13 +66,18 @@ export { leaving, stayed } from './leaving.ts';
 type Phase = 'structure' | 'commit' | 'content' | 'effects';
 export type Transfer = (from: Batch, into: Batch) => void;
 
+export interface Change {
+	prepare?(): void;
+	apply(): void;
+}
+
 const limit = 1000;
 
 export class Batch extends History {
 	after: Map<Source, unknown> | null = null;
 	runs: Map<Effect, AsyncRun> | null = null;
 	readonly queued: Effect[] = [];
-	readonly commits: (() => void)[] = [];
+	readonly commits: Change[] = [];
 	merges: Transfer[] | null = null;
 	readonly effects: Effect[] = [];
 	discards: (() => void)[] | null = null;
@@ -380,18 +385,20 @@ export function retire(teardown: () => void): void {
 	recalling(earlier(batch), later, teardown);
 }
 
-export function atCommit(apply: () => void): void {
-	if (processing === null || processing.phase !== 'structure') apply();
-	else processing.commits.push(apply);
+export function atCommit(change: Change): void {
+	if (joins(processing)) processing.commits.push(change);
+	else {
+		change.prepare?.();
+		change.apply();
+	}
 }
 
 export function atDiscard(fn: () => void): void {
-	if (processing !== null && processing.phase === 'structure')
-		(processing.discards ??= []).push(fn);
+	if (joins(processing)) (processing.discards ??= []).push(fn);
 }
 
 export function atMerge(fn: Transfer): void {
-	if (processing !== null && processing.phase === 'structure') (processing.merges ??= []).push(fn);
+	if (joins(processing)) (processing.merges ??= []).push(fn);
 }
 
 export function onMerge(batch: Batch, fn: Transfer): void {
@@ -478,7 +485,13 @@ function commit(batch: Batch): void {
 	const commits = batch.commits.splice(0);
 	let index = 0;
 	try {
-		for (; index < commits.length; index++) (commits[index] as () => void)();
+		for (; index < commits.length; index++) (commits[index] as Change).prepare?.();
+	} catch (error) {
+		batch.commits.unshift(...commits.slice(0, index), ...commits.slice(index + 1));
+		throw error;
+	}
+	try {
+		for (index = 0; index < commits.length; index++) (commits[index] as Change).apply();
 	} catch (error) {
 		batch.commits.unshift(...commits.slice(index + 1));
 		throw error;
