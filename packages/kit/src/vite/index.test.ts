@@ -90,16 +90,16 @@ afterAll(async () => {
 });
 
 test('sveltekit serves endpoint requests with explicit environment values and prefix paths', async () => {
-	const response = await fetch(`${origin}/base`);
+	const response = await fetch(`${origin}/base/`);
 	expect(response.status, await response.clone().text()).toBe(200);
 	expect(await response.json()).toEqual({
 		number: 7,
 		token: 'local-test-private',
 		value: 23,
-		path: '/base',
+		path: '/base/',
 		address: true
 	});
-	const options = await fetch(`${origin}/base`, { method: 'OPTIONS' });
+	const options = await fetch(`${origin}/base/`, { method: 'OPTIONS' });
 	expect(options.status).toBe(204);
 	expect(options.headers.get('x-options')).toBe('endpoint');
 	const matched = await fetch(`${origin}/base/matched/42`);
