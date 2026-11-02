@@ -1,7 +1,7 @@
 ---
 id: 01a19578-157c-7869-8004-ed3a9058341d
 title: DOM bindings initialize after the template's first attribute update
-ord: 18
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: symbol

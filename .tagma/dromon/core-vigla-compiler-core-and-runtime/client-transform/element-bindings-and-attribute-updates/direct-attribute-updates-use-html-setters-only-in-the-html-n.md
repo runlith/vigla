@@ -1,7 +1,7 @@
 ---
 id: 01a19546-64ab-7f87-a066-891bd3f05dbb
 title: Direct attribute updates use HTML setters only in the HTML namespace
-ord: 14
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol

@@ -1,7 +1,7 @@
 ---
 id: 01a193c3-2fe5-7a87-bad5-d31ab1fa8c7e
 title: Async setup thunks box their result to preserve nested promises
-ord: 6
+ord: 1
 tags: ["explanation"]
 sources:
   - kind: file

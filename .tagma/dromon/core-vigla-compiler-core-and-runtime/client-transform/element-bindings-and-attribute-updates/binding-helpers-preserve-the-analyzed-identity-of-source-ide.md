@@ -1,7 +1,7 @@
 ---
 id: 01a19483-fa30-7727-88c1-697549f12432
 title: Binding helpers preserve the analyzed identity of source identifiers
-ord: 13
+ord: 1
 tags: ["explanation"]
 sources:
   - kind: file

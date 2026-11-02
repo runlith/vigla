@@ -1,7 +1,7 @@
 ---
 id: 01a1959d-9fc2-7b3b-99c3-3938445fb5dc
 title: Instance export mutability follows the binding rather than a copied value
-ord: 19
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol

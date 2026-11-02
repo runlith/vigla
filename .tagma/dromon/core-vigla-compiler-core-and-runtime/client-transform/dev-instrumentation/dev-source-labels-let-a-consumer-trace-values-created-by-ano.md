@@ -1,7 +1,7 @@
 ---
 id: 01a193d2-50fe-77d8-949b-840292f7f32c
 title: Dev source labels let a consumer trace values created by another module
-ord: 9
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

@@ -1,7 +1,7 @@
 ---
 id: 01a193c4-711d-777f-86c2-681ad4bdeffe
 title: Compiled static HTML stays in template literals for downstream transforms
-ord: 7
+ord: 1
 tags: ["explanation"]
 sources:
   - kind: symbol

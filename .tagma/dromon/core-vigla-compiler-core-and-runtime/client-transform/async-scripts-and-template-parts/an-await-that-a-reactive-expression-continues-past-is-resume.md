@@ -1,7 +1,7 @@
 ---
 id: 01a19562-da29-716c-baa8-d5d4fbee9bcb
 title: An await that a reactive expression continues past is resumed with `save`, and the expression ends its reading with `unsave`
-ord: 17
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: symbol

@@ -1,7 +1,7 @@
 ---
 id: 01a19c1f-888a-7934-9855-4c7c3e998c62
 title: Bindable prop defaults enter reactive state at their declaration
-ord: 20
+ord: 5
 tags: ["explanation"]
 sources:
   - kind: symbol

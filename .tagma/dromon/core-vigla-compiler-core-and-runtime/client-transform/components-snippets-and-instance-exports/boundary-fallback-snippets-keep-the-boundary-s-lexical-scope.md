@@ -1,7 +1,7 @@
 ---
 id: 01a193c4-8c02-7dfd-83a3-3570e7bdcd35
 title: Boundary fallback snippets keep the boundary's lexical scope
-ord: 8
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol

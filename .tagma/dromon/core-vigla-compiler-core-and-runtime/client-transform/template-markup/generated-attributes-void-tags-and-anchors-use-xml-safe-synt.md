@@ -1,7 +1,7 @@
 ---
 id: 01a193d5-45df-7fa9-bcb3-666ffdf2c054
 title: Generated attributes, void tags and anchors use XML-safe syntax
-ord: 10
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: file

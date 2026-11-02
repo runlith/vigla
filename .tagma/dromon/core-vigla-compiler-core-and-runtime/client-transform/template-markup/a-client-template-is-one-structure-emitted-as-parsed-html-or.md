@@ -1,7 +1,7 @@
 ---
 id: 01a19e56-888b-7dd0-9f94-24c8fa19bad7
 title: A client template is one structure, emitted as parsed HTML or built by DOM calls, and both forms build the same DOM
-ord: 27
+ord: 3
 tags: ["explanation"]
 edges:
   - kind: relates

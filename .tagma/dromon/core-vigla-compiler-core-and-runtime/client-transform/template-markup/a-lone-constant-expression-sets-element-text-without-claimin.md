@@ -1,7 +1,7 @@
 ---
 id: 01a19426-3e8e-76c9-8962-e2ddc5e4616f
 title: A lone constant expression sets element text without claiming a child
-ord: 11
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol

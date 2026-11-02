@@ -1,7 +1,7 @@
 ---
 id: 01a18783-3b08-722c-ad34-4c99cf7901ef
 title: Snippet arguments travel as thunks on the client and as values on the server
-ord: 2
+ord: 1
 tags: ["explanation"]
 sources:
   - kind: file

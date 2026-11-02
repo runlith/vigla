@@ -1,7 +1,7 @@
 ---
 id: 01a19550-856a-78f4-9268-0ae067be879b
 title: Content bindings own live element text after child interpolation initializes it
-ord: 16
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol

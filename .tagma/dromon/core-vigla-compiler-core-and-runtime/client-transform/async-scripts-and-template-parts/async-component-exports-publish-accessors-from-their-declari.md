@@ -1,7 +1,7 @@
 ---
 id: 01a19470-3928-7ae3-b35e-b863abb59d83
 title: Async component exports publish accessors from their declaring scope
-ord: 12
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: file

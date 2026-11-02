@@ -1,7 +1,7 @@
 ---
 id: 01a19db0-045d-7a09-a778-1354bc8cf94d
 title: Client expression projections remain inside Core mutation validation
-ord: 26
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: file

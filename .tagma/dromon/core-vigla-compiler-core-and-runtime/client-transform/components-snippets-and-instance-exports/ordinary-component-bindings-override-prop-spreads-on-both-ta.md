@@ -1,7 +1,7 @@
 ---
 id: 01a19c24-e0a3-7a44-8571-f802a45e2746
 title: Ordinary component bindings override prop spreads on both targets
-ord: 21
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: symbol
