@@ -323,6 +323,7 @@ basics/test/playwright/cross-platform/client.test.js > Prefetching > preloadCode
 basics/test/playwright/cross-platform/client.test.js > Prefetching > preloads errors (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Prefetching > same route hash links work more than once (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Prefetching > warns when preloadCode is called with an endpoint-only route id (test-dev-1/chromium-dev)
+basics/test/playwright/cross-platform/client.test.js > Prefetching > warns when preloadCode is called with an endpoint-only route id (test-server-side-route-resolution-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Prefetching > warns when preloadCode is called with an unknown route id (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Routing > back button returns to previous route when previous route was navigated to via hash anchor (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Routing > backwards navigation works after clicking a hash link with data-sveltekit-reload (test-dev-1/chromium-dev)

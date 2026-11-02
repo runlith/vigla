@@ -10,7 +10,11 @@ import { addResolutionSuffix } from '../shared/pathname.ts';
 import { decodePathname } from '../shared/url.ts';
 import { base, appDir, hashRouting } from './payload.ts';
 import { preload_invalid_route_id } from './errors.ts';
-import { preload_route_missing, preload_route_is_pathname } from './warnings.ts';
+import {
+	preload_code_endpoint_only,
+	preload_route_missing,
+	preload_route_is_pathname
+} from './warnings.ts';
 
 export type NodeEntry = [server: boolean, loader: NodeLoader];
 export interface Route extends RoutePattern {
@@ -192,7 +196,13 @@ export class Routes {
 		if (!route && this.#app.clientRouting === false) {
 			try {
 				const path = addResolutionSuffix(`${base}/${appDir}/routes${id === '/' ? '' : id}`);
-				const module: { route?: ServerRoute } = await import(/* @vite-ignore */ path);
+				const module: { route?: ServerRoute; endpoint_only?: boolean } = await import(
+					/* @vite-ignore */ path
+				);
+				if (module.endpoint_only) {
+					preload_code_endpoint_only({ id });
+					return;
+				}
 				if (module.route) route = this.accept(module.route);
 			} catch {}
 		}

@@ -39,6 +39,12 @@ export function preload_route_is_pathname(values: Route): void {
 		`\`${values.id}\` is a pathname, not a route ID. Use match to find its route ID.`
 	);
 }
+export function preload_code_endpoint_only(values: Route): void {
+	warnDiagnostic(
+		'preload_code_endpoint_only',
+		`\`${values.id}\` has no \`+page\`, so there is no code to preload. If you meant to warm up an endpoint, request it with \`fetch\` instead.`
+	);
+}
 export function preload_route_missing(values: Route): void {
 	warnDiagnostic('preload_route_missing', `\`${values.id}\` did not match any route`);
 }
