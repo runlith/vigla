@@ -1027,3 +1027,7 @@ options/test/test.js > trailingSlash > removes trailing slash on endpoint (test-
 options/test/test.js > trailingSlash > removes trailing slash on endpoint (test-dev-2/chromium-dev-no-js)
 options/test/test.js > trailingSlash > removes trailing slash on endpoint (test-server-side-route-resolution-dev-1/chromium-dev)
 options/test/test.js > trailingSlash > removes trailing slash on endpoint (test-server-side-route-resolution-dev-1/chromium-dev-no-js)
+options/unit-test/vite.spec.js > ignores all outDir files except generated files (test-dev-1)
+options/unit-test/vite.spec.js > no overridden options warning (test-dev-1)
+options/unit-test/vite.spec.js > no transformIndexHtml warning for the Vitest browser loader (test-dev-1)
+options/unit-test/vite.spec.js > transformIndexHtml warning for app plugins (test-dev-1)

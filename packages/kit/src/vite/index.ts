@@ -172,7 +172,12 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 					server: {
 						cors: resolveCors(user.server?.cors, 'server.cors', dev),
 						fs: { allow: [...allow] },
-						watch: { ignored: [`${config.outDir}/types/**`, `${config.outDir}/output/**`] },
+						watch: {
+							ignored: [
+								`${posix(config.outDir)}/!(generated)`,
+								`${posix(config.outDir)}/!(generated)/**`
+							]
+						},
 						sourcemapIgnoreList: (file) =>
 							file.includes('node_modules') || file.includes(config.outDir)
 					},
