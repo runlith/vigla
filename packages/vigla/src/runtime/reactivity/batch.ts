@@ -38,6 +38,7 @@ import {
 	others,
 	overlook,
 	overlooked,
+	reconcile,
 	requeue,
 	rescue,
 	viewOf
@@ -533,6 +534,7 @@ export function process(batch: Batch): void {
 	try {
 		let passes = 0;
 		let merging = true;
+		reconcile(batch);
 		while (batch.queued.length > 0 || (batch.commits.length > 0 && !holds(batch))) {
 			if (++passes > limit) {
 				exceeded(batch, content);

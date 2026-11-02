@@ -78,6 +78,7 @@ function start<P extends Props, E extends Exports>(
 					exports = withHydration(options.format ?? nativeFormat, options.target, () =>
 						withContext(options.context, () => component(anchor, props))
 					);
+					if (hydrating && !isClose(cursor)) mismatch();
 				},
 				options.transformError
 			);

@@ -28,6 +28,7 @@ import type { View } from './tracking.ts';
 import { DEV } from 'esm-env';
 import { merged } from './trace.ts';
 import { changed as changedReads } from './reads.ts';
+import { asynchronous } from './async.ts';
 
 export const overlooked = new WeakSet<Effect>();
 
@@ -117,7 +118,7 @@ export function viewOf(batch: Batch): View {
 			}
 			return;
 		}
-		if (other.order < batch.order && intersects(other, batch)) return;
+		if (inherits(batch, other)) return;
 		for (const [source, value] of other.before) {
 			if ((own !== null && own.has(source)) || given.values.has(source)) continue;
 			given.values.set(source, value);
@@ -168,6 +169,35 @@ function intersects(a: Batch, b: Batch): boolean {
 	const [small, large] = a.before.size < b.before.size ? [a, b] : [b, a];
 	for (const source of small.before.keys()) if (large.before.has(source)) return true;
 	return false;
+}
+
+function inherits(batch: Batch, other: Batch): boolean {
+	return !other.fork && !other.done && other.order < batch.order && intersects(other, batch);
+}
+
+export function reconcile(batch: Batch): void {
+	let sources: Map<Source, unknown> | null = null;
+	for (const other of pending) {
+		if (!inherits(batch, other)) continue;
+		for (const [source, value] of other.before) (sources ??= new Map()).set(source, value);
+	}
+	if (sources === null) return;
+	const seen = new Set<Effect>();
+	const memo = new Map<Reaction, boolean>();
+	for (const queued of batch.queued) {
+		if (queued.destroyed) continue;
+		for (let at = queued.parent; at !== null; at = at.parent) {
+			if (seen.has(at)) break;
+			seen.add(at);
+			if (
+				at.kind === BLOCK &&
+				at.batch !== batch.order &&
+				!asynchronous.has(at) &&
+				depends(at, sources, memo)
+			)
+				force(batch, at);
+		}
+	}
 }
 
 function materialize(batch: Batch): Map<Source, unknown> {
