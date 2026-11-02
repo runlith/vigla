@@ -20,7 +20,10 @@ import { ownership } from './ownership.ts';
 import { losses } from './loss.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
 import { separateCode } from './special.ts';
+import type { Fragments } from './markup.ts';
 import { render, type TemplateContext } from './template.ts';
+
+export type { Fragments } from './markup.ts';
 
 export interface ModuleOptions {
 	readonly runtime: string;
@@ -37,6 +40,7 @@ export interface ClientOptions extends ModuleOptions {
 	readonly hmr: boolean;
 	readonly filename: string;
 	readonly discloseVersion: string | false;
+	readonly fragments: Fragments;
 }
 
 function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
@@ -140,6 +144,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		positions: new Positions(options.dev ? analysis.unit.source : '', options.filename),
 		filename: options.filename,
 		format: options.format,
+		fragments: options.fragments,
 		dev: options.dev,
 		aliases: new Map(),
 		renamed: new Map(),

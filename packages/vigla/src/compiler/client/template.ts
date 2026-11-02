@@ -1,6 +1,5 @@
 import type * as ES from 'estree';
 import type { Format } from '../../shared/format.ts';
-import { escapeContent } from '../../shared/escape.ts';
 import {
 	asyncStep,
 	dynamic,
@@ -29,6 +28,7 @@ import { constantDeclarations } from './constants.ts';
 import { dynamicCall } from './dynamic.ts';
 import { slotCall } from './custom-element.ts';
 import { elementPart } from './element.ts';
+import { anchorComment, html, tree, type Fragments, type Markup } from './markup.ts';
 import type { Positions } from './meta.ts';
 import { rewrite, runtime, type Context } from './script.ts';
 
@@ -45,6 +45,7 @@ export interface TemplateContext extends Context {
 	readonly boundContent?: boolean;
 	readonly structural?: boolean;
 	readonly externalRows?: boolean;
+	readonly fragments: Fragments;
 }
 
 export function scopeHash(context: TemplateContext, node: Host): string | null {
@@ -73,7 +74,7 @@ export function awaitedEmit(emit: Emit): Emit {
 }
 
 export interface Part {
-	readonly html: string;
+	readonly markup: Markup;
 	readonly hint: string;
 	readonly text: boolean;
 	readonly referenced: boolean;
@@ -159,7 +160,7 @@ function textPart(context: TemplateContext, run: readonly (Text | Expression)[])
 	if (run.every((part) => part.kind === 'text')) {
 		const data = run.map((part) => (part as Text).data).join('');
 		return {
-			html: escapeContent(data),
+			markup: { kind: 'text', data },
 			hint: 'text',
 			text: false,
 			referenced: false,
@@ -172,7 +173,7 @@ function textPart(context: TemplateContext, run: readonly (Text | Expression)[])
 		run.some((part) => part.kind === 'expression' && isDynamic(context, part.expression));
 	const empty = run.every((part) => part.kind === 'expression' || part.data === '');
 	return {
-		html: ' ',
+		markup: { kind: 'text', data: ' ' },
 		hint: 'text',
 		text: empty,
 		referenced: true,
@@ -213,7 +214,14 @@ export function htmlCall(
 }
 
 function anchorPart(setup: (node: ES.Identifier, emit: Emit) => void): Part {
-	return { html: '<!---->', hint: 'node', text: false, referenced: true, children: [], setup };
+	return {
+		markup: anchorComment,
+		hint: 'node',
+		text: false,
+		referenced: true,
+		children: [],
+		setup
+	};
 }
 
 export function parts(
@@ -255,7 +263,7 @@ export function parts(
 				break;
 			case 'comment':
 				result.push({
-					html: `<!--${node.data}-->`,
+					markup: { kind: 'comment', data: node.data },
 					hint: 'comment',
 					text: false,
 					referenced: false,
@@ -438,7 +446,7 @@ function flags(namespace: Namespace, single: boolean, scripts: boolean): number 
 }
 
 function isElement(part: Part | undefined): boolean {
-	return part !== undefined && part.html.startsWith('<') && !part.html.startsWith('<!');
+	return part?.markup.kind === 'element';
 }
 
 export function render(
@@ -489,16 +497,19 @@ export function render(
 	const list = parts(context, nodes, namespace, step);
 	if (list.length === 0) return declarations;
 	const emit: Emit = { init: [...declarations], after: [], update: [], thunks: [], params: [] };
-	const html = list.map((part) => part.html).join('');
-	const startsWithText = textFirst && list[0]?.hint === 'text' && !isElement(list[0]);
-	if (startsWithText) emit.init.push(b.statement(runtime(context, 'next')));
+	if (textFirst && list[0]?.markup.kind === 'text') {
+		emit.init.push(b.statement(runtime(context, 'next')));
+	}
 	const [head] = list;
 	const single = list.length === 1 && isElement(head);
 	const template = context.names.unique('root');
 	const flagged = flags(namespace, single, list.some(hasScript));
-	const args: ES.Expression[] = [b.template([html], [])];
+	const markups = list.map((part) => part.markup);
+	const args: ES.Expression[] =
+		context.fragments === 'tree' ? [tree(markups)] : [b.template([markups.map(html).join('')], [])];
 	if (flagged !== 0) args.push(b.literal(flagged));
-	context.hoisted.push(b.constant(template, runtime(context, 'fragment', ...args)));
+	const maker = context.fragments === 'tree' ? 'tree' : 'fragment';
+	context.hoisted.push(b.constant(template, runtime(context, maker, ...args)));
 	const hint = single && head !== undefined ? head.hint.replace(/[^\w$]/g, '_') : 'fragment';
 	const root = b.id(context.names.unique(hint));
 	emit.init.push(b.constant(root.name, b.call(b.id(template))));

@@ -215,6 +215,7 @@
 		"transition-separate-js-restart": "contract",
 		"async-batch-effect": { "status": "difference", "reason": "Svelte #18374: upstream 5.57.3 with async on and dev:false commits 0/1 instead of 1/1 after the nested microtask writes" },
 		"async-hydration-prewrite": { "status": "difference", "reason": "Svelte #18993 public hydration analogue: upstream 5.57.3 renders content after the pre-hydration data write but its expected root/child layout effect is absent" },
+		"tree-foreign-content": { "status": "difference", "reason": "Upstream 5.57.3 builds fragments: 'tree' templates without the HTML parser's integration points, so the <b> inside an SVG <title> is created in the SVG namespace instead of HTML (third assertion fails)" },
 		"awaited-attribute-hydration": { "status": "difference", "reason": "Upstream 5.57.3 applies awaited attribute values after hydration from an empty cache, so a value the client resolves to undefined leaves the server's data-x in place (first assertion fails); Vigla writes them while claiming, keeping removal and SSR input-default cleanup" },
 		"eager-promise-parallel": { "status": "difference", "reason": "Svelte #18069 narrowed case: upstream 5.57.3 with dev:true emits a false waterfall warning although working's 200ms promise started eagerly before broken's 100ms Promise.all work" },
 		"bind-teardown-snapshot": { "status": "difference", "reason": "Svelte #18150: upstream 5.57.3 clears bind:this before the effect cleanup, which reads null rather than the previous INPUT" },

@@ -9,7 +9,7 @@ import {
 	validateModule,
 	type ValidateOptions
 } from '../compiler/analysis/validate/index.ts';
-import { client, clientModule } from '../compiler/client/index.ts';
+import { client, clientModule, type Fragments } from '../compiler/client/index.ts';
 import { analyzeStyle, injected, renderStyle, type Stylesheet } from '../compiler/css/index.ts';
 import type { Namespace } from '../compiler/ir/nodes.ts';
 import { chain, sourceName, type InputMap, type OutputMap } from '../compiler/ir/maps.ts';
@@ -81,6 +81,7 @@ export interface CompileOptions extends ModuleOptions, Mapping {
 	readonly customElement?: boolean;
 	readonly preserveWhitespace?: boolean;
 	readonly preserveComments?: boolean;
+	readonly fragments?: Fragments;
 	readonly namespace?: Namespace;
 	readonly css?: CssOptions;
 	readonly hmr?: boolean;
@@ -167,7 +168,8 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 					runtime: runtime.client,
 					project: options.clientExpression,
 					hmr: options.hmr ?? false,
-					discloseVersion: options.discloseVersion ?? '0'
+					discloseVersion: options.discloseVersion ?? '0',
+					fragments: options.fragments ?? 'html'
 				});
 	return { js: printed(program, unit, options), css: inject ? null : css, warnings };
 }

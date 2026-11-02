@@ -1,7 +1,6 @@
 import type * as ES from 'estree';
 import { toClass } from '../../shared/attributes.ts';
-import { escapeAttribute } from '../../shared/escape.ts';
-import { isProperty, isVoid, propertyName } from '../../shared/html.ts';
+import { isProperty, propertyName } from '../../shared/html.ts';
 import { richSelect, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
@@ -19,6 +18,7 @@ import { binding, hasContentBinding } from './bindings.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { event, handler, isEvent } from './events.ts';
 import { rewrite, runtime } from './script.ts';
+import { anchorComment, elementKind } from './markup.ts';
 import { location } from './meta.ts';
 import { animationCall, transitionCall } from './transitions.ts';
 import { isStatic, staticText, valueOf, valueReactive } from './values.ts';
@@ -418,7 +418,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		node.name.includes('-') ||
 		node.attributes.some((attribute) => attribute.kind === 'attribute' && attribute.name === 'is');
 	const tag = html && !custom ? node.name.toLowerCase() : node.name;
-	let markup = `<${tag}`;
+	const statics: [string, string][] = [];
 	const setups: ((element: ES.Identifier, emit: Emit) => void)[] = [];
 	if (context.dev)
 		setups.push((element, emit) => emit.init.push(...location(context, node, element)));
@@ -434,7 +434,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	if (hasSpread) {
 		for (const attribute of node.attributes) {
 			if (attribute.kind === 'attribute' && templated(context, node, attribute)) {
-				markup += ` is="${escapeAttribute(staticText(attribute.value))}"`;
+				statics.push(['is', staticText(attribute.value)]);
 			}
 		}
 		setups.push((element, emit) => spread(context, node, element, emit));
@@ -493,10 +493,10 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 				!(html && tag === 'select' && name === 'value') &&
 				(!custom || templated(context, node, attribute))
 			) {
-				markup +=
-					attribute.value.kind === 'boolean'
-						? ` ${lower}=""`
-						: ` ${lower}="${escapeAttribute(staticText(attribute.value))}"`;
+				statics.push([
+					lower,
+					attribute.value.kind === 'boolean' ? '' : staticText(attribute.value)
+				]);
 				continue;
 			}
 			const reactive = valueReactive(context, attribute.value);
@@ -525,19 +525,15 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			const hash = scopeHash(context, node);
 			const given = classValue === null ? null : staticText(classValue);
 			const name = hash === null && classValue?.kind === 'boolean' ? '' : toClass(given, hash);
-			if (name !== null) markup += ` class="${escapeAttribute(name)}"`;
+			if (name !== null) statics.push(['class', name]);
 		}
 		if (styles.length > 0 || styleDynamic) {
 			const value = styleValue;
 			setups.push((element, emit) => styleAttribute(context, element, value, styles, emit));
 		} else if (styleValue !== null) {
-			markup +=
-				styleValue.kind === 'boolean'
-					? ' style=""'
-					: ` style="${escapeAttribute(staticText(styleValue))}"`;
+			statics.push(['style', styleValue.kind === 'boolean' ? '' : staticText(styleValue)]);
 		}
 	}
-	markup += isVoid(tag) ? '/>' : '>';
 	const childNamespace = node.name === 'foreignObject' ? 'html' : namespace;
 	const body = cleaned(context, node.body);
 	const [only] = body;
@@ -572,7 +568,6 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const children =
 		controlled || constantText || rich ? [] : parts(childContext, body, childNamespace);
 	if (rich) {
-		markup += '<!---->';
 		setups.push((element, emit) => {
 			const anchor = b.id(context.names.unique('anchor'));
 			const content = render(childContext, body, anchor, childNamespace, false);
@@ -581,8 +576,6 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			);
 		});
 	}
-	for (const child of children) markup += child.html;
-	if (!isVoid(tag)) markup += `</${tag}>`;
 	for (const attribute of node.attributes) {
 		if (attribute.kind === 'transition') {
 			setups.push((element, emit) => emit.init.push(transitionCall(context, element, attribute)));
@@ -608,7 +601,13 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		);
 	}
 	return {
-		html: markup,
+		markup: {
+			kind: elementKind(tag),
+			name: tag,
+			namespace,
+			attributes: statics,
+			children: rich ? [anchorComment] : children.map((child) => child.markup)
+		},
 		hint: node.name,
 		text: false,
 		referenced: setups.length > 0,

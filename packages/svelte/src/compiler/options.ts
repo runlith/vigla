@@ -134,6 +134,8 @@ export function validate(options: object, kind: Kind): Notice[] {
 	) {
 		invalid('namespace should be one of "html", "mathml" or "svg"');
 	}
-	if (given.fragments === 'tree') unbuilt('`fragments: "tree"`');
+	if (given.fragments !== undefined && given.fragments !== 'html' && given.fragments !== 'tree') {
+		invalid('fragments should be either "html" or "tree"');
+	}
 	return notices;
 }

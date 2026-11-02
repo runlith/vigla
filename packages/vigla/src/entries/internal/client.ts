@@ -99,7 +99,8 @@ export {
 	reset,
 	richSelect,
 	sibling,
-	text
+	text,
+	tree
 } from '../../runtime/dom/template.ts';
 export { asyncDerived, pending, work } from '../../runtime/reactivity/async.ts';
 export { resumed, suspend } from '../../runtime/reactivity/batch.ts';

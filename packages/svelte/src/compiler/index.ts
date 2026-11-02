@@ -232,6 +232,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			namespace: options.namespace,
 			preserveWhitespace: options.preserveWhitespace,
 			preserveComments: options.preserveComments,
+			fragments: options.fragments,
 			validation,
 			outputFilename: options.outputFilename,
 			inputMap: options.sourcemap,

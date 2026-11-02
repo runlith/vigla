@@ -1,3 +1,4 @@
+import { namespaces } from '../../shared/html.ts';
 import { template } from '../reactivity/effects.ts';
 import { derived } from '../reactivity/sources.ts';
 import { get } from '../reactivity/tracking.ts';
@@ -92,14 +93,114 @@ export function richSelect(element: Element, render: Render): void {
 	}
 }
 
-export function fragment(html: string, flags = 0): () => Node {
-	let parsed: Node | null = null;
+export type Structure =
+	| string
+	| null
+	| readonly [string, (Readonly<Record<string, string>> | null)?, ...Structure[]];
+
+const TEXT_POINT = 'text-point';
+
+const ANNOTATION = 'annotation';
+
+type Context = string | null;
+
+const XLINK = 'http://www.w3.org/1999/xlink';
+
+const XML = 'http://www.w3.org/XML/1998/namespace';
+
+const XMLNS = 'http://www.w3.org/2000/xmlns/';
+
+const foreignAttributes: Readonly<Record<string, string>> = {
+	'xlink:actuate': XLINK,
+	'xlink:arcrole': XLINK,
+	'xlink:href': XLINK,
+	'xlink:role': XLINK,
+	'xlink:show': XLINK,
+	'xlink:title': XLINK,
+	'xlink:type': XLINK,
+	'xml:lang': XML,
+	'xml:space': XML,
+	xmlns: XMLNS,
+	'xmlns:xlink': XMLNS
+};
+
+const textPoints = new Set(['mi', 'mo', 'mn', 'ms', 'mtext']);
+
+function spaceOf(name: string, context: Context): string | null {
+	if (context === null || context === TEXT_POINT) {
+		if (context === TEXT_POINT && (name === 'mglyph' || name === 'malignmark')) {
+			return namespaces.mathml;
+		}
+		return name === 'svg' ? namespaces.svg : name === 'math' ? namespaces.mathml : null;
+	}
+	if (context === ANNOTATION) return name === 'svg' ? namespaces.svg : namespaces.mathml;
+	return context;
+}
+
+function within(name: string, space: string | null, encoding: string | undefined): Context {
+	if (space === namespaces.svg) {
+		return name === 'foreignObject' || name === 'desc' || name === 'title' ? null : space;
+	}
+	if (space !== namespaces.mathml) return null;
+	if (textPoints.has(name)) return TEXT_POINT;
+	if (name !== 'annotation-xml') return space;
+	const kind = encoding?.toLowerCase();
+	return kind === 'text/html' || kind === 'application/xhtml+xml' ? null : ANNOTATION;
+}
+
+function construct(structure: readonly Structure[], context: Context, parent: Node): void {
+	for (const item of structure) {
+		if (typeof item === 'string') {
+			parent.appendChild(document.createTextNode(item));
+			continue;
+		}
+		if (item === null || item[0].startsWith('// ')) {
+			parent.appendChild(document.createComment(item === null ? '' : item[0].slice(3)));
+			continue;
+		}
+		const [name, attributes, ...children] = item;
+		const space = spaceOf(name, context);
+		const is = attributes?.is;
+		const element =
+			space === null
+				? document.createElement(name, is === undefined ? undefined : { is })
+				: document.createElementNS(space, name);
+		for (const [key, value] of Object.entries(attributes ?? {})) {
+			const foreign = space === null ? undefined : foreignAttributes[key];
+			if (foreign === undefined) element.setAttribute(key, value);
+			else element.setAttributeNS(foreign, key, value);
+		}
+		const inner =
+			space === null && name === 'template' ? (element as HTMLTemplateElement).content : element;
+		construct(children, within(name, space, attributes?.encoding), inner);
+		parent.appendChild(element);
+	}
+}
+
+function build(structure: readonly Structure[], flags: number): Node {
+	const context =
+		(flags & SVG) !== 0 ? namespaces.svg : (flags & MATHML) !== 0 ? namespaces.mathml : null;
+	const fragment = document.createDocumentFragment();
+	construct(structure, context, fragment);
+	return (flags & SINGLE) === 0 ? fragment : (fragment.firstChild as Node);
+}
+
+function cloned(master: () => Node, flags: number): () => Node {
+	let made: Node | null = null;
 	return () => {
 		if (hydrating) return cursor;
-		parsed ??= parse(html, flags);
-		const node = document.importNode(parsed, true);
+		made ??= master();
+		const node = document.importNode(made, true);
 		return (flags & SCRIPTS) === 0 ? node : activateScripts(node);
 	};
+}
+
+export function fragment(html: string, flags = 0): () => Node {
+	return cloned(() => parse(html, flags), flags);
+}
+
+export function tree(structure: readonly Structure[], flags = 0): () => Node {
+	return cloned(() => build(structure, flags), flags);
 }
 
 function textAt(node: ChildNode | null, after: ChildNode | null, parent: Node): ChildNode {

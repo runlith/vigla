@@ -3,6 +3,7 @@ import { spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Boundary, Component, Node, Render, Snippet } from '../ir/nodes.ts';
 import { bindThisCall, validateBinding } from './bindings.ts';
+import { anchorComment } from './markup.ts';
 import { snippetParameters } from './parameters.ts';
 import { valueOf } from './values.ts';
 import { accessor, rewrite, runtime } from './script.ts';
@@ -261,7 +262,13 @@ export function styledComponent(
 	if (properties.length === 0) return null;
 	const tag = svg ? 'g' : context.format.cssWrapper;
 	return {
-		html: `<${tag}${svg ? '' : ' style="display: contents"'}><!----></${tag}>`,
+		markup: {
+			kind: 'element',
+			name: tag,
+			namespace: svg ? 'svg' : 'html',
+			attributes: svg ? [] : [['style', 'display: contents']],
+			children: [anchorComment]
+		},
 		hint: tag,
 		text: false,
 		referenced: true,
