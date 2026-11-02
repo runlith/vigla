@@ -7,13 +7,13 @@ import {
 	rmSync,
 	writeFileSync
 } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { load, root, ruling, runs as running } from '../manifest.ts';
 import { resultsDir, writeRuns, type Run } from '../reports.ts';
 import { covers, selectors, selects } from '../scope.ts';
 import { install, store } from '../store.ts';
 import { entryId } from '../suites.ts';
-import { samplesOf, treeNamed, trees, type Tree } from '../trees.ts';
+import { samplesOf, trees, type Tree } from '../trees.ts';
 import { execute, labelOf, plan, type Step } from './steps.ts';
 import { checkTypes } from './types.ts';
 import { reportName, selected, units, type Unit } from './units.ts';
@@ -37,7 +37,7 @@ function packages(dir: string, into: string[]): void {
 function prepare(): void {
 	rmSync(work, { recursive: true, force: true });
 	for (const tree of trees) {
-		if (tree.project !== 'kit') continue;
+		if (tree.runner !== 'kit') continue;
 		cpSync(samplesOf(tree), join(work, tree.source), { recursive: true, verbatimSymlinks: true });
 	}
 	const importer = join(work, 'packages', 'test-redirect-importer');
@@ -69,7 +69,7 @@ function specs(tree: Tree): Step {
 		if (
 			rule !== undefined &&
 			running(rule.status) &&
-			selects(`kit/${tree.name}`, entryId(key, 'test-unit-1'))
+			selects(`${tree.project}/${tree.name}`, entryId(key, 'test-unit-1'))
 		)
 			files.add(key.split(' > ')[0] ?? '');
 	}
@@ -124,10 +124,10 @@ function types(dir: string, report: string): void {
 	);
 }
 
-const all = units(work);
+const all = [...units(work), ...units(work, 'own')];
 
 function chosen(unit: Unit): boolean {
-	const id = `kit/${unit.tree}`;
+	const id = `${unit.tree.project}/${unit.tree.name}`;
 	if (!covers(id)) return false;
 	const picks = selectors(id);
 	if (picks === null || all.filter((other) => other.tree === unit.tree).length === 1) return true;
@@ -137,7 +137,7 @@ function chosen(unit: Unit): boolean {
 const variant = /\(([^()/]+-\d+)(?:\/[^()]*)?\)$/;
 
 function labels(unit: Unit): ReadonlySet<string> | null {
-	const picks = selectors(`kit/${unit.tree}`);
+	const picks = selectors(`${unit.tree.project}/${unit.tree.name}`);
 	if (picks === null) return null;
 	const found = new Set<string>();
 	for (const pick of picks) {
@@ -159,17 +159,16 @@ function planned(dir: string, unit: Unit): Step[] {
 }
 
 for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
-	const tree = treeNamed('kit', unit.tree);
-	if (tree === undefined) throw new Error(`no kit tree ${unit.tree}`);
+	const tree = unit.tree;
 	const dir = join(work, unit.dir);
-	if (unit.tree === 'types') {
+	if (tree.project === 'kit' && tree.name === 'types') {
 		types(dir, join(results, reportName(unit, 'check-1')));
 		runs.push({ tree, mode: 'check-1', file: reportName(unit, 'check-1'), env: {} });
 		continue;
 	}
 	const steps = tree.name.endsWith('units') ? [specs(tree)] : planned(dir, unit);
 	for (const step of steps) {
-		console.log(`\n${unit.tree}/${unit.app} ${step.label ?? step.command}`);
+		console.log(`\n${tree.project}/${tree.name}/${unit.app} ${step.label ?? step.command}`);
 		execute(step, {
 			cwd: dir,
 			path: [join(dir, 'node_modules', '.bin'), bin],
@@ -177,7 +176,8 @@ for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 				NODE_OPTIONS: [process.env.NODE_OPTIONS, `--import=${force}`].filter(Boolean).join(' '),
 				KIT_E2E_RETRIES: '2',
 				pnpm_config_verify_deps_before_run: 'false',
-				VIGLA_TREE: unit.tree,
+				VIGLA_TREE: `${tree.project}/${tree.name}`,
+				VIGLA_TARGET: basename(dirname(target)),
 				VIGLA_STEP: step.label ?? ''
 			},
 			report: (label) => join(results, reportName(unit, label))
@@ -186,7 +186,7 @@ for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 		runs.push({
 			tree,
 			mode: step.label,
-			...(unit.tree === 'build-errors' || tree.name.endsWith('units')
+			...(tree.name === 'build-errors' || tree.name.endsWith('units')
 				? {}
 				: { scope: `${unit.app}/` }),
 			file: reportName(unit, step.label),

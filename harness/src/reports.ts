@@ -89,9 +89,10 @@ function walk(
 }
 
 export function modeOf(tree: Tree, report: string): string | undefined {
-	const rest = report.slice(tree.name.length + 1, -'.json'.length);
+	const prefix = tree.project === 'own' ? `${tree.project}.` : '';
+	const rest = report.slice(prefix.length + tree.name.length + 1, -'.json'.length);
 	if (rest === '') return undefined;
-	return tree.project === 'kit' ? rest.slice(rest.indexOf('.') + 1) : rest;
+	return tree.runner === 'kit' ? rest.slice(rest.indexOf('.') + 1) : rest;
 }
 
 function firstLine(messages: readonly string[] | undefined): string | undefined {

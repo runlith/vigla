@@ -93,14 +93,16 @@ if (scope !== null) {
 } else delete process.env.VIGLA_SCOPE;
 const env = process.env;
 
-const wanted = (project: string): boolean =>
-	scope === null || Object.keys(scope).some((id) => id.startsWith(`${project}/`));
+const wanted = (id: string): boolean => scope === null || id in scope;
 
 const parts: string[] = [];
 const exits: Record<string, number> = {};
 const quiet = passing !== null && !values.verbose;
 
-if (existsSync(join(target, 'vitest.config.ts')) && (wanted('svelte') || wanted('own'))) {
+if (
+	existsSync(join(target, 'vitest.config.ts')) &&
+	suites.some((suite) => wanted(suiteId(suite)))
+) {
 	const files =
 		scope === null
 			? []
@@ -125,7 +127,11 @@ if (existsSync(join(target, 'vitest.config.ts')) && (wanted('svelte') || wanted(
 
 for (const part of ['vite-plugin', 'kit'] as const) {
 	const dir = join(target, part);
-	if (!existsSync(join(dir, 'package.json')) || !wanted(part)) continue;
+	if (
+		!existsSync(join(dir, 'package.json')) ||
+		!trees.some((tree) => tree.runner === part && wanted(`${tree.project}/${tree.name}`))
+	)
+		continue;
 	const outcome = spawnSync('node', [join(root, 'src', part, 'run.ts')], {
 		cwd: dir,
 		stdio: 'inherit',

@@ -17,7 +17,7 @@ const pnpm = join(root, '..', 'targets', 'upstream', 'kit', 'node_modules', '.bi
 
 for (const unit of selected(units(kit), names)) {
 	const dir = join(kit, unit.dir);
-	if (unit.tree === 'types') {
+	if (unit.tree.name === 'types') {
 		const tsc = ['node_modules/@typescript/native/bin/tsc', '--pretty', 'false', '--project'];
 		const cwd = join(kit, 'packages', 'kit');
 		checkTypes(
@@ -31,7 +31,7 @@ for (const unit of selected(units(kit), names)) {
 		continue;
 	}
 	for (const step of plan(dir, unit.scripts)) {
-		console.log(`\n${unit.tree}/${unit.app} ${step.label ?? step.command}`);
+		console.log(`\n${unit.tree.name}/${unit.app} ${step.label ?? step.command}`);
 		execute(step, {
 			cwd: dir,
 			path: [

@@ -3,9 +3,11 @@ import { join } from 'node:path';
 import { root } from './manifest.ts';
 
 export type Repository = 'kit' | 'vite-plugin';
+export type Runner = 'kit' | 'vite-plugin';
 
 export interface Tree {
-	project: Repository;
+	project: Repository | 'own';
+	runner: Runner;
 	name: string;
 	source: string;
 	exclude: readonly string[];
@@ -27,7 +29,7 @@ function kit(
 	key: Tree['key'],
 	exclude: readonly string[] = []
 ): Tree {
-	return { project: 'kit', name, source, exclude, key, rewrites: kitRewrites };
+	return { project: 'kit', runner: 'kit', name, source, exclude, key, rewrites: kitRewrites };
 }
 
 export const repositories: Readonly<Record<Repository, string>> = {
@@ -38,6 +40,7 @@ export const repositories: Readonly<Record<Repository, string>> = {
 export const trees: readonly Tree[] = [
 	{
 		project: 'vite-plugin',
+		runner: 'vite-plugin',
 		name: 'units',
 		source: 'packages/vite-plugin-svelte/__tests__',
 		exclude: [],
@@ -45,6 +48,7 @@ export const trees: readonly Tree[] = [
 	},
 	{
 		project: 'vite-plugin',
+		runner: 'vite-plugin',
 		name: 'e2e',
 		source: 'packages/e2e-tests',
 		exclude: ['inspector-kit', 'inspector-vite'],
@@ -81,7 +85,18 @@ export const trees: readonly Tree[] = [
 		'routes.spec.ts',
 		'start.spec.ts'
 	]),
-	{ ...kit('adapter-bun-units', 'packages/adapter-bun/test', 'path'), include: /^[^/]+\.spec\.ts$/ }
+	{
+		...kit('adapter-bun-units', 'packages/adapter-bun/test', 'path'),
+		include: /^[^/]+\.spec\.ts$/
+	},
+	{
+		project: 'own',
+		runner: 'kit',
+		name: 'kit',
+		source: 'packages/kit/test/own',
+		exclude: [],
+		key: 'path'
+	}
 ];
 
 export function treeFiles(

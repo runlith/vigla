@@ -76,6 +76,10 @@ function differs(
 }
 
 function copyTree(tree: Tree, check: boolean): number {
+	if (tree.project === 'own') {
+		console.error(`${tree.project}/${tree.name}: no upstream source`);
+		return 2;
+	}
 	const from = join(repositories[tree.project], tree.source);
 	const to = samplesOf(tree);
 	const conversions = load(tree.project, tree.name).conversions ?? {};

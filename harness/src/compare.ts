@@ -88,6 +88,7 @@ function compareTrees(
 				})
 			: trees;
 	for (const tree of chosen) {
+		if (tree.project === 'own') continue;
 		const reports = readdirSync(upstreamDir).filter(
 			(file) =>
 				file === `${tree.name}.json` || (file.startsWith(`${tree.name}.`) && file.endsWith('.json'))
