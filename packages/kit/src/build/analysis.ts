@@ -64,7 +64,6 @@ export async function analyse(manifest: ServerManifest, hash: boolean): Promise<
 			pageConfig = { ...pageConfig, ...node.server?.config, ...node.universal?.config };
 		}
 		const leaf = chain.at(-1);
-		if (pagePrerender && leaf?.server?.actions) e.prerender_actions({ id: route.id });
 		const endpoint = route.endpoint ? await route.endpoint() : null;
 		const endpointPrerender = endpoint?.prerender ?? false;
 		const apiMethods: Array<HttpMethod | '*'> = endpoint

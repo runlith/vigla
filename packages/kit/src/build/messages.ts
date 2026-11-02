@@ -61,13 +61,6 @@ export function param_matcher_missing({ name }: NameMessage): never {
 		param_matcher_missing
 	);
 }
-export function prerender_actions({ id }: RouteMessage): never {
-	throwDiagnostic(
-		'prerender_actions',
-		`Cannot prerender a page with actions (${id})`,
-		prerender_actions
-	);
-}
 export function prerender_endpoint_methods({ id }: RouteMessage): never {
 	throwDiagnostic(
 		'prerender_endpoint_methods',
