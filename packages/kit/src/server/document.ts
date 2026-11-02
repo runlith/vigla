@@ -1,4 +1,4 @@
-import { render } from 'vigla/server';
+import { render, type Component } from 'vigla/server';
 import type { Page } from '../types/state.ts';
 import type { ParamValue } from '../types/params.ts';
 import type { PageNode, RenderBranch, RequestStore, RootProps } from '../types/internal/server.ts';
@@ -11,6 +11,7 @@ import { Redirect } from '../shared/outcomes.ts';
 import { DataSerializer } from './data.ts';
 import { Csp } from './csp.ts';
 import { handleError } from './failure.ts';
+import { collect } from './remote/collect.ts';
 import { requestContext, runRequest } from './scope.ts';
 import { stateKey } from './state.ts';
 import { clientPath, documentPaths } from './paths.ts';
@@ -86,6 +87,13 @@ export async function renderDocument(
 				page.status = page.error.status;
 			}
 		};
+		const root: Component<RootProps> = (out, props) =>
+			out.child((out) => {
+				options.root(out, props);
+				return out.settle().then(async () => {
+					await collect(store, {});
+				});
+			});
 		const context = requestContext(store);
 		context.set(stateKey, page);
 		state.isRendering = true;
@@ -97,7 +105,7 @@ export async function renderDocument(
 					runRequest(
 						store,
 						() =>
-							render(options.root, {
+							render(root, {
 								props,
 								context,
 								csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },

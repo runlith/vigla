@@ -2,6 +2,7 @@ import type { RemoteData, RemoteInternals, RemoteNode } from '../../types/intern
 import type { RequestStore } from '../../types/internal/server.ts';
 import { Redirect } from '../../shared/outcomes.ts';
 import { handleError } from '../failure.ts';
+import { snapshot } from './resource.ts';
 
 function bucket(data: RemoteData, internals: RemoteInternals): Record<string, RemoteNode> {
 	if (internals.type === 'query_live') return (data.l ??= {});
@@ -61,5 +62,8 @@ export async function collect(store: RequestStore, data: RemoteData): Promise<Re
 	}
 	await Promise.all(errors);
 	if (store.remote.ignored.size) data.i = [...store.remote.ignored];
+	if (!store.event.isRemoteRequest)
+		for (const nodes of [data.q, data.l, data.p, data.f])
+			for (const [key, node] of Object.entries(nodes ?? {})) snapshot(store, key, () => node);
 	return data;
 }

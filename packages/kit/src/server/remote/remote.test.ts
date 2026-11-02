@@ -183,6 +183,34 @@ test('explicit query seeds reach SSR hydration when only their parent is awaited
 	});
 });
 
+test('explicit query refreshes reach SSR hydration when only their parent is awaited', async () => {
+	let value = 'before render';
+	const child = query('unchecked', (_id: string) => value);
+	const parent = query(() => {
+		void child('1').refresh();
+		return ['1'];
+	});
+	const server = await app({
+		exports: { child, parent },
+		render: (out) => {
+			out.child(async (out) => {
+				out.push((await parent()).join(','));
+				value = 'one';
+			});
+		}
+	});
+	const html = await (await server.respond(request('/page'), address)).text();
+	const window: Record<string, any> = {};
+	runInNewContext(/<script[^>]*>([\s\S]*?)<\/script>/.exec(html)![1]!, { window });
+	const nodes = Object.fromEntries(
+		[...window.__vigla.h].map(([key, value]) => [key, deserialize(value)])
+	);
+	expect(nodes).toEqual({
+		'hash/parent/': { v: ['1'] },
+		[getRemoteKey('hash/child', encodeArgument('1'))]: { v: 'one' }
+	});
+});
+
 test('requested refreshes preserve raw cache keys and run after the command mutates state', async () => {
 	let count = 1;
 	const schema: StandardSchemaV1<string, number> = {
