@@ -3,6 +3,7 @@ import { resolveRoute } from '../shared/routing/index.ts';
 import { addDataSuffix } from '../shared/pathname.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import { encodeArgument } from '../shared/remote.ts';
+import type { RemotePrerenderInternals } from '../types/internal/remote.ts';
 import type { PrerenderDependency } from '../types/internal/server.ts';
 import { crawl } from './crawl.ts';
 import { walk, write } from './files.ts';
@@ -16,6 +17,7 @@ export async function renderShell(
 	origin: string,
 	assets: string
 ): Promise<string> {
+	await runtime.init();
 	const response = await runtime.server.respond(new Request(origin + '/[fallback]'), {
 		getClientAddress() {
 			e.prerender_client_address();
@@ -49,19 +51,22 @@ export async function prerender(
 		return result;
 	}
 	const remotePrefix = `/${runtime.manifest.app_path}/remote/`;
-	const remoteEntries: string[] = [];
-	const { transport } = await runtime.options.getHooks();
+	const prerenderFunctions: RemotePrerenderInternals[] = [];
 	for (const load of Object.values(runtime.manifest.remotes)) {
 		const { default: functions } = await load();
-		for (const value of Object.values(functions)) {
-			const internals = value.__;
-			if (internals.type !== 'prerender') continue;
-			const inputs = (await internals.inputs?.()) ?? [];
-			if (internals.has_arg)
-				for (const input of inputs)
-					remoteEntries.push(remotePrefix + internals.id + '/' + encodeArgument(input, transport));
-			else remoteEntries.push(remotePrefix + internals.id);
-		}
+		for (const { __: internals } of Object.values(functions))
+			if (internals.type === 'prerender') prerenderFunctions.push(internals);
+	}
+	if (![...result.prerenderMap.values()].some(Boolean) && !prerenderFunctions.length) return result;
+	await runtime.init();
+	const remoteEntries: string[] = [];
+	const { transport } = await runtime.options.getHooks();
+	for (const internals of prerenderFunctions) {
+		const inputs = (await internals.inputs?.()) ?? [];
+		if (internals.has_arg)
+			for (const input of inputs)
+				remoteEntries.push(remotePrefix + internals.id + '/' + encodeArgument(input, transport));
+		else remoteEntries.push(remotePrefix + internals.id);
 	}
 	const remoteResponses = new Map<string, Promise<any>>();
 	const queue = new Queue(job.concurrency);

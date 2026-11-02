@@ -29,8 +29,8 @@ export async function analyse(manifest: ServerManifest, hash: boolean): Promise<
 	const nodes = await Promise.all(manifest.nodes.map((load) => load()));
 	for (const node of nodes) {
 		result.nodes[node.index] = {
-			hasServerLoad: !!node.server?.load || node.server?.trailingSlash !== undefined,
-			hasUniversalLoad: !!node.universal?.load
+			hasServerLoad: node.server?.load !== undefined || node.server?.trailingSlash !== undefined,
+			hasUniversalLoad: node.universal?.load !== undefined
 		};
 		if (hash && node.universal) {
 			const options = Object.keys(node.universal).filter((key) => key !== 'load');

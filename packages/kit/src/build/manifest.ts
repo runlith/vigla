@@ -101,6 +101,16 @@ matchers: async () => ${context.artifacts.matchers && selected.some((route) => r
 }; })()`;
 }
 
+function universalCode(context: BuildContext, index: number, file: string): string {
+	const options = context.tree.nodes[index]?.options ?? null;
+	const inline =
+		(context.config.router.type === 'hash' && options !== null && options.ssr === undefined) ||
+		options?.ssr === false;
+	return inline
+		? `export const universal = ${uneval(options)};`
+		: `export * as universal from ${JSON.stringify('../' + posix(file))};`;
+}
+
 export function writeNodes(context: BuildContext): void {
 	for (const [index, node] of context.artifacts.nodes.entries()) {
 		const file = path.join(context.config.outDir, 'output/server/nodes', `${index}.js`);
@@ -113,7 +123,7 @@ export function writeNodes(context: BuildContext): void {
 							.map(([file, expression]) => `${JSON.stringify(file)}: (${expression})`)
 							.join(',')}});`
 					: ''
-			}\nexport const component = () => import(${source(node.component)}).then(module => module.default);\n${node.universal ? `export * as universal from ${source(node.universal)};` : ''}\n${node.server ? `export * as server from ${source(node.server)};` : ''}\n`
+			}\nexport const component = () => import(${source(node.component)}).then(module => module.default);\n${node.universal ? universalCode(context, index, node.universal) : ''}\n${node.server ? `export * as server from ${source(node.server)};` : ''}\n`
 		);
 	}
 }

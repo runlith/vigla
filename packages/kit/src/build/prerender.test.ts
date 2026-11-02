@@ -93,8 +93,9 @@ async function app(fixture: Fixture): Promise<Runtime> {
 		remote: handleRemote
 	};
 	const server = new Server(manifest, options);
-	await server.init({ env: {} });
-	return { server, manifest, options, environment: server.environment, read: () => null };
+	const init = () => server.init({ env: {} });
+	await init();
+	return { server, init, manifest, options, environment: server.environment, read: () => null };
 }
 async function job(runtime: Runtime, name: string): Promise<PrerenderJob> {
 	return {

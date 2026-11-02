@@ -20,6 +20,7 @@ import type { PrerenderJob, WorkerPlatform } from './jobs.ts';
 
 export interface Runtime {
 	server: ServerInstance | ConfiguredServer;
+	init(): Promise<void>;
 	manifest: ServerManifest;
 	options: ServerOptions;
 	environment: Environment;
@@ -63,12 +64,11 @@ export async function loadRuntime(job: WorkerPlatform, prerendering: boolean): P
 		read,
 		scope: new AsyncLocalStorage<RequestStore>()
 	});
-	await server.init();
 	const { options } = (await import(
 		pathToFileURL(path.join(directory, 'internal.js')).href
 	)) as ServerInternalModule;
 	const { environment } = (await import(pathToFileURL(path.join(directory, 'env.js')).href)) as {
 		environment: Environment;
 	};
-	return { server, manifest, options, environment, read };
+	return { server, init: () => server.init(), manifest, options, environment, read };
 }
