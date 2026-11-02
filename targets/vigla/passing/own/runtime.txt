@@ -1,4 +1,6 @@
 abort-native-root (dom)
+anchor-namespace-boundaries (dom)
+anchor-namespace-boundaries (hydrate)
 async-batch-effect (dom)
 async-branch-removal (dom)
 async-context-batch (dom)

@@ -54,11 +54,23 @@ function elementNamespace(name: string, parent: Namespace): Namespace {
 	return parent;
 }
 
-function inferred(nodes: readonly Node[], fallback: Namespace): Namespace {
+function inferred(
+	nodes: readonly Node[],
+	fallback: Namespace,
+	parent: Namespace | null
+): Namespace {
 	let found: Namespace | null = null;
 	for (const node of nodes) {
 		if (node.kind !== 'element') continue;
-		const guessed = isSvg(node.name) ? 'svg' : isMathml(node.name) ? 'mathml' : 'html';
+		const svg =
+			isSvg(node.name) ||
+			((parent ?? fallback) === 'svg' && (node.name === 'a' || node.name === 'title')) ||
+			(parent === null &&
+				node.name === 'a' &&
+				node.body.nodes.some(
+					(child) => child.kind === 'element' && child.name !== 'svg' && isSvg(child.name)
+				));
+		const guessed = svg ? 'svg' : isMathml(node.name) ? 'mathml' : 'html';
 		if (guessed === 'html') return 'html';
 		found = found === null || found === guessed ? guessed : 'html';
 	}
@@ -108,6 +120,7 @@ export class Template {
 	readonly #uses = new Map<Snippet, SnippetReferences>();
 	#used: SnippetReferences | null = null;
 	#depth = 0;
+	#parentNamespace: Namespace | null = null;
 	inText = false;
 
 	constructor(scopes: Scopes, preserve: Preserve, names: Set<string>, ignores: Ignores) {
@@ -244,7 +257,7 @@ export class Template {
 	): readonly Node[] {
 		const name = parent?.name ?? null;
 		const kept = inherited || (name !== null && preserving.has(name));
-		const own = infer ? inferred(fragment.nodes, namespace) : namespace;
+		const own = infer ? inferred(fragment.nodes, namespace, this.#parentNamespace) : namespace;
 		const foreign = own === 'svg' && name !== 'text' && !this.inText;
 		const separate = fragment.nodes.filter(apart);
 		const given =
@@ -393,9 +406,15 @@ export class Template {
 				this.namespaces.set(node, own);
 				for (const attribute of node.attributes) this.attribute(attribute, scope);
 				const text = this.inText;
+				const parent = this.#parentNamespace;
+				this.#parentNamespace = childNamespace(node, own);
 				if (node.name === 'text') this.inText = true;
-				this.fragment(node.body, node, scope, kept, childNamespace(node, own));
-				this.inText = text;
+				try {
+					this.fragment(node.body, node, scope, kept, childNamespace(node, own));
+				} finally {
+					this.#parentNamespace = parent;
+					this.inText = text;
+				}
 				return;
 			}
 			case 'component':
