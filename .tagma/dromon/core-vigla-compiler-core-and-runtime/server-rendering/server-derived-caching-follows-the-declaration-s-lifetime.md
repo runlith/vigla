@@ -5,7 +5,7 @@ ord: 5
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/server/render.ts
+    ref: packages/vigla/src/runtime/server/derived.ts
     symbol: derived
   - kind: symbol
     ref: packages/vigla/src/runtime/server/context.ts

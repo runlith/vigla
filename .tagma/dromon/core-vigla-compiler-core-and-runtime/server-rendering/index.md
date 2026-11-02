@@ -26,6 +26,9 @@ fields:
       },
       {
         "at": "placement.ts"
+      },
+      {
+        "at": "derived.ts"
       }
     ],
     "id": "ssr",
