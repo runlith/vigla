@@ -105,13 +105,10 @@ export function createFetch(server: Server, store: RequestStore, cookies: Cookie
 	};
 	const execute: typeof fetch = async (input, init) => {
 		const request = requestInput(input, init, event.url);
-		return runRequest(
-			store,
-			() =>
-				server.hooks.handleFetch
-					? server.hooks.handleFetch({ event: appEvent(event), request, fetch: internal })
-					: internal(request),
-			server.scope
+		return runRequest(store, () =>
+			server.hooks.handleFetch
+				? server.hooks.handleFetch({ event: appEvent(event), request, fetch: internal })
+				: internal(request)
 		);
 	};
 	return (input, init) => {

@@ -82,8 +82,7 @@ export async function handleRemote(call: RemoteCall): Promise<Response> {
 	const fn = await lookup(store, call.id, call.name);
 	if (!fn) throw new HttpError({ status: 404, message: 'Not Found' });
 	const internals = fn.__;
-	const invoke = (arg: unknown) =>
-		runRequest(store, () => (fn as RemoteFunction)(arg), store.scope);
+	const invoke = (arg: unknown) => runRequest(store, () => (fn as RemoteFunction)(arg));
 	try {
 		const data: RemoteData = {};
 		switch (internals.type) {
@@ -112,11 +111,8 @@ export async function handleRemote(call: RemoteCall): Promise<Response> {
 					throw new HttpError({ status: 400, message: 'Bad Request' });
 				}
 				const payloads = input.payloads;
-				data._ = await runRequest(
-					store,
-					() =>
-						internals.run(payloads.map((value) => decodeArgument(value, store.hooks.transport))),
-					store.scope
+				data._ = await runRequest(store, () =>
+					internals.run(payloads.map((value) => decodeArgument(value, store.hooks.transport)))
 				);
 				break;
 			}
@@ -133,11 +129,7 @@ export async function handleRemote(call: RemoteCall): Promise<Response> {
 				if (call.argument && !('id' in form.data))
 					form.data.id = JSON.parse(decodeURIComponent(call.argument));
 				const derived = { ...store, remote: { ...store.remote, mutation: true } };
-				data._ = await runRequest(
-					derived,
-					() => internals.fn(form.data, form.meta, form.formData),
-					store.scope
-				);
+				data._ = await runRequest(derived, () => internals.fn(form.data, form.meta, form.formData));
 				if ((data._ as RemoteFormResult).issues)
 					return response(store, { type: 'result', data: serialize(data, store.hooks.transport) });
 				break;
@@ -198,21 +190,15 @@ export async function handleFormPost(store: RequestStore, id: string): Promise<A
 	try {
 		const key = rest.join('/');
 		if (key)
-			form = runRequest(
-				store,
-				() => (form as RemoteFormInstance).for(JSON.parse(key)),
-				store.scope
+			form = runRequest(store, () =>
+				(form as RemoteFormInstance).for(JSON.parse(key))
 			) as RemoteFormInstance;
 		if (form.__.type !== 'form') throw new FrameworkError(400, 'Bad Request');
 		const internals = form.__;
 		const decoded = await deserializeBinaryForm(store.event.request, internals.id);
 		if (key && !('id' in decoded.data)) decoded.data.id = JSON.parse(key);
 		const derived = { ...store, remote: { ...store.remote, mutation: true } };
-		await runRequest(
-			derived,
-			() => internals.fn(decoded.data, decoded.meta, decoded.formData),
-			store.scope
-		);
+		await runRequest(derived, () => internals.fn(decoded.data, decoded.meta, decoded.formData));
 		return { type: 'success', status: 200, location, data: undefined };
 	} catch (error) {
 		if (error instanceof Redirect)

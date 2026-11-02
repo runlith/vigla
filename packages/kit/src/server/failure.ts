@@ -33,10 +33,8 @@ export async function handleError(store: RequestStore, error: unknown): Promise<
 			if (caught.kind === 'unknown') console.error(error);
 			return fallback as App.Error;
 		}
-		const result = await runRequest(
-			store,
-			() => store.hooks.handleError!({ ...caught, event: appEvent(store.event) }),
-			store.scope
+		const result = await runRequest(store, () =>
+			store.hooks.handleError!({ ...caught, event: appEvent(store.event) })
 		);
 		return { ...fallback, ...result } as App.Error;
 	} catch (cause) {

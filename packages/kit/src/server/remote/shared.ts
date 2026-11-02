@@ -81,8 +81,8 @@ export async function execute<T>(
 	implementation: (arg: any) => MaybePromise<T>
 ): Promise<T> {
 	const derived = remoteStore(store, execution, allowCookies);
-	const value = await runRequest(derived, input, derived.scope);
-	return runRequest(derived, () => implementation(value), derived.scope);
+	const value = await runRequest(derived, input);
+	return runRequest(derived, () => implementation(value));
 }
 
 export async function* generate(
@@ -92,8 +92,8 @@ export async function* generate(
 	name: string
 ): AsyncGenerator<any> {
 	const derived = remoteStore(store, { query: true }, false);
-	const arg = await runRequest(derived, input, derived.scope);
-	const source = await runRequest(derived, () => implementation(arg), derived.scope);
+	const arg = await runRequest(derived, input);
+	const source = await runRequest(derived, () => implementation(arg));
 	const iterator: Iterator<any> | AsyncIterator<any> =
 		source && typeof source.next === 'function'
 			? source
@@ -103,7 +103,7 @@ export async function* generate(
 	let done = false;
 	try {
 		while (true) {
-			const result = await runRequest(derived, () => iterator.next(), derived.scope);
+			const result = await runRequest(derived, () => iterator.next());
 			if (result.done) {
 				done = true;
 				return;
@@ -111,6 +111,6 @@ export async function* generate(
 			yield result.value;
 		}
 	} finally {
-		if (!done) await runRequest(derived, () => iterator.return?.(), derived.scope);
+		if (!done) await runRequest(derived, () => iterator.return?.());
 	}
 }

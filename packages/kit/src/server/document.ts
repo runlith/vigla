@@ -106,23 +106,20 @@ export async function renderDocument(
 		context.set(stateKey, page);
 		state.isRendering = true;
 		try {
-			rendered = await runRequest(
-				store,
-				() =>
-					render(root, {
-						props,
-						context,
-						csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },
-						transformError: async (error) => {
-							if (error instanceof Redirect) throw error;
-							const body = await handleError(store, error);
-							document.error = page.error = body;
-							document.status = page.status = body.status;
-							return body;
-						},
-						format: options.format
-					}),
-				server.scope
+			rendered = await runRequest(store, () =>
+				render(root, {
+					props,
+					context,
+					csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },
+					transformError: async (error) => {
+						if (error instanceof Redirect) throw error;
+						const body = await handleError(store, error);
+						document.error = page.error = body;
+						document.status = page.status = body.status;
+						return body;
+					},
+					format: options.format
+				})
 			);
 		} finally {
 			state.isRendering = false;
@@ -285,10 +282,8 @@ export async function renderDocument(
 		env: server.environment.public
 	});
 	const transformed = state.resolveOptions.transformPageChunk
-		? ((await runRequest(
-				store,
-				() => state.resolveOptions.transformPageChunk!({ html, done: true }),
-				server.scope
+		? ((await runRequest(store, () =>
+				state.resolveOptions.transformPageChunk!({ html, done: true })
 			)) ?? '')
 		: html;
 	if (

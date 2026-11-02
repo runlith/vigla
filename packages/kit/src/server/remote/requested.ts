@@ -31,17 +31,13 @@ export const requested: Requested = (query: unknown, limit: number): any => {
 	for (const payload of values.slice(limit)) consume(payload);
 	const entry = (payload: string, arg: any): RequestedEntry => ({
 		arg,
-		query: runRequest(store, () => read.bind(payload, arg), store.scope),
+		query: runRequest(store, () => read.bind(payload, arg)),
 		ignore: () => {
 			store.remote.ignored.add(getRemoteKey(read.id, payload));
 		}
 	});
 	const validate = (payload: string) =>
-		runRequest(
-			store,
-			() => read.validate(decodeArgument(payload, store.hooks.transport)),
-			store.scope
-		);
+		runRequest(store, () => read.validate(decodeArgument(payload, store.hooks.transport)));
 	const fail = (payload: string, error: unknown): void => {
 		const pending = Promise.reject(error);
 		void pending.catch(() => {});

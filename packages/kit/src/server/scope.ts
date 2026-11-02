@@ -1,5 +1,13 @@
-import { getContext, getOwner, openHydration, root, setContext } from 'vigla';
-import type { AsyncContext, RequestState, RequestStore } from '../types/internal/server.ts';
+import {
+	AsyncVariable,
+	carryAcrossAwait,
+	getContext,
+	openHydration,
+	root,
+	setContext,
+	type AsyncStore
+} from 'vigla';
+import type { RequestState, RequestStore } from '../types/internal/server.ts';
 import type { RequestEvent } from '../types/request.ts';
 import type { ParamValue } from '../types/params.ts';
 import * as errors from './errors.ts';
@@ -7,34 +15,19 @@ import type { Server } from './index.ts';
 import { publishSnapshots } from './remote/resource.ts';
 
 const requestKey = Symbol('request');
-const contexts = new Set<WeakRef<AsyncContext>>();
-let synchronous: RequestStore | undefined;
+const current = new AsyncVariable<RequestStore>();
+let carried = false;
 
-export function registerContext(context: AsyncContext): void {
-	for (const reference of contexts) {
-		const existing = reference.deref();
-		if (!existing) contexts.delete(reference);
-		else if (existing === context) return;
-	}
-	contexts.add(new WeakRef(context));
+export function carryRequests(store: AsyncStore): void {
+	carryAcrossAwait(store);
+	carried = true;
 }
 
 export function findRequest(): RequestStore | undefined {
-	if (synchronous?.state.active) return synchronous;
-	if (getOwner()) {
-		const store = getContext<RequestStore | undefined>(requestKey);
-		if (store?.state.active) return store;
-	}
-	for (const reference of contexts) {
-		const context = reference.deref();
-		if (!context) {
-			contexts.delete(reference);
-			continue;
-		}
-		const store = context.getStore();
-		if (store?.state.active) return store;
-	}
-	return undefined;
+	const running = current.get();
+	if (running?.state.active) return running;
+	const store = getContext<RequestStore | undefined>(requestKey);
+	return store?.state.active ? store : undefined;
 }
 
 export function getRequestStore(): RequestStore {
@@ -44,7 +37,7 @@ export function getRequestStore(): RequestStore {
 export function getRequestEvent(): RequestEvent<Record<string, ParamValue>> {
 	const store = findRequest();
 	if (store) return store.event;
-	if (contexts.size) return errors.request_event_unavailable();
+	if (carried) return errors.request_event_unavailable();
 	return errors.request_event_after_await();
 }
 
@@ -63,19 +56,12 @@ export function requestContext(store: RequestStore): Map<unknown, unknown> {
 	return new Map([[requestKey, store]]);
 }
 
-export function runRequest<T>(store: RequestStore, fn: () => T, context?: AsyncContext): T {
-	const previous = synchronous;
-	synchronous = store;
-	try {
-		return store.owner.run(() => (context ? context.run(store, fn) : fn()));
-	} finally {
-		synchronous = previous;
-	}
+export function runRequest<T>(store: RequestStore, fn: () => T): T {
+	return current.run(store, () => store.owner.run(fn));
 }
 
 export class RequestScope {
 	readonly store: RequestStore;
-	readonly #context?: AsyncContext;
 	readonly #signal: AbortSignal;
 	#closed = false;
 	#abortBody: (() => void) | null = null;
@@ -83,10 +69,8 @@ export class RequestScope {
 	constructor(
 		server: Server,
 		event: RequestEvent<Record<string, ParamValue>>,
-		state: RequestState,
-		context?: AsyncContext
+		state: RequestState
 	) {
-		this.#context = context;
 		this.#signal = event.request.signal;
 		this.store = {
 			event,
@@ -97,7 +81,6 @@ export class RequestScope {
 			environment: server.environment,
 			hooks: server.hooks,
 			tracer: server.tracer,
-			scope: context,
 			remote: {
 				cache: new Map(),
 				forms: new Map(),
@@ -121,7 +104,7 @@ export class RequestScope {
 	}
 
 	run<T>(fn: () => T): T {
-		return runRequest(this.store, fn, this.#context);
+		return runRequest(this.store, fn);
 	}
 
 	#abort = (): void => {

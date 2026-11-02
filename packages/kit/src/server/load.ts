@@ -133,11 +133,7 @@ export async function serverLoad(
 		},
 		async (span) => {
 			const traced = { ...input, tracing: { ...input.tracing, current: span } };
-			return runRequest(
-				{ ...store, event: traced },
-				() => node.server!.load!(traced),
-				server.scope
-			);
+			return runRequest({ ...store, event: traced }, () => node.server!.load!(traced));
 		}
 	);
 	validateLoad(
@@ -169,22 +165,19 @@ export async function universalLoad(
 			'http.route': event.route.id ?? 'unknown'
 		},
 		async (span) =>
-			runRequest(
-				store,
-				() =>
-					node.universal!.load!({
-						url: event.url,
-						params: event.params,
-						data: serverData?.data ?? null,
-						route: event.route,
-						fetch: replayFetch(server, store, csr),
-						setHeaders: event.setHeaders,
-						depends() {},
-						parent,
-						untrack: (fn) => fn(),
-						tracing: { ...event.tracing, current: span }
-					}),
-				server.scope
+			runRequest(store, () =>
+				node.universal!.load!({
+					url: event.url,
+					params: event.params,
+					data: serverData?.data ?? null,
+					route: event.route,
+					fetch: replayFetch(server, store, csr),
+					setHeaders: event.setHeaders,
+					depends() {},
+					parent,
+					untrack: (fn) => fn(),
+					tracing: { ...event.tracing, current: span }
+				})
 			)
 	);
 	validateLoad(

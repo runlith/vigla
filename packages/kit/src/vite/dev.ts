@@ -4,13 +4,7 @@ import path from 'node:path';
 import type { Connect, EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
 import { createReadableStream, getRequest, setResponse } from '../node/index.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
-import type {
-	AsyncContext,
-	ConfiguredServer,
-	RequestStore,
-	ServerManifest,
-	ServerModule
-} from '../types/internal/server.ts';
+import type { ConfiguredServer, ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { outsideBase, serveAsset } from './assets.ts';
 import {
 	loadEnvironment,
@@ -23,6 +17,8 @@ import { clientDirectory, ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
 import { fileUrl, moduleUrl, posix } from './paths.ts';
 import type { Project } from './project.ts';
+
+const scope = new AsyncLocalStorage();
 
 interface DevelopmentModule extends ServerModule {
 	manifest: ServerManifest;
@@ -95,11 +91,6 @@ async function styles(
 export async function configureDev(server: ViteDevServer, project: Project): Promise<() => void> {
 	const environment = server.environments.ssr;
 	if (!isRunnable(environment)) vite_ssr_environment_not_runnable();
-	const storage = new AsyncLocalStorage<RequestStore>();
-	const scope: AsyncContext = {
-		run: (store, fn) => storage.run(store, fn),
-		getStore: () => storage.getStore()
-	};
 	const fixStack = (error: Error) => {
 		if (error.stack) Reflect.set(error, 'stack', error.stack.replaceAll('\0', ''));
 		return error;

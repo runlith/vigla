@@ -7,6 +7,8 @@ import { serveFile } from '@vigla/kit/internal/node';
 import type { Asset } from './assets.ts';
 import { Environment } from './env.ts';
 
+const scope = new AsyncLocalStorage();
+
 export type Handler = (
 	request: IncomingMessage,
 	response: ServerResponse,
@@ -36,7 +38,7 @@ export async function createHandler(
 	const limit = env.bytes('BODY_SIZE_LIMIT', '512K');
 	const read = (file: string) =>
 		createReadableStream(path.join(deployment.directory, 'client' + deployment.base, file));
-	await server.init({ env: env.values, read, scope: new AsyncLocalStorage() });
+	await server.init({ env: env.values, read, scope });
 	const files = new Map<string, Asset | string>();
 	for (const asset of deployment.assets) if (!files.has(asset.url)) files.set(asset.url, asset);
 	for (const asset of deployment.assets)

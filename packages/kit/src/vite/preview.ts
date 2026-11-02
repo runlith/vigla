@@ -8,9 +8,11 @@ import { createReadableStream, getRequest, setResponse } from '../node/index.ts'
 import { serveFile, type FileRepresentation } from '../node/static.ts';
 import { walk } from '../build/index.ts';
 import type { PrerenderedAsset, PrerenderedPage, PrerenderedRedirect } from '../types/builder.ts';
-import type { RequestStore, ServerManifest, ServerModule } from '../types/internal/server.ts';
+import type { ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { outsideBase } from './assets.ts';
 import type { Project } from './project.ts';
+
+const scope = new AsyncLocalStorage();
 
 interface StoredPrerender {
 	pages: Array<[string, PrerenderedPage]>;
@@ -50,7 +52,7 @@ export async function configurePreview(
 		env: project.environment.values,
 		read: (file) => read(directory, file),
 		assets: assetsPrefix,
-		scope: new AsyncLocalStorage<RequestStore>()
+		scope
 	});
 	await server.init();
 	const stored = JSON.parse(

@@ -32,32 +32,29 @@ export function sequence(...handlers: Handle[]): Handle {
 				{},
 				async (span) => {
 					const traced = { ...event, tracing: { ...event.tracing, current: span } };
-					return runRequest(
-						{ ...store, event: traced },
-						async () =>
-							handler({
-								event: traced,
-								resolve(event, current) {
-									const combined: ResolveOptions = {
-										preload: options?.preload ?? current?.preload,
-										filterSerializedResponseHeaders:
-											options?.filterSerializedResponseHeaders ??
-											current?.filterSerializedResponseHeaders,
-										async transformPageChunk(chunk) {
-											let html = chunk.html;
-											if (current?.transformPageChunk)
-												html = (await current.transformPageChunk({ ...chunk, html })) ?? '';
-											if (options?.transformPageChunk)
-												html = (await options.transformPageChunk({ ...chunk, html })) ?? '';
-											return html;
-										}
-									};
-									return index < handlers.length - 1
-										? next(index + 1, event, combined)
-										: resolve(event, combined);
-								}
-							}),
-						store.scope
+					return runRequest({ ...store, event: traced }, async () =>
+						handler({
+							event: traced,
+							resolve(event, current) {
+								const combined: ResolveOptions = {
+									preload: options?.preload ?? current?.preload,
+									filterSerializedResponseHeaders:
+										options?.filterSerializedResponseHeaders ??
+										current?.filterSerializedResponseHeaders,
+									async transformPageChunk(chunk) {
+										let html = chunk.html;
+										if (current?.transformPageChunk)
+											html = (await current.transformPageChunk({ ...chunk, html })) ?? '';
+										if (options?.transformPageChunk)
+											html = (await options.transformPageChunk({ ...chunk, html })) ?? '';
+										return html;
+									}
+								};
+								return index < handlers.length - 1
+									? next(index + 1, event, combined)
+									: resolve(event, combined);
+							}
+						})
 					);
 				}
 			);

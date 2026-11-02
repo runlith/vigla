@@ -151,7 +151,7 @@ export async function respond(
 			current: server.tracer.current()
 		}
 	} satisfies RequestEvent<Record<string, ParamValue>>;
-	const scope = new RequestScope(server, event, state, server.scope);
+	const scope = new RequestScope(server, event, state);
 	event.fetch = createFetch(server, scope.store, jar);
 	let route: ServerRoute | undefined;
 	let nodes: Array<PageNode | undefined> = [];
@@ -298,16 +298,13 @@ export async function respond(
 				if (remote) {
 					if (!server.options.remote)
 						return new Response('Remote functions are not implemented', { status: 501 });
-					return await runRequest(
-						store,
-						() =>
-							server.options.remote!({
-								id: remote[0] ?? '',
-								name: remote[1] ?? '',
-								argument: remote[2],
-								store
-							}),
-						server.scope
+					return await runRequest(store, () =>
+						server.options.remote!({
+							id: remote[0] ?? '',
+							name: remote[1] ?? '',
+							argument: remote[2],
+							store
+						})
 					);
 				}
 				if (!route) return await notFound(store);

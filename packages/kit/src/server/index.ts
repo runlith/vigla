@@ -1,6 +1,5 @@
 import type { ServerInitOptions } from '../types/request.ts';
 import type {
-	AsyncContext,
 	Environment,
 	Read,
 	RequestStore,
@@ -10,7 +9,7 @@ import type {
 	ServerManifest,
 	ServerOptions
 } from '../types/internal/server.ts';
-import { registerContext } from './scope.ts';
+import { carryRequests } from './scope.ts';
 import { Tracer } from './telemetry.ts';
 import { respond } from './respond.ts';
 import { configureEnvironment } from './environment.ts';
@@ -25,7 +24,6 @@ export class Server implements ServerInstance {
 	readonly cookiePaths = new Map<string, Set<string>>();
 	environment: Environment = { public: {}, private: {}, rendered: {} };
 	hooks: ServerHooks = {};
-	scope?: AsyncContext;
 	read?: Read;
 	#configuration: Promise<void> | null = null;
 	#initialization: Promise<void> | null = null;
@@ -38,8 +36,7 @@ export class Server implements ServerInstance {
 	configure({ env, read, scope }: ServerInitOptions): Promise<void> {
 		return (this.#configuration ??= (async () => {
 			this.read = read;
-			this.scope = scope;
-			if (scope) registerContext(scope);
+			if (scope) carryRequests(scope);
 			configureEnvironment(this.options, this.environment);
 			configurePaths(this.options.paths, this.manifest.app_dir);
 			configureRead(this.manifest, this.options.paths, read);

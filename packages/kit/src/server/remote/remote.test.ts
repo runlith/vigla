@@ -28,6 +28,8 @@ import { HttpError, Redirect, ValidationError } from '../../shared/outcomes.ts';
 import { deserialize } from '../../shared/serialization.ts';
 import { encodeArgument, getRemoteKey } from '../../shared/remote.ts';
 
+const scope = new AsyncLocalStorage();
+
 interface Fixture {
 	exports: Record<string, unknown>;
 	hooks?: ServerHooks;
@@ -92,7 +94,7 @@ async function app(fixture: Fixture): Promise<Server> {
 		remote: handleRemote
 	};
 	const server = new Server(manifest, options);
-	await server.init({ env: {}, scope: new AsyncLocalStorage<RequestStore>() });
+	await server.init({ env: {}, scope });
 	return server;
 }
 const address = { getClientAddress: () => '192.0.2.1' };

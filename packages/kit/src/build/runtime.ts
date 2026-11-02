@@ -9,7 +9,6 @@ import type {
 	ConfiguredServer,
 	Environment,
 	Read,
-	RequestStore,
 	ServerInstance,
 	ServerInternalModule,
 	ServerManifest,
@@ -17,6 +16,8 @@ import type {
 	ServerOptions
 } from '../types/internal/server.ts';
 import type { PrerenderJob, WorkerPlatform } from './jobs.ts';
+
+const scope = new AsyncLocalStorage();
 
 export interface Runtime {
 	server: ServerInstance | ConfiguredServer;
@@ -62,7 +63,7 @@ export async function loadRuntime(job: WorkerPlatform, prerendering: boolean): P
 		prerendering,
 		env: job.environment,
 		read,
-		scope: new AsyncLocalStorage<RequestStore>()
+		scope
 	});
 	const { options } = (await import(
 		pathToFileURL(path.join(directory, 'internal.js')).href

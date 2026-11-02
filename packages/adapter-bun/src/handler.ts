@@ -6,6 +6,8 @@ import type { ServerOptions } from './index.ts';
 import { Environment } from './env.ts';
 import { staticRoutes, type FileAsset, type Redirect } from './static.ts';
 
+const scope = new AsyncLocalStorage();
+
 export interface Deployment {
 	directory: string;
 	embedded: boolean;
@@ -39,7 +41,7 @@ export async function createHandler(server: Server, deployment: Deployment): Pro
 		])
 	);
 	const read = (file: string) => reads.get(file)?.stream() ?? null;
-	await server.init({ env: Bun.env, scope: new AsyncLocalStorage(), read });
+	await server.init({ env: Bun.env, scope, read });
 	return {
 		env,
 		deployment,

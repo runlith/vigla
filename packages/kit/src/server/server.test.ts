@@ -23,6 +23,7 @@ import { redirect } from '../entries/index.ts';
 import { Server, getRequestEvent, getRequestOwner, read } from './index.ts';
 import { page } from './state.ts';
 
+const scope = new AsyncLocalStorage();
 const layout: Component<any> = (out, props) => out.push(`<main>${props.data.layout ?? ''}</main>`);
 const errorComponent: Component<any> = (out, props) =>
 	out.push(`<error>${props.error.status}:${props.error.message}</error>`);
@@ -331,6 +332,30 @@ it('checks mutating form origins before hooks and dispatches only the remote sea
 	expect(crossRemote.status).toBe(403);
 });
 
+it('allows synchronous event lookup without a port and refuses it after an await', async () => {
+	const app = manifest();
+	app.routes = [
+		route('/', async () => ({
+			GET: async (event) => {
+				const before = getRequestEvent() === event;
+				await Promise.resolve();
+				let after = false;
+				try {
+					getRequestEvent();
+				} catch {
+					after = true;
+				}
+				return Response.json({ before, after });
+			}
+		}))
+	];
+	const server = await start(app, options());
+	expect(await (await server.respond(request(), address)).json()).toEqual({
+		before: true,
+		after: true
+	});
+});
+
 it('preserves per-request async contexts across interleaved servers and disposes after body consumption', async () => {
 	let destroyed = 0;
 	const key = Symbol('request graph');
@@ -357,11 +382,8 @@ it('preserves per-request async contexts across interleaved servers and disposes
 			return resolve(event);
 		}
 	});
-	const first = await start(app, config, { env: {}, scope: new AsyncLocalStorage<RequestStore>() });
-	const second = await start(app, config, {
-		env: {},
-		scope: new AsyncLocalStorage<RequestStore>()
-	});
+	const first = await start(app, config, { env: {}, scope });
+	const second = await start(app, config, { env: {}, scope });
 	const responses = await Promise.all([
 		first.respond(request('/one'), address),
 		second.respond(request('/two'), address)
@@ -375,28 +397,42 @@ it('preserves per-request async contexts across interleaved servers and disposes
 	expect(() => getRequestEvent()).toThrow();
 });
 
-it('allows synchronous event lookup without a port and refuses it after an await', async () => {
+it('keeps a concurrent render out of another request continuation', async () => {
+	const gate = Promise.withResolvers<void>();
+	const arrived = Promise.withResolvers<void>();
+	let waiting = 0;
+	const renders = new Map<string, unknown>();
+	const foreign = new Set<string>();
 	const app = manifest();
-	app.routes = [
-		route('/', async () => ({
-			GET: async (event) => {
-				const before = getRequestEvent() === event;
-				await Promise.resolve();
-				let after = false;
-				try {
-					getRequestEvent();
-				} catch {
-					after = true;
-				}
-				return Response.json({ before, after });
-			}
-		}))
-	];
-	const server = await start(app, options());
-	expect(await (await server.respond(request(), address)).json()).toEqual({
-		before: true,
-		after: true
-	});
+	app.nodes[2] = async () =>
+		node(2, undefined, undefined, (out) => {
+			const id = String(getRequestEvent().params.id);
+			renders.set(id, getOwner());
+			out.boundary({ failed: (out) => out.push('<p>recovered</p>') }, (out) =>
+				out.child(async () => {
+					if (++waiting === 2) arrived.resolve();
+					await gate.promise;
+					if (id === 'a') throw new Error('late');
+					for (let tick = 0; tick < 100; tick++) {
+						const seen = getRequestEvent().params.id;
+						if (seen !== id) foreign.add(`event of ${seen}`);
+						if (getOwner() === renders.get('a')) foreign.add('render of a');
+						await null;
+					}
+				})
+			);
+		});
+	app.routes = [route('/[id]', null, true)];
+	const server = await start(app, options(), { env: {}, scope });
+	const responses = ['a', 'b'].map((id) =>
+		server.respond(request(`/${id}`, { headers: { accept: 'text/html' } }), address)
+	);
+	await arrived.promise;
+	gate.resolve();
+	const [a, b] = await Promise.all(responses);
+	expect([...foreign]).toEqual([]);
+	expect(await a!.text()).toContain('<p>recovered</p>');
+	expect(await b!.text()).not.toContain('<p>recovered</p>');
 });
 
 it('disposes a request owner on body cancellation and request abort', async () => {
@@ -619,7 +655,7 @@ it('runs server then universal loads with inherited data and request context in 
 				return resolve(event);
 			}
 		}),
-		{ env: {}, scope: new AsyncLocalStorage<RequestStore>() }
+		{ env: {}, scope }
 	);
 	const response = await server.respond(
 		request('/', { headers: { accept: 'text/html' } }),
@@ -655,7 +691,7 @@ it('includes hydratable values registered in hooks and server load in the core h
 				return resolve(event);
 			}
 		}),
-		{ env: {}, scope: new AsyncLocalStorage<RequestStore>() }
+		{ env: {}, scope }
 	);
 	const response = await server.respond(
 		request('/', { headers: { accept: 'text/html' } }),
@@ -791,7 +827,7 @@ it('allows same-origin absolute hook redirects after an await and retains delete
 			},
 			handleError: ({ error }) => ({ message: (error as Error).message })
 		}),
-		{ env: {}, scope: new AsyncLocalStorage<RequestStore>() }
+		{ env: {}, scope }
 	);
 	const document = await server.respond(request('/go'), address);
 	expect(document.status).toBe(307);

@@ -51,10 +51,8 @@ export async function endpointResponse(
 			{ 'http.route': event.route.id ?? 'unknown', 'http.method': method },
 			async (span) => {
 				const traced = { ...event, tracing: { ...event.tracing, current: span } };
-				return runRequest(
-					{ ...store, event: traced },
-					() => (handler as NonNullable<Endpoint['GET']>)(traced),
-					server.scope
+				return runRequest({ ...store, event: traced }, () =>
+					(handler as NonNullable<Endpoint['GET']>)(traced)
 				);
 			}
 		);

@@ -69,7 +69,7 @@ export async function runAction(
 			{ 'sveltekit.form_action.name': name, 'http.route': event.route.id ?? 'unknown' },
 			async (span) => {
 				const traced = { ...event, tracing: { ...event.tracing, current: span } };
-				return runRequest({ ...store, event: traced }, () => actions[name]!(traced), server.scope);
+				return runRequest({ ...store, event: traced }, () => actions[name]!(traced));
 			}
 		);
 		if (data instanceof Redirect) errors.action_return_redirect();

@@ -1,5 +1,5 @@
 import type { Attributes, Span } from '@opentelemetry/api';
-import type { Owner } from 'vigla';
+import type { AsyncStore, Owner } from 'vigla';
 import type { Component, Format } from 'vigla/server';
 import type { CspConfig } from '../csp.ts';
 import type { Emulator, PrerenderOption } from '../builder.ts';
@@ -31,11 +31,6 @@ import type { RemoteExport, RemoteRequestState } from './remote.ts';
 export type { TrailingSlash } from './data.ts';
 export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'QUERY';
 export type Read = (file: string) => MaybePromise<ReadableStream<Uint8Array> | null>;
-
-export interface AsyncContext {
-	run<T>(store: RequestStore, fn: () => T): T;
-	getStore(): RequestStore | undefined;
-}
 
 export interface FontDependency {
 	file: string;
@@ -298,7 +293,7 @@ export interface ServerConfigureOptions {
 	manifest?: ServerManifest;
 	env?: Record<string, string | undefined>;
 	read?: Read;
-	scope?: AsyncContext;
+	scope?: AsyncStore;
 	assets?: string;
 	building?: boolean;
 	prerendering?: boolean;
@@ -346,7 +341,6 @@ export interface RequestStore {
 	environment: Environment;
 	hooks: ServerHooks;
 	tracer: SpanRecorder;
-	scope?: AsyncContext;
 	remote: RemoteRequestState;
 }
 

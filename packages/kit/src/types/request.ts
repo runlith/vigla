@@ -3,7 +3,8 @@ import type { ParseOptions, SerializeOptions, parseSetCookie } from 'cookie';
 import type { LayoutParams, RouteId } from '$app/types';
 import type { MaybePromise } from './value.ts';
 import type { ParamValue } from './params.ts';
-import type { AsyncContext, Read } from './internal/server.ts';
+import type { AsyncStore } from 'vigla';
+import type { Read } from './internal/server.ts';
 
 export interface CookieValue {
 	name: string;
@@ -111,7 +112,7 @@ export interface Snapshot<T = any> {
 export interface ServerInitOptions {
 	env: Record<string, string | undefined>;
 	read?: Read;
-	scope?: AsyncContext;
+	scope?: AsyncStore;
 }
 export interface RequestOptions {
 	getClientAddress(): string;
