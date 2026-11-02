@@ -449,7 +449,7 @@ export function buildPlugin(
 			context.prerenderMap = rendered.prerenderMap;
 			context.manifest.prerendered.push(
 				...rendered.prerendered.paths.map((path) => ({
-					path: path as `/${string}`
+					path: path.slice(project.config.paths.base.length + 1)
 				}))
 			);
 			replaceManifest(client, clientSources, context);

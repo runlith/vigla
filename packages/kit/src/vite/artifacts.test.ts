@@ -60,12 +60,23 @@ beforeAll(async () => {
 	);
 	write('src/routes/css/eager-font.woff2', 'eager font');
 	write('src/routes/css/lazy-font.woff2', 'lazy font');
+	write('src/routes/prerendered/+page.svelte', '<p>prerendered</p>');
+	write('src/routes/prerendered/+page.js', 'export const prerender = true;');
+	write(
+		'src/routes/manifest/+server.js',
+		`import { prerendered } from '$app/manifest';
+		export function GET() { return Response.json(prerendered); }`
+	);
 	const vite = await importVite(root);
 	const builder = await vite.createBuilder({
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit({ compilerOptions: { runes: true }, inlineStyleThreshold: 0 }),
+		plugins: await sveltekit({
+			compilerOptions: { runes: true },
+			inlineStyleThreshold: 0,
+			paths: { base: '/base' }
+		}),
 		build: { minify: false, assetsInlineLimit: 0 }
 	});
 	await builder.buildApp();
@@ -82,8 +93,16 @@ afterAll(() => {
 	if (root) rmSync(root, { recursive: true, force: true });
 });
 
+test('the public prerendered manifest uses paths relative to the application base', async () => {
+	const response = await server.respond(new Request('https://app.test/base/manifest'), {
+		getClientAddress: () => '192.0.2.1'
+	});
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual([{ path: 'prerendered' }]);
+});
+
 test('SSR eagerly loads rendered CSS and fonts but leaves browser-only dynamic styles lazy', async () => {
-	const response = await server.respond(new Request('https://app.test/css'), {
+	const response = await server.respond(new Request('https://app.test/base/css'), {
 		getClientAddress: () => '192.0.2.1'
 	});
 	expect(response.status).toBe(200);
@@ -96,7 +115,7 @@ test('SSR eagerly loads rendered CSS and fonts but leaves browser-only dynamic s
 
 test('built endpoint identity preserves its source-relative directory and module name', async () => {
 	const response = await server.respond(
-		new Request('https://app.test/state/reset-states', {
+		new Request('https://app.test/base/state/reset-states', {
 			method: 'POST',
 			headers: { origin: 'https://app.test' }
 		}),
