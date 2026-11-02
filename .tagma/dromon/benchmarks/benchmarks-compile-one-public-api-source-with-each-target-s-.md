@@ -10,6 +10,10 @@ sources:
     ref: benchmarks/src/cli.ts
   - kind: file
     ref: benchmarks/src/prepare.ts
+  - kind: file
+    ref: benchmarks/compiler/compiler.bench.js
+  - kind: file
+    ref: benchmarks/ssr/wrapper.bench.js
 ---
 Each target compiles the benchmark modules with its own `svelte/compiler` and runs them on its own runtime. Each comparison then measures two complete implementations of one source, as an application switching by alias would see them, and never Vigla's runtime driven through upstream's internals. Upstream's reactivity benchmarks call `$.state`, `$.derived`, `$.render_effect`, `block` and `$.flush` directly; the ports use `$state.raw`, `$derived`, `$effect.pre` (upstream's `render_effect` with the user flag) inside `$effect.root`, and `flushSync`.
 
@@ -17,7 +21,7 @@ Each target compiles the benchmark modules with its own `svelte/compiler` and ru
 
 **Keeping the ports faithful.** A source held in an array is a class instance with one `$state.raw` field whose initial value the field initializer reads from a module variable. Assigning the value in the constructor would make every creation a write, which opens a batch and logs a previous value on both runtimes, so the creation benchmarks would measure writes. Chains of deriveds are objects with a getter over a `$derived`, built during setup, so the timed loop pays one extra call per read on both targets. `mol` overrides a derived's `equals` upstream; the port returns the previous array when the new one is equal element by element, which stops propagation the same way.
 
-Upstream's `compiler` group calls its internal phase-one parser; the port calls the public `parse` with `modern: true`, which is that parser plus a walk deleting node metadata, whereas the default legacy format would add a whole AST conversion. Upstream has no compile benchmark: `compile_*` compiles the same three sources with the same iteration counts, runes and async forced as in the milestone's reference configuration. Upstream compiles the SSR wrapper with no options, which is legacy mode for a component using no runes; the port forces runes and async, the only mode Vigla compiles, so both targets render one meaning, and both bodies are byte-identical. As upstream does, it compiles before the timed loop.
+Upstream's `compiler` group calls its internal phase-one parser; the port calls the public `parse` with `modern: true`, which is that parser plus a walk deleting node metadata, whereas the default legacy format would add a whole AST conversion. Upstream has no compile benchmark: `compile_*` compiles the same three sources with the same iteration counts, runes and async forced as in the milestone's reference configuration. Upstream compiles the SSR wrapper with no options, which is legacy mode for a component using no runes; the port forces runes and async, the only mode Vigla compiles, so both targets render one meaning. As upstream does, it compiles before the timed loop.
 
 **What is not ported.** `kairo_broad_block` and `kairo_deep_block` read their chains from `block()`, the effect behind `{#if}`, which no `.svelte.js` module can create; a port of them needs a component mounted into a document.
 
