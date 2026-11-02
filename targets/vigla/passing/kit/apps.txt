@@ -365,6 +365,7 @@ basics/test/playwright/cross-platform/test.js > Redirects > redirect response in
 basics/test/playwright/cross-platform/test.js > Redirects > redirect response in handle hook (test-dev-1/chromium-dev-no-js)
 basics/test/playwright/cross-platform/test.js > Redirects > redirect-on-load (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/test.js > Redirects > redirect-on-load (test-dev-1/chromium-dev-no-js)
+basics/test/playwright/cross-platform/test.js > Redirects > sets cookies when redirect in handle hook (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/test.js > Redirects > sets cookies when redirect in handle hook (test-dev-1/chromium-dev-no-js)
 basics/test/playwright/cross-platform/test.js > Redirects > works when used from another package (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/test.js > Redirects > works when used from another package (test-dev-1/chromium-dev-no-js)
