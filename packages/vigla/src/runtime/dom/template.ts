@@ -11,6 +11,26 @@ export const SVG = 2;
 
 export const MATHML = 4;
 
+export const SCRIPTS = 8;
+
+function freshScript(source: Element): Element {
+	const script = source.ownerDocument.createElementNS(source.namespaceURI, source.localName);
+	for (const attribute of source.attributes) {
+		if (attribute.namespaceURI === null) script.setAttribute(attribute.name, attribute.value);
+		else script.setAttributeNS(attribute.namespaceURI, attribute.name, attribute.value);
+	}
+	script.textContent = source.textContent;
+	return script;
+}
+
+function activateScripts(node: Node): Node {
+	if (node.nodeType === 1 && (node as Element).localName === 'script')
+		return freshScript(node as Element);
+	for (const script of (node as ParentNode).querySelectorAll('script'))
+		script.replaceWith(freshScript(script));
+	return node;
+}
+
 function parse(html: string, flags: number): Node {
 	const template = document.createElement('template');
 	if ((flags & (SVG | MATHML)) === 0) {
@@ -68,7 +88,8 @@ export function fragment(html: string, flags = 0): () => Node {
 	return () => {
 		if (hydrating) return cursor;
 		parsed ??= parse(html, flags);
-		return document.importNode(parsed, true);
+		const node = document.importNode(parsed, true);
+		return (flags & SCRIPTS) === 0 ? node : activateScripts(node);
 	};
 }
 

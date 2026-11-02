@@ -72,6 +72,7 @@ export interface Part {
 export const SINGLE = 1;
 export const SVG = 2;
 export const MATHML = 4;
+export const SCRIPTS = 8;
 
 function needed(part: Part): boolean {
 	return part.referenced || part.children.some(needed);
@@ -399,10 +400,15 @@ export function flush(context: TemplateContext, emit: Emit): ES.Statement[] {
 	return [...emit.init, b.statement(runtime(context, 'content', ...args)), ...emit.after];
 }
 
-function flags(namespace: Namespace, single: boolean): number {
+function hasScript(part: Part): boolean {
+	return part.hint.toLowerCase() === 'script' || part.children.some(hasScript);
+}
+
+function flags(namespace: Namespace, single: boolean, scripts: boolean): number {
 	let result = single ? SINGLE : 0;
 	if (namespace === 'svg') result |= SVG;
 	if (namespace === 'mathml') result |= MATHML;
+	if (scripts) result |= SCRIPTS;
 	return result;
 }
 
@@ -464,7 +470,7 @@ export function render(
 	const [head] = list;
 	const single = list.length === 1 && isElement(head);
 	const template = context.names.unique('root');
-	const flagged = flags(namespace, single);
+	const flagged = flags(namespace, single, list.some(hasScript));
 	const args: ES.Expression[] = [b.template([html], [])];
 	if (flagged !== 0) args.push(b.literal(flagged));
 	context.hoisted.push(b.constant(template, runtime(context, 'fragment', ...args)));
