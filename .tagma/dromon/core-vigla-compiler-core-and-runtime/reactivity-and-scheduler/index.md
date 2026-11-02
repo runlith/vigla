@@ -50,6 +50,9 @@ fields:
       },
       {
         "at": "loss.ts"
+      },
+      {
+        "at": "public.ts"
       }
     ],
     "id": "reactivity",
