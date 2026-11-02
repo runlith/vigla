@@ -349,7 +349,39 @@ export function buildPlugin(
 				node.imports = deps.imports;
 				node.stylesheets = deps.stylesheets;
 				node.fonts = deps.fonts;
-				const styles = deps.stylesheets.filter(
+				if (split) {
+					const source = project.tree.nodes[index]!;
+					const component = dependencies(
+						serverManifest,
+						source.component
+							? path.resolve(project.root, source.component)
+							: index === 1
+								? ids.error
+								: ids.layout,
+						project.root,
+						true
+					);
+					const rendered = new Set(component.bySource.keys());
+					if (source.universal) {
+						const universal = dependencies(
+							serverManifest,
+							path.resolve(project.root, source.universal),
+							project.root,
+							true
+						);
+						for (const id of universal.bySource.keys()) rendered.add(id);
+					}
+					const stylesheets = new Set<string>();
+					const fonts = new Set<string>();
+					for (const [id, resources] of deps.bySource)
+						if (rendered.has(id === deps.source ? component.source : id)) {
+							for (const file of resources.stylesheets) stylesheets.add(file);
+							for (const file of resources.fonts) fonts.add(file);
+						}
+					node.stylesheets = [...stylesheets];
+					node.fonts = deps.fonts.filter((font) => fonts.has(font.file));
+				}
+				const styles = node.stylesheets.filter(
 					(file) =>
 						readFileSync(path.join(client, file)).byteLength <= project.config.inlineStyleThreshold
 				);

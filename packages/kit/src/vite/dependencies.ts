@@ -4,11 +4,18 @@ import type { Manifest, ManifestChunk } from 'vite';
 import type { FontDependency } from '../types/internal/server.ts';
 import { posix } from './paths.ts';
 
+export interface Resources {
+	stylesheets: Set<string>;
+	fonts: Set<string>;
+}
+
 export interface Dependencies {
 	file: string;
+	source: string;
 	imports: string[];
 	stylesheets: string[];
 	fonts: FontDependency[];
+	bySource: Map<string, Resources>;
 }
 
 export function entry(manifest: Manifest, id: string, root: string): ManifestChunk {
@@ -35,17 +42,36 @@ export function dependencies(
 	const stylesheets = new Set<string>();
 	const assets = new Set<string>();
 	const seen = new Set<string>();
-	function visit(chunk: ManifestChunk, script: boolean): void {
-		const key = chunk.file + ':' + script;
+	const bySource = new Map<string, Resources>();
+	const sourceId = (file: string): string => {
+		if (file.startsWith('\0')) return file;
+		const absolute = path.resolve(root, file);
+		return posix(existsSync(absolute) ? realpathSync(absolute) : absolute);
+	};
+	const source = sourceId(id);
+	function visit(chunk: ManifestChunk, script: boolean, owner: string, depth: number): void {
+		const key = JSON.stringify([chunk.file, script, owner, depth]);
 		if (seen.has(key)) return;
 		seen.add(key);
 		if (script) imports.add(chunk.file);
 		chunk.css?.forEach((file) => stylesheets.add(file));
 		chunk.assets?.forEach((file) => assets.add(file));
-		for (const key of chunk.imports ?? []) visit(manifest[key]!, script);
-		if (dynamicCss) for (const key of chunk.dynamicImports ?? []) visit(manifest[key]!, false);
+		if (depth <= 1 && (chunk.css?.length || chunk.assets?.length)) {
+			let resources = bySource.get(owner);
+			if (!resources) {
+				resources = { stylesheets: new Set(), fonts: new Set() };
+				bySource.set(owner, resources);
+			}
+			for (const file of chunk.css ?? []) resources.stylesheets.add(file);
+			for (const file of chunk.assets ?? [])
+				if (/\.(woff2?|ttf|otf)$/.test(file)) resources.fonts.add(file);
+		}
+		for (const key of chunk.imports ?? []) visit(manifest[key]!, script, owner, depth);
+		if (dynamicCss)
+			for (const key of chunk.dynamicImports ?? [])
+				visit(manifest[key]!, false, sourceId(key), Math.min(depth + 1, 2));
 	}
-	visit(start, true);
+	visit(start, true, source, 0);
 	const fonts = [...assets]
 		.filter((file) => /\.(woff2?|ttf|otf)$/.test(file))
 		.map((file) => {
@@ -67,5 +93,12 @@ export function dependencies(
 			}
 			return { file, filename };
 		});
-	return { file: start.file, imports: [...imports], stylesheets: [...stylesheets], fonts };
+	return {
+		file: start.file,
+		source,
+		imports: [...imports],
+		stylesheets: [...stylesheets],
+		fonts,
+		bySource
+	};
 }
