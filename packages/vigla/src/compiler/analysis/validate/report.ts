@@ -5,6 +5,30 @@ export type At = number | { readonly start?: number | null; readonly end?: numbe
 
 export type Args = Readonly<Record<string, string | null | undefined>>;
 
+export type Catalog = Readonly<Record<string, readonly string[]>>;
+
+export interface Wording {
+	readonly errors?: Catalog;
+	readonly warnings?: Catalog;
+	readonly name?: (host: string) => string;
+}
+
+let spoken: Wording | undefined;
+
+export function speaking<T>(wording: Wording | undefined, fn: () => T): T {
+	const previous = spoken;
+	spoken = wording;
+	try {
+		return fn();
+	} finally {
+		spoken = previous;
+	}
+}
+
+export function nameOf(host: string): string {
+	return spoken?.name?.(host) ?? (host === 'element' ? 'dynamic element' : `${host} target`);
+}
+
 const placeholder = /%(\w+)%/g;
 
 function format(templates: readonly string[] | undefined, code: string, args: Args): string {
@@ -26,12 +50,12 @@ function span(at: At): { start: number; end: number } {
 
 export const warningCodes: readonly string[] = Object.keys(warnings);
 
-export function errorMessage(code: string, args: Args = {}): string {
-	return format(errors[code], code, args);
+export function errorMessage(code: string, args: Args = {}, wording = spoken): string {
+	return format(wording?.errors?.[code] ?? errors[code], code, args);
 }
 
-export function warningMessage(code: string, args: Args = {}): string {
-	return format(warnings[code], code, args);
+export function warningMessage(code: string, args: Args = {}, wording = spoken): string {
+	return format(wording?.warnings?.[code] ?? warnings[code], code, args);
 }
 
 export function fail(code: string, at: At, args: Args = {}): never {

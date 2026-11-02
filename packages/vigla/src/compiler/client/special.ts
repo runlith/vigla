@@ -133,7 +133,7 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				if (attribute.value.kind !== 'expression' || !/^on/i.test(attribute.name)) {
 					throw unsupported(
 						attribute,
-						`The ${attribute.name} attribute on <svelte:${node.target}>`
+						`The ${attribute.name} attribute on the ${node.target} target`
 					);
 				}
 				let type = attribute.name.slice(2).toLowerCase();
@@ -159,7 +159,10 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				statements.push(attachCall(context, target, attribute));
 				break;
 			default:
-				throw unsupported(attribute, `The ${attribute.kind} directive on <svelte:${node.target}>`);
+				throw unsupported(
+					attribute,
+					`The ${attribute.kind} directive on the ${node.target} target`
+				);
 		}
 	}
 	return statements;

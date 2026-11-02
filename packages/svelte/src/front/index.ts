@@ -22,6 +22,7 @@ export {
 	type Validated
 } from './validate/index.ts';
 export type { Anchor, Anchors } from './validate/anchors.ts';
+export { wording } from './wording.ts';
 
 export interface Lowered extends Reading<ComponentUnit> {
 	readonly anchored: ReadonlyMap<object, readonly Diagnostic[]>;

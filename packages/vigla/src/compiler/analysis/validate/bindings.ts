@@ -4,7 +4,7 @@ import type * as IR from '../../ir/nodes.ts';
 import { closest } from './a11y/fuzzy.ts';
 import { assignment } from './assignment.ts';
 import type { Context } from './context.ts';
-import { fail } from './report.ts';
+import { fail, nameOf } from './report.ts';
 import { base } from './scope.ts';
 
 interface Property {
@@ -13,9 +13,9 @@ interface Property {
 }
 
 const media = ['audio', 'video'];
-const windowOnly = ['svelte:window'];
-const documentOnly = ['svelte:document'];
-const notGlobal = ['svelte:window', 'svelte:document'];
+const windowOnly = [':window'];
+const documentOnly = [':document'];
+const notGlobal = [':window', ':document'];
 
 const properties: Readonly<Record<string, Property>> = {
 	currentTime: { valid: media },
@@ -73,10 +73,14 @@ const editable = new Set(['textContent', 'innerHTML', 'innerText']);
 
 export type Host = IR.Element | IR.DynamicElement | IR.Special;
 
-export function hostName(host: Host): string {
+function keyOf(host: Host): string {
 	if (host.kind === 'element') return host.name;
-	if (host.kind === 'dynamic-element') return 'svelte:element';
-	return `svelte:${host.target}`;
+	if (host.kind === 'dynamic-element') return ':element';
+	return `:${host.target}`;
+}
+
+function shown(key: string): string {
+	return key.startsWith(':') ? nameOf(key.slice(1)) : key;
 }
 
 function attributeNamed(host: Host, name: string): IR.Property | undefined {
@@ -91,7 +95,7 @@ export function textOf(attribute: IR.Property): string | null {
 }
 
 function target(node: IR.Binding, host: Host): void {
-	const parent = hostName(host);
+	const parent = keyOf(host);
 	const property = properties[node.name];
 	if (property === undefined) {
 		const match = closest(node.name, names);
@@ -109,7 +113,7 @@ function target(node: IR.Binding, host: Host): void {
 	if (property.valid !== undefined && !property.valid.includes(parent)) {
 		fail('bind_invalid_target', node, {
 			name: node.name,
-			elements: property.valid.map((valid) => `\`<${valid}>\``).join(', ')
+			elements: property.valid.map((valid) => `\`<${shown(valid)}>\``).join(', ')
 		});
 	}
 	if (property.invalid?.includes(parent)) {
@@ -124,7 +128,7 @@ function target(node: IR.Binding, host: Host): void {
 			.sort();
 		fail('bind_invalid_name', node, {
 			name: node.name,
-			explanation: `Possible bindings for <${parent}> are ${valid.join(', ')}`
+			explanation: `Possible bindings for <${shown(parent)}> are ${valid.join(', ')}`
 		});
 	}
 	if (parent === 'input' && node.name !== 'this') {

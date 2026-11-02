@@ -1,10 +1,5 @@
-import {
-	CompileError,
-	errorMessage,
-	warningCodes as codes,
-	warningMessage,
-	type Diagnostic
-} from 'vigla/compiler';
+import { CompileError, errorMessage, warningMessage, type Diagnostic } from 'vigla/compiler';
+import { warningCodes as codes, wording } from './wording.ts';
 
 export type At = number | { readonly start?: number | null; readonly end?: number | null };
 
@@ -17,7 +12,7 @@ function span(at: At): { start: number; end: number } {
 }
 
 export function diagnostic(code: string, at: At, args: Args = {}): Diagnostic {
-	return { code, message: errorMessage(code, args), ...span(at) };
+	return { code, message: errorMessage(code, args, wording), ...span(at) };
 }
 
 export function fail(code: string, at: At, args: Args = {}): never {
@@ -39,7 +34,7 @@ const legacyMessages: Readonly<Record<string, (args: Args) => string>> = {
 
 export function legacy(code: string, at: At, args: Args = {}): never {
 	const own = legacyMessages[code];
-	const message = own === undefined ? warningMessage(code, args) : own(args);
+	const message = own === undefined ? warningMessage(code, args, wording) : own(args);
 	throw new CompileError({ code, message, ...span(at) });
 }
 
@@ -52,7 +47,7 @@ export function unsupported(what: string, at: At): never {
 }
 
 export function warning(code: string, at: At, args: Args = {}): Diagnostic {
-	return { code, message: warningMessage(code, args), ...span(at) };
+	return { code, message: warningMessage(code, args, wording), ...span(at) };
 }
 
 export const warningCodes: readonly string[] = codes;

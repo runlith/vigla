@@ -292,6 +292,6 @@ export function attributeExpression(value: IR.Value): ES.Expression | null {
 	return null;
 }
 
-export function hostName(host: Host): string {
-	return host.kind === 'element' ? host.name : 'svelte:element';
+export function hostName(host: Host): string | null {
+	return host.kind === 'element' ? host.name : null;
 }

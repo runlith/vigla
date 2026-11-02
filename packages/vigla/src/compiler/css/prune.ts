@@ -370,7 +370,8 @@ export class Pruning {
 				case 'PseudoElementSelector':
 					break;
 				case 'AttributeSelector': {
-					const allowed = whitelisted.get(hostName(host).toLowerCase());
+					const name = hostName(host);
+					const allowed = name === null ? undefined : whitelisted.get(name.toLowerCase());
 					const attribute = selector.name.toLowerCase();
 					const insensitive =
 						(selector.flags?.includes('i') ?? false) ||

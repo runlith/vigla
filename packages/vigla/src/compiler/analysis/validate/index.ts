@@ -7,7 +7,8 @@ import { Anchors, type Front } from './front.ts';
 export type { Anchored, Front } from './front.ts';
 export { closest } from './a11y/fuzzy.ts';
 export { errorMessage, warningCodes, warningMessage } from './report.ts';
-import { fail, Report } from './report.ts';
+export type { Catalog, Wording } from './report.ts';
+import { fail, Report, speaking, type Wording } from './report.ts';
 import { typeOf, type Reference, type Scope } from './scope.ts';
 import { runeOf, Scopes } from './scopes.ts';
 import { runeNames, visit } from './script.ts';
@@ -19,6 +20,7 @@ export interface ValidateOptions {
 	readonly namespace?: IR.Namespace;
 	readonly stores?: readonly string[];
 	readonly front?: Front;
+	readonly wording?: Wording;
 }
 
 const reserved = new Set(['$$props', '$$restProps', '$$slots']);
@@ -186,6 +188,14 @@ export function validateComponent(
 	unit: ComponentUnit,
 	options: ValidateOptions = {}
 ): Diagnostic[] {
+	return speaking(options.wording, () => checkComponent(unit, options));
+}
+
+export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}): Diagnostic[] {
+	return speaking(options.wording, () => checkModule(unit, options));
+}
+
+function checkComponent(unit: ComponentUnit, options: ValidateOptions): Diagnostic[] {
 	const report = new Report(unit.ignores);
 	const scopes = new Scopes(unit.runes, duplicate);
 	const module = scopes.root(null);
@@ -229,7 +239,7 @@ export function validateComponent(
 	return report.warnings;
 }
 
-export function validateModule(unit: ModuleUnit, options: ValidateOptions = {}): Diagnostic[] {
+function checkModule(unit: ModuleUnit, options: ValidateOptions): Diagnostic[] {
 	const report = new Report(unit.ignores);
 	const scopes = new Scopes(unit.runes, duplicate);
 	const scope = scopes.root(null);

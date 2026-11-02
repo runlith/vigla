@@ -19,6 +19,7 @@ import {
 	parseStylesheet,
 	validateComponent,
 	validateModuleSyntax,
+	wording,
 	type AST,
 	type Parsed
 } from '../front/index.ts';
@@ -184,6 +185,7 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 			customElement: options.customElement === true,
 			namespace: options.namespace,
 			stores,
+			wording,
 			front: {
 				before: syntax.before,
 				at: syntax.anchors.translated(reading.lowered, reading.anchored)
@@ -258,6 +260,7 @@ export function compileModule(input: string, options: ModuleCompileOptions = {})
 		const program = reading.unit.program;
 		const validation: ValidateOptions = {
 			stores,
+			wording,
 			front: { at: validateModuleSyntax(program).translated(new Map(), new Map()) }
 		};
 		if (options.generate === false) {

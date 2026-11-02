@@ -63,7 +63,7 @@ export function dynamicCall(
 				attributes = true;
 				break;
 			default:
-				throw unsupported(attribute, `The ${attribute.kind} directive on <svelte:element>`);
+				throw unsupported(attribute, `The ${attribute.kind} directive on a dynamic element`);
 		}
 	}
 	if (attributes) spread(context, node, element, emit);

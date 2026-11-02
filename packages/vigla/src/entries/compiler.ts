@@ -57,8 +57,10 @@ export {
 	warningCodes,
 	warningMessage,
 	type Anchored,
+	type Catalog,
 	type Front,
-	type ValidateOptions
+	type ValidateOptions,
+	type Wording
 } from '../compiler/analysis/validate/index.ts';
 
 export type Generate = 'client' | 'server';

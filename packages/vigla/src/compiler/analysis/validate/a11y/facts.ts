@@ -1,4 +1,5 @@
 import type { DynamicElement, Element, Node, Property } from '../../../ir/nodes.ts';
+import { nameOf } from '../report.ts';
 import { contentEditableBindings } from './tables.ts';
 
 export type Static = string | true | null;
@@ -35,7 +36,7 @@ export interface Facts {
 }
 
 export function elementName(element: Element | DynamicElement): string {
-	return element.kind === 'element' ? element.name : 'svelte:element';
+	return element.kind === 'element' ? element.name : nameOf('element');
 }
 
 export function collect(element: Element | DynamicElement): Facts {

@@ -27,9 +27,6 @@ export const errors: Readonly<Record<string, readonly string[]>> = {
 		'`%name%` is an illegal variable name. To reference a global variable called `%name%`, use `globalThis.%name%`'
 	],
 	host_invalid_placement: ['`$host()` can only be used inside custom element component instances'],
-	import_svelte_internal_forbidden: [
-		"Imports of `svelte/internal/*` are forbidden. It contains private runtime code which is subject to change without notice. If you're importing from `svelte/internal/*` to work around a limitation of Svelte, please open an issue at https://github.com/sveltejs/svelte and explain your use case"
-	],
 	inspect_trace_generator: ['`$inspect.trace(...)` cannot be used inside a generator function'],
 	inspect_trace_invalid_placement: [
 		'`$inspect.trace(...)` must be the first statement of a function body'
@@ -52,7 +49,7 @@ export const errors: Readonly<Record<string, readonly string[]>> = {
 		'`$props.id()` can only be used at the top level of components as a variable declaration initializer'
 	],
 	props_illegal_name: [
-		'Declaring or accessing a prop starting with `$$` is illegal (they are reserved for Svelte internals)'
+		'Declaring or accessing a prop starting with `$$` is illegal (they are reserved for internal use)'
 	],
 	props_invalid_identifier: ['`$props()` can only be used with an object destructuring pattern'],
 	props_invalid_pattern: [
@@ -88,10 +85,7 @@ export const errors: Readonly<Record<string, readonly string[]>> = {
 		'Cannot subscribe to stores that are not declared at the top level of the component'
 	],
 	store_invalid_subscription: ['Cannot reference store value inside `<script module>`'],
-	store_invalid_subscription_module: ['Cannot reference store value outside a `.svelte` file'],
-	typescript_invalid_feature: [
-		'TypeScript language features like %feature% are not natively supported, and their use is generally discouraged. Outside of `<script>` tags, these features are not supported. For use within `<script>` tags, you will need to use a preprocessor to convert it to JavaScript before it gets passed to the Svelte compiler. If you are using `vitePreprocess`, make sure to specifically enable preprocessing script tags (`vitePreprocess({ script: true })`)'
-	],
+	store_invalid_subscription_module: ['Cannot reference store value outside a component'],
 	css_empty_declaration: ['Declaration cannot be empty'],
 	css_expected_identifier: ['Expected a valid CSS identifier'],
 	css_global_block_invalid_combinator: ['A `:global` selector cannot follow a `%name%` combinator'],
@@ -177,9 +171,6 @@ export const errors: Readonly<Record<string, readonly string[]>> = {
 	component_invalid_directive: ['This type of directive is not valid on components'],
 	const_tag_cycle: ['Cyclical dependency detected: %cycle%'],
 	const_tag_invalid_expression: ['{@const ...} must consist of a single variable declaration'],
-	const_tag_invalid_placement: [
-		'`{@const}` must be the immediate child of `{#snippet}`, `{#if}`, `{:else if}`, `{:else}`, `{#each}`, `{:then}`, `{:catch}`, `<svelte:fragment>`, `<svelte:boundary>` or `<Component>`'
-	],
 	const_tag_invalid_reference: [
 		'The `{@const %name% = ...}` declaration is not available in this snippet'
 	],
@@ -227,7 +218,7 @@ export const errors: Readonly<Record<string, readonly string[]>> = {
 		'Mixing old (on:%name%) and new syntaxes for event handling is not allowed. Use only the on%name% syntax'
 	],
 	node_invalid_placement: [
-		"%message%. The browser will 'repair' the HTML (by moving, removing, or inserting elements) which breaks Svelte's assumptions about the structure of your components."
+		"%message%. The browser will 'repair' the HTML (by moving, removing, or inserting elements) which breaks the structure the compiled component expects."
 	],
 	render_tag_invalid_call_expression: [
 		'Calling a snippet function using apply, bind or call is not allowed'
@@ -265,45 +256,6 @@ export const errors: Readonly<Record<string, readonly string[]>> = {
 	snippet_shadowing_prop: ['This snippet is shadowing the prop `%prop%` with the same name'],
 	style_directive_invalid_modifier: ['`style:` directive can only use the `important` modifier'],
 	style_duplicate: ['A component can have a single top-level `<style>` element'],
-	svelte_body_illegal_attribute: [
-		'`<svelte:body>` does not support non-event attributes or spread attributes'
-	],
-	svelte_boundary_invalid_attribute: [
-		'Valid attributes on `<svelte:boundary>` are `onerror` and `failed`'
-	],
-	svelte_boundary_invalid_attribute_value: ['Attribute value must be a non-string expression'],
-	svelte_component_invalid_this: ['Invalid component definition — must be an `{expression}`'],
-	svelte_component_missing_this: ["`<svelte:component>` must have a 'this' attribute"],
-	svelte_element_missing_this: ["`<svelte:element>` must have a 'this' attribute with a value"],
-	svelte_fragment_invalid_attribute: [
-		'`<svelte:fragment>` can only have a slot attribute and (optionally) a let: directive'
-	],
-	svelte_fragment_invalid_placement: [
-		'`<svelte:fragment>` must be the direct child of a component'
-	],
-	svelte_head_illegal_attribute: ['`<svelte:head>` cannot have attributes nor directives'],
-	svelte_meta_duplicate: ['A component can only have one `<%name%>` element'],
-	svelte_meta_invalid_content: ['<%name%> cannot have children'],
-	svelte_meta_invalid_placement: ['`<%name%>` tags cannot be inside elements or blocks'],
-	svelte_meta_invalid_tag: ['Valid `<svelte:...>` tag names are %list%'],
-	svelte_options_deprecated_tag: ['"tag" option is deprecated — use "customElement" instead'],
-	svelte_options_invalid_attribute: ['`<svelte:options>` can only receive static attributes'],
-	svelte_options_invalid_attribute_value: ['Value must be %list%, if specified'],
-	svelte_options_invalid_customelement: [
-		'"customElement" must be a string literal defining a valid custom element name or an object of the form { tag?: string; shadow?: "open" | "none" | `ShadowRootInit`; props?: { [key: string]: { attribute?: string; reflect?: boolean; type: .. } } }'
-	],
-	svelte_options_invalid_customelement_props: [
-		'"props" must be a statically analyzable object literal of the form "{ [key: string]: { attribute?: string; reflect?: boolean; type?: "String" | "Boolean" | "Number" | "Array" | "Object" }"'
-	],
-	svelte_options_invalid_customelement_shadow: [
-		'"shadow" must be either "open", "none" or `ShadowRootInit` object.'
-	],
-	svelte_options_invalid_tagname: ['Tag name must be lowercase and hyphenated'],
-	svelte_options_reserved_tagname: ['Tag name is reserved'],
-	svelte_options_unknown_attribute: ["`<svelte:options>` unknown attribute '%name%'"],
-	svelte_self_invalid_placement: [
-		'`<svelte:self>` components can only exist inside `{#if}` blocks, `{#each}` blocks, `{#snippet}` blocks or slots passed to components'
-	],
 	tag_invalid_name: [
 		'Expected a valid element or component name. Components must have a valid variable name or dot notation expression'
 	],
@@ -428,21 +380,18 @@ export const warnings: Readonly<Record<string, readonly string[]>> = {
 	options_removed_enable_sourcemap: [
 		'The `enableSourcemap` option has been removed. Source maps are always generated now, and tooling can choose to ignore them'
 	],
-	options_removed_hydratable: [
-		'The `hydratable` option has been removed. Svelte components are always hydratable now'
-	],
 	options_removed_loop_guard_timeout: ['The `loopGuardTimeout` option has been removed'],
 	options_renamed_ssr_dom: [
 		'`generate: "dom"` and `generate: "ssr"` options have been renamed to "client" and "server" respectively'
 	],
 	custom_element_props_identifier: [
-		"Using a rest element or a non-destructured declaration with `$props()` means that Svelte can't infer what properties to expose when creating a custom element. Consider destructuring all the props or explicitly specifying the `customElement.props` option."
+		"Using a rest element or a non-destructured declaration with `$props()` means that the compiler can't infer what properties to expose when creating a custom element. Consider destructuring all the props or explicitly specifying the `customElement.props` option."
 	],
 	export_let_unused: [
 		"Component has unused export property '%name%'. If it is for external reference only, please consider using `export const %name%`"
 	],
 	legacy_component_creation: [
-		"Svelte 5 components are no longer classes. Instantiate them using `mount` or `hydrate` (imported from 'svelte') instead."
+		'Components are no longer classes. Instantiate them using `mount` or `hydrate` instead.'
 	],
 	non_reactive_update: [
 		'`%name%` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates'
@@ -468,14 +417,8 @@ export const warnings: Readonly<Record<string, readonly string[]>> = {
 	attribute_global_event_reference: [
 		'You are referencing `globalThis.%name%`. Did you forget to declare a variable with that name?'
 	],
-	attribute_illegal_colon: [
-		"Attributes should not contain ':' characters to prevent ambiguity with Svelte directives"
-	],
 	attribute_invalid_property_name: [
 		"'%wrong%' is not a valid HTML attribute. Did you mean '%right%'?"
-	],
-	attribute_quoted: [
-		"Quoted attributes on components and custom elements will be stringified in a future version of Svelte. If this isn't what you want, remove the quotes"
 	],
 	bind_invalid_each_rest: [
 		"The rest operator (...) will create a new object and binding '%name%' with the original object will not work"
@@ -504,14 +447,5 @@ export const warnings: Readonly<Record<string, readonly string[]>> = {
 	],
 	slot_element_deprecated: [
 		'Using `<slot>` to render parent content is deprecated. Use `{@render ...}` tags instead'
-	],
-	svelte_component_deprecated: [
-		'`<svelte:component>` is deprecated in runes mode — components are dynamic by default'
-	],
-	svelte_element_invalid_this: [
-		'`this` should be an `{expression}`. Using a string attribute value will cause an error in future versions of Svelte'
-	],
-	svelte_self_deprecated: [
-		"`<svelte:self>` is deprecated — use self-imports (e.g. `import %name% from './%basename%'`) instead"
 	]
 };
