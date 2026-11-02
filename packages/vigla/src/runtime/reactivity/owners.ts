@@ -1,5 +1,5 @@
 import type { Layer } from '../../shared/context.ts';
-import { destroy, detached, run } from './effects.ts';
+import { destroy, destroyed, detached, run } from './effects.ts';
 import { lifetime } from './abort.ts';
 import { settledUnder, unit } from './async.ts';
 import type { Boundary, Effect } from './graph.ts';
@@ -125,6 +125,32 @@ export class Owner {
 
 	settled(): Promise<void> {
 		return settledUnder(effectOf(this));
+	}
+
+	root(fn?: () => void | (() => void)): Owner {
+		return root(fn, this);
+	}
+
+	onDispose(fn: () => void): () => void {
+		const effect = effectOf(this);
+		if (effect.destroyed) {
+			withoutReaction(fn);
+			return () => {};
+		}
+		let live = true;
+		const previous = setOwner(effect);
+		let registered: Effect;
+		try {
+			registered = destroyed(() => {
+				if (live) fn();
+			});
+		} finally {
+			setOwner(previous);
+		}
+		return () => {
+			live = false;
+			destroy(registered);
+		};
 	}
 
 	dispose(): void {

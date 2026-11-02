@@ -83,15 +83,18 @@ export function stash(built: Built): void {
 	built.fragment = fragment;
 }
 
-export function discard(built: Built): void {
-	if (built.fragment === null) {
-		let node: ChildNode | null = built.first;
-		while (node !== null) {
-			const next: ChildNode | null = node.nextSibling;
-			node.remove();
-			if (node === built.last) break;
-			node = next;
-		}
+export function remove(built: Built): void {
+	if (built.fragment !== null) return;
+	let node: ChildNode | null = built.first;
+	while (node !== null) {
+		const next: ChildNode | null = node.nextSibling;
+		node.remove();
+		if (node === built.last) break;
+		node = next;
 	}
+}
+
+export function discard(built: Built): void {
+	remove(built);
 	destroy(built.effect);
 }

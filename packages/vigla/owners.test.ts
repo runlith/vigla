@@ -118,6 +118,31 @@ test('sibling services release dependents before their dependencies', () => {
 	assert.deepEqual(released, [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
 });
 
+test('a service outlives what was created after it under the same owner, siblings in creation order', () => {
+	const app = root();
+	const released: string[] = [];
+	app.run(() => onDestroy(() => released.push('before')));
+	const service = app.root(() => onDestroy(() => released.push('service')));
+	app.run(() => {
+		onDestroy(() => released.push(service.run(() => 'after')));
+		onDestroy(() => released.push('last'));
+	});
+	app.dispose();
+	assert.deepEqual(released, ['after', 'last', 'service', 'before']);
+});
+
+test('owner disposal callbacks run once at disposal and can be withdrawn', () => {
+	const app = root();
+	const released: string[] = [];
+	const withdraw = app.onDispose(() => released.push('withdrawn'));
+	app.onDispose(() => released.push('kept'));
+	withdraw();
+	app.dispose();
+	app.onDispose(() => released.push('late'));
+	assert.deepEqual(released, ['kept', 'late']);
+	assert.throws(() => onDestroy(() => {}), /teardown_without_owner/);
+});
+
 test('owner failures reach the nearest live handler and leave siblings updating', () => {
 	const app = root();
 	const service = root(undefined, app);

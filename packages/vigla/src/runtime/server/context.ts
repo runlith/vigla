@@ -1,7 +1,7 @@
 import { keyed, type Context, type Layer } from '../../shared/context.ts';
 import { lifetime } from '../reactivity/abort.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { destroy, fail, teardown } from '../reactivity/effects.ts';
+import { destroy, destroyed, fail, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import type { Cell } from '../reactivity/sources.ts';
 import { ownContext, ownerOf } from '../reactivity/owners.ts';
@@ -291,12 +291,12 @@ function instanceOf(effect: Effect): Instance | null {
 }
 
 export function onDestroy(fn: () => void): void {
-	if (owner === null) return;
-	if (owner.destroyed) {
+	if (owner?.destroyed) {
 		fn();
 		return;
 	}
-	const instance = render !== null && owner === render.scope ? instanceOf(owner) : null;
-	if (instance === null) teardown(fn);
+	const instance =
+		owner !== null && render !== null && owner === render.scope ? instanceOf(owner) : null;
+	if (instance === null) destroyed(fn);
 	else (instance.destroys ??= []).push(fn);
 }

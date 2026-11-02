@@ -87,6 +87,16 @@ test('server owner work and holds count toward owner and global settlement', asy
 	}
 });
 
+test('server teardowns outside an owner are refused and services outlive later teardowns', () => {
+	const app = core.root();
+	const released: string[] = [];
+	const service = app.root(() => core.onDestroy(() => released.push('service')));
+	app.onDispose(() => released.push(service.run(() => 'after')));
+	app.dispose();
+	assert.deepEqual(released, ['after', 'service']);
+	assert.throws(() => core.onDestroy(() => {}), /teardown_without_owner/);
+});
+
 test('server child owners see context installed after their creation and own their signals', () => {
 	const parent = core.root();
 	const child = core.root(undefined, parent);

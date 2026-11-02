@@ -6,6 +6,7 @@ import {
 	type WritableSource
 } from '../../shared/external.ts';
 import { onDestroy } from './context.ts';
+import { owner } from '../reactivity/tracking.ts';
 
 export function external<T>(
 	read: () => WritableSource<T> | null | undefined,
@@ -20,7 +21,7 @@ export function external<T>(
 	name = 'source'
 ): WritableExternal<T> {
 	const connection = new Connection<T>();
-	onDestroy(() => connection.dispose());
+	if (owner !== null) onDestroy(() => connection.dispose());
 	const current = (): T => {
 		connection.select(read(), name, true);
 		return connection.value;

@@ -16,7 +16,7 @@ import { abort, abortLifetime } from './abort.ts';
 import { collect, orphaned, pending, processed, retire, revisit, schedule } from './batch.ts';
 import { disconnect } from './deriveds.ts';
 import { handlerOf } from './owners.ts';
-import { orphan } from './errors.ts';
+import { orphan, teardownOrphan } from './errors.ts';
 import { presently } from './past.ts';
 import { stayed } from './leaving.ts';
 import {
@@ -253,6 +253,7 @@ export function teardown(fn: () => void): Effect {
 }
 
 export function destroyed(fn: () => void): Effect {
+	if (owner === null) teardownOrphan();
 	return teardown(() => presently(fn));
 }
 
@@ -271,18 +272,31 @@ function unlink(effect: Effect): void {
 }
 
 function destroyChildren(effect: Effect, keepBranches = false): void {
-	let scoped = effect.last;
-	while (scoped !== null) {
-		const previous = scoped.prev;
-		if (scoped.scope) destroy(scoped);
-		scoped = previous;
+	let end = effect.last;
+	while (end !== null) {
+		if (end.scope) {
+			const previous = end.prev;
+			destroy(end);
+			end = previous;
+			continue;
+		}
+		let start = end;
+		while (start.prev !== null && !start.prev.scope) start = start.prev;
+		const before = start.prev;
+		for (let child: Effect | null = start; child !== null;) {
+			const next: Effect | null = child.next;
+			if (!keepBranches || child.kind !== BRANCH) destroy(child);
+			if (child === end) break;
+			child = next;
+		}
+		end = before;
 	}
-	let child = effect.first;
-	while (child !== null) {
-		const next = child.next;
-		if (!keepBranches || child.kind !== BRANCH) destroy(child);
-		child = next;
-	}
+}
+
+const detaching = new WeakMap<Effect, () => void>();
+
+export function detach(root: Effect, fn: () => void): void {
+	detaching.set(root, fn);
 }
 
 export function destroy(effect: Effect): void {
@@ -290,6 +304,13 @@ export function destroy(effect: Effect): void {
 	effect.destroyed = true;
 	abortLifetime(effect);
 	stayed(effect);
+	if (effect.kind === ROOT) {
+		const detached = detaching.get(effect);
+		if (detached !== undefined) {
+			detaching.delete(effect);
+			dispose(effect, detached);
+		}
+	}
 	destroyChildren(effect);
 	release(effect);
 	for (const dep of effect.deps ?? []) unsubscribe(dep, effect);

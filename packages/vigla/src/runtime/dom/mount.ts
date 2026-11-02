@@ -1,7 +1,7 @@
 import { failure, isFailure, warn } from '../../shared/diagnostics.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
-import { destroy, detached } from '../reactivity/effects.ts';
+import { destroy, detach, detached } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { introducing } from '../transitions/manager.ts';
@@ -20,7 +20,7 @@ import {
 import { withContext } from './context.ts';
 import { entry, mountRoot } from './props.ts';
 import { withHydration } from './data.ts';
-import { build, discard, type Built } from './range.ts';
+import { build, remove, type Built } from './range.ts';
 
 export type Props = Record<string, unknown>;
 
@@ -45,12 +45,7 @@ export interface HydrateOptions<P extends Props> extends MountOptions<P> {
 	readonly recover?: boolean;
 }
 
-interface Mounted {
-	readonly built: Built;
-	readonly release: () => void;
-}
-
-const mounted = new WeakMap<object, Mounted>();
+const mounted = new WeakMap<object, Built>();
 
 function start<P extends Props, E extends Exports>(
 	component: Component<P, E>,
@@ -91,7 +86,13 @@ function start<P extends Props, E extends Exports>(
 }
 
 function finish(instance: object, built: Built, target: ParentNode): void {
-	mounted.set(instance, { built, release: delegateRoot(target) });
+	const release = delegateRoot(target);
+	mounted.set(instance, built);
+	detach(built.effect, () => {
+		mounted.delete(instance);
+		release();
+		remove(built);
+	});
 }
 
 export function mount<P extends Props, E extends Exports>(
@@ -152,8 +153,6 @@ export function unmount(instance: object): Promise<void> {
 		warn('lifecycle_double_unmount', 'Tried to unmount a component that was not mounted');
 		return Promise.resolve();
 	}
-	mounted.delete(instance);
-	found.release();
-	discard(found.built);
+	destroy(found.effect);
 	return Promise.resolve();
 }

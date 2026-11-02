@@ -11,6 +11,10 @@ export function orphan(rune: string): never {
 	);
 }
 
+export function teardownOrphan(): never {
+	return fail('teardown_without_owner', '`onDestroy` can only be used where an owner exists');
+}
+
 export function asyncOrphan(): never {
 	return fail(
 		'async_derived_orphan',

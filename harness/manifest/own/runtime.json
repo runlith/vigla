@@ -157,6 +157,10 @@
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): context set on an owner at any time, read in a detached root under it and after an `await`, with `createContext`; upstream 5.57.3 has no `vigla` entry, so the sample cannot run there"
 		},
+		"owner-mount-dispose": {
+			"status": "difference",
+			"reason": "Public owner lifetimes (spec 37f29ce1): disposing an owner that holds a mount removes the mounted DOM and its delegated listeners as unmount does; upstream 5.57.3 has no `vigla` entry"
+		},
 		"owner-server-render": {
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): a server render() runs under an owner of its own beneath the caller's, sees context and hydratable values set on a request owner before it, and ends with its abort signal and teardowns; upstream 5.57.3 has no `vigla` entry"
