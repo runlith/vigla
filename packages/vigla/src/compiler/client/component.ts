@@ -4,7 +4,7 @@ import * as b from '../ir/estree.ts';
 import type { Boundary, Component, Node, Render, Snippet } from '../ir/nodes.ts';
 import { bindThisCall } from './bindings.ts';
 import { snippetParameters } from './parameters.ts';
-import { valueOf } from './element.ts';
+import { valueOf } from './values.ts';
 import { accessor, rewrite, runtime } from './script.ts';
 import { scoped } from './meta.ts';
 import {

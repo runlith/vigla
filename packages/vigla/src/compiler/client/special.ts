@@ -142,7 +142,7 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				const args: ES.Expression[] = [
 					target,
 					b.literal(type),
-					named(context, type, handler(context, attribute.value.expression))
+					named(context, type, handler(context, attribute.value.expression, statements))
 				];
 				if (capture) args.push(b.literal(true));
 				statements.push(b.statement(runtime(context, 'on', ...args)));

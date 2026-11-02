@@ -48,6 +48,7 @@
 			"status": "contract",
 			"reason": "Scheduler trap, hunk 7 (effect self-invalidation): green on upstream 5.57.3, kept as a regression test"
 		},
+		"event-global-handler": "contract",
 		"event-spread-lifetime": {
 			"status": "difference",
 			"reason": "Upstream 5.57.3 leaves a spread listener on a removed media element: a retained element still invokes its handler"

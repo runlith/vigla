@@ -8,11 +8,9 @@ import type {
 	ClassToggle,
 	DynamicElement,
 	Element,
-	Expression,
 	Namespace,
 	Property,
 	StyleProperty,
-	Text,
 	Value
 } from '../ir/nodes.ts';
 import { awaiting } from './asynchronous.ts';
@@ -22,6 +20,7 @@ import { event, handler, isEvent } from './events.ts';
 import { rewrite, runtime } from './script.ts';
 import { location } from './meta.ts';
 import { animationCall, transitionCall } from './transitions.ts';
+import { isStatic, staticText, valueOf, valueReactive } from './values.ts';
 import {
 	cleaned,
 	flush,
@@ -38,53 +37,6 @@ import {
 } from './template.ts';
 
 const unsettable = new Set(['autofocus', 'muted', 'defaultValue', 'defaultChecked']);
-
-function valueReactive(context: TemplateContext, value: Value): boolean {
-	if (value.kind === 'boolean') return false;
-	if (value.kind === 'expression') return isDynamic(context, value.expression);
-	return value.parts.some(
-		(part) => part.kind === 'expression' && isDynamic(context, part.expression)
-	);
-}
-
-function isStatic(value: Value): boolean {
-	return (
-		value.kind === 'boolean' ||
-		(value.kind === 'text' && value.parts.every((part) => part.kind === 'text'))
-	);
-}
-
-function staticText(value: Value): string {
-	return value.kind === 'text' ? value.parts.map((part) => (part as Text).data).join('') : '';
-}
-
-export function valueOf(context: TemplateContext, emit: Emit | null, value: Value): ES.Expression {
-	if (value.kind === 'boolean') return b.literal(true);
-	if (value.kind === 'expression') {
-		const rewritten = rewrite(context, value.expression);
-		return emit === null ? rewritten : memo(context, emit, value.expression, rewritten);
-	}
-	const run = value.parts;
-	const [only] = run;
-	if (run.length === 1 && only?.kind === 'expression') {
-		const rewritten = rewrite(context, only.expression);
-		const memoized = emit === null ? rewritten : memo(context, emit, only.expression, rewritten);
-		return b.logical('??', memoized, b.literal(''));
-	}
-	const quasis: string[] = [''];
-	const expressions: ES.Expression[] = [];
-	for (const part of run) {
-		if (part.kind === 'text') quasis[quasis.length - 1] += part.data;
-		else {
-			const rewritten = rewrite(context, (part as Expression).expression);
-			const memoized =
-				emit === null ? rewritten : memo(context, emit, (part as Expression).expression, rewritten);
-			expressions.push(b.logical('??', memoized, b.literal('')));
-			quasis.push('');
-		}
-	}
-	return b.template(quasis, expressions);
-}
 
 function update(
 	context: TemplateContext,
@@ -231,7 +183,11 @@ export function spread(
 			case 'attribute': {
 				if (templated(context, node, attribute)) break;
 				const value = isEvent(attribute)
-					? handler(context, (attribute.value as { expression: ES.Expression }).expression)
+					? handler(
+							context,
+							(attribute.value as { expression: ES.Expression }).expression,
+							emit.init
+						)
 					: valueOf(context, emit, attribute.value);
 				properties.push({
 					type: 'Property',
@@ -483,7 +439,9 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 				throw unsupported(attribute, `The ${attribute.kind} directive`);
 			}
 			if (isEvent(attribute)) {
-				setups.push((element, emit) => emit.init.push(event(context, element, attribute)));
+				setups.push((element, emit) =>
+					emit.init.push(event(context, element, attribute, emit.init))
+				);
 				continue;
 			}
 			const lower = html ? attribute.name.toLowerCase() : attribute.name;

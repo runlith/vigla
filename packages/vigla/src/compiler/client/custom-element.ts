@@ -2,7 +2,7 @@ import type * as ES from 'estree';
 import type { Binding, ComponentAnalysis } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Slot } from '../ir/nodes.ts';
-import { valueOf } from './element.ts';
+import { valueOf } from './values.ts';
 import { read, rewrite, runtime } from './script.ts';
 import { cleaned, render, type TemplateContext } from './template.ts';
 

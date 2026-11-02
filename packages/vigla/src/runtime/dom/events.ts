@@ -1,6 +1,8 @@
+import { warn } from '../../shared/diagnostics.ts';
 import { isPassive } from '../../shared/html.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
+import type { Location } from './meta.ts';
 
 const handlers = Symbol('events');
 
@@ -27,6 +29,37 @@ export function unowned<T>(fn: () => T): T {
 	} finally {
 		setOwner(previous);
 	}
+}
+
+export function invoke(
+	get: () => unknown,
+	target: EventTarget,
+	args: [Event, ...unknown[]],
+	location: Location,
+	sideEffects = false,
+	call = false
+): void {
+	let handler: unknown;
+	let failure: unknown;
+	let failed = false;
+	try {
+		handler = get();
+	} catch (error) {
+		failed = true;
+		failure = error;
+	}
+	if (typeof handler !== 'function' && (sideEffects || handler != null || failed)) {
+		const event = args[0];
+		const phase = event.eventPhase < 3 ? 'capture' : '';
+		const at = `${location.file}:${location.line}:${location.column}`;
+		const suggestion = call ? 'remove the trailing `()`' : 'add a leading `() =>`';
+		warn(
+			'event_handler_invalid',
+			`\`${event.type}${phase}\` handler at ${at} should be a function. Did you mean to ${suggestion}?`
+		);
+	}
+	if (failed) throw failure;
+	(handler as ((...values: unknown[]) => unknown) | null | undefined)?.apply(target, args);
 }
 
 function deferred(type: string): boolean {
