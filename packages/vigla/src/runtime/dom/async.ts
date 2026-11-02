@@ -178,7 +178,6 @@ export function script(node: ChildNode, fn: () => Promise<Render>): void {
 	} catch (error) {
 		promise = Promise.reject(error);
 	}
-	resumed();
 	promise.then(
 		(render) => {
 			if (at?.destroyed) {
