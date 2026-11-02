@@ -14,4 +14,4 @@ sources:
     ref: packages/vigla/src/runtime/dom/props.ts
     symbol: forwardProps
 ---
-An externally supplied plain object can change without becoming a proxy, so a nested mutation must reach its producer even after a component forwards the binding. Mutability follows getter and accessor identities through weak metadata, including the getter a props spread actually selects; forwarding an ordinary reactive value therefore does not add setter calls for mutations its proxy already publishes.
+An externally supplied plain object can change without becoming a proxy, so a nested mutation must reach its producer even after a component forwards the binding. Mutability follows getter and accessor identities through weak metadata, including the getter a props spread actually selects; forwarding an ordinary reactive value therefore does not add setter calls for mutations its proxy already publishes. Development binding validation captures reads of these mutable getters and accessors so a producer-notified plain property is not mistaken for inert state.
