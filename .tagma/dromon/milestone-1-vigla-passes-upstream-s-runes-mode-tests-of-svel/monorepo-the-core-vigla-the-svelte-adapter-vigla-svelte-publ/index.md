@@ -7,6 +7,9 @@ fields:
   {
     "status": "open"
   }
+sources:
+  - kind: file
+    ref: bun.lock
 ---
 **Packages.** A Bun workspace:
 - `packages/vigla`, published `vigla` — the core: the template IR, analysis, client and server code generation, CSS scoping, the runtime (reactivity and scheduler, DOM rendering and hydration, server rendering) and, later, the TSX front end; its own version line.
