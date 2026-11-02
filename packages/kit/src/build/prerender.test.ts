@@ -187,6 +187,37 @@ test('page-discovered arguments share a crawl value, static output and hydration
 	}
 });
 
+test('a reached page with actions rejects prerendering through its HTTP error policy', async () => {
+	const runtime = await app({
+		functions: {},
+		load: () => ({}),
+		hooks: {
+			handleError({ error }) {
+				expect(error).toMatchObject({
+					name: 'SvelteKit error',
+					message: expect.stringContaining('prerender_actions')
+				});
+				return { message: String(error) };
+			}
+		}
+	});
+	const node = await runtime.manifest.nodes[0]!();
+	node.server = { prerender: 'auto', actions: {} };
+	runtime.manifest.nodes[0] = async () => node;
+	const input = await job(runtime, 'actions');
+	input.entries = ['/a'];
+	const failure = new Error('prerender rejected');
+	await expect(
+		prerender(input, runtime, async (issue) => {
+			expect(issue).toMatchObject({
+				kind: 'handleHttpError',
+				details: { status: 500, path: '/a' }
+			});
+			throw failure;
+		})
+	).rejects.toBe(failure);
+});
+
 test('an input generator failure rejects prerendering without turning it into an HTTP policy issue', async () => {
 	const failure = new Error('input generation failed');
 	const read = remotePrerender('unchecked', (value) => value, {
