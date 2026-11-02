@@ -10,9 +10,25 @@ interface Row extends Listed {
 	readonly failed?: string;
 }
 
+interface Suite {
+	readonly name: string;
+	readonly conditions: readonly string[];
+}
+
+interface Benchmark {
+	readonly suite: Suite;
+	readonly entry: Listed;
+}
+
 const base = resolve(import.meta.dirname, '..');
 const repo = resolve(base, '..');
-const suites = ['reactivity', 'own'];
+const suites: readonly Suite[] = [
+	{ name: 'reactivity', conditions: ['browser', 'production'] },
+	{ name: 'own', conditions: ['browser', 'production'] },
+	{ name: 'compiler', conditions: ['production'] },
+	{ name: 'ssr', conditions: ['production'] }
+];
+const shared = ['shared'];
 const targets: Target[] = [
 	{ name: 'upstream', root: join(repo, 'targets', 'upstream') },
 	{ name: 'vigla', root: join(repo, 'targets', 'vigla') }
@@ -28,13 +44,16 @@ for (let index = 0; index < args.length; index++) {
 }
 if (!Number.isInteger(runs) || runs < 1) throw new Error('--runs takes a positive integer');
 
-function child<T>(target: Prepared, label: string | undefined): Promise<T> {
+function child<T>(target: Prepared, suite: Suite, label: string | undefined): Promise<T> {
 	return new Promise((done, failed) => {
-		const env: NodeJS.ProcessEnv = { ...process.env, BENCH_INDEX: target.index };
+		const index = target.indexes[suite.name];
+		if (index === undefined) throw new Error(`${target.name} prepared no ${suite.name} suite`);
+		const env: NodeJS.ProcessEnv = { ...process.env, BENCH_INDEX: index };
 		if (label === undefined) delete env.BENCH_LABEL;
 		else env.BENCH_LABEL = label;
+		const conditions = suite.conditions.map((condition) => `--conditions=${condition}`);
 		const spawned = fork(join(import.meta.dirname, 'child.ts'), [], {
-			execArgv: ['--expose-gc', '--conditions=browser', '--conditions=production'],
+			execArgv: ['--expose-gc', ...conditions],
 			env
 		});
 		let result: T | null = null;
@@ -42,7 +61,9 @@ function child<T>(target: Prepared, label: string | undefined): Promise<T> {
 		spawned.on('error', failed);
 		spawned.on('exit', (code, signal) => {
 			if (code !== 0 || result === null)
-				failed(new Error(`${target.name} ${label ?? 'list'} exited with ${code ?? signal}`));
+				failed(
+					new Error(`${target.name} ${suite.name}/${label ?? 'list'} exited with ${code ?? signal}`)
+				);
 			else done(result);
 		});
 	});
@@ -72,12 +93,17 @@ function revision(): string {
 	return dirty === '' ? head : `${head} with uncommitted packages changes`;
 }
 
+const names = suites.map((suite) => suite.name);
 const prepared: Prepared[] = [];
-for (const target of targets) prepared.push(await prepare(target, base, suites));
+for (const target of targets) prepared.push(await prepare(target, base, names, shared));
 
-const listed = await child<Listed[]>(prepared[0] as Prepared, undefined);
+const listed: Benchmark[] = [];
+for (const suite of suites) {
+	const entries = await child<Listed[]>(prepared[0] as Prepared, suite, undefined);
+	listed.push(...entries.map((entry) => ({ suite, entry })));
+}
 const selected = listed.filter(
-	(entry) =>
+	({ entry }) =>
 		filters.length === 0 ||
 		filters.some((filter) => `${entry.suite}/${entry.label}`.includes(filter))
 );
@@ -100,14 +126,14 @@ console.log(line(['benchmark', 'upstream ms', 'vigla ms', 'ratio']));
 console.log('='.repeat(widths.reduce((a, b) => a + b)));
 
 const rows: Row[] = [];
-for (const entry of selected) {
+for (const { suite, entry } of selected) {
 	const times: Record<string, number[]> = {};
 	for (const target of prepared) times[target.name] = [];
 	try {
 		for (let run = 0; run < runs; run++) {
 			const order = run % 2 === 0 ? prepared : [...prepared].reverse();
 			for (const target of order) {
-				const measured = await child<Measured>(target, entry.label);
+				const measured = await child<Measured>(target, suite, entry.label);
 				times[target.name]?.push(measured.time);
 			}
 		}
