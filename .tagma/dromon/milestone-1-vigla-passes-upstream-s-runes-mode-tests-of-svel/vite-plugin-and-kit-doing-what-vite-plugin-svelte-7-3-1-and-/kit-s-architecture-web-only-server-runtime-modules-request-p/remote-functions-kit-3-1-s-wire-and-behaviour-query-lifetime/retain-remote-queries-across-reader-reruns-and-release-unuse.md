@@ -9,4 +9,4 @@ fields:
     "status": "in_work"
   }
 ---
-Retain a query across a reader rerun using a microtask-deferred per-run release, and release keys no run reads after an argument change. Prove both lifetimes through the client contract, verify refreshAll and remaining remote entries in approved groups of at most twenty, and record first-attempt passes with the fix.
+Retain reactive query readers through the core's createSubscriber so a rerun reuses the same key and changed arguments release keys no run reads. Preserve plain owned reads for their owner's run and ownerless one-shot reads. Prove both reader lifetimes through the client contract, verify refreshAll and remaining remote entries in approved groups of at most twenty, and manually record first-attempt passes with the fix.

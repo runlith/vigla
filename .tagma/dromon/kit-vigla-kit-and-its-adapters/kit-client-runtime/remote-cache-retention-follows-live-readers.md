@@ -11,4 +11,4 @@ sources:
   - kind: file
     ref: packages/kit/src/client/remote/live.ts
 ---
-Queries remain reusable while a run reads them, including service and detached-root readers. Per-run releases wait one microtask: a rerun reading the same key keeps its resource, while changed arguments drop the key no longer read. Plain owned reads last with their owner's run; ownerless reads hold nothing. The last reader's release ends a live stream, and tab disposal aborts outstanding HTTP work.
+Reactive readers retain query entries through the core's `createSubscriber`, including services and detached roots. Its microtask-deferred release lets a rerun reuse the same key while changed arguments release obsolete keys. Plain owned reads retain an entry for their owner's run with the same deferred release; ownerless reads hold nothing. The last reader's release ends a live stream, and tab disposal aborts outstanding HTTP work.
