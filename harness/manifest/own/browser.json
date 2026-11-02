@@ -2,6 +2,14 @@
 	"samples": {
 		"crossfade-config-projection": "contract",
 		"trusted-types": "contract",
+		"trusted-types-sinks": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 recreates a template script by setting its src and text as plain strings, refused under require-trusted-types-for 'script' (TrustedScriptURL on the src first), and its bind:innerHTML writes `value + ''`, stringifying a TrustedHTML"
+		},
+		"trusted-types-tree": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3's fragments: 'tree' sets static attributes as plain strings, so an iframe srcdoc is refused under require-trusted-types-for 'script' (TrustedHTML)"
+		},
 		"issue-10252-frames": {
 			"status": "difference",
 			"reason": "Svelte #10252 coordinate cases on upstream 5.57.3 Chromium: a receiver under an ancestor scaled in the same update starts 90px off its sender, a receiver with its own scale(2) starts 30px off a sender under a scaled ancestor, a sender keeps drifting 25px with its earlier translate intro, and a receiver under perspective starts 13px off"

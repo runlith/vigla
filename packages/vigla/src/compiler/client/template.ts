@@ -512,7 +512,7 @@ export function render(
 	const markups = list.map((part) => part.markup);
 	const args: ES.Expression[] =
 		context.fragments === 'tree' ? [tree(markups)] : [b.template([markups.map(html).join('')], [])];
-	const policy = context.fragments === 'tree' ? [] : policyArgument(context);
+	const policy = policyArgument(context);
 	if (flagged !== 0 || policy.length > 0) args.push(b.literal(flagged), ...policy);
 	const maker = context.fragments === 'tree' ? 'tree' : 'fragment';
 	context.hoisted.push(b.constant(template, runtime(context, maker, ...args)));

@@ -13,7 +13,7 @@ import {
 	setOverwriting,
 	TEXT
 } from './hydration.ts';
-import { trustedHtml } from './trusted.ts';
+import { trustedAttribute, trustedHtml, trustedScript } from './trusted.ts';
 
 export type Render = (anchor: ChildNode) => void;
 
@@ -25,21 +25,31 @@ export const MATHML = 4;
 
 export const SCRIPTS = 8;
 
-function freshScript(source: Element): Element {
+function setTrusted(
+	element: Element,
+	name: string,
+	namespace: string | null,
+	value: string,
+	policy: string
+): void {
+	const given = trustedAttribute(element, name, namespace, value, policy);
+	if (namespace === null) element.setAttribute(name, given);
+	else element.setAttributeNS(namespace, name, given);
+}
+
+function freshScript(source: Element, policy: string): Element {
 	const script = source.ownerDocument.createElementNS(source.namespaceURI, source.localName);
-	for (const attribute of source.attributes) {
-		if (attribute.namespaceURI === null) script.setAttribute(attribute.name, attribute.value);
-		else script.setAttributeNS(attribute.namespaceURI, attribute.name, attribute.value);
-	}
-	script.textContent = source.textContent;
+	for (const attribute of source.attributes)
+		setTrusted(script, attribute.name, attribute.namespaceURI, attribute.value, policy);
+	script.textContent = trustedScript(source.textContent ?? '', policy);
 	return script;
 }
 
-function activateScripts(node: Node): Node {
+function activateScripts(node: Node, policy: string): Node {
 	if (node.nodeType === 1 && (node as Element).localName === 'script')
-		return freshScript(node as Element);
+		return freshScript(node as Element, policy);
 	for (const script of (node as ParentNode).querySelectorAll('script'))
-		script.replaceWith(freshScript(script));
+		script.replaceWith(freshScript(script, policy));
 	return node;
 }
 
@@ -150,7 +160,12 @@ function within(name: string, space: string | null, encoding: string | undefined
 	return kind === 'text/html' || kind === 'application/xhtml+xml' ? null : ANNOTATION;
 }
 
-function construct(structure: readonly Structure[], context: Context, parent: Node): void {
+function construct(
+	structure: readonly Structure[],
+	context: Context,
+	parent: Node,
+	policy: string
+): void {
 	for (const item of structure) {
 		if (typeof item === 'string') {
 			parent.appendChild(document.createTextNode(item));
@@ -169,40 +184,43 @@ function construct(structure: readonly Structure[], context: Context, parent: No
 				: document.createElementNS(space, name);
 		for (const [key, value] of Object.entries(attributes ?? {})) {
 			const foreign = space === null ? undefined : foreignAttributes[key];
-			if (foreign === undefined) element.setAttribute(key, value);
-			else element.setAttributeNS(foreign, key, value);
+			setTrusted(element, key, foreign ?? null, value, policy);
 		}
 		const inner =
 			space === null && name === 'template' ? (element as HTMLTemplateElement).content : element;
-		construct(children, within(name, space, attributes?.encoding), inner);
+		construct(children, within(name, space, attributes?.encoding), inner, policy);
 		parent.appendChild(element);
 	}
 }
 
-function build(structure: readonly Structure[], flags: number): Node {
+function build(structure: readonly Structure[], flags: number, policy: string): Node {
 	const context =
 		(flags & SVG) !== 0 ? namespaces.svg : (flags & MATHML) !== 0 ? namespaces.mathml : null;
 	const fragment = document.createDocumentFragment();
-	construct(structure, context, fragment);
+	construct(structure, context, fragment, policy);
 	return (flags & SINGLE) === 0 ? fragment : (fragment.firstChild as Node);
 }
 
-function cloned(master: () => Node, flags: number): () => Node {
+function cloned(master: () => Node, flags: number, policy: string): () => Node {
 	let made: Node | null = null;
 	return () => {
 		if (hydrating) return cursor;
 		made ??= master();
 		const node = document.importNode(made, true);
-		return (flags & SCRIPTS) === 0 ? node : activateScripts(node);
+		return (flags & SCRIPTS) === 0 ? node : activateScripts(node, policy);
 	};
 }
 
 export function fragment(html: string, flags = 0, policy = htmlPolicy(format)): () => Node {
-	return cloned(() => parse(html, flags, policy), flags);
+	return cloned(() => parse(html, flags, policy), flags, policy);
 }
 
-export function tree(structure: readonly Structure[], flags = 0): () => Node {
-	return cloned(() => build(structure, flags), flags);
+export function tree(
+	structure: readonly Structure[],
+	flags = 0,
+	policy = htmlPolicy(format)
+): () => Node {
+	return cloned(() => build(structure, flags, policy), flags, policy);
 }
 
 function textAt(node: ChildNode | null, after: ChildNode | null, parent: Node): ChildNode {

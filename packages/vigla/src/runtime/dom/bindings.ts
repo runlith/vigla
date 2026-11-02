@@ -241,7 +241,10 @@ export function bindContentEditable(
 		const value = get();
 		if (element[property] === value) return;
 		if (value == null) set(element[property]);
-		else element[property] = String(value);
+		else
+			element[property] = (
+				property === 'innerHTML' && typeof value === 'object' ? value : String(value)
+			) as string;
 	});
 }
 
