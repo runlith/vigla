@@ -123,6 +123,7 @@ basics/test/playwright/client.test.js > Load > permits 3rd party patching of ser
 basics/test/playwright/client.test.js > Load > server data from previous is not reused if next page has no load function (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > Load > url instance methods work in load (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > Load > use correct cache result when fetching same url multiple times (test-dev-1/chromium-dev)
+basics/test/playwright/client.test.js > Load > using window.fetch causes a warning (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > SPA mode / no SSR > Can use browser-only global on client-only page through ssr config in handle (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > SPA mode / no SSR > afterNavigate is only called once during start (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > SPA mode / no SSR > applies generated component styles (hides announcer) (test-dev-1/chromium-dev)
