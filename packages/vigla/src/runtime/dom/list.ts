@@ -31,6 +31,7 @@ import {
 	building,
 	moverOf,
 	pause,
+	prepare,
 	resume,
 	type Mover
 } from '../transitions/manager.ts';
@@ -225,6 +226,7 @@ class List<T> {
 		}
 		const stage: Stage<T> = { rows, empty };
 		if (batch === null) {
+			this.#capture(stage);
 			this.#apply(stage);
 			return;
 		}
@@ -241,7 +243,7 @@ class List<T> {
 			else skip(this.#empty.effect);
 		}
 		if (known) return;
-		atCommit({ apply: () => this.#commit(batch) });
+		atCommit({ prepare: () => this.#prepare(batch), apply: () => this.#commit(batch) });
 		atDiscard(() => this.#discard(batch));
 		atMerge((from, into) => this.#merge(from, into));
 	}
@@ -252,6 +254,20 @@ class List<T> {
 		if (stages === null || stage === undefined) return;
 		stages.delete(from);
 		if (from.order > into.order || !stages.has(into)) stages.set(into, stage);
+	}
+
+	#capture(stage: Stage<T>): void {
+		const selected = new Set(stage.rows);
+		for (const row of this.#order) {
+			if (selected.has(row)) moverOf(row.effect)?.measure();
+			else prepare(row.effect);
+		}
+		for (const row of stage.rows) if (this.#leaving.has(row)) prepare(row.effect);
+	}
+
+	#prepare(given: Batch): void {
+		const stage = this.#stages?.get(alias(given));
+		if (stage !== undefined && this.#block?.destroyed !== true) this.#capture(stage);
 	}
 
 	#commit(given: Batch): void {
@@ -294,12 +310,7 @@ class List<T> {
 		const moved: Mover[] = [];
 		for (const row of next) {
 			const mover = positions.has(row) ? moverOf(row.effect) : undefined;
-			if (mover === undefined) continue;
-			mover.measure();
-			moved.push(mover);
-		}
-		for (const row of previous) {
-			if (!selected.has(row) && !needed?.has(row)) moverOf(row.effect)?.measure();
+			if (mover !== undefined) moved.push(mover);
 		}
 		for (const row of previous) {
 			if (selected.has(row)) continue;
@@ -343,8 +354,8 @@ class List<T> {
 				const row = next[at] as Row<T>;
 				if (!stay.has(at)) {
 					if (this.#leaving.delete(row)) {
-						resume(row.effect);
 						moverOf(row.effect)?.unfix();
+						resume(row.effect);
 					}
 					const before = after.nextSibling as ChildNode;
 					if (before !== row.first) place(row, before);
@@ -362,6 +373,7 @@ class List<T> {
 		this.#leaving.add(row);
 		pause(row.effect, () => {
 			if (!this.#leaving.delete(row) || this.#block?.destroyed === true) return;
+			moverOf(row.effect)?.unfix();
 			if (this.#needed()?.has(row)) {
 				stash(row);
 				return;

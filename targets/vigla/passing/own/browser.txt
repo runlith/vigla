@@ -1,5 +1,6 @@
 crossfade-config-projection (dom)
 issue-10252-initial-flip (dom)
+issue-10252-placement (dom)
 issue-17969-contenteditable (dom)
 issue-4313-equal-css (dom)
 issue-4732-grid-flip (dom)

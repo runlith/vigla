@@ -50,6 +50,8 @@ let local = true;
 
 let allowed = true;
 
+let live = 0;
+
 export function seeThrough(block: Effect): void {
 	transparent.add(block);
 }
@@ -179,7 +181,11 @@ export function transition<P>(
 	let list = managers.get(host);
 	if (list === undefined) managers.set(host, (list = []));
 	list.push(manager);
-	teardown(() => manager.stop());
+	live++;
+	teardown(() => {
+		live--;
+		manager.stop();
+	});
 	if (intro && allowed && (global || local)) effect(() => untrack(() => manager.in()));
 }
 
@@ -288,6 +294,15 @@ function collect(effect: Effect, inherited: boolean, found: Manager[]): void {
 			(child.kind === BRANCH && effect.kind === BLOCK);
 		collect(child, inherited && through, found);
 	}
+}
+
+export function prepare(branch: Effect): void {
+	if (live > 0) {
+		const found: Manager[] = [];
+		collect(branch, true, found);
+		for (const manager of found) captureLayout(manager.element);
+	}
+	movers.get(branch)?.measure();
 }
 
 export function pause(branch: Effect, done: () => void): void {

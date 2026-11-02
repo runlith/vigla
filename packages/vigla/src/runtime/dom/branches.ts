@@ -11,7 +11,7 @@ import {
 import { hide, show as unhide } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
-import { building, pause, resume, seeThrough } from '../transitions/manager.ts';
+import { building, pause, prepare, resume, seeThrough } from '../transitions/manager.ts';
 import {
 	claim,
 	COMMENT,
@@ -110,6 +110,7 @@ export class Branches<K> {
 			}
 		}
 		if (batch === null) {
+			this.#capture(key);
 			this.#switch(key);
 			return;
 		}
@@ -119,7 +120,7 @@ export class Branches<K> {
 			else skip(built.effect);
 		}
 		if (known) return;
-		atCommit({ apply: () => this.#commit(batch) });
+		atCommit({ prepare: () => this.#prepare(batch), apply: () => this.#commit(batch) });
 		atDiscard(() => this.#discard(batch));
 		atMerge((from, into) => this.#merge(from, into));
 	}
@@ -130,6 +131,21 @@ export class Branches<K> {
 		const key = stages.get(from) as K;
 		stages.delete(from);
 		if (from.order > into.order || !stages.has(into)) stages.set(into, key);
+	}
+
+	#capture(key: K): void {
+		if (same(key, this.#shown)) return;
+		const old = this.#built.get(this.#shown);
+		if (old !== undefined) prepare(old.effect);
+		const revived = this.#leaving.has(key) ? this.#built.get(key) : undefined;
+		if (revived !== undefined) prepare(revived.effect);
+	}
+
+	#prepare(given: Batch): void {
+		const stages = this.#stages;
+		const batch = alias(given);
+		if (stages === null || !stages.has(batch) || this.#block?.destroyed === true) return;
+		this.#capture(stages.get(batch) as K);
 	}
 
 	#commit(given: Batch): void {
