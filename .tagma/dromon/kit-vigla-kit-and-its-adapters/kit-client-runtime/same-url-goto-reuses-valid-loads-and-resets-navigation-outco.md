@@ -1,6 +1,6 @@
 ---
 id: 01a19c88-40b5-7fd0-8afd-388a3f9937b6
-title: Same-URL goto keeps load reuse unless refresh is explicit
+title: Same-URL goto reuses valid loads and resets navigation outcomes
 ord: 16
 tags: ["explanation"]
 sources:
