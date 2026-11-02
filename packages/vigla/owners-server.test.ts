@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { test } from 'node:test';
 import * as core from 'vigla';
 import { render, type Component } from 'vigla/server';
@@ -28,6 +29,59 @@ test('a server owner memoizes its derived under the declaring context and accept
 		assert.equal(value.current, 7);
 	} finally {
 		owner.dispose();
+	}
+});
+
+test('an owned server derived follows the cells and derived values it read', () => {
+	const owner = core.root();
+	const user = core.cell('ada');
+	try {
+		const name = owner.run(() => core.derived(() => user.current.toUpperCase()));
+		const initial = owner.run(() => core.derived(() => name.current[0]));
+		assert.equal(initial.current, 'A');
+		initial.current = 'Z';
+		assert.equal(initial.current, 'Z');
+		user.current = 'grace';
+		assert.deepEqual([name.current, initial.current], ['GRACE', 'G']);
+	} finally {
+		owner.dispose();
+	}
+});
+
+test('an owned server derived follows every external emission and ignores reads outside its tracking', () => {
+	const owner = core.root();
+	const service = core.root();
+	const items = [1];
+	const listeners = new Set<(value: number[]) => void>();
+	const source = {
+		subscribe(listener: (value: number[]) => void) {
+			listener(items);
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		}
+	};
+	const ignored = core.cell(1);
+	try {
+		const list = owner.run(() => core.external(() => source));
+		const peeked = owner.run(() => core.external(() => (ignored.current ? source : null)));
+		const size = owner.run(() =>
+			core.derived(
+				() =>
+					list.current.length +
+					peeked.peek!.length +
+					core.untrack(() => ignored.current) +
+					service.run(() => ignored.current)
+			)
+		);
+		assert.equal(size.current, 4);
+		ignored.current = 5;
+		assert.equal(size.current, 4);
+		items.push(2);
+		for (const listener of listeners) listener(items);
+		assert.equal(size.current, 14);
+	} finally {
+		owner.dispose();
+		service.dispose();
 	}
 });
 
@@ -252,4 +306,33 @@ test('independent server applications keep their own context, hydration data and
 		first.dispose();
 		second.dispose();
 	}
+});
+
+test('an installed async store carries the owner and async variables across await, one store per realm', async () => {
+	const request = core.root();
+	const variable = new core.AsyncVariable<string>();
+	const [read, write] = core.createContext<string>();
+	request.run(() => write('ada'));
+	const continued = (value: string) =>
+		request.run(() =>
+			variable.run(value, async () => {
+				await null;
+				return [core.getOwner(), variable.get()];
+			})
+		);
+	assert.deepEqual(await continued('plain'), [null, undefined]);
+	const store = new AsyncLocalStorage();
+	core.carryAcrossAwait(store);
+	core.carryAcrossAwait(store);
+	assert.throws(() => core.carryAcrossAwait(new AsyncLocalStorage()), /async_store_conflict/);
+	assert.deepEqual(await continued('carried'), [request, 'carried']);
+	const released: string[] = [];
+	const owned = await request.run(async () => {
+		await null;
+		core.onDestroy(() => released.push('teardown'));
+		return [read(), core.derived(read).current];
+	});
+	assert.deepEqual(owned, ['ada', 'ada']);
+	request.dispose();
+	assert.deepEqual(released, ['teardown']);
 });

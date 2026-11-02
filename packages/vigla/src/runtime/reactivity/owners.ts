@@ -4,6 +4,7 @@ import { lifetime } from './abort.ts';
 import { settledUnder, unit } from './async.ts';
 import { presently } from './past.ts';
 import type { Boundary, Effect } from './graph.ts';
+import { carry, port } from './carried.ts';
 import { owner as running, setOwner, withoutReaction } from './tracking.ts';
 
 const effects = new WeakMap<Owner, Effect>();
@@ -105,12 +106,7 @@ export class Owner {
 	run<T>(fn: () => T): T {
 		const effect = effectOf(this);
 		if (effect.destroyed) throw new Error('Cannot run code under a disposed owner');
-		const previous = setOwner(effect);
-		try {
-			return withoutReaction(fn);
-		} finally {
-			setOwner(previous);
-		}
+		return port === null ? enter(effect, fn) : carry(effect, () => enter(effect, fn));
 	}
 
 	async start<T>(fn: () => T): Promise<Awaited<T>> {
@@ -156,6 +152,15 @@ export class Owner {
 
 	dispose(): void {
 		destroy(effectOf(this));
+	}
+}
+
+function enter<T>(effect: Effect, fn: () => T): T {
+	const previous = setOwner(effect);
+	try {
+		return withoutReaction(fn);
+	} finally {
+		setOwner(previous);
 	}
 }
 

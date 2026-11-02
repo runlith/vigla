@@ -15,7 +15,17 @@ export {
 	html,
 	rawHtml
 } from '../../runtime/server/attributes.ts';
-export { phase, pop, push, save } from '../../runtime/server/context.ts';
+export {
+	acquire,
+	leave,
+	phase,
+	pop,
+	push,
+	reenter,
+	save,
+	segment,
+	unsave
+} from '../../runtime/server/context.ts';
 export { popElement, pushElement } from '../../runtime/server/placement.ts';
 export { derived, held, updateDerived } from '../../runtime/server/derived.ts';
 export {

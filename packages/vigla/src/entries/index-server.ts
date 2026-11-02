@@ -1,8 +1,7 @@
 import { failure } from '../shared/diagnostics.ts';
 import type * as client from './index.ts';
-import type { Cell } from '../runtime/reactivity/sources.ts';
 import { unit } from '../runtime/reactivity/async.ts';
-import { owner } from '../runtime/reactivity/tracking.ts';
+import { ambient } from '../runtime/reactivity/carried.ts';
 import type { Resource } from '../runtime/reactivity/public.ts';
 import { external as connect } from '../runtime/server/external.ts';
 import {
@@ -18,11 +17,14 @@ export {
 	getAbortSignal,
 	getAllContexts,
 	getContext,
+	getOwner,
 	hasContext,
-	memo as derived,
 	onDestroy,
 	setContext
 } from '../runtime/server/context.ts';
+export { cell, memo as derived, cell as state } from '../runtime/server/cells.ts';
+export { untrack } from '../runtime/reactivity/tracking.ts';
+export { AsyncVariable, carryAcrossAwait, type AsyncStore } from '../runtime/reactivity/carried.ts';
 export type { Context } from '../shared/context.ts';
 export type {
 	External,
@@ -57,16 +59,12 @@ export function flushSync<T = void>(fn?: () => T): T {
 	return fn?.() as T;
 }
 
-export function untrack<T>(fn: () => T): T {
-	return fn();
-}
-
 export const mount: typeof client.mount = () => unavailable('mount');
 export const hydrate: typeof client.hydrate = () => unavailable('hydrate');
 export const unmount: typeof client.unmount = () => unavailable('unmount');
 export const fork: typeof client.fork = () => unavailable('fork');
 
-export { getOwner, root } from '../runtime/reactivity/owners.ts';
+export { root } from '../runtime/reactivity/owners.ts';
 export type { Owner } from '../runtime/reactivity/owners.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
 export type { Effects, Resource } from '../runtime/reactivity/public.ts';
@@ -86,7 +84,7 @@ export function external<T>(read: () => Subscribable<T> | null | undefined): Wri
 }
 
 export async function resource<T>(fn: () => T | PromiseLike<T>): Promise<Resource<T>> {
-	const finish = unit(owner);
+	const finish = unit(ambient());
 	try {
 		return { current: await fn() };
 	} finally {
@@ -102,12 +100,6 @@ export function latest<T>(fn: () => T): T {
 	return fn();
 }
 
-export function cell<T>(value: T): Cell<T> {
-	return { current: value };
-}
-
-export { cell as state };
-
 export function tracking(): boolean {
 	return false;
 }
@@ -117,7 +109,7 @@ export async function tick(): Promise<void> {}
 export { drained as settled } from '../runtime/reactivity/async.ts';
 
 export async function hold<T>(fn: () => T): Promise<Awaited<T>> {
-	const finish = unit(owner);
+	const finish = unit(ambient());
 	try {
 		return await fn();
 	} finally {

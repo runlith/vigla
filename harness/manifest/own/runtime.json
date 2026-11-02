@@ -161,6 +161,10 @@
 			"status": "difference",
 			"reason": "Public owner lifetimes (spec 37f29ce1): disposing an owner that holds a mount removes the mounted DOM and its delegated listeners as unmount does; upstream 5.57.3 has no `vigla` entry"
 		},
+		"owner-server-isolation": {
+			"status": "difference",
+			"reason": "Public request scopes (spec 37f29ce1): a plain continuation of one request never observes another concurrent render's owner or context; upstream 5.57.3 has no `vigla` entry"
+		},
 		"owner-server-render": {
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): a server render() runs under an owner of its own beneath the caller's, sees context and hydratable values set on a request owner before it, and ends with its abort signal and teardowns; upstream 5.57.3 has no `vigla` entry"

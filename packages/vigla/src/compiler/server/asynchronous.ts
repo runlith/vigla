@@ -3,7 +3,7 @@ import { close, open } from '../../shared/markers.ts';
 import { hasAwait, ownExpressions } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Node } from '../ir/nodes.ts';
-import { asyncThunk, runtime } from './script.ts';
+import { asyncThunk, runtime, segmented } from './script.ts';
 import { Buffer, type TemplateContext } from './template.ts';
 
 export function awaiting(context: TemplateContext, nodes: readonly Node[]): ES.Expression[] {
@@ -36,26 +36,29 @@ export function asyncChild(
 	buffer.flush(context, statements);
 	const out = b.id(context.names.unique('$$out'));
 	const awaited = new Map(context.awaited ?? []);
-	const body: ES.Statement[] = [];
-	for (const expression of expressions) {
-		const id = b.id(context.names.unique('$async'));
-		awaited.set(expression, id);
-		const thunk = asyncThunk(context, expression);
-		const value = b.member(
-			b.call({
-				type: 'AwaitExpression',
-				argument: runtime(context, 'save', b.call(thunk))
-			}),
-			'value'
-		);
-		body.push(b.constant(id.name, value));
-	}
-	const inner: TemplateContext = { ...context, out, awaited };
-	const content = new Buffer();
-	content.text(open);
-	fragment(inner, nodes, body, content, false);
-	content.text(close);
-	content.flush(inner, body);
+	const body = segmented(context, ({ segment }) => {
+		const body: ES.Statement[] = [];
+		for (const expression of expressions) {
+			const id = b.id(context.names.unique('$async'));
+			awaited.set(expression, id);
+			const thunk = asyncThunk(context, expression);
+			const value = b.member(
+				b.call({
+					type: 'AwaitExpression',
+					argument: runtime(context, 'save', b.call(thunk), { ...segment! })
+				}),
+				'value'
+			);
+			body.push(b.constant(id.name, value));
+		}
+		const inner: TemplateContext = { ...context, out, awaited };
+		const content = new Buffer();
+		content.text(open);
+		fragment(inner, nodes, body, content, false);
+		content.text(close);
+		content.flush(inner, body);
+		return body;
+	});
 	statements.push(
 		b.statement(
 			b.call(

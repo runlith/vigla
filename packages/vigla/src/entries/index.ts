@@ -41,6 +41,7 @@ export { fork } from '../runtime/reactivity/fork.ts';
 export type { Fork } from '../runtime/reactivity/fork.ts';
 export { getOwner, root } from '../runtime/reactivity/owners.ts';
 export type { Owner } from '../runtime/reactivity/owners.ts';
+export { AsyncVariable } from '../runtime/reactivity/carried.ts';
 export { cell, memo as derived } from '../runtime/reactivity/sources.ts';
 export { deep as state } from '../runtime/reactivity/proxy.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';

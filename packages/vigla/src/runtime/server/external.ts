@@ -5,16 +5,29 @@ import {
 	type WritableSource
 } from '../../shared/external.ts';
 import { onDestroy } from './context.ts';
-import { owner } from '../reactivity/tracking.ts';
+import { ambient } from '../reactivity/carried.ts';
+import { untrack } from '../reactivity/tracking.ts';
+import { track, type Dependency } from './cells.ts';
 
 export function external<T>(
 	read: () => Subscribable<T> | null | undefined,
 	name = 'source'
 ): Connected<T> {
-	const connection = new Connection<T>();
-	if (owner !== null) onDestroy(() => connection.dispose());
+	let last: T | undefined;
+	const emitted = {
+		version: 0,
+		settle(): void {
+			connection.select(read(), name, true);
+			if (emitted.version > 0 && Object.is(connection.value, last)) return;
+			last = connection.value;
+			emitted.version++;
+		}
+	} satisfies Dependency;
+	const connection = new Connection<T>(() => emitted.version++);
+	if (ambient() !== null) onDestroy(() => connection.dispose());
 	const current = (): T => {
-		connection.select(read(), name, true);
+		emitted.settle();
+		track(emitted);
 		return connection.value;
 	};
 	const set = (value: T): void => (read() as WritableSource<T>).set(value);
@@ -26,10 +39,13 @@ export function external<T>(
 			set(value);
 		},
 		get peek() {
-			return current();
+			return untrack(() => {
+				emitted.settle();
+				return connection.value;
+			});
 		},
 		mutate(result) {
-			set(current());
+			set(untrack(current));
 			return result;
 		},
 		refresh(result) {

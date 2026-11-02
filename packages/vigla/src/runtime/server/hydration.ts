@@ -3,8 +3,7 @@ import { uneval } from 'devalue';
 import { failure, warn } from '../../shared/diagnostics.ts';
 import { escapeAttribute } from '../../shared/escape.ts';
 import type { Format } from '../../shared/format.ts';
-import { hydrationData, openStore } from './context.ts';
-import { getOwner } from '../reactivity/owners.ts';
+import { getOwner, hydrationData, openStore } from './context.ts';
 
 export interface Csp {
 	readonly nonce?: string;

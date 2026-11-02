@@ -8,6 +8,7 @@ import { enter, leave, refresh } from './deriveds.ts';
 import { destroy, freeze, thaw } from './effects.ts';
 import { past, recall, setPast } from './past.ts';
 import { lose, lost, pauseLoss, resumeLoss } from './loss.ts';
+import { swapCollector } from './collector.ts';
 import {
 	leavingCount,
 	leavingView,
@@ -315,12 +316,14 @@ export function withoutReaction<T>(fn: () => T): T {
 
 export function untrack<T>(fn: () => T): T {
 	const previous = frame;
+	const collecting = swapCollector(null);
 	const paused = DEV ? pauseLoss() : null;
 	frame = null;
 	try {
 		return fn();
 	} finally {
 		frame = previous;
+		swapCollector(collecting);
 		if (DEV) resumeLoss(paused);
 	}
 }

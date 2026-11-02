@@ -4,11 +4,12 @@ import { hash } from '../../shared/hash.ts';
 import { hasAwait } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Fragment, Special, Title } from '../ir/nodes.ts';
-import { asyncThunk, rewrite, runtime } from './script.ts';
+import { asyncThunk, inSegment, rewrite, runtime } from './script.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
 function titleCode(context: TemplateContext, node: Title): ES.Statement {
 	const out = b.id(context.names.unique('$$out'));
+	const segment = b.id(context.names.unique('$$segment'));
 	const buffer = new Buffer();
 	const statements: ES.Statement[] = [];
 	const awaited = new Map(context.awaited ?? []);
@@ -17,7 +18,8 @@ function titleCode(context: TemplateContext, node: Title): ES.Statement {
 		if (awaited.has(part.expression) || !hasAwait(part.expression)) continue;
 		const id = b.id(context.names.unique('$async'));
 		awaited.set(part.expression, id);
-		const saved = runtime(context, 'save', b.call(asyncThunk(context, part.expression)));
+		const thunk = b.call(asyncThunk(context, part.expression));
+		const saved = runtime(context, 'save', thunk, { ...segment });
 		const value = b.member(b.call({ type: 'AwaitExpression', argument: saved }), 'value');
 		statements.push(b.constant(id.name, value));
 	}
@@ -30,7 +32,8 @@ function titleCode(context: TemplateContext, node: Title): ES.Statement {
 	}
 	buffer.text('</title>');
 	buffer.flush(inner, statements);
-	const fn = { ...b.arrow([out], statements), async: asynchronous };
+	const body = asynchronous ? inSegment(context, segment, statements) : statements;
+	const fn = { ...b.arrow([out], body), async: asynchronous };
 	return b.statement(b.call(b.member(context.out, 'title'), fn));
 }
 

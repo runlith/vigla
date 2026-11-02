@@ -6,8 +6,18 @@ import { Data, type Csp, type Script } from './hydration.ts';
 import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
 import { detached } from '../reactivity/effects.ts';
-import { owner } from '../reactivity/tracking.ts';
-import { begin, capture, end, enter, finish, push, storeOf, type Instance } from './context.ts';
+import { ambient } from '../reactivity/carried.ts';
+import {
+	begin,
+	capture,
+	end,
+	enter,
+	finish,
+	push,
+	storeOf,
+	type Instance,
+	type Resume
+} from './context.ts';
 import { attributes } from './attributes.ts';
 import type { StyleDirectives } from '../../shared/attributes.ts';
 
@@ -72,7 +82,7 @@ type Failed = (out: Output, error: unknown, reset: () => void) => void;
 
 interface Recovery {
 	readonly failed: Failed;
-	readonly restore: () => void;
+	readonly resume: Resume;
 }
 
 interface Selection {
@@ -136,7 +146,7 @@ export class Output {
 	}
 
 	stabilize(settlement: Settlement, fn: (out: Output) => void, done?: () => void): void {
-		const restore = capture();
+		const resume = capture();
 		this.child((container) => {
 			const pass = (): void | Promise<void> => {
 				for (;;) {
@@ -152,11 +162,12 @@ export class Output {
 						enter(previous);
 					}
 					if (inner.asynchronous) {
-						return inner.settle().then(() => {
-							restore();
-							if (settlement.invalidated) return pass();
-							done?.();
-						});
+						return inner.settle().then(() =>
+							resume(() => {
+								if (settlement.invalidated) return pass();
+								done?.();
+							})
+						);
 					}
 					if (!settlement.invalidated) {
 						done?.();
@@ -310,7 +321,7 @@ export class Output {
 
 	boundary(props: BoundaryProps, children: (out: Output) => void | Promise<void>): void {
 		const inner = new Output(this.global, this);
-		if (props.failed) inner.#recovery = { failed: props.failed, restore: capture() };
+		if (props.failed) inner.#recovery = { failed: props.failed, resume: capture() };
 		try {
 			this.#run(inner, children);
 		} catch (error) {
@@ -325,19 +336,18 @@ export class Output {
 		this.#pending = null;
 		this.#parts.length = 0;
 		if (DEV) this.element = this.placed;
-		recovery.restore();
-		const transformed = this.global.transformError(error);
-		const render = (value: unknown): void => {
-			recovery.restore();
-			this.push(serialized(value));
-			const previous = enter(this);
-			try {
-				recovery.failed(this, value, () => {});
-			} finally {
-				enter(previous);
-			}
-			this.push(close);
-		};
+		const transformed = recovery.resume(() => this.global.transformError(error));
+		const render = (value: unknown): void =>
+			recovery.resume(() => {
+				this.push(serialized(value));
+				const previous = enter(this);
+				try {
+					recovery.failed(this, value, () => {});
+				} finally {
+					enter(previous);
+				}
+				this.push(close);
+			});
 		if (transformed !== null && typeof (transformed as PromiseLike<unknown>)?.then === 'function') {
 			this.#wait(Promise.resolve(transformed).then(render));
 		} else {
@@ -416,7 +426,7 @@ export function render<P extends Props>(
 	}
 	const global = new Global(prefix ? `${prefix}-` : '', options.transformError);
 	const out = new Output(global);
-	const caller = owner;
+	const caller = ambient();
 	const scope = detached(null, caller);
 	scope.scope = true;
 	const current = begin(

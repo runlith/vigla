@@ -1,11 +1,11 @@
 import { keyed, type Context, type Layer } from '../../shared/context.ts';
 import { lifetime } from '../reactivity/abort.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { destroy, destroyed, fail, teardown } from '../reactivity/effects.ts';
+import { destroy, destroyed, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import type { Cell } from '../reactivity/sources.ts';
-import { ownContext, ownerOf } from '../reactivity/owners.ts';
-import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
+import { ambient } from '../reactivity/carried.ts';
+import { ownContext, ownerOf, type Owner } from '../reactivity/owners.ts';
+import { owner, setOwner } from '../reactivity/tracking.ts';
 import type { Data } from './hydration.ts';
 import type { Output } from './render.ts';
 
@@ -33,7 +33,7 @@ let site: Output | null = null;
 const stores = new WeakMap<Effect, Data>();
 const resumed = new WeakSet<Layer<Effect>>();
 
-function layerOf(effect: Effect | null): Layer<Effect> | null {
+export function layerOf(effect: Effect | null): Layer<Effect> | null {
 	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
 }
 
@@ -147,83 +147,145 @@ export function storeOf(effect: Effect | null): Data | null {
 	return null;
 }
 
+export function getOwner(): Owner | null {
+	const effect = ambient();
+	return effect === null ? null : ownerOf(effect);
+}
+
 export function openStore(data: Data): void {
-	if (owner === null) {
+	const effect = ambient();
+	if (effect === null) {
 		throw failure(
 			'context_without_owner',
 			'Hydration data can only be opened where an owner exists'
 		);
 	}
-	stores.set(owner, data);
+	stores.set(effect, data);
 }
 
 export function hydrationData(): Data | null {
-	return storeOf(owner);
+	return storeOf(ambient());
 }
 
 export function getAbortSignal(): AbortSignal {
-	return owner === null ? new AbortController().signal : lifetime(owner);
+	const effect = ambient();
+	return effect === null ? new AbortController().signal : lifetime(effect);
 }
 
-export function memo<T>(fn: () => T, _equals?: (before: T, after: T) => boolean): Cell<T> {
-	const scope = owner;
-	const context = layerOf(scope);
-	let computed = false;
-	let overridden = false;
-	let value: T;
-	return {
-		get current() {
-			if (!overridden && (!computed || scope === null)) {
-				const previous = setOwner(scope ?? owner);
-				const active = scope?.context;
-				if (scope !== null) scope.context = context;
-				try {
-					value = withoutReaction(fn);
-				} catch (error) {
-					if (scope === null) throw error;
-					fail(scope, error);
-					value = undefined as T;
-				} finally {
-					if (scope !== null) scope.context = active;
-					setOwner(previous);
-				}
-				computed = true;
-			}
-			return value;
-		},
-		set current(next) {
-			value = next;
-			overridden = true;
+function open(captured: Render | null, layer: Layer<Effect> | null, at: Output | null): Saved {
+	const previous: Saved = { render, owner, site };
+	render = captured;
+	site = at;
+	if (captured !== null) {
+		captured.scope.context = layer;
+		setOwner(captured.scope);
+	}
+	return previous;
+}
+
+function close(previous: Saved): void {
+	render = previous.render;
+	site = previous.site;
+	setOwner(previous.owner);
+}
+
+export type Resume = <T>(fn: () => T) => T;
+
+export function capture(): Resume {
+	const captured = render;
+	const layer = layerOf(captured?.scope ?? null);
+	const at = site;
+	return (fn) => {
+		const previous = open(captured, layer, at);
+		try {
+			return fn();
+		} finally {
+			close(previous);
 		}
 	};
 }
 
-export function capture(): () => void {
+interface Left {
+	readonly render: Render | null;
+	readonly layer: Layer<Effect> | null;
+	readonly site: Output | null;
+}
+
+export interface Segment {
+	replaced: Saved | null;
+	left: Left | null;
+}
+
+export function segment(): Segment {
+	return { replaced: null, left: null };
+}
+
+export function unsave(segment: Segment): void {
+	const replaced = segment.replaced;
+	if (replaced === null) return;
+	segment.replaced = null;
+	close(replaced);
+}
+
+export function leave<T>(value: T, segment: Segment): T {
+	segment.left = { render, layer: layerOf(render?.scope ?? null), site };
+	unsave(segment);
+	return value;
+}
+
+export function reenter(segment: Segment): void {
+	const left = segment.left;
+	if (left !== null && segment.replaced === null)
+		segment.replaced = open(left.render, left.layer, left.site);
+}
+
+type Step = ((...args: unknown[]) => unknown) | null | undefined;
+
+interface Steps {
+	readonly next: Step;
+	readonly return?: Step;
+}
+
+interface Iterated {
+	readonly [Symbol.asyncIterator]?: Step;
+	readonly [Symbol.iterator]?: Step;
+}
+
+function stepped(iterator: Steps, segment: Segment): Steps {
+	const step = (method: Step): Step =>
+		method == null
+			? undefined
+			: (...args) => {
+					reenter(segment);
+					try {
+						return method.apply(iterator, args);
+					} finally {
+						unsave(segment);
+					}
+				};
+	return { next: step(iterator.next), return: step(iterator.return) };
+}
+
+export function acquire(iterable: unknown, segment: Segment): object {
+	const source = iterable as Iterated;
+	const method = source?.[Symbol.asyncIterator];
+	if (method != null) {
+		const iterator = stepped(method.call(source) as Steps, segment);
+		return { [Symbol.asyncIterator]: () => iterator };
+	}
+	const iterator = stepped((source[Symbol.iterator] as Step)!.call(source) as Steps, segment);
+	return { [Symbol.iterator]: () => iterator };
+}
+
+export async function save<T>(value: T | PromiseLike<T>, segment: Segment): Promise<() => T> {
 	const captured = render;
 	const layer = layerOf(captured?.scope ?? null);
 	const at = site;
-	return () => {
-		render = captured;
-		site = at;
-		if (captured === null) return;
-		captured.scope.context = layer;
-		setOwner(captured.scope);
-		queueMicrotask(() => {
-			if (render !== captured) return;
-			render = null;
-			site = null;
-			if (owner === captured.scope) setOwner(null);
-		});
-	};
-}
-
-export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
-	const restore = capture();
-	const layer = layerOf(render?.scope ?? null);
+	unsave(segment);
 	const resolved = await value;
 	return () => {
-		restore();
-		if (layer != null) resumed.add(layer);
+		segment.replaced = open(captured, layer, at);
+		if (layer !== null) resumed.add(layer);
 		return resolved;
 	};
 }
@@ -243,14 +305,15 @@ export function phase(): Phase {
 function own(): Layer<Effect> {
 	const layer = layerOf(owner);
 	if (render !== null && owner === render.scope && layer !== null && layer.component) return layer;
-	if (owner === null) {
+	const effect = ambient();
+	if (effect === null) {
 		throw failure('context_without_owner', 'Context can only be set where an owner exists');
 	}
-	return ownContext(owner);
+	return ownContext(effect);
 }
 
 export function getContext<T>(key: unknown): T {
-	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) {
+	for (let layer = layerOf(ambient()); layer !== null; layer = layer.parent) {
 		if (layer.map?.has(key)) return layer.map.get(key) as T;
 	}
 	return undefined as T;
@@ -263,7 +326,7 @@ export function setContext<T>(key: unknown, value: T): T {
 }
 
 export function hasContext(key: unknown): boolean {
-	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) {
+	for (let layer = layerOf(ambient()); layer !== null; layer = layer.parent) {
 		if (layer.map?.has(key)) return true;
 	}
 	return false;
@@ -275,7 +338,7 @@ export function createContext<T>(): Context<T> {
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
 	const chain: Layer<Effect>[] = [];
-	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) chain.push(layer);
+	for (let layer = layerOf(ambient()); layer !== null; layer = layer.parent) chain.push(layer);
 	const all = new Map<unknown, unknown>();
 	for (let index = chain.length - 1; index >= 0; index--) {
 		for (const [key, value] of chain[index]?.map ?? []) all.set(key, value);
@@ -291,12 +354,21 @@ function instanceOf(effect: Effect): Instance | null {
 }
 
 export function onDestroy(fn: () => void): void {
-	if (owner?.destroyed) {
+	const effect = ambient();
+	if (effect?.destroyed) {
 		fn();
 		return;
 	}
 	const instance =
-		owner !== null && render !== null && owner === render.scope ? instanceOf(owner) : null;
-	if (instance === null) destroyed(fn);
-	else (instance.destroys ??= []).push(fn);
+		effect !== null && render !== null && effect === render.scope ? instanceOf(effect) : null;
+	if (instance !== null) {
+		(instance.destroys ??= []).push(fn);
+		return;
+	}
+	const previous = setOwner(effect);
+	try {
+		destroyed(fn);
+	} finally {
+		setOwner(previous);
+	}
 }

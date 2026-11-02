@@ -33,6 +33,7 @@ export interface Context {
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
 	readonly saved?: ReadonlySet<ES.Node>;
+	readonly segment?: ES.Identifier;
 	readonly dev?: boolean;
 	readonly externalCells?: Map<ExternalBinding, ES.Identifier>;
 	readonly refreshing?: ES.Node;
@@ -165,14 +166,109 @@ function derivedPattern(context: Context, declarator: ES.VariableDeclarator): bo
 	return rune === '$derived' || rune === '$derived.by';
 }
 
+export function inSegment(
+	context: Context,
+	segment: ES.Identifier,
+	body: ES.Statement[]
+): ES.Statement[] {
+	return [
+		b.constant(segment.name, runtime(context, 'segment')),
+		{
+			type: 'TryStatement',
+			block: { type: 'BlockStatement', body },
+			handler: null,
+			finalizer: {
+				type: 'BlockStatement',
+				body: [b.statement(runtime(context, 'unsave', { ...segment }))]
+			}
+		}
+	];
+}
+
+export function segmented<C extends Context>(
+	context: C,
+	body: (inner: C) => ES.Statement[]
+): ES.Statement[] {
+	const segment = b.id(context.names.unique('$$segment'));
+	return inSegment(context, segment, body({ ...context, segment }));
+}
+
 export function asyncThunk(
 	context: Context,
 	expression: ES.Expression,
 	wrap: (value: ES.Expression) => ES.Expression = (value) => b.object({ value })
 ): ES.ArrowFunctionExpression {
-	const saved = new Set([...(context.saved ?? []), ...resuming(expression)]);
-	const value = rewrite({ ...context, saved }, expression);
-	return { ...b.arrow([], wrap(value)), async: true };
+	if (resuming(expression).length === 0) {
+		const value = rewrite({ ...context, segment: undefined }, expression);
+		return { ...b.arrow([], wrap(value)), async: true };
+	}
+	const saved = new Set(context.saved ?? []);
+	b.walk(expression, (node) => {
+		if (
+			node.type === 'FunctionExpression' ||
+			node.type === 'ArrowFunctionExpression' ||
+			node.type === 'FunctionDeclaration'
+		) {
+			return false;
+		}
+		if (node.type === 'AwaitExpression') saved.add(node);
+	});
+	const body = segmented({ ...context, saved }, (inner) => [
+		{ type: 'ReturnStatement', argument: wrap(rewrite(inner, expression)) }
+	]);
+	return { ...b.arrow([], body), async: true };
+}
+
+function suspending(
+	context: Context,
+	statement: ES.ForOfStatement | ES.LabeledStatement,
+	loop: ES.ForOfStatement,
+	next: <T extends ES.Node>(node: T) => T
+): ES.BlockStatement {
+	const segment = context.segment!;
+	const call = (name: string): ES.Statement => b.statement(runtime(context, name, { ...segment }));
+	const item = b.id(context.names.unique('$$item'));
+	const left = loop.left;
+	const binding: ES.Statement =
+		left.type === 'VariableDeclaration'
+			? next({ ...left, declarations: [{ ...left.declarations[0]!, init: { ...item } }] })
+			: b.statement({
+					type: 'AssignmentExpression',
+					operator: '=',
+					left: next(left),
+					right: { ...item }
+				});
+	const iterable = runtime(context, 'acquire', next(loop.right), { ...segment });
+	const rewritten: ES.ForOfStatement = {
+		...loop,
+		left: {
+			type: 'VariableDeclaration',
+			kind: 'const',
+			declarations: [{ type: 'VariableDeclarator', id: item, init: null }]
+		},
+		right: runtime(context, 'leave', iterable, { ...segment }),
+		body: {
+			type: 'BlockStatement',
+			body: [
+				call('reenter'),
+				{
+					type: 'TryStatement',
+					block: { type: 'BlockStatement', body: [binding, next(loop.body)] },
+					handler: null,
+					finalizer: { type: 'BlockStatement', body: [call('unsave')] }
+				}
+			]
+		}
+	};
+	const placed = (at: ES.Statement): ES.Statement =>
+		at.type === 'LabeledStatement' ? { ...at, body: placed(at.body) } : rewritten;
+	return { type: 'BlockStatement', body: [placed(statement), call('reenter')] };
+}
+
+function labeledLoop(statement: ES.Statement): ES.ForOfStatement | null {
+	let at = statement;
+	while (at.type === 'LabeledStatement') at = at.body;
+	return at.type === 'ForOfStatement' && at.await ? at : null;
 }
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {
@@ -183,14 +279,28 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 		const awaited = context.awaited?.get(current);
 		if (awaited !== undefined) return { ...awaited };
 		if (current.type === 'AwaitExpression' && context.saved?.has(current)) {
+			if (context.segment === undefined) throw new Error('A saved await outside a segment');
 			return b.call({
 				type: 'AwaitExpression',
-				argument: runtime(context, 'save', next(current.argument))
+				argument: runtime(context, 'save', next(current.argument), { ...context.segment })
 			});
 		}
 		switch (current.type) {
 			case 'ExportSpecifier':
 				return { ...current, local: next(current.local), exported: current.exported };
+			case 'FunctionDeclaration':
+			case 'FunctionExpression':
+			case 'ArrowFunctionExpression':
+				return context.segment === undefined
+					? undefined
+					: rewrite({ ...context, segment: undefined }, current);
+			case 'ForOfStatement':
+			case 'LabeledStatement': {
+				const loop = labeledLoop(current);
+				return loop !== null && context.segment !== undefined
+					? suspending(context, current, loop, next)
+					: undefined;
+			}
 			case 'Identifier': {
 				const binding = references.get(current);
 				if (binding?.kind === 'slot-info') return runtime(context, 'slots', context.props!);
@@ -315,6 +425,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				}
 			}
 			case 'VariableDeclaration': {
+				if (context.segment !== undefined && (current.kind as string) === 'await using')
+					throw unsupported(spanOf(current), 'An `await using` declaration in an async script');
 				if (!current.declarations.some((declarator) => derivedPattern(context, declarator)))
 					return undefined;
 				return {
@@ -338,19 +450,15 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					case '$derived': {
 						const given = single(init);
 						if (hasAwait(given, context.awaited)) {
-							const saved = new Set(context.saved ?? []);
-							b.walk(given, (node) => {
-								if (
-									node.type === 'FunctionExpression' ||
-									node.type === 'ArrowFunctionExpression' ||
-									node.type === 'FunctionDeclaration'
-								) {
-									return false;
-								}
-								if (node.type === 'AwaitExpression') saved.add(node);
-							});
-							const value = rewrite({ ...context, saved }, given);
-							return { ...current, init: runtime(context, 'held', value) };
+							const thunk = b.call(asyncThunk(context, given));
+							const boxed: ES.Expression =
+								context.segment === undefined
+									? { type: 'AwaitExpression', argument: thunk }
+									: b.call({
+											type: 'AwaitExpression',
+											argument: runtime(context, 'save', thunk, { ...context.segment })
+										});
+							return { ...current, init: runtime(context, 'held', b.member(boxed, 'value')) };
 						}
 						return {
 							...current,

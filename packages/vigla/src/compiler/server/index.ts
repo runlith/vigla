@@ -10,7 +10,7 @@ import {
 import { close, open } from '../../shared/markers.ts';
 import type { InjectedStyle, Scoping } from '../css/index.ts';
 import * as b from '../ir/estree.ts';
-import { rewrite, runtime, type Context } from './script.ts';
+import { inSegment, rewrite, runtime, type Context } from './script.ts';
 import { prepare } from './external.ts';
 import { separateCode } from './special.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
@@ -94,8 +94,9 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	body.push(b.statement(runtime(context, 'push')));
 	if (propsId !== undefined) body.push(b.constant(propsId.name, runtime(context, 'propsId', out)));
 	const inner = analysis.asynchronous ? b.id(names.unique('$$out')) : out;
+	const segment = analysis.asynchronous ? b.id(names.unique('$$segment')) : undefined;
 	const scripted: TemplateContext = analysis.asynchronous
-		? { ...context, out: inner, saved: topLevelAwaits(analysis) }
+		? { ...context, out: inner, saved: topLevelAwaits(analysis), segment }
 		: context;
 	const script = prepare(scripted, [...new Set(analysis.externals.values())]);
 	for (const statement of analysis.unit.instance?.body ?? []) {
@@ -170,8 +171,8 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 			]
 		: [];
 	const instance = [...setup, ...declarations, ...context.early, ...script, ...rendered];
-	if (analysis.asynchronous) {
-		const fn = { ...b.arrow([inner], instance), async: true };
+	if (segment !== undefined) {
+		const fn = { ...b.arrow([inner], inSegment(context, segment, instance)), async: true };
 		body.push(b.statement(b.call(b.member(out, 'child'), fn)));
 	} else {
 		body.push(...instance);
