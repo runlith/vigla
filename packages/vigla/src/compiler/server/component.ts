@@ -105,6 +105,7 @@ function bindingProperties(
 
 function propsObject(context: TemplateContext, node: Component): ES.Expression {
 	const groups: (ES.Property[] | ES.Expression)[] = [];
+	const bindings: ES.Property[] = [];
 	const push = (...properties: ES.Property[]): void => {
 		const last = groups.at(-1);
 		if (Array.isArray(last)) last.push(...properties);
@@ -119,16 +120,20 @@ function propsObject(context: TemplateContext, node: Component): ES.Expression {
 			case 'spread':
 				groups.push(rewrite(context, attribute.expression));
 				break;
-			case 'binding':
+			case 'binding': {
 				if (attribute.name === 'this') break;
-				push(...bindingProperties(context, attribute.name, attribute.expression));
+				const properties = bindingProperties(context, attribute.name, attribute.expression);
+				if (attribute.expression.type === 'SequenceExpression') push(...properties);
+				else bindings.push(...properties);
 				break;
+			}
 			case 'attachment':
 				break;
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive on a component`);
 		}
 	}
+	if (bindings.length > 0) push(...bindings);
 	const nodes = context.component.fragments.get(node.body) ?? [];
 	const slots: Record<string, ES.Expression> = {};
 	const regular: Node[] = [];

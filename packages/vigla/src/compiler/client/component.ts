@@ -106,6 +106,7 @@ export function propsObject(
 	declarations: ES.Statement[]
 ): ES.Expression {
 	const groups: (ES.Property[] | ES.Expression)[] = [];
+	const bindings: (ES.Property[] | ES.Expression)[] = [];
 	const push = (...properties: ES.Property[]): void => {
 		const last = groups.at(-1);
 		if (Array.isArray(last)) last.push(...properties);
@@ -156,13 +157,14 @@ export function propsObject(
 			case 'binding': {
 				if (attribute.name === 'this') break;
 				const properties = bindingProperties(context, attribute.name, attribute.expression);
+				const target = attribute.expression.type === 'SequenceExpression' ? groups : bindings;
 				const props: ES.ObjectExpression = { type: 'ObjectExpression', properties };
 				let external = false;
 				b.walk(attribute.expression, (node) => {
 					if (node.type === 'Identifier' && context.analysis.externals.has(node)) external = true;
 				});
 				if (external) {
-					groups.push(
+					target.push(
 						runtime(context, 'mutableProps', props, {
 							type: 'ArrayExpression',
 							elements: [b.literal(attribute.name)]
@@ -175,7 +177,7 @@ export function propsObject(
 				const binding =
 					base.type === 'Identifier' ? context.analysis.references.get(base) : undefined;
 				if (binding?.kind === 'prop' && accessor(binding))
-					groups.push(
+					target.push(
 						runtime(
 							context,
 							'forwardProps',
@@ -184,6 +186,7 @@ export function propsObject(
 							base as ES.Identifier
 						)
 					);
+				else if (target === bindings) bindings.push(properties);
 				else push(...properties);
 				break;
 			}
@@ -208,6 +211,10 @@ export function propsObject(
 			default:
 				throw unsupported(attribute, `The ${attribute.kind} directive on a component`);
 		}
+	}
+	for (const binding of bindings) {
+		if (Array.isArray(binding)) push(...binding);
+		else groups.push(binding);
 	}
 	const nodes = cleaned(context, node.body);
 	const slots: Record<string, ES.Expression> = {};
