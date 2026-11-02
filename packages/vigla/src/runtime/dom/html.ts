@@ -20,18 +20,18 @@ function closing(open: ChildNode): ChildNode {
 	return node;
 }
 
-export function parse(html: string, flags = 0, doc: Document = document): ParentNode {
+export function parse(html: unknown, flags = 0, doc: Document = document): ParentNode {
 	if ((flags & HTML_SVG) !== 0 || (flags & HTML_MATHML) !== 0) {
 		const svg = (flags & HTML_SVG) !== 0;
 		const wrapper = doc.createElementNS(
 			svg ? 'http://www.w3.org/2000/svg' : 'http://www.w3.org/1998/Math/MathML',
 			svg ? 'svg' : 'math'
 		);
-		wrapper.innerHTML = html;
+		wrapper.innerHTML = html as string;
 		return wrapper;
 	}
 	const wrapper = doc.createElement('template');
-	wrapper.innerHTML = html;
+	wrapper.innerHTML = html as string;
 	return wrapper.content;
 }
 
@@ -48,7 +48,7 @@ export function html(node: ChildNode, get: () => unknown, flags = 0): void {
 	let anchor = node;
 	let first: ChildNode | null = null;
 	let last: ChildNode | null = null;
-	let value: string | null = null;
+	let value: unknown = '';
 	let server: string | null = null;
 	if (hydrating) {
 		const open = controlled ? (node.firstChild ?? mismatch()) : node;
@@ -62,9 +62,9 @@ export function html(node: ChildNode, get: () => unknown, flags = 0): void {
 		claim(controlled ? node : close);
 	}
 	template(() => {
-		const next = String(get() ?? '');
+		const next = get() ?? '';
 		if (server !== null) {
-			if (DEV && (flags & UNCHECKED) === 0) changed(server, next);
+			if (DEV && (flags & UNCHECKED) === 0) changed(server, String(next));
 			server = null;
 			value = next;
 			return;
@@ -72,7 +72,8 @@ export function html(node: ChildNode, get: () => unknown, flags = 0): void {
 		if (next === value) return;
 		value = next;
 		if (controlled) {
-			(node as Element).innerHTML = next;
+			if (next === '') (node as Element).replaceChildren();
+			else (node as Element).innerHTML = next as string;
 			return;
 		}
 		while (first !== null) {

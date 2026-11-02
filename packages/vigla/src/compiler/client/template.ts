@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import type { Format } from '../../shared/format.ts';
+import { format as nativeFormat, htmlPolicy, type Format } from '../../shared/format.ts';
 import {
 	asyncStep,
 	dynamic,
@@ -445,6 +445,11 @@ function flags(namespace: Namespace, single: boolean, scripts: boolean): number 
 	return result;
 }
 
+export function policyArgument(context: TemplateContext): ES.Expression[] {
+	const policy = htmlPolicy(context.format);
+	return policy === htmlPolicy(nativeFormat) ? [] : [b.literal(policy)];
+}
+
 function isElement(part: Part | undefined): boolean {
 	return part?.markup.kind === 'element';
 }
@@ -507,7 +512,8 @@ export function render(
 	const markups = list.map((part) => part.markup);
 	const args: ES.Expression[] =
 		context.fragments === 'tree' ? [tree(markups)] : [b.template([markups.map(html).join('')], [])];
-	if (flagged !== 0) args.push(b.literal(flagged));
+	const policy = context.fragments === 'tree' ? [] : policyArgument(context);
+	if (flagged !== 0 || policy.length > 0) args.push(b.literal(flagged), ...policy);
 	const maker = context.fragments === 'tree' ? 'tree' : 'fragment';
 	context.hoisted.push(b.constant(template, runtime(context, maker, ...args)));
 	const hint = single && head !== undefined ? head.hint.replace(/[^\w$]/g, '_') : 'fragment';

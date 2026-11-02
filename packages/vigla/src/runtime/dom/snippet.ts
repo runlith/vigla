@@ -3,7 +3,9 @@ import { warn } from '../../shared/diagnostics.ts';
 import { invalidArgs, type RawFactory, type SnippetArgs } from '../../shared/snippet.ts';
 import { teardown } from '../reactivity/effects.ts';
 import { claim, cursor, hydrating } from './hydration.ts';
+import { format, htmlPolicy, type Format } from '../../shared/format.ts';
 import { parse } from './html.ts';
+import { trustedHtml } from './trusted.ts';
 
 type Snippet<Values extends unknown[]> = (anchor: ChildNode, ...args: SnippetArgs<Values>) => void;
 
@@ -22,8 +24,10 @@ export function snippetArgs(args: IArguments): void {
 }
 
 export function createRawSnippet<Values extends unknown[]>(
-	factory: RawFactory<Values>
+	factory: RawFactory<Values>,
+	given: Format = format
 ): Snippet<Values> {
+	const policy = htmlPolicy(given);
 	return (anchor, ...args) => {
 		const snippet = factory(...args);
 		let node: ChildNode;
@@ -31,7 +35,8 @@ export function createRawSnippet<Values extends unknown[]>(
 			node = cursor;
 			claim(node.nextSibling);
 		} else {
-			const content = parse(snippet.render().trim(), 0, anchor.ownerDocument as Document);
+			const html = trustedHtml(snippet.render().trim(), policy);
+			const content = parse(html, 0, anchor.ownerDocument as Document);
 			const first = content.firstChild;
 			if (DEV && (first?.nodeType !== 1 || first.nextSibling !== null)) {
 				warn(

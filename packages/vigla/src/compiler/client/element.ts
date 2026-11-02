@@ -31,6 +31,7 @@ import {
 	isDynamic,
 	memo,
 	parts,
+	policyArgument,
 	render,
 	scopeHash,
 	type Emit,
@@ -572,7 +573,15 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 			const anchor = b.id(context.names.unique('anchor'));
 			const content = render(childContext, body, anchor, childNamespace, false);
 			emit.init.push(
-				b.statement(runtime(context, 'richSelect', element, b.arrow([anchor], content)))
+				b.statement(
+					runtime(
+						context,
+						'richSelect',
+						element,
+						b.arrow([anchor], content),
+						...policyArgument(context)
+					)
+				)
 			);
 		});
 	}

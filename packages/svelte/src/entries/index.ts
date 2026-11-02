@@ -27,6 +27,9 @@ export function hydrate<P extends core.Props, E extends core.Exports>(
 	return core.hydrate(component, { ...options, format: options.format ?? format });
 }
 
+export const createRawSnippet: typeof core.createRawSnippet = (factory) =>
+	core.createRawSnippet(factory, format);
+
 export function onMount(fn: () => unknown): void {
 	guard(scope, 'onMount');
 	core.onMount(fn);

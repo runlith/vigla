@@ -1,3 +1,4 @@
+import { format, htmlPolicy } from '../../shared/format.ts';
 import { namespaces } from '../../shared/html.ts';
 import { template } from '../reactivity/effects.ts';
 import { derived } from '../reactivity/sources.ts';
@@ -12,6 +13,7 @@ import {
 	setOverwriting,
 	TEXT
 } from './hydration.ts';
+import { trustedHtml } from './trusted.ts';
 
 export type Render = (anchor: ChildNode) => void;
 
@@ -41,15 +43,15 @@ function activateScripts(node: Node): Node {
 	return node;
 }
 
-function parse(html: string, flags: number): Node {
+function parse(html: string, flags: number, policy: string): Node {
 	const template = document.createElement('template');
 	if ((flags & (SVG | MATHML)) === 0) {
-		template.innerHTML = html;
+		template.innerHTML = trustedHtml(html, policy);
 		const content = template.content;
 		return (flags & SINGLE) === 0 ? content : (content.firstChild as Node);
 	}
 	const wrapper = (flags & SVG) !== 0 ? 'svg' : 'math';
-	template.innerHTML = `<${wrapper}>${html}</${wrapper}>`;
+	template.innerHTML = trustedHtml(`<${wrapper}>${html}</${wrapper}>`, policy);
 	const root = template.content.firstChild as Element;
 	if ((flags & SINGLE) !== 0) return root.firstChild as Node;
 	const fragment = document.createDocumentFragment();
@@ -59,21 +61,21 @@ function parse(html: string, flags: number): Node {
 
 const richOptions = new WeakMap<Document, boolean>();
 
-function preservesOptions(document: Document): boolean {
+function preservesOptions(document: Document, policy: string): boolean {
 	const cached = richOptions.get(document);
 	if (cached !== undefined) return cached;
 	const probe = document.createElement('select');
-	probe.innerHTML = '<option><span></span></option>';
+	probe.innerHTML = trustedHtml('<option><span></span></option>', policy);
 	const supported = probe.firstElementChild?.firstElementChild?.localName === 'span';
 	richOptions.set(document, supported);
 	return supported;
 }
 
-export function richSelect(element: Element, render: Render): void {
+export function richSelect(element: Element, render: Render, policy = htmlPolicy(format)): void {
 	const wasHydrating = hydrating;
 	let completed = false;
 	try {
-		if (wasHydrating && !preservesOptions(element.ownerDocument)) {
+		if (wasHydrating && !preservesOptions(element.ownerDocument, policy)) {
 			setHydrating(false);
 			element.replaceChildren(element.ownerDocument.createComment(''));
 		}
@@ -195,8 +197,8 @@ function cloned(master: () => Node, flags: number): () => Node {
 	};
 }
 
-export function fragment(html: string, flags = 0): () => Node {
-	return cloned(() => parse(html, flags), flags);
+export function fragment(html: string, flags = 0, policy = htmlPolicy(format)): () => Node {
+	return cloned(() => parse(html, flags, policy), flags);
 }
 
 export function tree(structure: readonly Structure[], flags = 0): () => Node {
