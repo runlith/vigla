@@ -77,7 +77,9 @@ export function prop<T>(
 	}
 	const getter = (): T => {
 		const value = props[key] as T;
-		return value === undefined ? getFallback() : value;
+		if (value === undefined) return getFallback();
+		if (!lazy) fallbackValue = fallback as T;
+		return value;
 	};
 	if ((flags & UPDATED) === 0) return marked(getter, mutable);
 	if (setter !== undefined) {
