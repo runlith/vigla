@@ -1226,6 +1226,69 @@ it('enforces browser fetch CORS and serialized header access during universal lo
 	expect(await headers.text()).toContain('<error>500:load_response_header_not_serialized</error>');
 });
 
+it('inherits prerender defaults for internal GETs while preserving endpoint overrides', async () => {
+	const app = manifest();
+	app.nodes[2] = async () =>
+		node(
+			2,
+			undefined,
+			{
+				prerender: true,
+				load: async ({ fetch, params }) => {
+					const response = await fetch(`/endpoint/${params.kind}`);
+					const body = response.ok ? await response.text() : (await response.json()).message;
+					return {
+						layout: `${response.status}:${response.headers.get('x-sveltekit-prerender')}:${body}`
+					};
+				}
+			},
+			layout
+		);
+	app.routes = [
+		route('/page/[kind]', null, true),
+		route('/endpoint/implicit', async () => ({ GET: () => new Response('implicit') })),
+		route('/endpoint/explicit', async () => ({
+			prerender: true,
+			GET: () => new Response('explicit')
+		})),
+		route('/endpoint/disabled', async () => ({
+			prerender: false,
+			GET: () => new Response('disabled')
+		}))
+	];
+	const server = await start(
+		app,
+		options({
+			handleError: ({ error }) => ({
+				message: error instanceof Error ? error.message.split('\n')[0]! : 'unknown'
+			})
+		})
+	);
+	const prerendering = () => ({ fallback: false, insideReroute: false, dependencies: new Map() });
+	const direct = await server.respond(request('/endpoint/explicit'), {
+		...address,
+		prerendering: prerendering()
+	});
+	expect(direct.status).toBe(200);
+	expect(direct.headers.get('x-sveltekit-prerender')).toBe('true');
+	expect(await direct.text()).toBe('explicit');
+	const disabled = await server.respond(request('/page/disabled'), {
+		...address,
+		prerendering: prerendering()
+	});
+	expect(disabled.status).toBe(200);
+	expect(await disabled.text()).toContain(
+		'<main>500:null:prerender_endpoint_not_prerenderable</main>'
+	);
+	const implicit = await server.respond(request('/page/implicit'), {
+		...address,
+		prerendering: prerendering()
+	});
+	expect(implicit.status).toBe(200);
+	expect(implicit.headers.get('x-sveltekit-prerender')).toBe('true');
+	expect(await implicit.text()).toContain('<main>200:true:implicit</main>');
+});
+
 it('rejects prerender query reads outside reroute and preserves route ids on error data', async () => {
 	const app = manifest();
 	app.nodes[2] = async () =>

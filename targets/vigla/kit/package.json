@@ -13,7 +13,7 @@
 		"@sveltejs/adapter-auto": "8.0.0",
 		"@sveltejs/adapter-bun": "workspace:@vigla/adapter-bun@*",
 		"@sveltejs/adapter-node": "workspace:@vigla/adapter-node@*",
-		"@sveltejs/adapter-static": "4.0.0",
+		"@sveltejs/adapter-static": "workspace:@vigla/adapter-static@*",
 		"@sveltejs/kit": "workspace:@vigla/kit@*",
 		"@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin@*",
 		"@types/connect": "3.4.38",

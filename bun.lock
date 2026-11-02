@@ -231,7 +231,7 @@
         "@sveltejs/adapter-auto": "8.0.0",
         "@sveltejs/adapter-bun": "workspace:@vigla/adapter-bun@*",
         "@sveltejs/adapter-node": "workspace:@vigla/adapter-node@*",
-        "@sveltejs/adapter-static": "4.0.0",
+        "@sveltejs/adapter-static": "workspace:@vigla/adapter-static@*",
         "@sveltejs/kit": "workspace:@vigla/kit@*",
         "@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin@*",
         "@types/connect": "3.4.38",
@@ -1343,6 +1343,8 @@
     "@vigla/target-vigla-kit/@sveltejs/adapter-bun": ["@vigla/adapter-bun@workspace:packages/adapter-bun"],
 
     "@vigla/target-vigla-kit/@sveltejs/adapter-node": ["@vigla/adapter-node@workspace:packages/adapter-node"],
+
+    "@vigla/target-vigla-kit/@sveltejs/adapter-static": ["@vigla/adapter-static@workspace:packages/adapter-static"],
 
     "@vigla/target-vigla-kit/@types/node": ["@types/node@22.20.4", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-zJRE40jpHtKqE/C4fgHrAKQLJuSpzEnP9ff9Y7YtoR3Wd2pwqzlekDeEuUQXjRd+QCYnVnNwuJYmhdk9XV8gvA=="],
 

@@ -89,6 +89,7 @@ export async function respond(
 		error: false,
 		rerouted: null,
 		prerendering: options.prerendering,
+		prerenderDefault: parent?.state.prerenderDefault,
 		fetched: [],
 		resolveOptions: {},
 		isRendering: false,
