@@ -16,6 +16,7 @@ export {
 	rawHtml
 } from '../../runtime/server/attributes.ts';
 export { phase, pop, push, save } from '../../runtime/server/context.ts';
+export { popElement, pushElement } from '../../runtime/server/placement.ts';
 export {
 	appendStyles,
 	bindProps,

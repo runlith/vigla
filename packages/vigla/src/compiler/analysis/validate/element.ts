@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import type * as IR from '../../ir/nodes.ts';
 import type { Context } from './context.ts';
-import { invalidIn, invalidUnder } from './nesting.ts';
+import { invalidIn, invalidUnder } from '../../../shared/nesting.ts';
 import { fail } from './report.ts';
 import { typeOf } from './scope.ts';
 

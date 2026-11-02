@@ -1,5 +1,6 @@
 import { DEV } from 'esm-env';
 import { fail } from './effects.ts';
+import { referencesSelf } from './errors.ts';
 import { inside } from './batch.ts';
 import { changed } from './reads.ts';
 import { DIRTY, equal, isDerived, stamp, type Derived, type Source } from './graph.ts';
@@ -17,10 +18,22 @@ import {
 	view
 } from './tracking.ts';
 
+const evaluating: Derived[] = [];
+
+export function enter(derived: Derived): void {
+	if (evaluating.includes(derived)) referencesSelf();
+	evaluating.push(derived);
+}
+
+export function leave(): void {
+	evaluating.pop();
+}
+
 export function refresh(derived: Derived): void {
 	if (derived.deps !== null && !stale(derived)) return;
 	if (view !== null && affected(derived, view)) return;
 	destroyEffects(derived);
+	if (DEV) enter(derived);
 	const previous = setOwner(derived.owner);
 	try {
 		let value: unknown;
@@ -63,6 +76,7 @@ export function refresh(derived: Derived): void {
 		}
 	} finally {
 		setOwner(previous);
+		if (DEV) leave();
 	}
 }
 

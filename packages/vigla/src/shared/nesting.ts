@@ -87,11 +87,16 @@ const rules: Readonly<Record<string, Rule>> = {
 	'#document': { only: ['html'] }
 };
 
-function tag(name: string): string {
-	return `\`<${name}>\``;
+function tag(name: string, at?: string): string {
+	return at === undefined ? `\`<${name}>\`` : `\`<${name}>\` (${at})`;
 }
 
-export function invalidUnder(child: string, ancestors: readonly string[]): string | null {
+export function invalidUnder(
+	child: string,
+	ancestors: readonly string[],
+	childAt?: string,
+	ancestorAt?: string
+): string | null {
 	if (child.includes('-')) return null;
 	const ancestor = ancestors[ancestors.length - 1] as string;
 	const rule = rules[ancestor];
@@ -104,22 +109,27 @@ export function invalidUnder(child: string, ancestors: readonly string[]): strin
 		}
 	}
 	if (rule.descendant?.includes(child))
-		return `${tag(child)} cannot be a descendant of ${tag(ancestor)}`;
+		return `${tag(child, childAt)} cannot be a descendant of ${tag(ancestor, ancestorAt)}`;
 	return null;
 }
 
-export function invalidIn(child: string, parent: string): string | null {
+export function invalidIn(
+	child: string,
+	parent: string,
+	childAt?: string,
+	parentAt?: string
+): string | null {
 	if (child.includes('-') || parent.includes('-')) return null;
 	if (parent === 'template') return null;
 	const rule = rules[parent];
-	const own = tag(child);
-	const outer = tag(parent);
+	const own = tag(child, childAt);
+	const outer = tag(parent, parentAt);
 	if (rule !== undefined) {
 		if (rule.direct?.includes(child)) return `${own} cannot be a direct child of ${outer}`;
 		if (rule.descendant?.includes(child)) return `${own} cannot be a child of ${outer}`;
 		if (rule.only !== undefined) {
 			if (rule.only.includes(child)) return null;
-			return `${own} cannot be a child of ${outer}. ${outer} only allows these children: ${rule.only.map(tag).join(', ')}`;
+			return `${own} cannot be a child of ${outer}. ${tag(parent)} only allows these children: ${rule.only.map((name) => tag(name)).join(', ')}`;
 		}
 	}
 	switch (child) {

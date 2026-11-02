@@ -1,4 +1,6 @@
+import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
+import type { Placed } from './placement.ts';
 import { isRendering } from './context.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { Data, type Csp, type Script } from './hydration.ts';
@@ -103,9 +105,12 @@ export class Output {
 	#optionValue: OptionValue | null;
 	#valueTransparent = false;
 	readonly global: Global;
+	declare element: Placed | null;
+	declare placed: Placed | null;
 
 	constructor(global: Global, parent: Output | null = null, channel?: Channel) {
 		this.global = global;
+		if (DEV) this.element = this.placed = parent === null ? null : parent.element;
 		this.#parent = parent;
 		this.#channel = channel ?? (parent === null || parent.#channel === 'body' ? 'body' : 'head');
 		this.#selection = parent === null ? null : parent.#selection;
@@ -299,6 +304,7 @@ export class Output {
 		this.#recovery = null;
 		this.#pending = null;
 		this.#parts.length = 0;
+		if (DEV) this.element = this.placed;
 		recovery.restore();
 		const transformed = this.global.transformError(error);
 		const render = (value: unknown): void => {

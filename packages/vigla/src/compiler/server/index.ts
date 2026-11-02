@@ -26,6 +26,7 @@ export interface ServerOptions extends ModuleOptions {
 	readonly format: Format;
 	readonly scoping: Scoping;
 	readonly styles: InjectedStyle | null;
+	readonly filename: string;
 }
 
 function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
@@ -70,6 +71,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		hoisted: [],
 		early: [],
 		dev: options.dev,
+		filename: options.filename,
 		externalCells: new Map()
 	};
 	const imports: ES.ImportDeclaration[] = [];

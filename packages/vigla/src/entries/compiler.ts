@@ -156,7 +156,8 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 		styles,
 		format: options.format ?? format,
 		runtimeNames: runtime.names,
-		dev: options.dev ?? false
+		dev: options.dev ?? false,
+		filename: options.devFilename ?? unit.filename ?? '(unknown)'
 	};
 	const program =
 		options.generate === 'server'
@@ -166,7 +167,6 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 					runtime: runtime.client,
 					project: options.clientExpression,
 					hmr: options.hmr ?? false,
-					filename: options.devFilename ?? unit.filename ?? '(unknown)',
 					discloseVersion: options.discloseVersion ?? '0'
 				});
 	return { js: printed(program, unit, options), css: inject ? null : css, warnings };

@@ -61,42 +61,76 @@ function group(context: TemplateContext, attribute: BindingNode): ES.Identifier 
 	return found;
 }
 
+function literal(fn: ES.Expression): fn is ES.ArrowFunctionExpression | ES.FunctionExpression {
+	return fn.type === 'ArrowFunctionExpression' || fn.type === 'FunctionExpression';
+}
+
+function withParts(
+	context: TemplateContext,
+	inner: TemplateContext,
+	fn: ES.Expression,
+	parts: ES.Identifier[],
+	value: ES.Identifier | null
+): ES.Expression {
+	if (!literal(fn)) return rewrite(context, fn);
+	const rewritten = rewrite(inner, fn);
+	return {
+		...rewritten,
+		params: value === null ? parts : [rewritten.params[0] ?? value, ...parts]
+	};
+}
+
 export function bindThisCall(
 	context: TemplateContext,
 	element: ES.Expression,
 	expression: ES.Expression
 ): ES.Expression {
-	if (expression.type === 'SequenceExpression') {
-		const { get, set } = accessors(context, expression);
-		return runtime(context, 'bindThis', element, set, get);
-	}
+	const [getter, setter] =
+		expression.type === 'SequenceExpression'
+			? (expression.expressions as [ES.Expression, ES.Expression])
+			: [expression, null];
+	const sources: ES.Identifier[] = [];
 	const parts: ES.Identifier[] = [];
 	const plain = new Set(context.plain);
-	b.walk(expression, (node) => {
-		if (node.type !== 'Identifier') return;
-		const binding = context.analysis.references.get(node);
-		if (binding === undefined || (binding.kind !== 'item' && binding.kind !== 'index')) return;
-		if (!parts.some((part) => part.name === node.name)) parts.push(node);
-		plain.add(binding);
-	});
-	const inner = { ...context, plain };
+	const renamed = new Map(context.renamed);
+	if (setter === null || literal(getter)) {
+		b.walk(getter, (node) => {
+			if (node.type !== 'Identifier') return;
+			const binding = context.analysis.references.get(node);
+			if (binding === undefined || (binding.kind !== 'item' && binding.kind !== 'index')) return;
+			if (sources.some((part) => context.analysis.references.get(part) === binding)) return;
+			const fresh = context.names.unique(node.name);
+			sources.push(node);
+			parts.push(b.id(fresh));
+			plain.add(binding);
+			renamed.set(binding, fresh);
+		});
+	}
+	const inner = { ...context, plain, renamed };
+	const args: ES.Expression[] = [element];
 	const value = b.id(context.names.unique('$$value'));
-	const assignment: ES.AssignmentExpression = {
-		type: 'AssignmentExpression',
-		operator: '=',
-		left: expression as ES.Pattern,
-		right: value
-	};
-	const args: ES.Expression[] = [
-		element,
-		b.arrow([value, ...parts], rewrite(inner, assignment)),
-		b.arrow(parts, rewrite(inner, expression))
-	];
+	if (setter !== null) {
+		args.push(
+			withParts(context, inner, setter, parts, value),
+			withParts(context, inner, getter, parts, null)
+		);
+	} else {
+		const assignment: ES.AssignmentExpression = {
+			type: 'AssignmentExpression',
+			operator: '=',
+			left: expression as ES.Pattern,
+			right: value
+		};
+		args.push(
+			b.arrow([value, ...parts], rewrite(inner, assignment)),
+			b.arrow(parts, rewrite(inner, expression))
+		);
+	}
 	if (parts.length > 0) {
 		args.push(
 			b.arrow([], {
 				type: 'ArrayExpression',
-				elements: parts.map((part) => rewrite(context, part))
+				elements: sources.map((part) => rewrite(context, part))
 			})
 		);
 	}

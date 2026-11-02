@@ -18,6 +18,10 @@ export function asyncOrphan(): never {
 	);
 }
 
+export function referencesSelf(): never {
+	return fail('derived_references_self', 'A derived value cannot reference itself recursively');
+}
+
 export function pendingOutside(): never {
 	return fail(
 		'effect_pending_outside_reaction',

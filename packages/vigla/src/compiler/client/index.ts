@@ -17,6 +17,7 @@ import { deferExports } from './exports.ts';
 import { traceStacks } from './inspect.ts';
 import { Positions } from './meta.ts';
 import { ownership } from './ownership.ts';
+import { losses } from './loss.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
 import { separateCode } from './special.ts';
 import { render, type TemplateContext } from './template.ts';
@@ -125,6 +126,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		hoisted: [],
 		props,
 		ownership: options.dev ? ownership(analysis, names) : undefined,
+		losses: options.dev ? losses(analysis.unit.ignores, analysis.ignored) : undefined,
 		events: new Set(),
 		groups: new Map(),
 		instance: [],
@@ -283,7 +285,8 @@ export function clientModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		hoisted: [],
 		props: null,
 		filename: analysis.unit.filename ?? '(unknown)',
-		dev: options.dev
+		dev: options.dev,
+		losses: options.dev ? losses(analysis.unit.ignores) : undefined
 	};
 	traceStacks(context);
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));

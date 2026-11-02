@@ -64,6 +64,10 @@ export function tag<T extends Source>(source: T, label: string): T {
 	return source;
 }
 
+export function labelOf(source: Source): string | undefined {
+	return labels.get(source);
+}
+
 export function tagProxy<T>(value: T, label: string): T {
 	if (DEV && typeof value === 'object' && value !== null) relabels.get(value)?.(label);
 	return value;

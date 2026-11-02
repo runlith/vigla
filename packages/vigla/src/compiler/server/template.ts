@@ -32,6 +32,7 @@ import { bindings, type Bound } from './bindings.ts';
 import { blockCode } from './blocks.ts';
 import { boundary, component, render, snippetDeclarations, standalone } from './component.ts';
 import { rewrite, runtime, type Context } from './script.ts';
+import { placed } from './placement.ts';
 import { slot } from './slot.ts';
 
 export interface TemplateContext extends Context {
@@ -42,6 +43,7 @@ export interface TemplateContext extends Context {
 	readonly hoisted: (ES.Statement | ES.ModuleDeclaration)[];
 	readonly early: ES.Statement[];
 	readonly optionValue?: Expression;
+	readonly filename?: string;
 }
 
 function scopeHash(context: TemplateContext, node: Host): string | null {
@@ -589,7 +591,7 @@ function single(
 				buffer.value(runtime(context, 'rawHtml', rewrite(context, node.expression)));
 				break;
 			case 'element':
-				element(context, node, statements, buffer);
+				placed(context, node, statements, buffer, () => element(context, node, statements, buffer));
 				break;
 			case 'dynamic-element':
 				buffer.flush(context, statements);

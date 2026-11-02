@@ -4,9 +4,10 @@ import { computed, traced, tracedRun, tracing } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
 import { capture, clear as clearReads, retain } from './reads.ts';
 export { stale } from './reads.ts';
-import { refresh } from './deriveds.ts';
+import { enter, leave, refresh } from './deriveds.ts';
 import { destroy, freeze, thaw } from './effects.ts';
 import { past, recall, setPast } from './past.ts';
+import { lose, lost, pauseLoss, resumeLoss } from './loss.ts';
 import {
 	leavingCount,
 	leavingView,
@@ -254,6 +255,7 @@ export function setView(next: View | null): View | null {
 }
 
 export function get<T>(source: Source<T>): T {
+	if (DEV && frame === null && lost !== null) lose(source);
 	const value = read(source);
 	if (view !== null && frame !== null) capture(frame, source, value);
 	const run = frame === late ? late?.run : awaited;
@@ -313,12 +315,18 @@ export function withoutReaction<T>(fn: () => T): T {
 
 export function untrack<T>(fn: () => T): T {
 	const previous = frame;
+	const paused = DEV ? pauseLoss() : null;
 	frame = null;
 	try {
 		return fn();
 	} finally {
 		frame = previous;
+		if (DEV) resumeLoss(paused);
 	}
+}
+
+export function asyncRun(): Resumption | null {
+	return awaited !== null && executing === awaited.reaction ? awaited : null;
 }
 
 export function awaiting<T>(run: Resumption, fn: () => T): T {
@@ -389,6 +397,7 @@ export function affected(derived: Derived, given: View): boolean {
 
 function compute(derived: Derived, given: View): unknown {
 	destroyEffects(derived);
+	if (DEV) enter(derived);
 	const previous = frame;
 	const previousReaction = executing;
 	const previousEvaluation = evaluating;
@@ -402,6 +411,7 @@ function compute(derived: Derived, given: View): unknown {
 		return value;
 	} finally {
 		if (DEV) tracedRun(derived, now());
+		if (DEV) leave();
 		closed(previous);
 		executing = previousReaction;
 		evaluating = previousEvaluation;

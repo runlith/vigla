@@ -19,6 +19,7 @@ import { classBody, fieldValue, privateField } from './classes.ts';
 import { destructured } from './patterns.ts';
 import { inspectCall, tagged, tracedFunction } from './inspect.ts';
 import { validateMutation, type Ownership } from './ownership.ts';
+import { checkLoss, lossScope, type Losses } from './loss.ts';
 
 export interface Context {
 	readonly analysis: ScriptAnalysis;
@@ -30,6 +31,7 @@ export interface Context {
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
 	readonly ownership?: Ownership;
+	readonly losses?: Losses;
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly className?: string;
 	readonly filename?: string;
@@ -416,13 +418,18 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				argument: runtime(context, 'save', next(current.argument))
 			});
 		}
+		const checked = checkLoss(context, current, next);
+		if (checked !== undefined) return checked;
 		switch (current.type) {
 			case 'ExportSpecifier':
 				return { ...current, local: next(current.local), exported: current.exported };
 			case 'FunctionDeclaration':
 			case 'FunctionExpression':
-			case 'ArrowFunctionExpression':
+			case 'ArrowFunctionExpression': {
+				const inner = lossScope(context, current);
+				if (inner !== context) return rewrite(inner, current);
 				return tracedFunction(context, current, next);
+			}
 			case 'ClassDeclaration':
 			case 'ClassExpression': {
 				const inner = { ...context, className: current.id?.name ?? '(anonymous)' };
