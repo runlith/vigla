@@ -160,6 +160,29 @@ test('request caching and owner hydration preserve transported query values from
 	expect(reads).toBe(4);
 });
 
+test('explicit query seeds reach SSR hydration when only their parent is awaited', async () => {
+	const child = query('unchecked', (id: string) => id);
+	const parent = query(() => {
+		child('1').set('one');
+		return ['1'];
+	});
+	const server = await app({
+		exports: { child, parent },
+		load: async () => ({ ids: await parent() }),
+		render: (out, props) => out.push(props.tree.data.ids.join(','))
+	});
+	const html = await (await server.respond(request('/page'), address)).text();
+	const window: Record<string, any> = {};
+	runInNewContext(/<script[^>]*>([\s\S]*?)<\/script>/.exec(html)![1]!, { window });
+	const nodes = Object.fromEntries(
+		[...window.__vigla.h].map(([key, value]) => [key, deserialize(value)])
+	);
+	expect(nodes).toEqual({
+		'hash/parent/': { v: ['1'] },
+		[getRemoteKey('hash/child', encodeArgument('1'))]: { v: 'one' }
+	});
+});
+
 test('requested refreshes preserve raw cache keys and run after the command mutates state', async () => {
 	let count = 1;
 	const schema: StandardSchemaV1<string, number> = {

@@ -122,8 +122,7 @@ export function resource(
 		set(value: any) {
 			const result = (pending = Promise.resolve(value));
 			cache(store, internals).set(payload, result);
-			if (internals.id && !store.remote.query)
-				snapshot(store, getRemoteKey(internals.id, payload), () => ({ v: value }));
+			if (internals.id) snapshot(store, getRemoteKey(internals.id, payload), () => ({ v: value }));
 			refresh(store, internals, payload, () => result);
 		},
 		withOverride: () => server_api_unavailable({ name: `${internals.name}.withOverride()` }),
