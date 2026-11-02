@@ -5,6 +5,7 @@ import { effect, teardown } from '../reactivity/effects.ts';
 import { original } from '../reactivity/proxy.ts';
 import { unowned } from './events.ts';
 import { onReset } from './reset.ts';
+import { BindingEdits } from './bindings.ts';
 
 interface Valued {
 	__value?: unknown;
@@ -145,6 +146,7 @@ export function bindSelect(
 	set: (value: unknown) => void = get as (value: unknown) => void
 ): void {
 	let mounting = true;
+	const edits = new BindingEdits();
 	const change = (reset: boolean): void =>
 		unowned(() => {
 			const query = reset ? '[selected]' : ':checked';
@@ -158,6 +160,7 @@ export function bindSelect(
 				value = chosen && optionValue(chosen);
 			}
 			set(value);
+			edits.record();
 			(select as HTMLSelectElement & Valued).__value = value;
 		});
 	select.addEventListener('change', () => change(false));
@@ -165,6 +168,7 @@ export function bindSelect(
 	effect(() => {
 		if (mounting) initializeDefault(select);
 		let value = get();
+		if (select.ownerDocument.activeElement === select && edits.hasCurrent()) return;
 		selectOption(select, value, mounting);
 		if (mounting && value === undefined) {
 			const chosen = select.querySelector<HTMLOptionElement>(':checked');

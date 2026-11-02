@@ -1,4 +1,13 @@
-import { tick } from '../reactivity/batch.ts';
+import {
+	active,
+	alias,
+	current,
+	onMerge,
+	open,
+	processing,
+	tick,
+	type Batch
+} from '../reactivity/batch.ts';
 import { effect, teardown, template } from '../reactivity/effects.ts';
 import { original } from '../reactivity/proxy.ts';
 import { untrack } from '../reactivity/tracking.ts';
@@ -11,6 +20,26 @@ type Set<T> = (value: T) => void;
 
 interface Valued {
 	__value?: unknown;
+}
+
+function markEdits(writes: WeakSet<Batch>, batch: Batch): void {
+	const target = alias(batch);
+	if (writes.has(target)) return;
+	writes.add(target);
+	onMerge(target, (_from, into) => writes.add(alias(into)));
+}
+
+export class BindingEdits {
+	readonly #writes = new WeakSet<Batch>();
+
+	record(): void {
+		if (active === null && open === null && processing === null) return;
+		markEdits(this.#writes, current());
+	}
+
+	hasCurrent(): boolean {
+		return processing !== null && this.#writes.has(alias(processing));
+	}
 }
 
 function listenWithReset(
@@ -36,10 +65,12 @@ export function bindValue(
 	get: Get<unknown>,
 	set: Set<unknown> = get as Set<unknown>
 ): void {
+	const edits = new BindingEdits();
 	listenWithReset(input, 'input', (reset) => {
 		const raw = reset ? input.defaultValue : input.value;
 		let value: unknown = numeric(input) ? toNumber(raw) : raw;
 		set(value);
+		edits.record();
 		void tick().then(() => {
 			if (value === (value = get())) return;
 			const start = input.selectionStart;
@@ -59,9 +90,11 @@ export function bindValue(
 	});
 	if ((hydrating && input.defaultValue !== input.value) || (untrack(get) == null && input.value)) {
 		set(numeric(input) ? toNumber(input.value) : input.value);
+		edits.record();
 	}
 	template(() => {
 		const value = get();
+		if (input.ownerDocument.activeElement === input && edits.hasCurrent()) return;
 		if (numeric(input) && value === toNumber(input.value)) return;
 		if (input.type === 'date' && !value && !input.value) return;
 		if (value !== input.value) input.value = (value ?? '') as string;
