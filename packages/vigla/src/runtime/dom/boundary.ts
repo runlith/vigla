@@ -32,10 +32,11 @@ export function transformAt(root: Effect, transform: Transform | undefined): voi
 }
 
 function rootTransform(): Transform | undefined {
-	let top = owner;
-	if (top === null) return undefined;
-	while (top.parent !== null) top = top.parent;
-	return rooted.get(top);
+	for (let current = owner; current !== null; current = current.parent) {
+		const transform = rooted.get(current);
+		if (transform !== undefined) return transform;
+	}
+	return undefined;
 }
 
 class Boundary implements Contract {
