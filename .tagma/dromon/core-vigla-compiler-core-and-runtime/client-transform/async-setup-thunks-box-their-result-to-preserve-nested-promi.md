@@ -13,5 +13,8 @@ sources:
   - kind: symbol
     ref: packages/vigla/src/compiler/server/script.ts
     symbol: asyncThunk
+  - kind: symbol
+    ref: packages/vigla/src/compiler/client/blocks.ts
+    symbol: awaitCode
 ---
 An expression containing an await may still evaluate to a promise, as `(await input).pending` does. Generic async setup waits for the explicit await operations, not that final promise: the thunk returns a non-thenable box and consumers unwrap its value. Lifting individual awaits instead would change evaluation order around calls and assignments. An await block instead owns its whole input promise through its pending, then and catch arms: its input stays in an unboxed async thunk passed directly to `awaited`, because generic setup would hold the enclosing boundary pending.
