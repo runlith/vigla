@@ -139,6 +139,8 @@ export async function prerender(
 		if (id) visitedRoutes.add(id);
 		const type = response.headers.get('content-type') ?? 'application/octet-stream';
 		const html = type.split(';')[0] === 'text/html';
+		if (!html && pathname.slice(job.base.length + 1) === '')
+			e.prerender_root_non_html({ base: job.base || '/' });
 		const file = filename(pathname, html);
 		const category = html
 			? 'pages'

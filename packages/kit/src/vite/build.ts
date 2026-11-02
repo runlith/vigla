@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import type { Manifest, Plugin } from 'vite';
+import type { Manifest, Plugin, ViteBuilder } from 'vite';
 import {
 	analyseBuild,
 	copy,
@@ -24,9 +24,30 @@ import { ids, nodeId } from './ids.ts';
 import { resolveEntry } from '../sync/index.ts';
 import { packageDirectory, posix } from './paths.ts';
 import type { Project } from './project.ts';
+import * as e from './messages.ts';
 
 function json(file: string): Manifest {
 	return JSON.parse(readFileSync(file, 'utf8'));
+}
+const clientModules = ['forms', 'navigation', 'state'].map((name) => ({
+	name: `$app/${name}`,
+	directory: posix(path.join(packageDirectory, 'src/entries/app', name)) + '/'
+}));
+function refuseClientModules(output: Awaited<ReturnType<ViteBuilder['build']>>): void {
+	const used = new Set<string>();
+	for (const result of Array.isArray(output) ? output : 'output' in output ? [output] : [])
+		for (const chunk of result.output)
+			if (chunk.type === 'chunk')
+				for (const id of chunk.moduleIds)
+					for (const module of clientModules)
+						if (posix(id).startsWith(module.directory)) used.add(module.name);
+	if (used.size)
+		e.service_worker_invalid_import({
+			modules: clientModules
+				.filter((module) => used.has(module.name))
+				.map((module) => module.name)
+				.join(', ')
+		});
 }
 function sources(directory: string): Map<string, string> {
 	return new Map(
@@ -473,7 +494,7 @@ export function buildPlugin(
 				serviceWorker.config.experimental.renderBuiltUrl = (filename) => ({
 					runtime: `new URL(${JSON.stringify(filename)}, location.href).pathname`
 				});
-				await builder.build(serviceWorker);
+				refuseClientModules(await builder.build(serviceWorker));
 				context.artifacts.serviceWorker = 'service-worker.js';
 			}
 			full();

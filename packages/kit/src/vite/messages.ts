@@ -60,6 +60,13 @@ export function server_only_import({ module, chain }: ImportMessage): never {
 		server_only_import
 	);
 }
+export function service_worker_invalid_import({ modules }: { modules: string }): never {
+	throwDiagnostic(
+		'service_worker_invalid_import',
+		`Cannot import ${modules} into service-worker code.`,
+		service_worker_invalid_import
+	);
+}
 export function params_export_missing({ file }: FileMessage): never {
 	throwDiagnostic(
 		'params_export_missing',

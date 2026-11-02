@@ -15,6 +15,7 @@ const endpointMethods: HttpMethod[] = [
 	'OPTIONS',
 	'QUERY'
 ];
+const bodyMethods: HttpMethod[] = ['POST', 'PUT', 'PATCH', 'DELETE', 'QUERY'];
 const common = ['load', 'ssr', 'csr', 'prerender', 'trailingSlash', 'config'];
 
 function exportsOf(module: object | undefined, valid: string[], file?: string): void {
@@ -77,9 +78,9 @@ export async function analyse(manifest: ServerManifest, hash: boolean): Promise<
 		);
 		if (
 			endpointPrerender &&
-			apiMethods.some((method) => !['GET', 'HEAD', 'OPTIONS'].includes(method))
+			(endpoint?.fallback || bodyMethods.some((method) => endpoint?.[method]))
 		)
-			e.prerender_endpoint_methods({ id: route.id });
+			e.prerender_endpoint_methods({ id: route.id, methods: bodyMethods.join(', ') });
 		if (pagePrerender && endpointPrerender) e.route_prerender_page_and_endpoint({ id: route.id });
 		if (route.page && endpoint?.config) {
 			for (const key of Object.keys({ ...pageConfig, ...endpoint.config }))

@@ -2,6 +2,7 @@ import { fork } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import type { PrerenderPolicy } from '../types/config.ts';
 import type { BuildContext, Analysis } from './types.ts';
+import * as e from './messages.ts';
 import type {
 	AnalysisJob,
 	FallbackJob,
@@ -23,7 +24,8 @@ function platform(context: BuildContext): WorkerPlatform {
 	};
 }
 async function applyPolicy<T extends { message: string }>(
-	policy: PrerenderPolicy<T>,
+	name: PolicyIssue['kind'],
+	policy: PrerenderPolicy<T> | undefined,
 	details: T,
 	context: BuildContext
 ): Promise<void> {
@@ -36,25 +38,27 @@ async function applyPolicy<T extends { message: string }>(
 		context.log.warn(details.message);
 		return;
 	}
-	throw new Error(details.message);
+	throw new Error(
+		policy === 'fail' ? details.message : `${details.message}\n${e.prerender_policy_hint(name)}`
+	);
 }
 async function policy(issue: PolicyIssue, context: BuildContext): Promise<void> {
 	const settings = context.config.prerender;
 	switch (issue.kind) {
 		case 'handleHttpError':
-			await applyPolicy(settings.handleHttpError, issue.details, context);
+			await applyPolicy(issue.kind, settings.handleHttpError, issue.details, context);
 			break;
 		case 'handleMissingId':
-			await applyPolicy(settings.handleMissingId, issue.details, context);
+			await applyPolicy(issue.kind, settings.handleMissingId, issue.details, context);
 			break;
 		case 'handleEntryGeneratorMismatch':
-			await applyPolicy(settings.handleEntryGeneratorMismatch, issue.details, context);
+			await applyPolicy(issue.kind, settings.handleEntryGeneratorMismatch, issue.details, context);
 			break;
 		case 'handleUnseenRoutes':
-			await applyPolicy(settings.handleUnseenRoutes, issue.details, context);
+			await applyPolicy(issue.kind, settings.handleUnseenRoutes, issue.details, context);
 			break;
 		case 'handleInvalidUrl':
-			await applyPolicy(settings.handleInvalidUrl, issue.details, context);
+			await applyPolicy(issue.kind, settings.handleInvalidUrl, issue.details, context);
 			break;
 	}
 }

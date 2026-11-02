@@ -213,8 +213,12 @@ export function serverGuard(getConfig: () => ValidatedConfig): Plugin {
 					assets: posix(config.files.assets)
 				})
 			) {
+				const generated = posix(path.join(config.outDir, 'generated')) + '/';
 				const names = [...chain(id), id]
-					.filter((file) => !file.startsWith(virtualDirectory) || file === id)
+					.filter(
+						(file) =>
+							(!file.startsWith(virtualDirectory) && !file.startsWith(generated)) || file === id
+					)
 					.map(pretty);
 				e.server_only_import({
 					module: id === ids.privateEnv ? '$app/env/private' : pretty(id),
