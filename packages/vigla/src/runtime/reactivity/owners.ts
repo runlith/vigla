@@ -2,6 +2,7 @@ import type { Layer } from '../../shared/context.ts';
 import { destroy, destroyed, detached, run } from './effects.ts';
 import { lifetime } from './abort.ts';
 import { settledUnder, unit } from './async.ts';
+import { presently } from './past.ts';
 import type { Boundary, Effect } from './graph.ts';
 import { owner as running, setOwner, withoutReaction } from './tracking.ts';
 
@@ -134,7 +135,7 @@ export class Owner {
 	onDispose(fn: () => void): () => void {
 		const effect = effectOf(this);
 		if (effect.destroyed) {
-			withoutReaction(fn);
+			withoutReaction(() => presently(fn));
 			return () => {};
 		}
 		let live = true;

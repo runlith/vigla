@@ -131,6 +131,40 @@ test('a service outlives what was created after it under the same owner, sibling
 	assert.deepEqual(released, ['after', 'last', 'service', 'before']);
 });
 
+test('a service disposing an older sibling during release still leaves the oldest last', () => {
+	const app = root();
+	const released: string[] = [];
+	const oldest = app.root(() => onDestroy(() => released.push('oldest')));
+	const middle = app.root(() => onDestroy(() => released.push('middle')));
+	app.root(() =>
+		onDestroy(() => {
+			released.push('newest');
+			middle.dispose();
+		})
+	);
+	app.dispose();
+	assert.deepEqual(released, ['newest', 'middle', 'oldest']);
+	assert.equal(oldest.disposed, true);
+});
+
+test('a disposal callback registered after disposal reads current values', () => {
+	const done = root();
+	done.dispose();
+	const other = root();
+	const value = cell(0);
+	let seen = -1;
+	other.run(() =>
+		effect.pre(() => {
+			void value.current;
+			return () => done.onDispose(() => (seen = value.current));
+		})
+	);
+	value.current = 1;
+	other.dispose();
+	flushSync();
+	assert.equal(seen, 1);
+});
+
 test('owner disposal callbacks run once at disposal and can be withdrawn', () => {
 	const app = root();
 	const released: string[] = [];
@@ -380,10 +414,12 @@ test('an owned resource publishes each run in its batch, and latest reads past t
 		);
 		flushSync();
 		id.current = 2;
+		let quiet = false;
+		const waiting = app.settled().then(() => (quiet = true));
 		await tick();
-		assert.deepEqual([shown, eager], ['one', 2]);
+		assert.deepEqual([shown, eager, quiet], ['one', 2, false]);
 		loads.get(2)!.resolve('two');
-		await app.settled();
+		await waiting;
 		await tick();
 		assert.deepEqual([shown, eager], ['two', 2]);
 		const copy = core.snapshot({ list: [1] });

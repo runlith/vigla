@@ -27,5 +27,22 @@ export default test({
 		button.click();
 		assert.deepEqual(clicks, ['click']);
 		target.remove();
+
+		const early = document.createElement('div');
+		document.body.append(early);
+		const added = [];
+		const add = early.addEventListener;
+		early.addEventListener = function (type, ...rest) {
+			added.push(type);
+			return add.call(this, type, ...rest);
+		};
+		const ended = root();
+		ended.run(() =>
+			mount(mod.default, { target: early, props: { clicks, initialized: () => ended.dispose() } })
+		);
+		flushSync();
+		assert.equal(early.innerHTML, '');
+		assert.deepEqual(added, []);
+		early.remove();
 	}
 });

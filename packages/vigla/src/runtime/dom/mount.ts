@@ -86,6 +86,10 @@ function start<P extends Props, E extends Exports>(
 }
 
 function finish(instance: object, built: Built, target: ParentNode): void {
+	if (built.effect.destroyed) {
+		remove(built);
+		return;
+	}
 	const release = delegateRoot(target);
 	mounted.set(instance, built);
 	detach(built.effect, () => {
@@ -100,8 +104,10 @@ export function mount<P extends Props, E extends Exports>(
 	options: MountOptions<P>
 ): E {
 	const { instance, built } = start(component, options);
-	options.target.insertBefore(built.fragment as DocumentFragment, options.anchor ?? null);
-	built.fragment = null;
+	if (!built.effect.destroyed) {
+		options.target.insertBefore(built.fragment as DocumentFragment, options.anchor ?? null);
+		built.fragment = null;
+	}
 	finish(instance, built, options.target);
 	return instance;
 }

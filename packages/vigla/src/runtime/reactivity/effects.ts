@@ -271,25 +271,27 @@ function unlink(effect: Effect): void {
 	effect.prev = effect.next = null;
 }
 
+function doomed(child: Effect, keepBranches: boolean): boolean {
+	return !child.destroyed && (child.scope || !keepBranches || child.kind !== BRANCH);
+}
+
 function destroyChildren(effect: Effect, keepBranches = false): void {
-	let end = effect.last;
-	while (end !== null) {
+	for (;;) {
+		let end = effect.last;
+		while (end !== null && !doomed(end, keepBranches)) end = end.prev;
+		if (end === null) return;
 		if (end.scope) {
-			const previous = end.prev;
 			destroy(end);
-			end = previous;
 			continue;
 		}
 		let start = end;
 		while (start.prev !== null && !start.prev.scope) start = start.prev;
-		const before = start.prev;
 		for (let child: Effect | null = start; child !== null;) {
-			const next: Effect | null = child.next;
-			if (!keepBranches || child.kind !== BRANCH) destroy(child);
-			if (child === end) break;
+			const next: Effect | null = child === end ? null : child.next;
+			if (doomed(child, keepBranches)) destroy(child);
+			if (next === null || next.destroyed) break;
 			child = next;
 		}
-		end = before;
 	}
 }
 
@@ -302,8 +304,6 @@ export function detach(root: Effect, fn: () => void): void {
 export function destroy(effect: Effect): void {
 	if (effect.destroyed) return;
 	effect.destroyed = true;
-	abortLifetime(effect);
-	stayed(effect);
 	if (effect.kind === ROOT) {
 		const detached = detaching.get(effect);
 		if (detached !== undefined) {
@@ -311,6 +311,8 @@ export function destroy(effect: Effect): void {
 			dispose(effect, detached);
 		}
 	}
+	abortLifetime(effect);
+	stayed(effect);
 	destroyChildren(effect);
 	release(effect);
 	for (const dep of effect.deps ?? []) unsubscribe(dep, effect);

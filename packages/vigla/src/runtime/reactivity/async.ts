@@ -138,10 +138,16 @@ export function drained(): Promise<void> {
 
 export function settledUnder(effect: Effect): Promise<void> {
 	return new Promise((done) => {
+		let confirming = false;
 		const check = (): void => {
-			if (busy(effect)) return;
-			watchers.delete(check);
-			queueMicrotask(done);
+			if (confirming || busy(effect)) return;
+			confirming = true;
+			queueMicrotask(() => {
+				confirming = false;
+				if (busy(effect)) return;
+				watchers.delete(check);
+				done();
+			});
 		};
 		watchers.add(check);
 		check();
