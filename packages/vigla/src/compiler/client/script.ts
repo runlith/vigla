@@ -251,7 +251,9 @@ function propDeclarators(
 		if (binding.reassigned || prop.bindable) flags |= PROP_UPDATED;
 		const args: ES.Expression[] = [props, b.literal(prop.key), b.literal(flags)];
 		if (prop.fallback !== null) {
-			const fallback = next(prop.fallback);
+			const initial = next(prop.fallback);
+			const fallback =
+				prop.bindable && !primitive(initial) ? runtime(context, 'proxy', initial) : initial;
 			if (primitive(fallback)) {
 				args.push(fallback);
 			} else {
