@@ -65,7 +65,9 @@ export async function pageResponse(
 		}
 		if (!settings.ssr && form && server.options.dev) warnings.form_action_data_without_ssr();
 	}
-	const branch: LoadedNode[] = [];
+	const branch: LoadedNode[] = settings.ssr
+		? []
+		: nodes.flatMap((node, depth) => (node ? [{ depth, node, server: null, data: null }] : []));
 	if (settings.ssr) {
 		const pending = loadBranch(server, store, nodes, settings.csr, action);
 		for (const [index, load] of pending.entries()) {
