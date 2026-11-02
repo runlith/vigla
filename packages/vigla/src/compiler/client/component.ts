@@ -231,7 +231,8 @@ export function propsObject(
 		const anchor = b.id(context.names.unique('$$anchor'));
 		const namespace = context.component.fragmentNamespaces.get(node.body) ?? 'html';
 		const body = render(context, regular, anchor, namespace, true);
-		push(plain('children', b.arrow([anchor], body)));
+		const children = b.arrow([anchor], body);
+		push(plain('children', context.dev ? runtime(context, 'snippet', children) : children));
 		slots.default = b.literal(true);
 	}
 	const objects = groups.map((group) =>
