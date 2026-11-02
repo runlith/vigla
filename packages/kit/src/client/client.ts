@@ -318,6 +318,8 @@ export class Client {
 			goto_replace_state_deprecated({ value: String(options.replaceState) });
 		}
 		await this.ready.promise;
+		if (!(await this.intent(url)))
+			errors.navigation_route_missing({ caller: 'goto', url: url.href });
 		return this.navigate(url, { ...options, type: 'goto' });
 	}
 
@@ -327,8 +329,6 @@ export class Client {
 		const intent = await this.intent(url);
 		if (token !== this.#token) return;
 		if (!intent) {
-			if (options.type === 'goto')
-				errors.navigation_route_missing({ caller: 'goto', url: url.href });
 			const navigation = this.navigation(url, options.type ?? 'link', options) as Navigation;
 			navigation.willUnload = true;
 			if (!this.lifecycle.allow(navigation)) return;

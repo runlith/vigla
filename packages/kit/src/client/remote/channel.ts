@@ -83,7 +83,8 @@ export class Channel {
 			window.location.href = url.href;
 			return;
 		}
-		await this.client.goto(url, { refreshAll });
+		await this.client.ready.promise;
+		await this.client.navigate(url, { type: 'goto', refreshAll });
 	}
 
 	abort(): void {

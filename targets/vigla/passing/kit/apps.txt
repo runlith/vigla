@@ -111,6 +111,7 @@ async/test/test.js > remote functions > nested field set is SSR rendered (test-d
 async/test/test.js > remote functions > prerendered entries not called in prod (test-build-2/chromium-build)
 async/test/test.js > remote functions > queries can read prerendered data during SSR (test-build-2/chromium-build)
 async/test/test.js > remote functions > queries can read prerendered data during SSR (test-build-2/chromium-build-no-js)
+async/test/test.js > remote functions > query redirect to a same-origin URL outside the app navigates (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > radio and checkbox inputs reset to the current value (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > remote form redirect navigates same tab without target=_blank (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > remote form redirect opens in new tab when formtarget=_blank on input (test-dev-1/chromium-dev)
