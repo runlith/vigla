@@ -58,5 +58,7 @@ edges:
 sources:
   - kind: dir
     ref: packages/vigla/src/runtime/reactivity
+  - kind: file
+    ref: packages/vigla/leaving.test.ts
 ---
 The runtime's bottom floor: sources, deriveds, the effect tree and the owners that stand for an application's lifetimes, the deep `$state` proxy, and the batch scheduler that turns writes into commits, holding a batch while its async work is pending. It knows no DOM: the blocks above it decide structure and register what changes at commit, and a boundary above it tells whether pending content stands in for its children.
