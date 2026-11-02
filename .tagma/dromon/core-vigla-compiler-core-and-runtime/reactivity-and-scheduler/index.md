@@ -59,6 +59,9 @@ fields:
       },
       {
         "at": "front.ts"
+      },
+      {
+        "at": "collector.ts"
       }
     ],
     "id": "reactivity",
