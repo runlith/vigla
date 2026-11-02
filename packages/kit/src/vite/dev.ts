@@ -28,6 +28,10 @@ interface DevelopmentModule extends ServerModule {
 	manifest: ServerManifest;
 }
 
+interface EnvironmentModule {
+	set_env(env: Record<string, string | undefined>): Promise<unknown>;
+}
+
 interface RunningServer {
 	module: DevelopmentModule;
 	instance: ConfiguredServer;
@@ -300,6 +304,18 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						''
 					);
 					validateEnvironment(project.environment);
+				}
+				const instrumentation = resolveEntry(
+					path.join(project.config.files.src, 'instrumentation.server'),
+					project.config.moduleExtensions
+				);
+				if (instrumentation) {
+					const adapter = project.config.adapter;
+					if (adapter && !adapter.supports?.instrumentation?.())
+						e.adapter_instrumentation_unsupported({ file: instrumentation, adapter: adapter.name });
+					const env = (await environment.runner.import(ids.env)) as EnvironmentModule;
+					await env.set_env(project.environment.values);
+					await environment.runner.import(instrumentation);
 				}
 				const loaded = (await environment.runner.import(ids.server)) as DevelopmentModule;
 				if (loaded !== current?.module) {

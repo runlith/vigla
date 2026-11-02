@@ -3,6 +3,10 @@ import { throwDiagnostic, warnDiagnostic } from '../shared/diagnostics.ts';
 interface FileMessage {
 	file: string;
 }
+interface AdapterMessage {
+	file: string;
+	adapter: string;
+}
 interface MatcherMessage {
 	name: string;
 	file?: string;
@@ -21,6 +25,13 @@ interface PluginsMessage {
 	plugins: string;
 }
 
+export function adapter_instrumentation_unsupported({ file, adapter }: AdapterMessage): never {
+	throwDiagnostic(
+		'adapter_instrumentation_unsupported',
+		`\`${file}\` is unsupported in \`${adapter}\`.`,
+		adapter_instrumentation_unsupported
+	);
+}
 export function config_file_unsupported({ file }: FileMessage): never {
 	throwDiagnostic(
 		'config_file_unsupported',
