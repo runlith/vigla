@@ -55,6 +55,8 @@ fields:
 edges:
   - kind: imports
     to: 01a18680-7db9-7c10-b0ec-c0d1e0e72677
+  - kind: imports-tests
+    to: 01a18680-7dc2-71f8-be01-915833d45c4b
 sources:
   - kind: dir
     ref: packages/vigla/src/runtime/reactivity
