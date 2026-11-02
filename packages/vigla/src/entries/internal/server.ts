@@ -18,6 +18,7 @@ export {
 export { phase, pop, push, save } from '../../runtime/server/context.ts';
 export {
 	appendStyles,
+	bindProps,
 	boundary,
 	derived,
 	element,
@@ -26,6 +27,7 @@ export {
 	iterate,
 	Output,
 	propsId,
+	Settlement,
 	snapshot,
 	spreadProps,
 	updateDerived

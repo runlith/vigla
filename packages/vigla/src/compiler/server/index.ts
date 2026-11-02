@@ -55,6 +55,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	const id = b.id(names.unique('$'));
 	const out = b.id(names.unique('$$out'));
 	const props = b.id(names.unique('$$props'));
+	const settlement = b.id(names.unique('$$settlement'));
 	const context: TemplateContext = {
 		analysis,
 		component: analysis,
@@ -63,6 +64,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		runtimeNames: options.runtimeNames,
 		out,
 		props,
+		settlement,
 		scoping: options.scoping,
 		format: options.format,
 		hoisted: [],
@@ -104,11 +106,68 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	fragmentCode(template, analysis.root, content, buffer, true);
 	if (analysis.asynchronous) buffer.text(close);
 	buffer.flush(template, content);
+	const bindable = [...analysis.declarations.values()].filter(
+		(binding) => binding.kind === 'prop' && binding.prop?.bindable
+	);
+	const finish =
+		bindable.length === 0
+			? []
+			: [
+					b.statement(
+						runtime(
+							context,
+							'bindProps',
+							props,
+							b.object(
+								Object.fromEntries(
+									bindable.map((binding) => [binding.prop!.key, { ...binding.declaration! }])
+								)
+							)
+						)
+					)
+				];
+	const bindings = [...analysis.fragments.values()].some((nodes) =>
+		nodes.some(
+			(node) =>
+				node.kind === 'component' &&
+				node.attributes.some(
+					(attribute) =>
+						attribute.kind === 'binding' &&
+						attribute.name !== 'this' &&
+						attribute.expression.type !== 'SequenceExpression'
+				)
+		)
+	);
+	const declarations = content.filter((statement) => statement.type === 'FunctionDeclaration');
+	const repeated = content.filter((statement) => statement.type !== 'FunctionDeclaration');
+	const stabilized = bindings || finish.length > 0;
+	const rendered = stabilized
+		? [
+				b.statement(
+					b.call(
+						b.member(inner, 'stabilize'),
+						settlement,
+						b.arrow([inner], repeated),
+						...(finish.length === 0 ? [] : [b.arrow([], finish)])
+					)
+				)
+			]
+		: repeated;
+	const setup = stabilized
+		? [
+				b.constant(settlement.name, {
+					type: 'NewExpression',
+					callee: b.member(id, options.runtimeNames?.Settlement ?? 'Settlement'),
+					arguments: []
+				})
+			]
+		: [];
+	const instance = [...setup, ...declarations, ...context.early, ...script, ...rendered];
 	if (analysis.asynchronous) {
-		const fn = { ...b.arrow([inner], [...context.early, ...script, ...content]), async: true };
+		const fn = { ...b.arrow([inner], instance), async: true };
 		body.push(b.statement(b.call(b.member(out, 'child'), fn)));
 	} else {
-		body.push(...context.early, ...script, ...content);
+		body.push(...instance);
 	}
 	body.push(b.statement(runtime(context, 'pop')));
 	return b.program([

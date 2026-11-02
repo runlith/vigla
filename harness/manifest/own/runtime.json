@@ -203,6 +203,11 @@
 			"reason": "Svelte #5052: a nested writable reset leaves compiled store reads stale inside the subscriber on upstream 5.57.3 (1|1|0 rather than 0|0|0)"
 		},
 		"store-destructuring": "contract",
+		"server-binding-lexical": "contract",
+		"server-binding-settlement": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 publishes the initial bindable fallback before its async script completes; server-binding-async-upstream retains initial around A:a:child. Vigla settles async descendants before publishing final bound values and retaining parent body/head."
+		},
 		"store-forwarded-binding": "contract",
 		"store-snippet": "contract",
 		"store-switch-empty": "contract",

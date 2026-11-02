@@ -97,7 +97,13 @@ function bindingProperties(
 		),
 		property(
 			name,
-			b.functionExpression([value], [b.statement(rewrite(context, assignment))]),
+			b.functionExpression(
+				[value],
+				[
+					b.statement(rewrite(context, assignment)),
+					b.statement(b.call(b.member(context.settlement ?? context.out, 'invalidate')))
+				]
+			),
 			'set'
 		)
 	];
@@ -300,7 +306,10 @@ export function snippetDeclarations(
 	for (const node of nodes) {
 		if (node.kind !== 'snippet') continue;
 		const lifted = context.component.lifted.has(node);
-		const declaration = snippetDeclaration(lifted ? { ...context, props: null } : context, node);
+		const declaration = snippetDeclaration(
+			lifted ? { ...context, props: null, settlement: undefined } : context,
+			node
+		);
 		const initialize = context.dev
 			? b.statement(runtime(context, 'snippet', { ...declaration.id! }))
 			: null;

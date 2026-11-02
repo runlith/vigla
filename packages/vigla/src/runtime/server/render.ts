@@ -84,11 +84,20 @@ interface OptionValue {
 	present: boolean;
 }
 
+export class Settlement {
+	invalidated = false;
+
+	invalidate(): void {
+		this.invalidated = true;
+	}
+}
+
 export class Output {
 	readonly #parts: (string | Output | (() => string))[] = [];
 	readonly #parent: Output | null;
 	readonly #channel: Channel;
 	#pending: Promise<void> | null = null;
+	#settlement: Settlement | null = null;
 	#recovery: Recovery | null = null;
 	#selection: Selection | null;
 	#optionValue: OptionValue | null;
@@ -111,6 +120,43 @@ export class Output {
 		const inner = new Output(this.global, this);
 		inner.#valueTransparent = valueTransparent;
 		this.#run(inner, fn);
+	}
+
+	invalidate(): void {
+		for (let at: Output | null = this; at !== null; at = at.#parent) {
+			if (at.#settlement !== null) {
+				at.#settlement.invalidate();
+				return;
+			}
+		}
+	}
+
+	stabilize(settlement: Settlement, fn: (out: Output) => void, done?: () => void): void {
+		const restore = capture();
+		this.child((container) => {
+			const pass = (): void | Promise<void> => {
+				for (;;) {
+					const inner = new Output(this.global, container);
+					settlement.invalidated = false;
+					inner.#settlement = settlement;
+					container.#parts.length = 0;
+					container.#parts.push(inner);
+					fn(inner);
+					if (inner.asynchronous) {
+						return inner.settle().then(() => {
+							restore();
+							if (settlement.invalidated) return pass();
+							done?.();
+						});
+					}
+					if (!settlement.invalidated) {
+						done?.();
+						return;
+					}
+				}
+			};
+			return pass();
+		});
 	}
 
 	select(
@@ -512,6 +558,19 @@ export function spreadProps(
 		}
 	}
 	return merged;
+}
+
+export function bindProps(props: Props, values: Props): void {
+	for (const key of Object.keys(values)) {
+		const initial = props[key];
+		const value = values[key];
+		if (
+			initial === undefined &&
+			value !== undefined &&
+			Object.getOwnPropertyDescriptor(props, key)?.set !== undefined
+		)
+			props[key] = value;
+	}
 }
 
 export function snapshot<T>(value: T): T {

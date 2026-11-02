@@ -29,6 +29,7 @@ export interface Context {
 	readonly runtimeNames?: RuntimeNames;
 	readonly props: ES.Identifier | null;
 	readonly out: ES.Identifier | null;
+	readonly settlement?: ES.Identifier;
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly awaited?: ReadonlyMap<ES.Node, ES.Identifier>;
 	readonly saved?: ReadonlySet<ES.Node>;
