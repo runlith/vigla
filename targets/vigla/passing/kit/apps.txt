@@ -1120,3 +1120,8 @@ options/unit-test/vite.spec.js > ignores all outDir files except generated files
 options/unit-test/vite.spec.js > no overridden options warning (test-dev-1)
 options/unit-test/vite.spec.js > no transformIndexHtml warning for the Vitest browser loader (test-dev-1)
 options/unit-test/vite.spec.js > transformIndexHtml warning for app plugins (test-dev-1)
+writes/test/test.js > Filesystem updates > Components are not double-mounted (test-dev-1/chromium-dev)
+writes/test/test.js > Filesystem updates > New route is immediately available in dev (test-dev-1/chromium-dev)
+writes/test/test.js > Filesystem updates > New route is immediately available in dev (test-dev-1/chromium-dev-no-js)
+writes/test/test.js > Filesystem updates > Universal node is updated when page options change (test-dev-1/chromium-dev)
+writes/test/test.js > Filesystem updates > Universal node is updated when parent page options change (test-dev-1/chromium-dev)

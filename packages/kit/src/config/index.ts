@@ -102,7 +102,7 @@ export function resolveConfig(config: ValidatedConfig, root: string): ValidatedC
 export function loadErrorPage(config: ValidatedConfig): string {
 	if (existsSync(config.files.errorTemplate))
 		return readFileSync(config.files.errorTemplate, 'utf8');
-	return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%sveltekit.error.message%</title></head><body><main><h1>%sveltekit.status%</h1><p>%sveltekit.error.message%</p></main></body></html>';
+	return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%sveltekit.error.message%</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,sans-serif}.error{display:flex;align-items:center;gap:1rem}.status{font-size:3rem;font-weight:200}.message{border-left:1px solid #ccc;padding-left:1rem}.message h1{font-size:1em;font-weight:400;margin:0}</style></head><body><div class="error"><span class="status">%sveltekit.status%</span><div class="message"><h1>%sveltekit.error.message%</h1></div></div></body></html>';
 }
 
 export function loadTemplate(root: string, config: ValidatedConfig): string {
