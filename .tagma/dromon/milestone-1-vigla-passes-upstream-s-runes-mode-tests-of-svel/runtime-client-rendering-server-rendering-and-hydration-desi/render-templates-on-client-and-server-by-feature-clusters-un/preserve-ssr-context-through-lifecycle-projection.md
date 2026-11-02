@@ -9,4 +9,4 @@ fields:
     "status": "in_work"
   }
 ---
-Resolve the four routed server-side-rendering variants through render results, owner context and adapter lifecycle projection. All four were unrecorded progress at baseline: context (async-ssr), async-context-throws-after-await (async-ssr), constructor-prefer-passed-context (ssr)/(async-ssr). Preserve general Core owners and isolate explicit context maps; prove the exact cases and affected regressions, then land producer changes with sorted passing rows.
+Resolve the four routed server-side-rendering variants through render results, owner context and adapter lifecycle projection. All four were unrecorded progress at baseline: context (async-ssr), async-context-throws-after-await (async-ssr), constructor-prefer-passed-context (ssr)/(async-ssr). Preserve general Core owners and explicit-map precedence over inherited owner context, while letting the adapter select an independent context chain. Prove the exact cases and affected regressions, then land producer changes with sorted passing rows.
