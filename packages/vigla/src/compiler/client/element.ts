@@ -1,4 +1,5 @@
 import type * as ES from 'estree';
+import { toClass } from '../../shared/attributes.ts';
 import { escapeAttribute } from '../../shared/escape.ts';
 import { isProperty, isVoid, propertyName } from '../../shared/html.ts';
 import { richSelect, unsupported } from '../analysis/index.ts';
@@ -490,13 +491,8 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 		} else {
 			const hash = scopeHash(context, node);
 			const given = classValue === null ? null : staticText(classValue);
-			const name = hash === null ? given : given ? `${given} ${hash}` : hash;
-			if (name !== null) {
-				markup +=
-					hash === null && classValue?.kind === 'boolean'
-						? ' class=""'
-						: ` class="${escapeAttribute(name)}"`;
-			}
+			const name = hash === null && classValue?.kind === 'boolean' ? '' : toClass(given, hash);
+			if (name !== null) markup += ` class="${escapeAttribute(name)}"`;
 		}
 		if (styles.length > 0 || styleDynamic) {
 			const value = styleValue;

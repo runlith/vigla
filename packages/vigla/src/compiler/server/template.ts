@@ -1,4 +1,5 @@
 import type * as ES from 'estree';
+import { toClass } from '../../shared/attributes.ts';
 import type { Format } from '../../shared/format.ts';
 import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
 import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
@@ -341,14 +342,8 @@ function attributes(context: TemplateContext, node: Element, buffer: Buffer): Bo
 				: staticText(classValue)
 						.replace(/[\t\n\f\r ]+/g, ' ')
 						.trim();
-		const name = hash === null ? given : given ? `${given} ${hash}` : hash;
-		if (name !== null) {
-			buffer.text(
-				hash === null && classValue?.kind === 'boolean'
-					? ' class=""'
-					: ` class="${escapeAttribute(name)}"`
-			);
-		}
+		const name = hash === null && classValue?.kind === 'boolean' ? '' : toClass(given, hash);
+		if (name !== null) buffer.text(` class="${escapeAttribute(name)}"`);
 	}
 	if (list.length > 0 || (styleValue !== null && !isStatic(styleValue))) {
 		const value =
