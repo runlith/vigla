@@ -89,6 +89,7 @@ async/test/test.js > remote functions > enhanced form state > form enhance submi
 async/test/test.js > remote functions > enhanced form state > form enhance(...) works (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > enhanced form state > form submit() enables programmatic submission (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > file uploads work (test-dev-1/chromium-dev)
+async/test/test.js > remote functions > form error falls through a throwing +error.svelte to the one above (test-build-2/chromium-build-no-js)
 async/test/test.js > remote functions > form error falls through a throwing +error.svelte to the one above (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > form error falls through a throwing +error.svelte to the one above (test-dev-1/chromium-dev-no-js)
 async/test/test.js > remote functions > form fields touched tracks interactions (test-dev-1/chromium-dev)
