@@ -1,6 +1,6 @@
 import type * as ES from 'estree';
 import { toClass } from '../../shared/attributes.ts';
-import { isProperty, propertyName } from '../../shared/html.ts';
+import { isCustomTag, isProperty, propertyName } from '../../shared/html.ts';
 import { richSelect, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
@@ -350,7 +350,7 @@ function classAttribute(
 	if (value?.kind === 'expression') given = runtime(context, 'clsx', given);
 	const args: ES.Expression[] = [
 		element,
-		b.literal(namespace === 'html' && !node.name.includes('-')),
+		b.literal(namespace === 'html' && !isCustomTag(node.name)),
 		given
 	];
 	const hash = scopeHash(context, node);
@@ -415,7 +415,7 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 	const namespace = context.component.namespaces.get(node) ?? parent;
 	const html = namespace === 'html';
 	const custom =
-		node.name.includes('-') ||
+		isCustomTag(node.name) ||
 		node.attributes.some((attribute) => attribute.kind === 'attribute' && attribute.name === 'is');
 	const tag = html && !custom ? node.name.toLowerCase() : node.name;
 	const statics: [string, string][] = [];

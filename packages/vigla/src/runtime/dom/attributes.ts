@@ -7,7 +7,13 @@ import {
 	type StyleDirectives,
 	type Styles
 } from '../../shared/attributes.ts';
-import { isCapture, isDelegated, namespaces, propertyName } from '../../shared/html.ts';
+import {
+	isCapture,
+	isCustomTag,
+	isDelegated,
+	namespaces,
+	propertyName
+} from '../../shared/html.ts';
 import { spreadAttachments } from './attachments.ts';
 import { delegated, delegate, listen } from './events.ts';
 import { claim, cursor, hydrating, overwriting, setHydrating } from './hydration.ts';
@@ -367,7 +373,7 @@ export function attributes(
 		removeInputDefaults(element);
 	}
 	const current: Spread = previous ?? {};
-	const custom = element.nodeName.includes('-') || element.hasAttribute('is');
+	const custom = isCustomTag(element.nodeName) || element.hasAttribute('is');
 	const select = tag === 'select';
 	const hasOptionValue = tag === 'option' && Object.hasOwn(next, 'value');
 	for (const key of Object.keys(current)) {
@@ -466,7 +472,7 @@ export function attributes(
 			(element as Valued).__value = value;
 			continue;
 		}
-		if (!custom && (key === '__value' || (key === 'value' && value != null))) {
+		if (html && !custom && (key === '__value' || (key === 'value' && value != null))) {
 			const target = element as Valued;
 			target.__value = value;
 			if (before == null || target.value !== value || (value === 0 && tag === 'progress')) {
@@ -486,7 +492,7 @@ export function attributes(
 		}
 		if (value == null && !custom && !fallback) {
 			values(element)[key] = null;
-			if (name === 'value' || name === 'checked') {
+			if (html && (name === 'value' || name === 'checked')) {
 				const input = element as HTMLInputElement;
 				const initial = previous === undefined;
 				if (name === 'value') {

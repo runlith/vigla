@@ -2,7 +2,7 @@ import type * as ES from 'estree';
 import { toClass } from '../../shared/attributes.ts';
 import type { Format } from '../../shared/format.ts';
 import { escapeAttribute, escapeContent } from '../../shared/escape.ts';
-import { isBooleanAttribute, isVoid } from '../../shared/html.ts';
+import { isBooleanAttribute, isCustomTag, isVoid } from '../../shared/html.ts';
 import { empty } from '../../shared/markers.ts';
 import {
 	asyncStep,
@@ -235,7 +235,7 @@ function attributesArgs(
 	}
 	let flags = 0;
 	if (!html) flags |= NAMESPACED | PRESERVE_CASE;
-	if (name.includes('-')) flags |= PRESERVE_CASE;
+	if (isCustomTag(name)) flags |= PRESERVE_CASE;
 	if (name === 'input') flags |= INPUT;
 	return [
 		{ type: 'ObjectExpression', properties },
@@ -427,7 +427,7 @@ function element(
 	buffer: Buffer
 ): void {
 	const html = (context.component.namespaces.get(node) ?? 'html') === 'html';
-	const tag = html && !node.name.includes('-') ? node.name.toLowerCase() : node.name;
+	const tag = html && !isCustomTag(node.name) ? node.name.toLowerCase() : node.name;
 	if (html && (tag === 'select' || tag === 'option')) {
 		formElement(context, node, statements, buffer, html);
 		return;

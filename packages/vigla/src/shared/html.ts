@@ -22,6 +22,21 @@ export function isVoid(name: string): boolean {
 	return voids.has(lower) || lower === '!doctype';
 }
 
+const reservedTags = new Set([
+	'annotation-xml',
+	'color-profile',
+	'font-face',
+	'font-face-format',
+	'font-face-name',
+	'font-face-src',
+	'font-face-uri',
+	'missing-glyph'
+]);
+
+export function isCustomTag(name: string): boolean {
+	return name.includes('-') && !reservedTags.has(name.toLowerCase());
+}
+
 const rawText = new Set(['textarea', 'script', 'style', 'title']);
 
 export function isRawText(name: string): boolean {
