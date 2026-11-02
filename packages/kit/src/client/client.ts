@@ -1,4 +1,5 @@
 import { createContext, onDestroy, openHydration, root, untrack, type Owner } from 'vigla';
+import { DEV } from 'esm-env';
 import type { ClientApp, Hydration } from '../types/internal/client.ts';
 import type { ActionResult } from '../types/forms.ts';
 import type {
@@ -303,7 +304,7 @@ export class Client {
 		const url = this.url(value);
 		if (this.routes.outside(url))
 			errors.navigation_external_url({ caller: 'goto', url: String(value) });
-		if (options.replaceState !== undefined && !this.#warnedReplace) {
+		if (DEV && options.replaceState !== undefined && !this.#warnedReplace) {
 			this.#warnedReplace = true;
 			goto_replace_state_deprecated({ value: String(options.replaceState) });
 		}
