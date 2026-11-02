@@ -2,12 +2,12 @@ import { staleReaction } from '../../shared/abort.ts';
 import { failure } from '../../shared/diagnostics.ts';
 import { teardown } from './effects.ts';
 import type { Reaction } from './graph.ts';
-import { running } from './tracking.ts';
+import { evaluation } from './tracking.ts';
 
-const controllers = new WeakMap<Reaction, AbortController>();
+const controllers = new WeakMap<object, AbortController>();
 
 export function getAbortSignal(): AbortSignal {
-	const reaction = running();
+	const reaction = evaluation();
 	if (reaction === null) {
 		throw failure(
 			'get_abort_signal_outside_reaction',

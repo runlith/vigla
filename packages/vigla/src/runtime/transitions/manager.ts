@@ -1,3 +1,4 @@
+import { leaving, stayed } from '../reactivity/batch.ts';
 import { effect, hide, show } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
@@ -275,10 +276,16 @@ export function pause(branch: Effect, done: () => void): void {
 		done();
 		return;
 	}
-	for (const manager of found) manager.out(() => --remaining === 0 && done());
+	const release = leaving(branch);
+	for (const manager of found) {
+		manager.out(() => {
+			if (--remaining === 0 && release()) done();
+		});
+	}
 }
 
 export function resume(branch: Effect): void {
+	stayed(branch);
 	show(branch);
 	const found: Manager[] = [];
 	collect(branch, true, found);

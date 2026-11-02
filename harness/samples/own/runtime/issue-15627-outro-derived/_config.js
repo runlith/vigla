@@ -6,7 +6,9 @@ export default test({
 	test({ assert, raf, target }) {
 		flushSync(() => target.querySelector('button').click());
 		assert.equal(target.querySelectorAll('button').length, 2);
-		flushSync(() => target.querySelector('button').click());
+		const close = target.querySelector('button');
+		flushSync(() => close.click());
+		assert.equal(close.dataset.parameters, '123:2:1:id');
 		raf.tick(400);
 		assert.htmlEqual(target.innerHTML, '<button>Open</button>');
 	}

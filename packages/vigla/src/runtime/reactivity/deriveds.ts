@@ -2,6 +2,7 @@ import { DEV } from 'esm-env';
 import { fail } from './effects.ts';
 import { DIRTY, equal, stamp, type Derived } from './graph.ts';
 import { updated } from './trace.ts';
+import { leavingCount, selecting, withoutLeaving } from './leaving.ts';
 import {
 	affected,
 	destroyEffects,
@@ -22,7 +23,10 @@ export function refresh(derived: Derived): void {
 	try {
 		let value: unknown;
 		try {
-			value = track(derived, derived.fn);
+			value =
+				selecting && leavingCount !== 0
+					? withoutLeaving(() => track(derived, derived.fn))
+					: track(derived, derived.fn);
 		} catch (error) {
 			takeHidden();
 			derived.computed = false;

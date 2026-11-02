@@ -48,10 +48,12 @@ import {
 	view
 } from './tracking.ts';
 import { recalling, written } from './past.ts';
+import { remember } from './leaving.ts';
 import { due, eager, instant, settle } from './settle.ts';
 
 export { orphaned, revisit } from './held.ts';
 export { detach } from './history.ts';
+export { leaving, stayed } from './leaving.ts';
 
 type Phase = 'structure' | 'commit' | 'content' | 'effects';
 export type Transfer = (from: Batch, into: Batch) => void;
@@ -320,6 +322,7 @@ export function write<T>(source: Source<T>, value: T): T {
 	const batch = target ?? opening();
 	record(batch, source, previous, processing !== null && processing !== batch);
 	if (batch.after !== null) batch.after.set(source, value);
+	remember(source, previous);
 	source.v = value;
 	source.wv = stamp();
 	if (DEV) {
@@ -341,6 +344,7 @@ export function apply(batch: Batch): void {
 	for (const [source, value] of batch.after ?? []) {
 		batch.before.set(source, source.v);
 		if (equal(source, source.v, value)) continue;
+		remember(source, source.v);
 		source.v = value;
 		source.wv = stamp();
 		if (DEV) applied(source, batch);
@@ -430,7 +434,10 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 			continue;
 		}
 		if (batch.skipped !== null && batch.skipped.has(child)) {
-			if (child.pending) unmark(child);
+			if (child.pending) {
+				unmark(child);
+				overlooked.add(child);
+			}
 			continue;
 		}
 		if (batch.forced !== null && batch.forced.delete(child)) child.status = DIRTY;

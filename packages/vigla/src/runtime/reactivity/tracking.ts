@@ -6,6 +6,16 @@ import { refresh } from './deriveds.ts';
 import { destroy, freeze, thaw } from './effects.ts';
 import { past, recall, setPast } from './past.ts';
 import {
+	leavingCount,
+	leavingView,
+	localLeaving,
+	outgoing,
+	ownLeaving,
+	readLeaving,
+	selecting,
+	withoutLeaving
+} from './leaving.ts';
+import {
 	BLOCK,
 	CLEAN,
 	DERIVED,
@@ -109,7 +119,7 @@ export function ownEffect(effect: Effect): void {
 	const at = frame ?? top();
 	if (at === null || kindOf(at) !== DERIVED || effect.kind === ROOT) return;
 	const derived = at.target as Derived;
-	if (effect.parent === derived.owner) (derived.effects ??= []).push(effect);
+	if (effect.parent === derived.owner && !ownLeaving(effect)) (derived.effects ??= []).push(effect);
 }
 
 export function destroyEffects(derived: Derived): void {
@@ -146,7 +156,10 @@ export function unsubscribe(dep: Source, reaction: Reaction): void {
 
 export function localize(source: Source): void {
 	const at = top();
-	if (at !== null && kindOf(at) === DERIVED) (at.local ??= new Set()).add(source);
+	if (at !== null && kindOf(at) === DERIVED) {
+		(at.local ??= new Set()).add(source);
+		localLeaving(source, at.target as Reaction);
+	}
 }
 
 export function local(source: Source): boolean {
@@ -216,6 +229,7 @@ let frame: Frame | null = null;
 let late: Frame | null = null;
 let awaited: Resumption | null = null;
 let executing: Reaction | null = null;
+let evaluating: object | null = null;
 const frames: Frame[] = [];
 let hiddenByLast: Set<Batch> | null = null;
 
@@ -241,6 +255,12 @@ export function get<T>(source: Source<T>): T {
 	if (at !== null && source.read !== at.version && (at.local === null || !at.local.has(source)))
 		record(at, source);
 	if (past !== null) return recall(source, past) as T;
+	if (selecting && (leavingCount !== 0 || outgoing !== null)) {
+		const given = outgoing ?? (isDerived(source) ? leavingView(source) : null);
+		if (given !== null) return readLeaving(source, given) as T;
+		if (isDerived(source))
+			return withoutLeaving(() => (view === null ? settled(source) : through(source, view))) as T;
+	}
 	if (view !== null) return through(source, view) as T;
 	if (isDerived(source)) return settled(source) as T;
 	return source.v;
@@ -259,6 +279,10 @@ export function reading(): boolean {
 
 export function running(): Reaction | null {
 	return executing;
+}
+
+export function evaluation(): object | null {
+	return executing === null ? null : (evaluating ?? executing);
 }
 
 export function withoutReaction<T>(fn: () => T): T {
@@ -351,7 +375,9 @@ function compute(derived: Derived, given: View): unknown {
 	destroyEffects(derived);
 	const previous = frame;
 	const previousReaction = executing;
+	const previousEvaluation = evaluating;
 	executing = derived;
+	evaluating = null;
 	const current = opened(derived);
 	const previousOwner = setOwner(derived.owner);
 	try {
@@ -362,6 +388,7 @@ function compute(derived: Derived, given: View): unknown {
 		if (DEV) tracedRun(derived, now());
 		closed(previous);
 		executing = previousReaction;
+		evaluating = previousEvaluation;
 		setOwner(previousOwner);
 		const deps = (derived.deps ??= []);
 		const extra = current.extra ?? [];
@@ -442,7 +469,7 @@ export function present<T>(fn: () => T): T {
 	const previousView = view;
 	view = null;
 	try {
-		return fn();
+		return withoutLeaving(fn);
 	} finally {
 		setPast(previousPast);
 		view = previousView;
@@ -526,20 +553,25 @@ function dirtyRead(dep: Source): boolean {
 	return isDerived(dep) && dep.status !== CLEAN && (view === null || !view.values.has(dep));
 }
 
-export function track<T>(target: Reaction, fn: () => T): T {
+export function track<T>(target: Reaction, fn: () => T, isolated = false): T {
 	const previous = frame;
 	const previousReaction = executing;
+	const previousEvaluation = evaluating;
 	executing = target;
+	evaluating = isolated ? {} : null;
 	const current = opened(target);
 	try {
 		return fn();
 	} finally {
 		closed(previous);
 		executing = previousReaction;
-		hiddenByLast = current.hidden;
-		if ((target as Effect).destroyed === true) target.deps = null;
-		else settleRun(target, current);
-		if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
+		evaluating = previousEvaluation;
+		if (!isolated) {
+			hiddenByLast = current.hidden;
+			if ((target as Effect).destroyed === true) target.deps = null;
+			else settleRun(target, current);
+			if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
+		}
 		finished(current);
 	}
 }

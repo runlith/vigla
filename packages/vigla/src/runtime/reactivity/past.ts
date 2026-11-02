@@ -1,4 +1,5 @@
 import { isDerived, type Derived, type Source } from './graph.ts';
+import { withoutLeaving } from './leaving.ts';
 import { settled, through, view, withoutReaction } from './tracking.ts';
 
 export const NONE: unique symbol = Symbol('none');
@@ -32,7 +33,7 @@ export function recalling(before: Prior, later: Prior | null, fn: () => void): v
 export function presently(fn: () => void): void {
 	const previous = setPast(null);
 	try {
-		fn();
+		withoutLeaving(fn);
 	} finally {
 		past = previous;
 	}

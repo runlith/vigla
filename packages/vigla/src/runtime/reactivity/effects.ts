@@ -17,6 +17,7 @@ import { collect, orphaned, pending, retire, revisit, schedule } from './batch.t
 import { disconnect } from './deriveds.ts';
 import { orphan } from './errors.ts';
 import { presently } from './past.ts';
+import { stayed } from './leaving.ts';
 import {
 	marked,
 	owner,
@@ -262,6 +263,7 @@ function destroyChildren(effect: Effect, keepBranches = false): void {
 export function destroy(effect: Effect): void {
 	if (effect.destroyed) return;
 	effect.destroyed = true;
+	stayed(effect);
 	destroyChildren(effect);
 	release(effect);
 	for (const dep of effect.deps ?? []) unsubscribe(dep, effect);

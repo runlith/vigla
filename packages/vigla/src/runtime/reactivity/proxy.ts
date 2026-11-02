@@ -3,7 +3,7 @@ import { write } from './batch.ts';
 import { holdEager } from './eager.ts';
 import type { Source } from './graph.ts';
 import { source as plain, state } from './sources.ts';
-import { get, guard, local } from './tracking.ts';
+import { get, guard, local, untrack } from './tracking.ts';
 import { labelFor, labelled, tag } from './trace.ts';
 
 const RAW = Symbol('raw');
@@ -188,14 +188,16 @@ function wrap<T>(value: T, aware: boolean): T {
 		},
 		ownKeys(object) {
 			get(keys);
-			const own = Reflect.ownKeys(object).filter((key) => {
-				const found = sources.get(key);
-				return found === undefined || found.v !== ABSENT;
+			return untrack(() => {
+				const own = Reflect.ownKeys(object).filter((key) => {
+					const found = sources.get(key);
+					return found === undefined || get(found) !== ABSENT;
+				});
+				for (const [key, found] of sources) {
+					if (get(found) !== ABSENT && !own.includes(key)) own.push(key);
+				}
+				return own;
 			});
-			for (const [key, found] of sources) {
-				if (found.v !== ABSENT && !own.includes(key)) own.push(key);
-			}
-			return own;
 		},
 		getOwnPropertyDescriptor(object, prop) {
 			const descriptor = Reflect.getOwnPropertyDescriptor(object, prop);
