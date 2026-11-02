@@ -20,6 +20,6 @@ The pairs only hold if they change together. Every edge change goes through this
 
 An operation finishes moving edges before any code it triggers runs. A derived that loses its last reader holds resources of its evaluation's effects, and freezing them runs teardowns. Those teardowns can destroy reactions whose edges the operation is still moving. So a derived is frozen only after the operation's edges are consistent again, and only if it still has no reader by then.
 
-Reconciling a run that read some old dependencies again in a new order keeps each such edge where it stands in the source's `reactions`. Only the edge's index in `deps` changes. The old slot reaches the new position through the source's `read` mark, which carries it only between those two steps. No user code and no write can run there, so readers of the mark never see it ([[readmark]]).
+Reconciling a run that read some old dependencies again in a new order keeps each such edge where it stands in the source's `reactions`. Only the edge's index in `deps` changes. The old slot reaches the new position through the source's `read` mark, which carries it only between those two steps. No user code and no write can run there, so readers of the mark never see it ([[7d2855c5]]).
 
 The mark walk and staleness checks never read `slots` or `links`, so both fields stay behind the fields every visit reads ([[2a93bdf4]]).
