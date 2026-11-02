@@ -14,13 +14,13 @@ sources:
     ref: packages/vigla/src/runtime/reactivity/front.ts
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/batch.ts
-    symbol: quietFor
-  - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/batch.ts
     symbol: settled
   - kind: symbol
     ref: packages/vigla/src/shared/diagnostics.ts
     symbol: unhandled
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/fork.ts
+    symbol: fork
 ---
 One scheduler serves every application in a realm: a flush runs whatever work is due, whoever called it. An application is a top-level effect tree. A failure no handler or boundary takes is thrown to the caller in two cases: while an effect is being created synchronously (`root(fn)`, `mount`, a component's initialisation), and outside a flush. Inside a flush it goes to the failing tree's front end through `Reporter.unhandled`, and the flush goes on with the rest of the due work. A staleness check that throws takes the same route. Without that, one application's unhandled error would land in another application's `flushSync()` and cut its flush short. The native front end hands the error to the host's `reportError`, or rethrows it from a microtask where the host has none, as an exception in an event listener is reported. The Svelte adapter's reporter rethrows into the flusher, because upstream pins `flushSync()` throwing (`error-recovery`, `effect-loop-infinite`, the signals depth checks). A tree's front end is the entry that created it:
 - public `root()` and `effect.root()` with no owner, and `mount`, `hydrate` and `render` without a format, are native;
