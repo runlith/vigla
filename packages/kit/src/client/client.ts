@@ -344,10 +344,7 @@ export class Client {
 		});
 		try {
 			const changes: Changes = {
-				all:
-					options.refreshAll ??
-					options.invalidateAll ??
-					(!options.shallow && !options.popped && url.href === previous?.url.href),
+				all: options.refreshAll ?? options.invalidateAll ?? false,
 				dependencies: (options.invalidate ?? []).map((value) => this.predicate(value))
 			};
 			const finishRemotes = changes.all ? this.remote.prepare() : undefined;
@@ -360,12 +357,9 @@ export class Client {
 				completion.resolve();
 				return;
 			}
-			const unchanged =
-				previous && this.routes.key(previous.url) === this.routes.key(loadIntent.url);
 			let result =
-				(options.shallow && previous) ||
-				(unchanged && !changes.all && !changes.dependencies.length && !options.action)
-					? { ...previous!, url: options.shallow ? previous!.url : loadIntent.url }
+				options.shallow && previous
+					? { ...previous, url: previous.url }
 					: this.#preload?.key === this.routes.key(loadIntent.url) &&
 						  !changes.all &&
 						  !changes.dependencies.length

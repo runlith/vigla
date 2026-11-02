@@ -191,6 +191,83 @@ test('loads reuse tracked dependencies, invalidate selectively, and transfer a d
 	expect(page.data.value).toBe('two:x:3');
 });
 
+test('same-URL goto invalidates only selected server and universal dependencies', async () => {
+	let layout = 0;
+	let server = 0;
+	let shared = 0;
+	const app = fixture(({ data, depends }) => {
+		depends('custom:shared');
+		return { ...data, value: ++shared };
+	});
+	app.nodes[0] = async () => ({
+		component: () => {},
+		universal: {
+			load: ({ depends }) => {
+				depends('custom:layout');
+				return { layout: ++layout };
+			}
+		}
+	});
+	app.dictionary = { '/[id]': [~2, []] };
+	vi.stubGlobal(
+		'fetch',
+		async () =>
+			new Response(
+				JSON.stringify({
+					type: 'data',
+					nodes: [
+						null,
+						{
+							type: 'data',
+							data: JSON.parse(stringify({ server: ++server })),
+							uses: { dependencies: ['custom:server'] }
+						}
+					]
+				})
+			)
+	);
+	await start(app, document.querySelector('main')!);
+	expect(page.data).toEqual({ layout: 1, server: 1, value: 1 });
+	await goto('/one', { invalidate: ['custom:server'] });
+	expect(page.data).toEqual({ layout: 1, server: 2, value: 2 });
+	await goto('/one', { invalidate: ['custom:shared'] });
+	expect(page.data).toEqual({ layout: 1, server: 2, value: 3 });
+	await goto('/one', { invalidate: ['custom:layout', 'custom:shared'] });
+	expect(page.data).toEqual({ layout: 2, server: 2, value: 4 });
+	const data = page.data;
+	await goto('/one', { invalidate: ['custom:neither'] });
+	expect(page.data).toBe(data);
+	await goto('/one', { refreshAll: true });
+	expect(page.data).toEqual({ layout: 3, server: 3, value: 5 });
+});
+
+test('same-URL goto clears action metadata without rerunning valid loads', async () => {
+	let count = 0;
+	const app = fixture(() => ({ value: ++count }));
+	await start(app, document.querySelector('main')!);
+	await applyAction({ type: 'failure', status: 422, data: { field: 'invalid' }, location: '/one' });
+	expect(page.status).toBe(422);
+	expect(page.form).toEqual({ field: 'invalid' });
+	await goto('/one');
+	expect(page.form).toBe(null);
+	expect(page.status).toBe(200);
+	expect(page.data.value).toBe(1);
+});
+
+test('same-URL goto retries a failed load instead of reusing its error branch', async () => {
+	let failed = true;
+	const app = fixture(() => {
+		if (failed) throw new Error('unavailable');
+		return { value: 'recovered' };
+	});
+	await start(app, document.querySelector('main')!);
+	expect(page.status).toBe(500);
+	failed = false;
+	await goto('/one');
+	expect(page.status).toBe(200);
+	expect(page.data.value).toBe('recovered');
+});
+
 test('navigation can be cancelled or awaited, publishes navigating and finishes after DOM changes', async () => {
 	const app = fixture(({ params }) => ({ value: params.id }));
 	const events: unknown[] = [];
@@ -587,7 +664,7 @@ test('unchanged branch data keeps its identity and mutations of page.url do not 
 	expect(page.url.pathname).toBe('/two');
 });
 
-test('synchronous invalidations share one load while a later microtask and same-URL goto reload', async () => {
+test('synchronous invalidations batch while same-URL goto needs explicit refresh', async () => {
 	let count = 0;
 	const app = fixture(({ depends }) => {
 		depends('custom:batch');
@@ -601,6 +678,8 @@ test('synchronous invalidations share one load while a later microtask and same-
 	]);
 	expect(page.data.value).toBe(2);
 	await goto('/one');
+	expect(page.data.value).toBe(2);
+	await goto('/one', { refreshAll: true });
 	expect(page.data.value).toBe(3);
 });
 
