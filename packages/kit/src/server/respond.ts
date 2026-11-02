@@ -9,6 +9,8 @@ import type { RequestEvent } from '../types/request.ts';
 import type { ParamValue } from '../types/params.ts';
 import type { Server } from './index.ts';
 import {
+	addDataSuffix,
+	addResolutionSuffix,
 	hasDataSuffix,
 	hasResolutionSuffix,
 	stripDataSuffix,
@@ -152,6 +154,29 @@ export async function respond(
 			path = decodePathname(path);
 		} catch {
 			throw new FrameworkError(400, 'Malformed URI');
+		}
+		if (
+			!state.prerendering?.fallback &&
+			path !== decodePathname(url.pathname) &&
+			(server.manifest.prerendered_routes.has(path) ||
+				(path.endsWith('/') && server.manifest.prerendered_routes.has(path.slice(0, -1))))
+		) {
+			const target = new URL(request.url);
+			target.pathname = data ? addDataSuffix(path) : resolution ? addResolutionSuffix(path) : path;
+			const response = await fetch(new Request(target, request), { redirect: 'manual' });
+			const headers = new Headers(response.headers);
+			if (headers.has('content-encoding')) {
+				headers.delete('content-encoding');
+				headers.delete('content-length');
+			}
+			state.rerouted = target.href;
+			return finish(
+				new Response(response.body, {
+					status: response.status,
+					statusText: response.statusText,
+					headers
+				})
+			);
 		}
 		const base = server.options.paths.base;
 		if (base && path !== base && !path.startsWith(`${base}/`) && !state.prerendering?.fallback)

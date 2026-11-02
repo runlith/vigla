@@ -36,9 +36,9 @@ export async function configurePreview(
 	const assetsPrefix = project.config.paths.assets
 		? '/_svelte_kit_assets'
 		: project.config.paths.base;
-	const read = (file: string) => {
-		const absolute = path.resolve(directory, file);
-		return absolute.startsWith(directory + path.sep) && existsSync(absolute)
+	const read = (root: string, file: string) => {
+		const absolute = path.resolve(root, file);
+		return absolute.startsWith(root + path.sep) && existsSync(absolute)
 			? createReadableStream(absolute)
 			: null;
 	};
@@ -47,7 +47,7 @@ export async function configurePreview(
 	const server = await module.configure({
 		manifest,
 		env: project.environment.values,
-		read,
+		read: (file) => read(directory, file),
 		assets: assetsPrefix,
 		scope: new AsyncLocalStorage<RequestStore>()
 	});
@@ -96,7 +96,14 @@ export async function configurePreview(
 			try {
 				const origin = `${preview.config.preview.https ? 'https' : 'http'}://${request.headers[':authority'] ?? request.headers.host}`;
 				const url = new URL(request.originalUrl ?? request.url ?? '/', origin);
-				const pathname = decodeURI(url.pathname);
+				let pathname: string;
+				try {
+					pathname = decodeURI(url.pathname);
+				} catch {
+					response.writeHead(400);
+					response.end('Malformed URI');
+					return;
+				}
 				if (pathname.startsWith(assetsPrefix + '/')) {
 					const file = decodeURIComponent(url.pathname.slice(assetsPrefix.length + 1));
 					if (
@@ -116,6 +123,11 @@ export async function configurePreview(
 					)
 						return;
 				}
+				if (pathname === '/.well-known/appspecific/com.chrome.devtools.json') {
+					response.writeHead(404);
+					response.end('not found');
+					return;
+				}
 				const base = project.config.paths.base;
 				if (base && pathname === base) {
 					response.writeHead(307, { location: base + '/' + url.search });
@@ -124,12 +136,6 @@ export async function configurePreview(
 				}
 				if (base && !pathname.startsWith(base + '/')) {
 					outsideBase(request, response, base);
-					return;
-				}
-				const redirect = redirects.get(pathname);
-				if (redirect) {
-					response.writeHead(redirect.status, { location: redirect.location });
-					response.end();
 					return;
 				}
 				const page = pages.get(pathname);
@@ -148,7 +154,16 @@ export async function configurePreview(
 				}
 				const normalized = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname + '/';
 				if (pages.has(normalized)) {
-					response.writeHead(308, { location: normalized + url.search });
+					const location = url.pathname.endsWith('/')
+						? url.pathname.slice(0, -1)
+						: url.pathname + '/';
+					response.writeHead(308, { location: location + url.search });
+					response.end();
+					return;
+				}
+				const redirect = redirects.get(pathname);
+				if (redirect) {
+					response.writeHead(redirect.status, { location: redirect.location });
 					response.end();
 					return;
 				}
@@ -177,6 +192,8 @@ export async function configurePreview(
 					base: origin
 				});
 				const result = await server.respond(web, {
+					read: (file) =>
+						read(Object.hasOwn(manifest.server_assets, file) ? directory : client, file),
 					getClientAddress: () => {
 						if (!request.socket.remoteAddress) throw new Error('Could not determine clientAddress');
 						return request.socket.remoteAddress;

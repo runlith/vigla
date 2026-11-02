@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { runInNewContext } from 'node:vm';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { getContext, getOwner, hydratable, onDestroy, setContext } from 'vigla';
 import type { Component } from 'vigla/server';
 import { unflatten } from 'devalue';
@@ -116,6 +116,43 @@ const address = { getClientAddress: () => '192.0.2.1' };
 function request(path = '/', init?: RequestInit): Request {
 	return new Request(`https://app.test${path}`, init);
 }
+
+it.each(['', '/__data.json'])(
+	'serves rerouted prerendered resources through their deployment URL%s',
+	async (suffix) => {
+		const app = manifest();
+		app.prerendered_routes.add('/base/prerendered/中文');
+		const config = options({ reroute: () => '/base/prerendered/%E4%B8%AD%E6%96%87' });
+		config.paths.base = '/base';
+		const server = await start(app, config);
+		vi.stubGlobal(
+			'fetch',
+			async (input: Request) =>
+				new Response(JSON.stringify({ url: input.url, accept: input.headers.get('accept') }), {
+					headers: {
+						'content-type': 'application/json',
+						'content-encoding': 'gzip',
+						'content-length': '1234'
+					}
+				})
+		);
+		try {
+			const response = await server.respond(
+				request('/base/alias' + suffix + '?q=%2f+%25', { headers: { accept: 'application/json' } }),
+				address
+			);
+			expect(response.status).toBe(200);
+			expect(await response.json()).toEqual({
+				url: 'https://app.test/base/prerendered/%E4%B8%AD%E6%96%87' + suffix + '?q=%2f+%25',
+				accept: 'application/json'
+			});
+			expect(response.headers.has('content-encoding')).toBe(false);
+			expect(response.headers.has('content-length')).toBe(false);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	}
+);
 
 it('routes rerouted base paths with matcher params and endpoint method negotiation', async () => {
 	const app = manifest();
