@@ -1,6 +1,7 @@
 import { leaving, stayed } from '../reactivity/batch.ts';
 import { effect, hide, show, teardown } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
+import { sweep } from './frame.ts';
 import { captureLayout, LayoutContext, play, withinLayout, type LayoutPlan } from './layout.ts';
 import { capture, GEOMETRY, placementOf, type Capture } from './placement.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
@@ -224,7 +225,7 @@ export function animation<P>(
 					previous?.abort();
 					previous = undefined;
 					let target = capture(element);
-					if (!still(start, target.rect) && placementOf(element).seize(GEOMETRY)) {
+					if (!still(start, target.rect) && placementOf(element).seize(GEOMETRY).size > 0) {
 						target = capture(element);
 					}
 					end = target.rect;
@@ -299,13 +300,18 @@ function collect(effect: Effect, inherited: boolean, found: Manager[]): void {
 	}
 }
 
-export function prepare(branch: Effect): void {
-	if (live > 0) {
-		const found: Manager[] = [];
-		collect(branch, true, found);
-		for (const manager of found) captureLayout(manager.element);
-	}
-	movers.get(branch)?.measure();
+export function prepare(branches: readonly Effect[], retained: readonly Effect[] = []): void {
+	sweep(() => {
+		for (const branch of branches) {
+			if (live > 0) {
+				const found: Manager[] = [];
+				collect(branch, true, found);
+				for (const manager of found) captureLayout(manager.element);
+			}
+			movers.get(branch)?.measure();
+		}
+		for (const row of retained) movers.get(row)?.measure();
+	});
 }
 
 export function pause(branch: Effect, done: () => void): void {

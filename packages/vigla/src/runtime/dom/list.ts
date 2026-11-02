@@ -258,11 +258,11 @@ class List<T> {
 
 	#capture(stage: Stage<T>): void {
 		const selected = new Set(stage.rows);
-		for (const row of this.#order) {
-			if (selected.has(row)) moverOf(row.effect)?.measure();
-			else prepare(row.effect);
-		}
-		for (const row of stage.rows) if (this.#leaving.has(row)) prepare(row.effect);
+		const branches: Effect[] = [];
+		const retained: Effect[] = [];
+		for (const row of this.#order) (selected.has(row) ? retained : branches).push(row.effect);
+		for (const row of stage.rows) if (this.#leaving.has(row)) branches.push(row.effect);
+		prepare(branches, retained);
 	}
 
 	#prepare(given: Batch): void {

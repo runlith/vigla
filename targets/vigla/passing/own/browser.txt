@@ -1,4 +1,5 @@
 crossfade-config-projection (dom)
+issue-10252-frames (dom)
 issue-10252-initial-flip (dom)
 issue-10252-interrupted (dom)
 issue-10252-paired-layout (dom)

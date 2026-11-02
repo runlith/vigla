@@ -135,10 +135,12 @@ export class Branches<K> {
 
 	#capture(key: K): void {
 		if (same(key, this.#shown)) return;
+		const branches: Effect[] = [];
 		const old = this.#built.get(this.#shown);
-		if (old !== undefined) prepare(old.effect);
+		if (old !== undefined) branches.push(old.effect);
 		const revived = this.#leaving.has(key) ? this.#built.get(key) : undefined;
-		if (revived !== undefined) prepare(revived.effect);
+		if (revived !== undefined) branches.push(revived.effect);
+		prepare(branches);
 	}
 
 	#prepare(given: Batch): void {

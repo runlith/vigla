@@ -26,6 +26,7 @@ export interface Frame {
 
 export interface Pose {
 	readonly rect: DOMRect;
+	readonly flat: boolean;
 	readonly frame: Frame | null;
 }
 
@@ -38,7 +39,17 @@ const XHTML = 'http://www.w3.org/1999/xhtml';
 
 const COLLAPSE = 1e-6;
 
-const moving = new Map<Element, boolean>();
+let moving: Map<Element, boolean> | null = null;
+
+export function sweep<T>(fn: () => T): T {
+	if (moving !== null) return fn();
+	moving = new Map();
+	try {
+		return fn();
+	} finally {
+		moving = null;
+	}
+}
 
 function parentOf(element: Element): Element | null {
 	if (element.assignedSlot !== null) return element.assignedSlot;
@@ -69,22 +80,38 @@ function moves(style: CSSStyleDeclaration): boolean {
 function above(element: Element): boolean {
 	const parent = parentOf(element);
 	if (parent === null) return false;
-	let found = moving.get(parent);
+	let found = moving?.get(parent);
 	if (found === undefined) {
-		if (moving.size === 0) queueMicrotask(() => moving.clear());
 		found = moves(getComputedStyle(parent)) || above(parent);
-		moving.set(parent, found);
+		moving?.set(parent, found);
 	}
 	return found;
 }
 
-export function framed(element: Element, style: CSSStyleDeclaration, rect: DOMRect): boolean {
-	return (
-		element.namespaceURI === XHTML &&
-		rect.width > 0 &&
-		rect.height > 0 &&
-		(zoomed(style) || above(element))
-	);
+function transitionable(style: CSSStyleDeclaration): boolean {
+	const durations = style.transitionDuration.split(',');
+	const delays = style.transitionDelay.split(',');
+	return style.transitionProperty.split(',').some((property, at) => {
+		const name = property.trim();
+		if (name !== 'all' && name !== 'transform') return false;
+		const duration = parseFloat(durations[at % durations.length] as string) || 0;
+		const delay = parseFloat(delays[at % delays.length] as string) || 0;
+		return Math.max(duration, 0) + delay > 0;
+	});
+}
+
+export function poseOf(
+	element: Element,
+	style: CSSStyleDeclaration,
+	rect: DOMRect,
+	transform: string
+): Pose {
+	if (element.namespaceURI !== XHTML || !(rect.width > 0 && rect.height > 0)) {
+		return { rect, flat: false, frame: null };
+	}
+	if (!moves(style) && !above(element)) return { rect, flat: true, frame: null };
+	const frame = transitionable(style) ? null : probe(element, style, transform);
+	return { rect, flat: false, frame };
 }
 
 function length(style: CSSStyleDeclaration, axis: 'width' | 'height'): number {
@@ -101,10 +128,6 @@ function length(style: CSSStyleDeclaration, axis: 'width' | 'height'): number {
 		total += parseFloat(style.getPropertyValue(property));
 	}
 	return total;
-}
-
-function transitioning(style: CSSStyleDeclaration): boolean {
-	return style.transitionDuration.split(',').some((duration) => parseFloat(duration) > 0);
 }
 
 export function apply(matrix: Matrix, x: number, y: number): [number, number] {
@@ -169,23 +192,15 @@ function invert(m: Matrix): Matrix | null {
 	];
 }
 
-export function probe(
-	element: Element,
-	style: CSSStyleDeclaration,
-	transform: string
-): Frame | null {
+function probe(element: Element, style: CSSStyleDeclaration, transform: string): Frame | null {
 	const width = length(style, 'width');
 	const height = length(style, 'height');
 	if (!(width > 0 && height > 0)) return null;
 	const [ox = 0, oy = 0] = style.transformOrigin.split(' ').map(parseFloat);
 	const inline = (element as HTMLElement).style;
 	const text = element.getAttribute('style');
-	const value = inline.getPropertyValue('transform');
-	const priority = inline.getPropertyPriority('transform');
-	const guard = transitioning(style);
 	const points: number[] = [];
 	try {
-		if (guard) inline.setProperty('transition', 'none', 'important');
 		for (const [x, y] of [
 			[0, 0],
 			[width, 0],
@@ -201,11 +216,6 @@ export function probe(
 			points.push((rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2);
 		}
 	} finally {
-		if (guard) {
-			if (value === '') inline.removeProperty('transform');
-			else inline.setProperty('transform', value, priority);
-			void style.transform;
-		}
 		if (text === null) element.removeAttribute('style');
 		else if (element.getAttribute('style') !== text) element.setAttribute('style', text);
 	}
@@ -237,7 +247,8 @@ function corners({ rect, frame }: Pose): number[] {
 }
 
 export function project(from: Pose, to: Pose): Projection | null {
-	if (from.frame === null && to.frame === null) return null;
+	if ((from.flat && to.flat) || (!from.flat && from.frame === null)) return null;
+	if (!to.flat && to.frame === null) return null;
 	const points = corners(from);
 	let left = Infinity;
 	let top = Infinity;

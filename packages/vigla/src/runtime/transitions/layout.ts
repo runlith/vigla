@@ -6,7 +6,7 @@ import {
 	type Options,
 	type Running
 } from './animate.ts';
-import { project, type Projection } from './frame.ts';
+import { project, sweep, type Projection } from './frame.ts';
 import { capture, placementOf, type Capture, type Placement } from './placement.ts';
 
 export interface LayoutPlan {
@@ -119,7 +119,9 @@ export class LayoutPass {
 		try {
 			for (const plan of this.plans) plan.match();
 			for (const plan of this.plans) plan.stabilize();
-			for (const plan of this.plans) plan.measure();
+			sweep(() => {
+				for (const plan of this.plans) plan.measure();
+			});
 			this.#ready = true;
 		} catch (error) {
 			for (const plan of this.plans) plan.cancel();
