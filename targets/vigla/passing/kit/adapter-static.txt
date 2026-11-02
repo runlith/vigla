@@ -1,0 +1,5 @@
+prerendered/test/test.js > exposes public env vars to the client (test-1/chromium)
+prerendered/test/test.js > generates HTML files (test-1/chromium)
+prerendered/test/test.js > prerenders a page (test-1/chromium)
+prerendered/test/test.js > prerenders a referenced endpoint with implicit `prerender` setting (test-1/chromium)
+prerendered/test/test.js > prerenders an unreferenced endpoint with explicit `prerender` setting (test-1/chromium)
