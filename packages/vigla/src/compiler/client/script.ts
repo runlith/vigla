@@ -113,7 +113,8 @@ export function read(
 	if (binding.kind === 'index') return runtime(context, 'get', node);
 	if (binding.kind === 'argument') return b.call(node);
 	if (!isSignal(binding)) return undefined;
-	return runtime(context, 'get', node);
+	const value = runtime(context, 'get', node);
+	return binding.declarationKind === 'var' ? b.logical('&&', node, value) : value;
 }
 
 function stateful(binding: Binding): boolean {

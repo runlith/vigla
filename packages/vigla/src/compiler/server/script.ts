@@ -194,7 +194,11 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				if (binding?.kind === 'slot-info') return runtime(context, 'slots', context.props!);
 				if (binding?.kind === 'snippet')
 					return { ...current, name: context.names.bound(binding.declaration!) };
-				return derived(binding) ? b.call(current) : undefined;
+				if (!derived(binding)) return undefined;
+				const call = b.call(current);
+				return binding?.declarationKind === 'var'
+					? { type: 'ChainExpression', expression: { ...call, optional: true } }
+					: call;
 			}
 			case 'Property': {
 				if (current.computed || current.kind !== 'init') return undefined;

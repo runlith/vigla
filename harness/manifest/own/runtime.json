@@ -249,6 +249,7 @@
 			"status": "difference",
 			"reason": "A var redeclaration in a traced function shares its parameter binding: upstream 5.57.3 moves it into the trace thunk and renders an empty paragraph instead of 42; the production variant passes"
 		},
-		"trace-var-parameter-production": "contract"
+		"trace-var-parameter-production": "contract",
+		"var-rune-scope": "contract"
 	}
 }
