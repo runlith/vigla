@@ -168,9 +168,14 @@ export async function errorResponse(
 					prefix = [{ depth: 0, node: root, server: data, data: universal }];
 				}
 				const settings = pageSettings(prefix.map((loaded) => loaded.node));
+				const above = await Promise.all(
+					candidates
+						.slice(0, depth)
+						.map((index) => (index == null ? undefined : server.manifest.nodes[index]!()))
+				);
 				return await renderDocument(server, store, {
 					branch: [...prefix, { depth: depth + 1, node, server: null, data: null }],
-					errors: [],
+					errors: above,
 					status: body.status,
 					error: body,
 					form: null,
