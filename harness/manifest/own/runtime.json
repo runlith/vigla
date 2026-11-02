@@ -25,6 +25,12 @@
 		"awaited-element-declarators": "contract",
 		"binding-native-input-order": "contract",
 		"contenteditable-falsy-ssr": "contract",
+		"component-release-order": "contract",
+		"crossfade-deferred-css-wrapper": "contract",
+		"crossfade-unmatched-restart": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 reuses the canceled out-only deferred options instead of reevaluating the re-entry factory, so an unmatched fallback runs a second time rather than being canceled before resolution"
+		},
 		"custom-element-async-props": "contract",
 		"custom-element-hmr": "contract",
 		"custom-element-named-slot": "contract",
@@ -61,6 +67,14 @@
 		"filtered-keyed-list": "contract",
 		"fork-attachment-lifetime": "contract",
 		"fork-boundary-failure": "contract",
+		"owner-boundaries": {
+			"status": "difference",
+			"reason": "Public owner failure handlers interleave with DOM boundaries; upstream has no vigla owner entry"
+		},
+		"owner-server-memo": {
+			"status": "difference",
+			"reason": "Public derived values retain their declaring server context layer; upstream has no vigla derived entry"
+		},
 		"fork-dirt-consumed": {
 			"status": "contract",
 			"reason": "Review finding of the scheduler: a held real batch processed first must not consume a block a fork's async value dirtied, so the fork still builds what it preloads; green on upstream 5.57.3, kept as a regression test"
@@ -193,6 +207,8 @@
 		"snippet-module-coercion": "contract",
 		"snippet-script-coercion": "contract",
 		"tagged-input-cache": "contract",
+		"transition-separate-css-restart": "contract",
+		"transition-separate-js-restart": "contract",
 		"async-batch-effect": { "status": "difference", "reason": "Svelte #18374: upstream 5.57.3 with async on and dev:false commits 0/1 instead of 1/1 after the nested microtask writes" },
 		"async-hydration-prewrite": { "status": "difference", "reason": "Svelte #18993 public hydration analogue: upstream 5.57.3 renders content after the pre-hydration data write but its expected root/child layout effect is absent" },
 		"eager-promise-parallel": { "status": "difference", "reason": "Svelte #18069 narrowed case: upstream 5.57.3 with dev:true emits a false waterfall warning although working's 200ms promise started eagerly before broken's 100ms Promise.all work" },

@@ -80,6 +80,7 @@ export interface Effect extends Reaction {
 	destroyed: boolean;
 	inert: boolean;
 	pending: boolean;
+	scope: boolean;
 }
 
 let clock = 0;

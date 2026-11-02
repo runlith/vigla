@@ -8,6 +8,7 @@ export {
 	getAllContexts,
 	getContext,
 	hasContext,
+	memo as derived,
 	onDestroy,
 	setContext
 } from '../runtime/server/context.ts';

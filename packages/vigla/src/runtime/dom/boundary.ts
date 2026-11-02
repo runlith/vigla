@@ -2,7 +2,7 @@ import { failure, warn } from '../../shared/diagnostics.ts';
 import { OPEN_ELSE } from '../../shared/markers.ts';
 import { reveal } from '../reactivity/async.ts';
 import { current, onCommit, skip as skipEffect } from '../reactivity/batch.ts';
-import { block, branch, destroy } from '../reactivity/effects.ts';
+import { block, branch, destroy, fail } from '../reactivity/effects.ts';
 import type { Boundary as Contract, Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
 import { owner, setOwner } from '../reactivity/tracking.ts';
@@ -46,6 +46,7 @@ class Boundary implements Contract {
 	readonly #props: BoundaryProps;
 	readonly #content: Render;
 	readonly #effect: Effect;
+	readonly #owner: Effect | null;
 	readonly #transform: (error: unknown) => unknown;
 	#anchor: ChildNode;
 	#units = 0;
@@ -65,6 +66,7 @@ class Boundary implements Contract {
 		this.#anchor = node;
 		this.#props = props;
 		this.#content = content;
+		this.#owner = owner;
 		this.parent = owner?.boundary ?? null;
 		this.#transform =
 			transform ??
@@ -248,8 +250,7 @@ class Boundary implements Contract {
 	}
 
 	#escalate(error: unknown): void {
-		if (this.parent === null) throw error;
-		this.parent.failed(error);
+		fail(this.#owner, error);
 	}
 
 	failed(error: unknown): void {

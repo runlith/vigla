@@ -12,9 +12,10 @@ import {
 	type Effect,
 	type Kind
 } from './graph.ts';
-import { abort } from './abort.ts';
+import { abort, abortLifetime } from './abort.ts';
 import { collect, orphaned, pending, processed, retire, revisit, schedule } from './batch.ts';
 import { disconnect } from './deriveds.ts';
+import { handlerOf } from './owners.ts';
 import { orphan } from './errors.ts';
 import { presently } from './past.ts';
 import { stayed } from './leaving.ts';
@@ -70,7 +71,8 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		running: false,
 		destroyed: false,
 		inert: false,
-		pending: false
+		pending: false,
+		scope: false
 	};
 	if (parent !== null) {
 		effect.prev = parent.last;
@@ -87,10 +89,24 @@ function release(effect: Effect): void {
 	effect.owned = null;
 }
 
-export function fail(effect: Effect, error: unknown): void {
-	const boundary = effect.boundary;
-	if (boundary === null) throw error;
-	boundary.failed(error);
+export function fail(effect: Effect | null, error: unknown): void {
+	for (let at = effect; at !== null; at = at.parent) {
+		const handler = handlerOf(at);
+		if (handler !== null) {
+			try {
+				handler.failed(error);
+				return;
+			} catch (thrown) {
+				error = thrown;
+			}
+		}
+		const boundary = at.boundary;
+		if (boundary !== null && boundary !== (at.parent?.boundary ?? null)) {
+			boundary.failed(error);
+			return;
+		}
+	}
+	throw error;
 }
 
 function dispose(effect: Effect, teardown: () => void): void {
@@ -255,6 +271,12 @@ function unlink(effect: Effect): void {
 }
 
 function destroyChildren(effect: Effect, keepBranches = false): void {
+	let scoped = effect.last;
+	while (scoped !== null) {
+		const previous = scoped.prev;
+		if (scoped.scope) destroy(scoped);
+		scoped = previous;
+	}
 	let child = effect.first;
 	while (child !== null) {
 		const next = child.next;
@@ -266,6 +288,7 @@ function destroyChildren(effect: Effect, keepBranches = false): void {
 export function destroy(effect: Effect): void {
 	if (effect.destroyed) return;
 	effect.destroyed = true;
+	abortLifetime(effect);
 	stayed(effect);
 	destroyChildren(effect);
 	release(effect);

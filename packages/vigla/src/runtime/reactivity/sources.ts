@@ -61,7 +61,14 @@ export interface Cell<T> {
 }
 
 export function cell<T>(value: T): Cell<T> {
-	const held = state(value);
+	return valueCell(state(value));
+}
+
+export function memo<T>(fn: () => T, equals?: (before: T, after: T) => boolean): Cell<T> {
+	return valueCell(derived(fn, equals));
+}
+
+function valueCell<T>(held: Source<T>): Cell<T> {
 	return {
 		get current() {
 			return get(held);

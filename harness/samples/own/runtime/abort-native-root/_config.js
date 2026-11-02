@@ -13,13 +13,13 @@ export default test({
 				const signal = getAbortSignal();
 				assert.strictEqual(getAbortSignal(), signal);
 				assert.strictEqual(untrack(getAbortSignal), signal);
+				let lifetime;
 				const detached = root(() => {
-					assert.throws(() => getAbortSignal(), /get_abort_signal_outside_reaction/);
+					lifetime = getAbortSignal();
 				});
+				assert.strictEqual(detached.signal, lifetime);
 				detached.dispose();
-				signal.addEventListener('abort', () => {
-					assert.throws(() => getAbortSignal(), /get_abort_signal_outside_reaction/);
-				});
+				assert.equal(lifetime.aborted, true);
 				signals.push(signal);
 			});
 		});

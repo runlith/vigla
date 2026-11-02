@@ -110,6 +110,7 @@ export {
 	template,
 	tracking
 } from '../../runtime/reactivity/effects.ts';
+export { getReactionSignal } from '../../runtime/reactivity/abort.ts';
 export { external } from '../../runtime/reactivity/external.ts';
 export { latest } from '../../runtime/reactivity/latest.ts';
 export { tag, tagProxy, trace, traceStacks } from '../../runtime/reactivity/trace.ts';

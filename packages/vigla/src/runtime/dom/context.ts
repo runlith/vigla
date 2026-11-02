@@ -1,19 +1,13 @@
 import { DEV } from 'esm-env';
-import { keyed, type Context } from '../../shared/context.ts';
+import { keyed, type Context, type Layer } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
 import { destroyed, detached, effect } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
+import { ownContext } from '../reactivity/owners.ts';
 import { owner, running, setOwner, untrack } from '../reactivity/tracking.ts';
 
-export interface Layer {
-	readonly parent: Layer | null;
-	readonly owner: Effect | null;
-	readonly component: boolean;
-	map: Map<unknown, unknown> | null;
-}
-
 interface Initializing {
-	readonly layer: Layer;
+	readonly layer: Layer<Effect>;
 	readonly outer: Initializing | null;
 	readonly caller: Effect | null;
 	readonly deferred: (() => void)[];
@@ -21,11 +15,11 @@ interface Initializing {
 
 let initializing: Initializing | null = null;
 
-function layerOf(effect: Effect | null): Layer | null {
-	return (effect?.context as Layer | null | undefined) ?? null;
+function layerOf(effect: Effect | null): Layer<Effect> | null {
+	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
 }
 
-function current(): Layer | null {
+function current(): Layer<Effect> | null {
 	return initializing !== null && initializing.layer.owner === owner
 		? initializing.layer
 		: layerOf(owner);
@@ -45,7 +39,7 @@ export function push(map?: Map<unknown, unknown>): void {
 	const caller = owner;
 	const parent = current();
 	const instance = caller === null ? null : detached(null, caller);
-	const layer: Layer = { parent, owner: instance, component: true, map: map ?? null };
+	const layer: Layer<Effect> = { parent, owner: instance, component: true, map: map ?? null };
 	initializing = { layer, outer: initializing, caller, deferred: [] };
 	if (instance === null) return;
 	instance.context = layer;
@@ -83,16 +77,12 @@ export function userEffect(fn: () => void | (() => void)): void {
 	effect(fn);
 }
 
-function own(): Layer {
+function own(): Layer<Effect> {
 	if (initializing !== null && initializing.layer.owner === owner) return initializing.layer;
 	if (owner === null) {
 		throw failure('context_without_owner', 'Context can only be set where an owner exists');
 	}
-	const layer = layerOf(owner);
-	if (layer !== null && layer.owner === owner) return layer;
-	const created: Layer = { parent: layer, owner, component: false, map: null };
-	owner.context = created;
-	return created;
+	return ownContext(owner);
 }
 
 export function getContext<T>(key: unknown): T {
@@ -120,7 +110,7 @@ export function createContext<T>(): Context<T> {
 }
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
-	const chain: Layer[] = [];
+	const chain: Layer<Effect>[] = [];
 	for (let layer = current(); layer !== null; layer = layer.parent) chain.push(layer);
 	const all = new Map<unknown, unknown>();
 	for (let index = chain.length - 1; index >= 0; index--) {

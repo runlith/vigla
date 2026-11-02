@@ -2,6 +2,14 @@ import { failure } from './diagnostics.ts';
 
 export type Context<T> = [get: () => T, set: (value: T) => T, has: () => boolean];
 
+export interface Layer<Owner> {
+	parent: Layer<Owner> | null;
+	readonly owner: Owner | null;
+	readonly component: boolean;
+	readonly isolated?: boolean;
+	map: Map<unknown, unknown> | null;
+}
+
 export interface Contexts {
 	getContext<T>(key: unknown): T;
 	setContext<T>(key: unknown, value: T): T;

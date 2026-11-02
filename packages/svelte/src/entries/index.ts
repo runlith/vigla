@@ -4,6 +4,7 @@ import { failure, phase } from './internal/client.ts';
 import { format } from '../shared/format.ts';
 
 export * from 'vigla/internal/index-client';
+export { getReactionSignal as getAbortSignal } from './internal/client.ts';
 
 const scope: Scope = { phase, failure };
 

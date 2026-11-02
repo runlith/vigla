@@ -1,17 +1,12 @@
-import { staleReaction } from '../../shared/abort.ts';
-import { keyed, type Context } from '../../shared/context.ts';
+import { keyed, type Context, type Layer } from '../../shared/context.ts';
+import { lifetime } from '../reactivity/abort.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { teardown } from '../reactivity/effects.ts';
+import { fail, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import { owner, setOwner } from '../reactivity/tracking.ts';
+import type { Cell } from '../reactivity/sources.ts';
+import { ownContext, ownerOf } from '../reactivity/owners.ts';
+import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
 import type { Data } from './hydration.ts';
-
-interface Layer {
-	readonly parent: Layer | null;
-	readonly owner: Effect | null;
-	readonly component: boolean;
-	map: Map<unknown, unknown> | null;
-}
 
 interface Render {
 	readonly scope: Effect;
@@ -28,11 +23,10 @@ let render: Render | null = null;
 let destroying: Render | null = null;
 
 const stores = new WeakMap<Effect, Data>();
-const signals = new WeakMap<Effect, AbortController>();
-const resumed = new WeakSet<Layer>();
+const resumed = new WeakSet<Layer<Effect>>();
 
-function layerOf(effect: Effect | null): Layer | null {
-	return (effect?.context as Layer | null | undefined) ?? null;
+function layerOf(effect: Effect | null): Layer<Effect> | null {
+	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
 }
 
 export function push(map?: Map<unknown, unknown>): void {
@@ -51,7 +45,14 @@ export function pop(): void {
 
 export function begin(scope: Effect, hydration: Data, inheritContext = true): Saved {
 	const saved = { render, owner };
-	if (!inheritContext) scope.context = null;
+	scope.context = {
+		parent: inheritContext ? layerOf(scope) : null,
+		owner: scope,
+		component: false,
+		isolated: !inheritContext,
+		map: null
+	};
+	ownerOf(scope);
 	render = { scope, destroys: [], hydration };
 	setOwner(scope);
 	return saved;
@@ -95,23 +96,40 @@ export function hydrationData(): Data | null {
 export function getAbortSignal(): AbortSignal {
 	const scope =
 		destroying?.scope ?? (render !== null && owner === render.scope ? render.scope : owner);
-	if (scope === null) return new AbortController().signal;
-	let controller = signals.get(scope);
-	if (controller !== undefined) return controller.signal;
-	controller = new AbortController();
-	signals.set(scope, controller);
-	const held = controller;
-	if (scope.destroyed) {
-		held.abort(staleReaction);
-	} else {
-		const previous = setOwner(scope);
-		try {
-			teardown(() => held.abort(staleReaction));
-		} finally {
-			setOwner(previous);
+	return scope === null ? new AbortController().signal : lifetime(scope);
+}
+
+export function memo<T>(fn: () => T, _equals?: (before: T, after: T) => boolean): Cell<T> {
+	const scope = owner;
+	const context = layerOf(scope);
+	let computed = false;
+	let overridden = false;
+	let value: T;
+	return {
+		get current() {
+			if (!overridden && (!computed || scope === null)) {
+				const previous = setOwner(scope ?? owner);
+				const active = scope?.context;
+				if (scope !== null) scope.context = context;
+				try {
+					value = withoutReaction(fn);
+				} catch (error) {
+					if (scope === null) throw error;
+					fail(scope, error);
+					value = undefined as T;
+				} finally {
+					if (scope !== null) scope.context = active;
+					setOwner(previous);
+				}
+				computed = true;
+			}
+			return value;
+		},
+		set current(next) {
+			value = next;
+			overridden = true;
 		}
-	}
-	return held.signal;
+	};
 }
 
 export function capture(): () => void {
@@ -153,16 +171,13 @@ export function phase(): Phase {
 	return resumed.has(layer) ? 'running' : 'initializing';
 }
 
-function own(): Layer {
+function own(): Layer<Effect> {
 	const layer = layerOf(owner);
 	if (render !== null && owner === render.scope && layer !== null && layer.component) return layer;
 	if (owner === null) {
 		throw failure('context_without_owner', 'Context can only be set where an owner exists');
 	}
-	if (layer !== null && layer.owner === owner) return layer;
-	const created: Layer = { parent: layer, owner, component: false, map: null };
-	owner.context = created;
-	return created;
+	return ownContext(owner);
 }
 
 export function getContext<T>(key: unknown): T {
@@ -190,7 +205,7 @@ export function createContext<T>(): Context<T> {
 }
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
-	const chain: Layer[] = [];
+	const chain: Layer<Effect>[] = [];
 	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) chain.push(layer);
 	const all = new Map<unknown, unknown>();
 	for (let index = chain.length - 1; index >= 0; index--) {
