@@ -23,6 +23,7 @@ import { location } from './meta.ts';
 import { animationCall, transitionCall } from './transitions.ts';
 import { isStatic, staticText, valueOf, valueReactive } from './values.ts';
 import {
+	awaitedEmit,
 	cleaned,
 	flush,
 	HTML_CONTROLLED,
@@ -104,6 +105,27 @@ function update(
 	return runtime(context, name.startsWith('xlink') ? 'xlink' : 'attr', ...args);
 }
 
+function awaitedValue(context: TemplateContext, value: Value | null): boolean {
+	if (value === null || value.kind === 'boolean') return false;
+	if (value.kind === 'expression') return context.awaited?.has(value.expression) === true;
+	return value.parts.some(
+		(part) => part.kind === 'expression' && context.awaited?.has(part.expression) === true
+	);
+}
+
+function awaitedAttribute(context: TemplateContext, attribute: Attribute): boolean {
+	switch (attribute.kind) {
+		case 'spread':
+		case 'class':
+			return context.awaited?.has(attribute.expression) === true;
+		case 'attribute':
+		case 'style':
+			return awaitedValue(context, attribute.value);
+		default:
+			return false;
+	}
+}
+
 function directivesObject(
 	context: TemplateContext,
 	emit: Emit,
@@ -164,7 +186,9 @@ export function spread(
 	outer: Emit
 ): void {
 	const name = node.kind === 'element' ? node.name : null;
-	const emit: Emit = { init: [], after: [], update: [], thunks: [], params: [] };
+	const local: Emit = { init: [], after: [], update: [], thunks: [], params: [] };
+	const late = node.attributes.some((attribute) => awaitedAttribute(context, attribute));
+	const emit = late ? awaitedEmit(local) : local;
 	const properties: (ES.Property | ES.SpreadElement)[] = [];
 	const classes: ClassToggle[] = [];
 	const styles: StyleProperty[] = [];
@@ -261,7 +285,7 @@ export function spread(
 	if (name === 'textarea') {
 		outer.init.push(b.statement(runtime(context, 'removeTextareaChild', element)));
 	}
-	outer.init.push(...flush(context, emit));
+	outer.init.push(...flush(context, local));
 	if (
 		!node.attributes.some((attribute) => attribute.kind === 'binding' && attribute.name === 'value')
 	) {
@@ -313,8 +337,11 @@ function classAttribute(
 	value: Value | null,
 	toggles: readonly ClassToggle[],
 	namespace: Namespace,
-	emit: Emit
+	outer: Emit
 ): void {
+	const late =
+		awaitedValue(context, value) || toggles.some((toggle) => awaitedAttribute(context, toggle));
+	const emit = late ? awaitedEmit(outer) : outer;
 	const reactive =
 		(value !== null && valueReactive(context, value)) ||
 		toggles.some((toggle) => isDynamic(context, toggle.expression));
@@ -353,8 +380,11 @@ function styleAttribute(
 	element: ES.Identifier,
 	value: Value | null,
 	styles: readonly StyleProperty[],
-	emit: Emit
+	outer: Emit
 ): void {
+	const late =
+		awaitedValue(context, value) || styles.some((style) => awaitedAttribute(context, style));
+	const emit = late ? awaitedEmit(outer) : outer;
 	const reactive =
 		(value !== null && valueReactive(context, value)) ||
 		styles.some((style) => valueReactive(context, style.value));
@@ -470,17 +500,20 @@ export function elementPart(context: TemplateContext, node: Element, parent: Nam
 				continue;
 			}
 			const reactive = valueReactive(context, attribute.value);
+			const late = awaitedValue(context, attribute.value);
 			setups.push((element, emit) => {
-				const target = reactive
-					? emit
-					: { init: [], after: [], update: [], thunks: [], params: [] };
+				const target = late
+					? awaitedEmit(emit)
+					: reactive
+						? emit
+						: { init: [], after: [], update: [], thunks: [], params: [] };
 				const value = valueOf(context, target, attribute.value);
 				const call = custom
 					? runtime(context, 'customProp', element, b.literal(attribute.name), value)
 					: update(context, node, element, name, value, node.attributes);
 				const afterOptions =
 					html && tag === 'select' && (name === 'value' || name === 'defaultValue');
-				(reactive ? emit.update : afterOptions ? emit.after : emit.init).push(b.statement(call));
+				(reactive ? target.update : afterOptions ? emit.after : emit.init).push(b.statement(call));
 			});
 		}
 		if (toggles.length > 0 || classDynamic) {

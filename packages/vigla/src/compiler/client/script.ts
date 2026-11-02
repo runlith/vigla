@@ -42,6 +42,7 @@ export interface Context {
 	readonly renamed?: Map<Binding, string>;
 	readonly externalCells?: Map<ExternalBinding, ES.Identifier>;
 	readonly refreshing?: ES.Node;
+	readonly propsId?: ES.Identifier;
 }
 
 function named(context: Context, node: ES.Identifier, binding: Binding): ES.Identifier {
@@ -214,7 +215,8 @@ export function declare(
 		case '$derived.by':
 			return runtime(context, 'derived', value);
 		case '$props.id':
-			return runtime(context, 'propsId');
+			if (context.propsId === undefined) throw unsupported(spanOf(init), `The ${rune} rune`);
+			return { ...context.propsId };
 		default:
 			throw unsupported(spanOf(init), `The ${rune} rune`);
 	}

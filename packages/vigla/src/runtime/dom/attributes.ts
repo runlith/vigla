@@ -10,7 +10,7 @@ import {
 import { isCapture, isDelegated, namespaces, propertyName } from '../../shared/html.ts';
 import { spreadAttachments } from './attachments.ts';
 import { delegated, delegate, listen } from './events.ts';
-import { claim, cursor, hydrating, setHydrating } from './hydration.ts';
+import { claim, cursor, hydrating, overwriting, setHydrating } from './hydration.ts';
 import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
 import { task } from '../reactivity/tasks.ts';
@@ -109,8 +109,9 @@ export function attr(element: Element, name: string, value: unknown, unchecked =
 			return;
 		}
 	}
+	const adopting = hydrating && !overwriting;
 	const previous = known[name];
-	if (previous === value) return;
+	if (previous === value && (adopting || !hydrating)) return;
 	known[name] = value;
 	if (value == null) {
 		element.removeAttribute(name);
@@ -118,7 +119,7 @@ export function attr(element: Element, name: string, value: unknown, unchecked =
 		(element as unknown as Values)[name] = value;
 	} else if (
 		!(
-			hydrating &&
+			adopting &&
 			(typeof value === 'number' || typeof value === 'boolean') &&
 			previous === String(value)
 		)
@@ -246,7 +247,7 @@ export function className(
 	const before = holder[classCache];
 	if (hydrating || before !== next || before === undefined) {
 		const name = toClass(next, hash, directives);
-		if (!hydrating || name !== element.getAttribute('class')) {
+		if (!hydrating || overwriting || name !== element.getAttribute('class')) {
 			if (name == null) element.removeAttribute('class');
 			else if (html) element.className = name;
 			else element.setAttribute('class', name);
@@ -291,7 +292,7 @@ export function style(
 	const styled = element as Element & ElementCSSInlineStyle;
 	if (hydrating || holder[styleCache] !== next) {
 		const css = toStyle(next, directives);
-		if (!hydrating || css !== element.getAttribute('style')) {
+		if (!hydrating || overwriting || css !== element.getAttribute('style')) {
 			if (css == null) element.removeAttribute('style');
 			else styled.style.cssText = css;
 		}

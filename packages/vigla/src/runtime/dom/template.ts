@@ -1,7 +1,16 @@
 import { template } from '../reactivity/effects.ts';
 import { derived } from '../reactivity/sources.ts';
 import { get } from '../reactivity/tracking.ts';
-import { advance, claim, cursor, hydrating, mismatch, setHydrating, TEXT } from './hydration.ts';
+import {
+	advance,
+	claim,
+	cursor,
+	hydrating,
+	mismatch,
+	setHydrating,
+	setOverwriting,
+	TEXT
+} from './hydration.ts';
 
 export type Render = (anchor: ChildNode) => void;
 
@@ -160,6 +169,18 @@ export function content(
 		for (let index = 0; index < sources.length; index++) values[index] = get(sources[index]!);
 		fn(...values);
 	});
+}
+
+export function awaitedContent(
+	fn: (...values: unknown[]) => void,
+	thunks?: readonly (() => unknown)[]
+): void {
+	const was = setOverwriting(true);
+	try {
+		content(fn, thunks);
+	} finally {
+		setOverwriting(was);
+	}
 }
 
 const cached = Symbol('text');

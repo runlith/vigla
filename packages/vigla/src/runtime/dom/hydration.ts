@@ -17,6 +17,14 @@ export function setHydrating(on: boolean): boolean {
 	return previous;
 }
 
+export let overwriting = false;
+
+export function setOverwriting(on: boolean): boolean {
+	const previous = overwriting;
+	overwriting = on;
+	return previous;
+}
+
 interface Continuation {
 	readonly mode: boolean;
 	previous: Continuation | null;

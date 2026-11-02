@@ -57,11 +57,15 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	const out = b.id(names.unique('$$out'));
 	const props = b.id(names.unique('$$props'));
 	const settlement = b.id(names.unique('$$settlement'));
+	const propsId = [...analysis.runes.values()].includes('$props.id')
+		? b.id(names.unique('$$id'))
+		: undefined;
 	const context: TemplateContext = {
 		analysis,
 		component: analysis,
 		names,
 		runtime: id,
+		propsId,
 		runtimeNames: options.runtimeNames,
 		out,
 		props,
@@ -88,6 +92,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		body.push(b.statement(runtime(context, 'appendStyles', out, b.id(css))));
 	}
 	body.push(b.statement(runtime(context, 'push')));
+	if (propsId !== undefined) body.push(b.constant(propsId.name, runtime(context, 'propsId', out)));
 	const inner = analysis.asynchronous ? b.id(names.unique('$$out')) : out;
 	const scripted: TemplateContext = analysis.asynchronous
 		? { ...context, out: inner, saved: topLevelAwaits(analysis) }

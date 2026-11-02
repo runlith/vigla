@@ -36,6 +36,7 @@ export interface Context {
 	readonly dev?: boolean;
 	readonly externalCells?: Map<ExternalBinding, ES.Identifier>;
 	readonly refreshing?: ES.Node;
+	readonly propsId?: ES.Identifier;
 }
 
 export function runtime(
@@ -368,7 +369,8 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 									: (context.props ?? b.id('$$props'))
 						};
 					case '$props.id':
-						return { ...current, init: runtime(context, 'propsId', context.out ?? b.id('$$out')) };
+						if (context.propsId === undefined) throw unsupported(spanOf(init), `The ${rune} rune`);
+						return { ...current, init: { ...context.propsId } };
 					default:
 						return undefined;
 				}

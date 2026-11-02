@@ -59,6 +59,17 @@ export interface Emit {
 	readonly thunks: ES.Expression[];
 	readonly params: ES.Identifier[];
 	content?: ES.Statement[];
+	awaited?: Emit;
+}
+
+export function awaitedEmit(emit: Emit): Emit {
+	return (emit.awaited ??= {
+		init: emit.init,
+		after: emit.after,
+		update: [],
+		thunks: [],
+		params: []
+	});
 }
 
 export interface Part {
@@ -393,21 +404,25 @@ export function navigate(
 	return moved;
 }
 
+function effectCall(
+	context: TemplateContext,
+	name: string,
+	emit: Emit | undefined
+): ES.Statement[] {
+	if (emit === undefined || emit.update.length === 0) return [];
+	const args: ES.Expression[] = [b.arrow(emit.params, emit.update)];
+	if (emit.thunks.length > 0) args.push({ type: 'ArrayExpression', elements: emit.thunks });
+	return [b.statement(runtime(context, name, ...args))];
+}
+
 export function flush(context: TemplateContext, emit: Emit): ES.Statement[] {
 	const content = emit.content ?? [];
-	if (emit.update.length === 0)
-		return content.length === 0 && emit.after.length === 0
-			? emit.init
-			: [...emit.init, ...content, ...emit.after];
-	const fn = b.arrow(emit.params, emit.update);
-	const args: ES.Expression[] = [fn];
-	if (emit.thunks.length > 0) args.push({ type: 'ArrayExpression', elements: emit.thunks });
-	return [
-		...emit.init,
-		...content,
-		b.statement(runtime(context, 'content', ...args)),
-		...emit.after
+	const effects = [
+		...effectCall(context, 'content', emit),
+		...effectCall(context, 'awaitedContent', emit.awaited)
 	];
+	if (effects.length === 0 && content.length === 0 && emit.after.length === 0) return emit.init;
+	return [...emit.init, ...content, ...effects, ...emit.after];
 }
 
 function hasScript(part: Part): boolean {

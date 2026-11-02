@@ -90,6 +90,7 @@ export { component, noop, render, spreadProps } from '../../runtime/dom/swap.ts'
 export { cleanupStyles, HMR, hmr } from '../../runtime/dom/hot.ts';
 export {
 	append,
+	awaitedContent,
 	child,
 	content,
 	first,

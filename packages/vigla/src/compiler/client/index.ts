@@ -115,11 +115,15 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 	const id = b.id(names.unique('$'));
 	const anchor = b.id(names.unique('$$anchor'));
 	const props = b.id(names.unique('$$props'));
+	const propsId = [...analysis.runes.values()].includes('$props.id')
+		? b.id(names.unique('$$id'))
+		: undefined;
 	const context: TemplateContext = {
 		analysis,
 		component: analysis,
 		names,
 		runtime: id,
+		propsId,
 		runtimeNames: options.runtimeNames,
 		project: options.dev ? options.project : undefined,
 		plain: new Set(),
@@ -170,6 +174,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		body.push(b.statement(runtime(context, 'appendStyles', anchor, b.id(css))));
 	}
 	body.push(b.statement(runtime(context, 'push')));
+	if (propsId !== undefined) body.push(b.constant(propsId.name, runtime(context, 'propsId')));
 	if (context.ownership !== undefined) {
 		body.push(
 			b.constant(

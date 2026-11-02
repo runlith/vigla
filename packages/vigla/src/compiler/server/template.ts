@@ -473,6 +473,16 @@ function element(
 	buffer.text(`</${tag}>`);
 }
 
+function leadingText(context: TemplateContext, nodes: readonly Node[]): boolean {
+	const start = nodes.findIndex((node) => !hoisted(node));
+	const run: Node[] = [];
+	for (const node of start < 0 ? [] : nodes.slice(start)) {
+		if (node.kind !== 'text' && node.kind !== 'expression') break;
+		run.push(node);
+	}
+	return run.length > 0 && awaiting(context, run).length === 0;
+}
+
 export function fragmentCode(
 	context: TemplateContext,
 	nodes: readonly Node[],
@@ -482,8 +492,7 @@ export function fragmentCode(
 	children = false
 ): void {
 	const step = asyncStep(nodes, context.awaited);
-	const first = step === null ? nodes.find((node) => !hoisted(node)) : undefined;
-	if (textFirst && (first?.kind === 'text' || first?.kind === 'expression')) buffer.text(empty);
+	if (textFirst && step === null && leadingText(context, nodes)) buffer.text(empty);
 	const declared = step === null ? nodes : step.before;
 	statements.push(...snippetDeclarations(context, declared));
 	for (const node of declared) {
