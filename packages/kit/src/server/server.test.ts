@@ -1663,6 +1663,28 @@ it('normalizes page slashes and answers conditional requests without a response 
 	expect(cached.body).toBeNull();
 });
 
+it('serves the root route under a base path with a trailing slash whatever the page option', async () => {
+	const app = manifest();
+	app.nodes[2] = async () => node(2, { trailingSlash: 'never' }, undefined, layout);
+	app.routes = [route('/', null, true)];
+	const config = options();
+	config.paths.base = '/base';
+	const server = await start(app, config);
+	const redirect = await server.respond(
+		request('/base?q=1', { headers: { accept: 'text/html' } }),
+		address
+	);
+	expect(redirect.status).toBe(308);
+	expect(redirect.headers.get('location')).toBe('/base/?q=1');
+	await redirect.body?.cancel();
+	const document = await server.respond(
+		request('/base/', { headers: { accept: 'text/html' } }),
+		address
+	);
+	expect(document.status).toBe(200);
+	await document.text();
+});
+
 it('reads imported and inline assets through the supplied Web-stream reader', async () => {
 	const app = manifest();
 	app.server_assets = new Proxy(
