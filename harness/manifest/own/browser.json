@@ -5,6 +5,10 @@
 			"status": "difference",
 			"reason": "Svelte #10252: the first simultaneous crossfade with keyed FLIP displaces visible rows by 80px before their animations begin on upstream 5.57.3 Chromium"
 		},
+		"issue-10252-interrupted": {
+			"status": "difference",
+			"reason": "Svelte #10252 rapid shuffles: on upstream 5.57.3 Chromium the first crossfade+FLIP shuffle displaces three tiles by 80px, and a second shuffle at 400ms jumps the restarted senders by 40-80px and ends re-FLIPped receivers 40-80px from their slots"
+		},
 		"issue-10252-paired-layout": {
 			"status": "difference",
 			"reason": "Upstream 5.57.3 starts only four of eight expected no-FLIP crossfade motions when a user-deferred receive wrapper registers during resolution; Vigla settles all registrations before shared source and target endpoint measurement"

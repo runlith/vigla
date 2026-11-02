@@ -1,6 +1,7 @@
 import { loop } from '../classes/frames.ts';
 import { task } from '../reactivity/tasks.ts';
 import { linear, type Easing } from './easing.ts';
+import { placementOf } from './placement.ts';
 
 export interface AnimationConfig {
 	delay?: number;
@@ -78,6 +79,7 @@ export function animate(
 	}
 	const { delay = 0, css, tick, easing = linear } = options;
 	const duration = options.duration ?? 0;
+	const owner = placementOf(element);
 	let aborted = false;
 	let done = finish;
 	let animation: Animation | undefined;
@@ -93,9 +95,11 @@ export function animate(
 			}
 		}
 		const placeholder = element.animate(frames, { duration: delay, fill: 'forwards' });
+		owner.adopt(placeholder, frames);
 		animation = placeholder;
 		placeholder.onfinish = () => {
 			placeholder.cancel();
+			owner.release(placeholder);
 			begin();
 			const from = counterpart?.t() ?? 1 - target;
 			counterpart?.abort();
@@ -127,6 +131,7 @@ export function animate(
 				}
 			}
 			const main = element.animate(steps, { duration: span, fill: 'forwards' });
+			owner.adopt(main, steps);
 			animation = main;
 			main.onfinish = () => {
 				ended = true;
@@ -141,6 +146,7 @@ export function animate(
 			aborted = true;
 			if (animation === undefined) return;
 			animation.cancel();
+			owner.release(animation);
 			animation.effect = null;
 			animation.onfinish = noop;
 		},

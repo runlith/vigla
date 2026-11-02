@@ -31,13 +31,41 @@ export function capture(element: Element): Capture {
 	};
 }
 
+export const GEOMETRY = ['transform', 'transformOrigin', 'translate', 'rotate', 'scale'] as const;
+
 export class Placement {
 	readonly element: Element;
 	readonly #holders = new Set<object>();
 	readonly #styles = new Map<string, Lease>();
+	readonly #animations = new Map<Animation, readonly Keyframe[]>();
 
 	constructor(element: Element) {
 		this.element = element;
+	}
+
+	adopt(animation: Animation, frames: readonly Keyframe[]): void {
+		this.#animations.set(animation, frames);
+	}
+
+	release(animation: Animation): void {
+		this.#animations.delete(animation);
+	}
+
+	seize(properties: readonly string[]): boolean {
+		let seized = false;
+		for (const [animation, frames] of this.#animations) {
+			if (!frames.some((frame) => properties.some((property) => property in frame))) continue;
+			const kept = frames.map((frame) => {
+				const rest: Keyframe = {};
+				for (const property in frame)
+					if (!properties.includes(property)) rest[property] = frame[property];
+				return rest;
+			});
+			(animation.effect as KeyframeEffect).setKeyframes(kept);
+			this.#animations.set(animation, kept);
+			seized = true;
+		}
+		return seized;
 	}
 
 	#write(property: string, value: string, priority = 'important'): void {
@@ -66,6 +94,7 @@ export class Placement {
 			const x = from.rect.left - to.left;
 			const y = from.rect.top - to.top;
 			if (x !== 0 || y !== 0) {
+				this.seize(['transform']);
 				this.#write('transform', `translate(${x}px, ${y}px) ${from.transform}`, '');
 			}
 		}

@@ -2,7 +2,7 @@ import { leaving, stayed } from '../reactivity/batch.ts';
 import { effect, hide, show, teardown } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
 import { captureLayout, LayoutContext, play, withinLayout, type LayoutPlan } from './layout.ts';
-import { placementOf, type Capture } from './placement.ts';
+import { GEOMETRY, placementOf, type Capture } from './placement.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
 import { type AnimationConfig, type Direction, type Options, type Running } from './animate.ts';
 
@@ -223,16 +223,12 @@ export function animation<P>(
 					previous?.abort();
 					previous = undefined;
 					end = element.getBoundingClientRect();
+					if (!still(start, end) && placementOf(element).seize(GEOMETRY)) {
+						end = element.getBoundingClientRect();
+					}
 				},
 				read() {
-					if (
-						cancelled ||
-						(start.left === end.left &&
-							start.right === end.right &&
-							start.top === end.top &&
-							start.bottom === end.bottom)
-					)
-						return;
+					if (cancelled || still(start, end)) return;
 					return withinLayout(context, () =>
 						get()(element, { from: start, to: end }, params?.() as P)
 					);
@@ -272,6 +268,10 @@ export function animation<P>(
 		running?.abort();
 		mover.unfix();
 	});
+}
+
+function still(a: DOMRect, b: DOMRect): boolean {
+	return a.left === b.left && a.right === b.right && a.top === b.top && a.bottom === b.bottom;
 }
 
 export function moverOf(row: Effect): Mover | undefined {
