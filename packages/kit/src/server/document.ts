@@ -156,14 +156,13 @@ export async function renderDocument(
 		if (!inlined.has(file) && options.output.linkHeaderPreload && preload({ type: 'css', path }))
 			links.push(`<${encodeURI(path)}>; rel="preload"; as="style"; nopush`);
 	}
-	for (const css of [
-		...inlined.values(),
-		...(manifest.client?.inline?.style
-			? [manifest.client.inline.style(paths.assets, paths.base)]
-			: [])
-	]) {
+	const css = manifest.client?.inline
+		? (manifest.client.inline.style?.(paths.assets, paths.base) ?? '')
+		: [...inlined.values()].join('\n');
+	if (css) {
 		await csp.style(css);
-		head.push(`<style${csp.styleNonce ? ` nonce="${csp.nonce}"` : ''}>${css}</style>`);
+		const attributes = `${options.dev ? ' data-sveltekit' : ''}${csp.styleNonce ? ` nonce="${csp.nonce}"` : ''}`;
+		head.push(`<style${attributes}>${css}</style>`);
 	}
 	for (const font of fonts.values()) {
 		const path = clientPath(font.file, paths);
