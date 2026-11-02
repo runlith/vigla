@@ -27,6 +27,9 @@ fields:
     "order": [
       [
         "easing.ts",
+        "frame.ts"
+      ],
+      [
         "placement.ts"
       ],
       [
