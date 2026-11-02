@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import remapping from '@jridgewell/remapping';
 import MagicString from 'magic-string';
 import type { ESTree, Rolldown } from 'vite';
 import { write } from '../build/index.ts';
@@ -22,6 +23,17 @@ function nameOf(node: ESTree.Node): string | undefined {
 		: 'value' in node && typeof node.value === 'string'
 			? node.value
 			: undefined;
+}
+
+function throughChunkMap(treeshaken: string, file: string, original: string): string {
+	const map = JSON.parse(treeshaken) as { sources: string[] };
+	const chunk = path.basename(file);
+	map.sources = map.sources.map((source) => (path.basename(source) === chunk ? chunk : source));
+	return JSON.stringify(
+		remapping(map as Parameters<typeof remapping>[0], (source) =>
+			source === chunk ? JSON.parse(original) : null
+		)
+	);
 }
 
 export async function pruneRemotes(project: Project): Promise<void> {
@@ -135,6 +147,8 @@ export async function pruneRemotes(project: Project): Promise<void> {
 		}
 	}
 	for (const module of changed) {
+		const chunkMap = module.file + '.map';
+		const original = existsSync(chunkMap) ? readFileSync(chunkMap, 'utf8') : null;
 		const result = (await project.api.build({
 			root: project.root,
 			configFile: false,
@@ -171,8 +185,12 @@ export async function pruneRemotes(project: Project): Promise<void> {
 		})) as Rolldown.RolldownOutput;
 		for (const output of result.output)
 			write(
-				output.type === 'chunk' ? module.file : module.file + '.map',
-				output.type === 'chunk' ? output.code : output.source
+				output.type === 'chunk' ? module.file : chunkMap,
+				output.type === 'chunk'
+					? output.code
+					: original
+						? throughChunkMap(String(output.source), module.file, original)
+						: output.source
 			);
 	}
 }

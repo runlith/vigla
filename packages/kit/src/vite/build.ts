@@ -159,7 +159,7 @@ export function buildPlugin(
 								output: {
 									format: 'es',
 									entryFileNames: '[name].js',
-									chunkFileNames: 'chunks/[name]-[hash].js',
+									chunkFileNames: 'chunks/[name].js',
 									assetFileNames: `${immutable}/assets/[name].[hash][extname]`
 								}
 							}

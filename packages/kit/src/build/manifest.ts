@@ -48,7 +48,8 @@ export function manifestSource({ context, routes, relativePath }: ManifestInput)
 		const relative = posix(path.posix.join(relativePath, file));
 		return relative.startsWith('./') || relative.startsWith('../') ? relative : './' + relative;
 	};
-	const load = (file: string) => `memo(() => import(${JSON.stringify(location(file))}))`;
+	const load = (file: string) =>
+		`__memo(() => import('${location(file).replace(/[\\']/g, '\\$&')}'))`;
 	const page = (route: Route) =>
 		route.page
 			? {
@@ -82,12 +83,12 @@ export function manifestSource({ context, routes, relativePath }: ManifestInput)
 	}
 	for (const pathname of context.prerendered.paths)
 		if (path.extname(pathname)) mime[path.extname(pathname)] ??= lookup(pathname) ?? '';
-	return `(() => { const memo = (load) => { let value; return () => value ??= load(); }; return {
+	return `(() => { const __memo = (load) => { let value; return () => value ??= load(); }; return {
 app_dir: ${uneval(context.config.appDir)}, app_path: ${uneval([context.config.paths.base.slice(1), context.config.appDir].filter(Boolean).join('/'))},
 assets: new Set(${uneval(assets)}), mime_types: ${uneval(mime)}, client: ${client},
 nodes: [${indices.map((index) => load(`nodes/${index}.js`)).join(',')}],
 remotes: {${Object.entries(context.artifacts.remotes)
-		.map(([id, file]) => `${JSON.stringify(id)}: ${load(file)}`)
+		.map(([id, file]) => `'${id.replace(/[\\']/g, '\\$&')}': ${load(file)}`)
 		.join(',')}},
 routes: [${selected
 		.filter((route) => route.page || route.endpoint)
