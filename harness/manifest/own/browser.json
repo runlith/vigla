@@ -11,7 +11,11 @@
 		},
 		"issue-10252-paired-layout": {
 			"status": "difference",
-			"reason": "Upstream 5.57.3 starts only four of eight expected no-FLIP crossfade motions when a user-deferred receive wrapper registers during resolution; Vigla settles all registrations before shared source and target endpoint measurement"
+			"reason": "Upstream 5.57.3 Chromium keeps matched senders in flow, so the four plain and four delegated no-FLIP crossfade motions start 40px and 80px below their displayed sources; a receive half created only inside an opaque deferred callback stays unmatched on both targets, showing receivers in their slots without motion"
+		},
+		"issue-10252-perspective": {
+			"status": "difference",
+			"reason": "Svelte #10252 under an ancestor perspective(700px) rotateY(35deg) rotateX(10deg) with scroll and a zoom 1.25 list: upstream 5.57.3 Chromium applies viewport deltas as local translations, displacing tiles by up to 60px when the first crossfade+FLIP shuffle starts, by up to 64px when a shuffle at 400ms restarts, and ending motions up to 69px from their slots"
 		},
 		"issue-10252-placement": {
 			"status": "difference",

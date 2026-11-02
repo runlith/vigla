@@ -6,6 +6,7 @@ import {
 	type Options,
 	type Running
 } from './animate.ts';
+import { project, type Projection } from './frame.ts';
 import { capture, placementOf, type Capture, type Placement } from './placement.ts';
 
 export interface LayoutPlan {
@@ -21,6 +22,7 @@ export class LayoutContext {
 	direction: Direction | null;
 	readonly #plans = new Set<LayoutPlan>();
 	#captured: Capture | undefined;
+	#poses: readonly [Capture, Capture] | null = null;
 	#references = 0;
 	#declaring = true;
 
@@ -35,6 +37,16 @@ export class LayoutContext {
 
 	get placement(): Placement {
 		return placementOf(this.element);
+	}
+
+	measured(from: Capture, to: Capture): void {
+		this.#poses = [from, to];
+	}
+
+	local(from: DOMRect, to: DOMRect): Projection | null {
+		const poses = this.#poses;
+		if (poses === null || poses[0].rect !== from || poses[1].rect !== to) return null;
+		return project(poses[0], poses[1]);
 	}
 
 	stage(plan: LayoutPlan): LayoutPass | null {

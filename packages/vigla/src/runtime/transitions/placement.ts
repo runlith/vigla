@@ -1,5 +1,6 @@
-export interface Capture {
-	readonly rect: DOMRect;
+import { framed, probe, project, type Pose } from './frame.ts';
+
+export interface Capture extends Pose {
 	readonly width: string;
 	readonly height: string;
 	readonly transform: string;
@@ -20,14 +21,17 @@ interface Lease {
 
 export function capture(element: Element): Capture {
 	const style = getComputedStyle(element);
+	const rect = element.getBoundingClientRect();
+	const transform = style.transform === 'none' ? '' : style.transform;
 	return {
-		rect: element.getBoundingClientRect(),
+		rect,
 		width: style.width,
 		height: style.height,
-		transform: style.transform === 'none' ? '' : style.transform,
+		transform,
 		origin: style.transformOrigin,
 		opacity: +style.opacity,
-		position: style.position
+		position: style.position,
+		frame: framed(element, style, rect) ? probe(element, style, transform) : null
 	};
 }
 
@@ -84,18 +88,35 @@ export class Placement {
 		});
 	}
 
+	#offset(from: Capture): boolean {
+		const element = this.element;
+		const frame = probe(element, getComputedStyle(element), from.transform);
+		if (frame === null) return false;
+		const local = project(from, { rect: element.getBoundingClientRect(), frame });
+		if (local === null) return false;
+		const { left, top } = local.from;
+		if (left !== 0 || top !== 0) {
+			this.seize(['transform']);
+			const shift = `translate(${left}px, ${top}px)`;
+			this.#write('transform', from.transform === '' ? shift : `${from.transform} ${shift}`, '');
+		}
+		return true;
+	}
+
 	acquire(from: Capture): () => void {
 		const holder = {};
 		if (this.#holders.size === 0 && from.position !== 'absolute' && from.position !== 'fixed') {
 			this.#write('position', 'absolute');
 			this.#write('width', from.width);
 			this.#write('height', from.height);
-			const to = this.element.getBoundingClientRect();
-			const x = from.rect.left - to.left;
-			const y = from.rect.top - to.top;
-			if (x !== 0 || y !== 0) {
-				this.seize(['transform']);
-				this.#write('transform', `translate(${x}px, ${y}px) ${from.transform}`, '');
+			if (from.frame === null || !this.#offset(from)) {
+				const to = this.element.getBoundingClientRect();
+				const x = from.rect.left - to.left;
+				const y = from.rect.top - to.top;
+				if (x !== 0 || y !== 0) {
+					this.seize(['transform']);
+					this.#write('transform', `translate(${x}px, ${y}px) ${from.transform}`, '');
+				}
 			}
 		}
 		this.#holders.add(holder);

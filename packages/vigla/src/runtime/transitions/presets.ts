@@ -3,6 +3,7 @@ import { warn } from '../../shared/diagnostics.ts';
 import type { AnimationConfig } from './animate.ts';
 import { cubicInOut, cubicOut, linear, type Easing } from './easing.ts';
 import { layout, type LayoutContext, type LayoutPass, type LayoutPlan } from './layout.ts';
+import { project } from './frame.ts';
 import { capture, type Capture } from './placement.ts';
 
 export interface Timing {
@@ -218,13 +219,18 @@ export function crossfade<P extends Keyed>({
 			duration = (distance: number) => Math.sqrt(distance) * 30,
 			easing = cubicOut
 		} = { ...defaults, ...params };
-		const dx = from.rect.left - to.rect.left;
-		const dy = from.rect.top - to.rect.top;
-		const dw = from.rect.width / to.rect.width;
-		const dh = from.rect.height / to.rect.height;
-		const [ox = 0, oy = 0] = prepared ? to.origin.split(' ').map(parseFloat) : [];
-		const origin = prepared ? to.origin : 'top left';
-		const distance = Math.sqrt(dx * dx + dy * dy);
+		const vx = from.rect.left - to.rect.left;
+		const vy = from.rect.top - to.rect.top;
+		const local = project(from, to);
+		const dx = local === null ? vx : local.from.left - local.to.left;
+		const dy = local === null ? vy : local.from.top - local.to.top;
+		const dw = local === null ? from.rect.width / to.rect.width : local.from.width / local.to.width;
+		const dh =
+			local === null ? from.rect.height / to.rect.height : local.from.height / local.to.height;
+		const anchored = prepared || local !== null;
+		const [ox = 0, oy = 0] = anchored ? to.origin.split(' ').map(parseFloat) : [];
+		const origin = anchored ? to.origin : 'top left';
+		const distance = Math.sqrt(vx * vx + vy * vy);
 		return {
 			delay,
 			duration: typeof duration === 'function' ? duration(distance) : duration,

@@ -2,7 +2,7 @@ import { leaving, stayed } from '../reactivity/batch.ts';
 import { effect, hide, show, teardown } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
 import { captureLayout, LayoutContext, play, withinLayout, type LayoutPlan } from './layout.ts';
-import { GEOMETRY, placementOf, type Capture } from './placement.ts';
+import { capture, GEOMETRY, placementOf, type Capture } from './placement.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
 import { type AnimationConfig, type Direction, type Options, type Running } from './animate.ts';
 
@@ -212,7 +212,8 @@ export function animation<P>(
 			const element = this.element;
 			const context = new LayoutContext(element);
 			let previous = running;
-			const start = from.rect;
+			const source = from;
+			const start = source.rect;
 			let end: DOMRect;
 			let cancelled = false;
 			const plan: LayoutPlan = {
@@ -222,10 +223,12 @@ export function animation<P>(
 					if (cancelled) return;
 					previous?.abort();
 					previous = undefined;
-					end = element.getBoundingClientRect();
-					if (!still(start, end) && placementOf(element).seize(GEOMETRY)) {
-						end = element.getBoundingClientRect();
+					let target = capture(element);
+					if (!still(start, target.rect) && placementOf(element).seize(GEOMETRY)) {
+						target = capture(element);
 					}
+					end = target.rect;
+					context.measured(source, target);
 				},
 				read() {
 					if (cancelled || still(start, end)) return;

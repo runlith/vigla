@@ -4,20 +4,25 @@
 
 	const pairs = {
 		plain: crossfade({ duration: 1000, easing: linear }),
-		wrapped: crossfade({ duration: 1000, easing: linear })
+		wrapped: crossfade({ duration: 1000, easing: linear }),
+		opaque: crossfade({ duration: 1000, easing: linear })
 	};
 	let swapped = $state(false);
 	function send(node, params) {
 		return pairs[params.mode][0](node, params);
 	}
 	function receive(node, params) {
-		if (params.mode === 'wrapped') return () => pairs[params.mode][1](node, params)();
+		if (params.mode === 'wrapped') {
+			const resolve = pairs.wrapped[1](node, params);
+			return (options) => resolve(options);
+		}
+		if (params.mode === 'opaque') return () => pairs.opaque[1](node, params)();
 		return pairs[params.mode][1](node, params);
 	}
 </script>
 
 <button onclick={() => { swapped = !swapped; }}>Swap</button>
-{#each ['plain', 'wrapped'] as mode}
+{#each ['plain', 'wrapped', 'opaque'] as mode}
 	<section data-mode={mode}>
 		<div class="slot" data-side="left">
 			{#each [swapped ? 2 : 1] as key (key)}

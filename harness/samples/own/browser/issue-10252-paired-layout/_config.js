@@ -11,14 +11,29 @@ export default test({
 			const { x, y, width, height } = node.getBoundingClientRect();
 			return { mode: node.closest('section').dataset.mode, key: node.dataset.key,
 				sender: old.includes(node), side: node.parentElement.dataset.side,
-				x, y, width, height, opacity: +getComputedStyle(node).opacity };
+				x, y, width, height, opacity: +getComputedStyle(node).opacity,
+				animations: node.getAnimations().length };
 		});
+		const moving = (state) => state.mode !== 'opaque';
 		const same = (a, b) => a.mode === b.mode && a.key === b.key;
 		const gap = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y),
 			Math.abs(a.width - b.width), Math.abs(a.height - b.height));
+		const slotted = (state) => {
+			assert.equal(state.sender, false);
+			assert.equal(state.key, state.side === 'left' ? '2' : '1');
+			const slot = target.querySelector(`[data-mode="${state.mode}"] [data-side="${state.side}"]`).getBoundingClientRect();
+			assert.ok(gap(state, slot) < 0.01, `final slot ${JSON.stringify(state)}`);
+		};
 		const before = states();
 		flushSync(() => target.querySelector('button').click());
 		await frame(); await frame(); await frame();
+		const opaque = states().filter((state) => !moving(state));
+		assert.equal(opaque.length, 2);
+		for (const state of opaque) {
+			assert.equal(state.animations, 0);
+			assert.equal(state.opacity, 1);
+			slotted(state);
+		}
 		const animations = nodes().flatMap((node) => node.getAnimations());
 		assert.equal(animations.length, 8);
 		for (const animation of animations) {
@@ -27,13 +42,13 @@ export default test({
 			animation.currentTime = 0;
 		}
 		await frame(); await frame();
-		const start = states();
+		const start = states().filter(moving);
 		for (const animation of animations) animation.currentTime = 999.999;
 		await frame(); await frame();
-		const end = states();
+		const end = states().filter(moving);
 		for (const animation of animations) animation.finish();
 		await frame(); await frame();
-		const final = states();
+		const final = states().filter(moving);
 		assert.equal(start.length, 8);
 		assert.equal(end.length, 8);
 		assert.equal(final.length, 4);
@@ -47,11 +62,6 @@ export default test({
 				`target ${JSON.stringify(state)}; final ${JSON.stringify(final)}`);
 			assert.ok(Math.abs(state.opacity - (state.sender ? 0 : 1)) < 0.01);
 		}
-		for (const state of final) {
-			assert.equal(state.sender, false);
-			assert.equal(state.key, state.side === 'left' ? '2' : '1');
-			const slot = target.querySelector(`[data-mode="${state.mode}"] [data-side="${state.side}"]`).getBoundingClientRect();
-			assert.ok(gap(state, slot) < 0.01, `final slot ${JSON.stringify(state)}`);
-		}
+		for (const state of final) slotted(state);
 	}
 });
