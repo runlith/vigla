@@ -32,7 +32,7 @@ beforeAll(async () => {
 		'src/routes/state/reset-states/+server.ts',
 		`export function POST() {
 		const pathname = new URL(import.meta.url).pathname;
-		if (!/reset-states\\/[+_]server\\.js$/.test(pathname)) throw new Error('Unexpected endpoint identity: ' + pathname);
+		if (!/reset-states\\/[+_]server\\.ts\\.js$/.test(pathname)) throw new Error('Unexpected endpoint identity: ' + pathname);
 		return new Response(pathname);
 	}`
 	);
@@ -123,6 +123,6 @@ test('built endpoint identity preserves its source-relative directory and module
 	);
 	expect(response.status).toBe(200);
 	expect(await response.text()).toMatch(
-		/\/entries\/endpoints\/state\/reset-states\/[+_]server\.js$/
+		/\/entries\/endpoints\/state\/reset-states\/[+_]server\.ts\.js$/
 	);
 });
