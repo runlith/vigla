@@ -11,4 +11,4 @@ sources:
   - kind: file
     ref: packages/kit/src/server/remote/resource.ts
 ---
-A schema can transform an argument without changing the browser's cache identity. Requested refreshes therefore bind validated input to the original encoded payload. Refresh work is deferred until command or form completion, and the response drains newly discovered refreshes before serializing them, so an early refresh observes later mutations and a subsequent awaited read can reuse the fresh request-cache value.
+A schema can transform an argument without changing the browser's cache identity. Requested refreshes therefore bind validated input to the original encoded payload. Refresh work is deferred until command/form execution or SSR output completes, and the shared collector drains newly discovered refreshes before serialization, so an early refresh observes later mutations and a subsequent awaited read can reuse the fresh request-cache value.
