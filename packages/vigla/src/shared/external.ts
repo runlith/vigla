@@ -70,7 +70,8 @@ export class Connection<T> {
 		if (source != null && typeof source.subscribe !== 'function') {
 			throw failure(
 				'source_invalid',
-				`\`${name}\` is not a subscribable source with a \`subscribe\` method`
+				`\`${name}\` is not a subscribable source with a \`subscribe\` method`,
+				{ name }
 			);
 		}
 		this.#source = source;

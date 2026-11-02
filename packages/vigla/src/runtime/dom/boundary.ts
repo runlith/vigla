@@ -217,16 +217,16 @@ class Boundary implements Contract {
 			if (this.#effect.destroyed) return;
 			if (done) {
 				warn(
-					'svelte_boundary_reset_noop',
-					'A `<svelte:boundary>` `reset` function only resets the boundary the first time it is called'
+					'boundary_reset_noop',
+					'A boundary `reset` function only resets the boundary the first time it is called'
 				);
 				return;
 			}
 			done = true;
 			if (reporting) {
 				throw failure(
-					'svelte_boundary_reset_onerror',
-					'A `<svelte:boundary>` `reset` function cannot be called while an error is still being handled'
+					'boundary_reset_onerror',
+					'A boundary `reset` function cannot be called while an error is still being handled'
 				);
 			}
 			if (this.#failed !== null) {

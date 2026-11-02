@@ -4,7 +4,7 @@ import { snapshot } from '../reactivity/proxy.ts';
 import { untrack } from '../reactivity/tracking.ts';
 
 const internal =
-	/\/vigla\/src\/(runtime\/(reactivity|dom|server)|shared)\/|\/vigla\/src\/runtime\/classes\/subscriber\.ts|\/svelte\/src\/entries\//;
+	/\/vigla\/src\/(runtime\/(reactivity|dom|server)|shared)\/|\/vigla\/src\/runtime\/classes\/subscriber\.ts/;
 
 function stackOf(label: string): Error | null {
 	const limit = Error.stackTraceLimit;
@@ -12,10 +12,12 @@ function stackOf(label: string): Error | null {
 	const stack = new Error().stack;
 	Error.stackTraceLimit = limit;
 	if (stack === undefined) return null;
-	const lines = stack
-		.split('\n')
-		.filter((line) => line.trim() !== 'Error' && !internal.test(line.replaceAll('\\', '/')))
-		.map(formatFrame);
+	const lines: string[] = [];
+	for (const line of stack.split('\n')) {
+		if (line.trim() === 'Error' || internal.test(line.replaceAll('\\', '/'))) continue;
+		const shown = formatFrame(line);
+		if (shown !== null) lines.push(shown);
+	}
 	if (lines.length === 0) return null;
 	const error = new Error();
 	Object.defineProperty(error, 'stack', { value: ['\n', ...lines].join('\n') });

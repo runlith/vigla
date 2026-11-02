@@ -502,7 +502,8 @@ export function element(
 		if (!validTag.test(name)) {
 			throw failure(
 				'dynamic_element_invalid_tag',
-				`\`<svelte:element this="${name}">\` is not a valid element name — the element will not be rendered`
+				`\`${name}\` is not a valid element name — the element will not be rendered`,
+				{ tag: name }
 			);
 		}
 		out.push(`<${name}${attributes()}>`);
