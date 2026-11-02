@@ -37,6 +37,19 @@ export async function pageResponse(
 	route: ServerRoute,
 	nodes: Array<PageNode | undefined>
 ): Promise<Response> {
+	try {
+		return await renderPage(server, store, route, nodes);
+	} catch (error) {
+		return errorResponse(server, store, error);
+	}
+}
+
+async function renderPage(
+	server: Server,
+	store: RequestStore,
+	route: ServerRoute,
+	nodes: Array<PageNode | undefined>
+): Promise<Response> {
 	const settings = pageSettings(nodes);
 	const { event, state } = store;
 	state.prerenderDefault = settings.prerender;
@@ -132,6 +145,17 @@ export async function errorResponse(
 				let prefix = branch.filter((loaded) => loaded.depth <= depth);
 				if (!prefix.length && server.manifest.nodes[0]) {
 					const root = await server.manifest.nodes[0]();
+					const { ssr, csr } = pageSettings([root]);
+					if (!ssr)
+						return await renderDocument(server, store, {
+							branch: [],
+							errors: [],
+							status: body.status,
+							error: body,
+							form: null,
+							ssr,
+							csr
+						});
 					const data = await serverLoad(server, store, root, async () => ({}));
 					const universal = await universalLoad(
 						server,
@@ -139,7 +163,7 @@ export async function errorResponse(
 						root,
 						Promise.resolve(data),
 						async () => ({}),
-						true
+						csr
 					);
 					prefix = [{ depth: 0, node: root, server: data, data: universal }];
 				}
@@ -160,7 +184,7 @@ export async function errorResponse(
 					status: error.status,
 					headers: { location: error.location }
 				});
-			if (!(error instanceof FrameworkError)) console.error(error);
+			return staticErrorPage(server, await handleError(store, error));
 		}
 	}
 	return staticErrorPage(server, body);

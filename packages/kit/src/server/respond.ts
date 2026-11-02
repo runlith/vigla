@@ -174,7 +174,9 @@ export async function respond(
 			path = decodePathname(path);
 			original = decodePathname(url.pathname);
 		} catch {
-			throw new FrameworkError(400, 'Malformed URI');
+			return finish(
+				await errorResponse(server, scope.store, new FrameworkError(400, 'Malformed URI'))
+			);
 		}
 		if (
 			!state.prerendering?.fallback &&
@@ -402,14 +404,21 @@ export async function respond(
 	}
 
 	async function notFound(store: RequestStore): Promise<Response> {
-		if (parent?.state.error) state.error = true;
-		else if (state.depth === 0) {
+		if (parent?.state.error) {
+			const headers = new Headers(request.headers);
+			headers.set('x-sveltekit-error', 'true');
+			return fetch(request, { headers, redirect: 'manual' });
+		}
+		if (state.depth === 0) {
 			if (data && !state.prerendering && invalidated?.length === 1 && invalidated[0])
 				return dataResponse(server, store, { layouts: [], errors: [], leaf: 0 }, invalidated);
 			if (subresources.has(request.headers.get('sec-fetch-dest') ?? ''))
 				return new Response('Not Found', { status: 404, headers: { vary: 'Sec-Fetch-Dest' } });
+			return errorResponse(server, store, new FrameworkError(404, 'Not Found'));
 		}
-		return errorResponse(server, store, new FrameworkError(404, 'Not Found'));
+		if (state.prerendering) return new Response('not found', { status: 404 });
+		const response = await fetch(request, { redirect: 'manual' });
+		return new Response(response.body, response);
 	}
 
 	function finish(response: Response, vary = false): Response {

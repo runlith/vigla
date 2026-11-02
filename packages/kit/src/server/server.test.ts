@@ -1107,7 +1107,79 @@ it('transforms errors once, renders the closest error node and falls back when i
 		request('/', { headers: { accept: 'text/html' } }),
 		address
 	);
-	expect(await fallback.text()).toBe('418:handled:app');
+	expect(fallback.status).toBe(500);
+	expect(await fallback.text()).toBe('500:handled:unknown');
+});
+
+it('renders page preparation and malformed path failures through the root error page', async () => {
+	const app = manifest();
+	app.nodes[2] = async () => node(2, { prerender: true, actions: {} }, undefined, layout);
+	app.routes = [route('/', null, true)];
+	const server = await start(app, options());
+	const json = { headers: { accept: 'application/json' } };
+	const preparation = await server.respond(request('/', json), address);
+	expect(preparation.status).toBe(500);
+	expect(await preparation.text()).toContain('<error>500:Internal Error</error>');
+	const malformed = await server.respond(request('/%E0%A4%A', json), address);
+	expect(malformed.status).toBe(400);
+	expect(await malformed.text()).toContain('<error>400:Malformed URI</error>');
+});
+
+it('sends internal requests for unknown routes to the host, marked while an error renders', async () => {
+	const host = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('host'));
+	try {
+		const app = manifest();
+		app.nodes[0] = async () =>
+			node(
+				0,
+				{ load: async ({ fetch }) => ({ layout: await (await fetch('/elsewhere')).text() }) },
+				undefined,
+				layout
+			);
+		app.routes = [
+			route('/outer', async () => ({
+				GET: async ({ fetch }) => new Response(await (await fetch('/elsewhere')).text())
+			}))
+		];
+		const server = await start(app, options());
+		expect(await (await server.respond(request('/outer'), address)).text()).toBe('host');
+		expect((host.mock.calls[0]![0] as Request).url).toBe('https://app.test/elsewhere');
+		const missing = await server.respond(request('/missing'), address);
+		expect(missing.status).toBe(404);
+		expect(await missing.text()).toContain('<main>host</main>');
+		expect(host.mock.calls[1]![1]).toMatchObject({ redirect: 'manual' });
+		expect(new Headers(host.mock.calls[1]![1]!.headers).get('x-sveltekit-error')).toBe('true');
+	} finally {
+		host.mockRestore();
+	}
+});
+
+it('honours the root ssr option and reports a failing root load on a missing route', async () => {
+	const load = vi.fn(() => ({}));
+	const app = manifest();
+	app.nodes[0] = async () => node(0, { ssr: false, load }, undefined, layout);
+	const server = await start(
+		app,
+		options({ handleError: ({ error }) => ({ message: `handled:${(error as Error).message}` }) })
+	);
+	const shell = await server.respond(request('/missing'), address);
+	expect(shell.status).toBe(404);
+	expect(await shell.text()).not.toContain('<error>');
+	expect(load).not.toHaveBeenCalled();
+	app.nodes[0] = async () =>
+		node(
+			0,
+			{
+				load: () => {
+					throw new Error('root failed');
+				}
+			},
+			undefined,
+			layout
+		);
+	const failed = await server.respond(request('/missing'), address);
+	expect(failed.status).toBe(500);
+	expect(await failed.text()).toBe('500:handled:root failed');
 });
 
 it('drops deeper layouts when the closest error boundary has sparse ancestor indexes', async () => {
