@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { registerHooks, type ResolveHookContext, type ResolveFnOutput } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -30,7 +30,7 @@ function packageFile(directory: string): string | null {
 	if (known !== undefined) return known;
 	const candidate = join(directory, 'package.json');
 	const parent = dirname(directory);
-	const found = existsSync(candidate)
+	const found = statSync(candidate, { throwIfNoEntry: false })?.isFile()
 		? candidate
 		: parent === directory
 			? null

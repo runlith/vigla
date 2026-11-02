@@ -161,6 +161,7 @@ basics/test/playwright/client.test.js > Invalidation > route.id use is tracked f
 basics/test/playwright/client.test.js > Invalidation > route.id use is tracked for shared load functions (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > Invalidation > server-only load functions are re-run following forced invalidation (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > Invalidation > server-only load functions are re-run following goto with forced invalidation (test-dev-1/chromium-dev)
+basics/test/playwright/client.test.js > Load > __data.json has cache-control: private, no-store (test-build-1/chromium-build)
 basics/test/playwright/client.test.js > Load > __data.json has cache-control: private, no-store (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > Load > accessing url.hash from load errors and suggests using page state (test-dev-1/chromium-dev)
 basics/test/playwright/client.test.js > Load > busts cache if non-GET request to a non-canonical cross-origin url is made (test-dev-1/chromium-dev)
