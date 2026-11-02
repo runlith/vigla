@@ -3,6 +3,7 @@ import {
 	alias,
 	detach,
 	enqueue,
+	inside,
 	members,
 	open,
 	opening,
@@ -26,6 +27,7 @@ import {
 import type { View } from './tracking.ts';
 import { DEV } from 'esm-env';
 import { merged } from './trace.ts';
+import { changed as changedReads } from './reads.ts';
 
 export const overlooked = new WeakSet<Effect>();
 
@@ -33,8 +35,8 @@ function gather(effect: Effect, out: Effect[], marked: boolean, adopter = 0): vo
 	if (marked) effect.pending = false;
 	for (let child = effect.first; child !== null; child = child.next) {
 		if (child.destroyed) continue;
-		const forked = adopter !== 0 && child.forked !== 0 && child.forked !== adopter;
-		if ((child.status !== CLEAN || forked) && child.kind !== BRANCH && child.kind !== ROOT)
+		const foreign = adopter !== 0 && child.batch !== 0 && child.batch !== adopter;
+		if ((child.status !== CLEAN || foreign) && child.kind !== BRANCH && child.kind !== ROOT)
 			out.push(child);
 		if (!marked || child.pending) gather(child, out, marked, adopter);
 	}
@@ -115,6 +117,7 @@ export function viewOf(batch: Batch): View {
 			}
 			return;
 		}
+		if (other.order < batch.order && intersects(other, batch)) return;
 		for (const [source, value] of other.before) {
 			if ((own !== null && own.has(source)) || given.values.has(source)) continue;
 			given.values.set(source, value);
@@ -125,7 +128,7 @@ export function viewOf(batch: Batch): View {
 	if (open !== null) hide(open);
 	if (own !== null)
 		for (const [source, value] of own)
-			if (!equal(source, source.v, value)) given.values.set(source, value);
+			if (isDerived(source) || !equal(source, source.v, value)) given.values.set(source, value);
 	return given;
 }
 
@@ -169,7 +172,11 @@ function intersects(a: Batch, b: Batch): boolean {
 
 function materialize(batch: Batch): Map<Source, unknown> {
 	const after = new Map<Source, unknown>();
-	for (const source of batch.before.keys()) after.set(source, source.v);
+	const origins = (batch.origins ??= new Map());
+	for (const source of batch.before.keys()) {
+		after.set(source, source.v);
+		if (!origins.has(source)) origins.set(source, { order: batch.order, version: source.wv });
+	}
 	return after;
 }
 
@@ -191,9 +198,16 @@ function fold(from: Batch, into: Batch): void {
 	}
 	if (from.after !== null || into.after !== null) {
 		const merged = (into.after ??= materialize(into));
-		for (const [source, value] of from.after ?? materialize(from))
-			if (!older || !merged.has(source)) merged.set(source, value);
+		for (const [source, value] of from.after ?? materialize(from)) {
+			const origin = from.origins?.get(source) ?? { order: from.order, version: source.wv };
+			if (merged.has(source) && (into.origins?.get(source)?.order ?? into.order) > origin.order)
+				continue;
+			merged.set(source, value);
+			(into.origins ??= new Map()).set(source, origin);
+		}
 	}
+	for (const [effect, reads] of from.reads ?? [])
+		if (!older || !into.reads?.has(effect)) (into.reads ??= new Map()).set(effect, reads);
 	for (const effect of from.queued.splice(0)) enqueue(into, effect);
 	from.members = null;
 	into.effects.push(...from.effects.splice(0));
@@ -354,26 +368,46 @@ function rebase(batch: Batch, committed: Batch, changed: readonly Source[]): voi
 	const rerun = new Set<Effect>(batch.waits?.get(committed) ?? []);
 	batch.waits?.delete(committed);
 	const memo = new Map<Reaction, boolean>();
-	const seen = new Set<Source>();
-	const visit = (source: Source): void => {
-		if (seen.has(source)) return;
-		seen.add(source);
+	const seen = new Map<Source, number>();
+	const visit = (source: Source, version: number): void => {
+		if ((seen.get(source) ?? -1) >= version) return;
+		seen.set(source, version);
 		for (const reaction of source.reactions ?? []) {
-			if (isDerived(reaction)) visit(reaction);
-			else if (depends(reaction, batch.before, memo)) rerun.add(reaction as Effect);
+			if (isDerived(reaction)) {
+				const assigned = batch.origins?.get(reaction);
+				if (
+					assigned !== undefined &&
+					assigned.version < version &&
+					(assigned.reads === undefined ||
+						inside(batch, () => changedReads(assigned.reads!, reaction)))
+				) {
+					batch.after?.delete(reaction);
+					batch.before.delete(reaction);
+					batch.origins?.delete(reaction);
+				}
+				visit(reaction, version);
+			} else if (depends(reaction, batch.before, memo)) rerun.add(reaction as Effect);
 		}
 	};
 	const after = batch.after;
+	const affected: Source[] = [];
 	for (const source of changed) {
 		if (after !== null && after.has(source)) {
 			const value = committed.after?.has(source) ? committed.after.get(source) : source.v;
 			batch.before.set(source, value);
-			if (batch.fork || batch.order > committed.order || equal(source, value, after.get(source)))
-				continue;
+			const origin = committed.origins?.get(source) ?? {
+				order: committed.order,
+				version: source.wv
+			};
+			if ((batch.origins?.get(source)?.order ?? batch.order) > origin.order) continue;
+			(batch.origins ??= new Map()).set(source, origin);
+			if (equal(source, value, after.get(source))) continue;
 			after.set(source, value);
 		}
-		visit(source);
+		affected.push(source);
 	}
+	for (const source of affected)
+		visit(source, committed.origins?.get(source)?.version ?? source.wv);
 	for (const effect of rerun) force(batch, effect);
 	if (batch.queued.length > 0) request();
 }

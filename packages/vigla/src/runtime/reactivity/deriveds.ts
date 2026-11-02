@@ -1,6 +1,8 @@
 import { DEV } from 'esm-env';
 import { fail } from './effects.ts';
-import { DIRTY, equal, stamp, type Derived } from './graph.ts';
+import { inside } from './batch.ts';
+import { changed } from './reads.ts';
+import { DIRTY, equal, isDerived, stamp, type Derived, type Source } from './graph.ts';
 import { updated } from './trace.ts';
 import { leavingCount, selecting, withoutLeaving } from './leaving.ts';
 import {
@@ -62,6 +64,40 @@ export function refresh(derived: Derived): void {
 	} finally {
 		setOwner(previous);
 	}
+}
+
+export function forget(source: Source): void {
+	const given = view;
+	if (given === null) return;
+	given.values.delete(source);
+	given.hidden.delete(source);
+	const staged = given.batch.fork ? given.batch.after : null;
+	const cleared = staged === null ? null : new Set<Source>();
+	const clear = (from: Source): void => {
+		for (const reaction of from.reactions ?? []) {
+			if (!isDerived(reaction)) continue;
+			if (cleared === null) {
+				if (!given.checked.has(reaction)) continue;
+			} else {
+				if (cleared.has(reaction)) continue;
+				cleared.add(reaction);
+			}
+			given.checked.delete(reaction);
+			given.values.delete(reaction);
+			given.reached.delete(reaction);
+			if (staged?.has(reaction)) {
+				const reads = given.batch.origins?.get(reaction)?.reads;
+				if (reads !== undefined && !inside(given.batch, () => changed(reads, reaction)))
+					given.values.set(reaction, staged.get(reaction));
+				else {
+					staged.delete(reaction);
+					given.batch.origins?.delete(reaction);
+				}
+			}
+			clear(reaction);
+		}
+	};
+	clear(source);
 }
 
 export function disconnect(derived: Derived): void {

@@ -1,5 +1,5 @@
 import type * as ES from 'estree';
-import { patternNames, type Binding } from '../analysis/index.ts';
+import { hasAwait, patternNames, type Binding } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
 	AsyncBlock,
@@ -10,7 +10,7 @@ import type {
 	Outcome,
 	UnkeyedList
 } from '../ir/nodes.ts';
-import { rewrite, runtime } from './script.ts';
+import { asyncThunk, rewrite, runtime } from './script.ts';
 import { scoped } from './meta.ts';
 import { cleaned, render, type TemplateContext } from './template.ts';
 
@@ -191,7 +191,9 @@ function awaitCode(
 				context,
 				'awaited',
 				anchor,
-				b.arrow([], rewrite(context, node.promise)),
+				hasAwait(node.promise, context.awaited)
+					? asyncThunk(context, node.promise)
+					: b.arrow([], rewrite(context, node.promise)),
 				node.pending === null ? b.literal(null) : arm(context, node.pending, false),
 				outcomeArm(context, node.resolved),
 				outcomeArm(context, node.rejected)

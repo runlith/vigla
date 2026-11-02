@@ -14,6 +14,7 @@ import {
 } from './batch.ts';
 import { staleReaction } from '../../shared/abort.ts';
 import { block, fail } from './effects.ts';
+import { sequence } from './history.ts';
 import { changed } from './reads.ts';
 import { waitFor } from './held.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
@@ -215,6 +216,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 	});
 	const effect: Effect = block(() => {
 		const batch = current();
+		const origin = sequence();
 		let order = Math.max(rank(batch), realOrder(true));
 		latest.get(batch)?.supersede();
 		const done = initial ? null : work();
@@ -267,8 +269,8 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 				if (own()) {
 					within(batch, () => {
 						const holder = alias(target);
-						if (holder.fork || order >= realOrder()) write(signal, value);
-						else inside(holder, () => stage(holder, signal, value));
+						if (holder.fork || order >= realOrder()) write(signal, value, origin);
+						else inside(holder, () => stage(holder, signal, value, origin));
 						retain(current(), run, order);
 					});
 					resolved = true;
@@ -283,7 +285,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 				prune();
 				done?.();
 				if (!owned) return;
-				if (resolved) fail(effect, error);
+				if (resolved) within(target, () => fail(effect, error));
 				else refuse(error);
 			}
 		);

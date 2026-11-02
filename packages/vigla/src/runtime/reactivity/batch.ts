@@ -24,11 +24,12 @@ import {
 	type Effect,
 	type Source
 } from './graph.ts';
+import { forget, refresh } from './deriveds.ts';
 import { fail, offscreen, run } from './effects.ts';
 import { queueEager, runEager } from './eager.ts';
 import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
-import { clear, earlier, History, prior, record } from './history.ts';
+import { clear, earlier, History, prior, record, type Origin } from './history.ts';
 import {
 	abandon,
 	absorb,
@@ -44,9 +45,9 @@ import {
 import {
 	conceal,
 	endReading,
-	forget,
 	marked,
 	owner,
+	present,
 	readDuringRun,
 	resumeReading,
 	setOwner,
@@ -75,7 +76,9 @@ const limit = 1000;
 
 export class Batch extends History {
 	after: Map<Source, unknown> | null = null;
+	origins: Map<Source, Origin> | null = null;
 	runs: Map<Effect, AsyncRun> | null = null;
+	reads: Map<Effect, ReadonlyMap<Source, unknown>> | null = null;
 	readonly queued: Effect[] = [];
 	readonly commits: Change[] = [];
 	merges: Transfer[] | null = null;
@@ -105,6 +108,8 @@ export function release(batch: Batch): void {
 	if (DEV) forgotten(batch);
 	batch.runs = null;
 	batch.merges = null;
+	batch.origins = null;
+	batch.reads = null;
 	clear(batch);
 }
 
@@ -205,7 +210,7 @@ export function inside<T>(batch: Batch, fn: () => T): T {
 
 export function suspend(): () => void {
 	const effect = owner;
-	const batch = active ?? processing;
+	const batch = active ?? processing ?? open;
 	const reaction = suspendReading();
 	return () => {
 		setOwner(effect);
@@ -274,18 +279,18 @@ function mark(
 		const reaction = reactions[index] as Derived | Effect;
 		const previous = reaction.status;
 		if (reaction.kind === DERIVED) {
-			if (previous < status) reaction.status = status;
+			if (!staging?.fork && previous < status) reaction.status = status;
 			mark(reaction, MAYBE, all, forked);
 			continue;
 		}
 		const effect = reaction;
 		if (effect.kind === EAGER) {
-			if (staging) continue;
+			if (staging !== null) continue;
 			if (previous < status) effect.status = status;
 			queueEager(effect);
 			continue;
 		}
-		if (forked !== 0 && previous === CLEAN && effect.forked === forked) continue;
+		if (forked !== 0 && previous === CLEAN && effect.batch === forked) continue;
 		if (previous < status) effect.status = status;
 		if (eager !== null && previous !== DIRTY && effect.kind === BLOCK && !asynchronous.has(effect))
 			eager.add(effect);
@@ -306,9 +311,9 @@ function dirty(source: Source, forked = 0): void {
 	if (batch !== null && batch !== processing && batch.started) request();
 }
 
-let staging = false;
+let staging: Batch | null = null;
 
-export function stage<T>(batch: Batch, source: Source<T>, value: T): T {
+export function stage<T>(batch: Batch, source: Source<T>, value: T, origin = batch.order): T {
 	const after = (batch.after ??= new Map());
 	const selected = view !== null && view.batch === batch && view.values.has(source);
 	const shown = after.has(source)
@@ -316,9 +321,10 @@ export function stage<T>(batch: Batch, source: Source<T>, value: T): T {
 		: selected
 			? view!.values.get(source)
 			: source.v;
-	if (equal(source, shown as T, value)) return value;
+	if (equal(source, shown as T, value) && (!batch.fork || source.kind !== DERIVED)) return value;
 	record(batch, source, batch.fork ? source.v : shown, false);
 	after.set(source, value);
+	(batch.origins ??= new Map()).set(source, { order: origin, version: stamp() });
 	if (DEV) {
 		if (batch.fork) updated(source, value, batch);
 		else computed(source, value, batch);
@@ -327,18 +333,18 @@ export function stage<T>(batch: Batch, source: Source<T>, value: T): T {
 		forget(source);
 		view.values.set(source, value);
 	}
-	staging = true;
+	staging = batch;
 	try {
 		dirty(source);
 	} finally {
-		staging = false;
+		staging = null;
 	}
 	return value;
 }
 
-export function write<T>(source: Source<T>, value: T): T {
+export function write<T>(source: Source<T>, value: T, origin?: number): T {
 	const target = receiver();
-	if (target !== null && target.fork) return stage(target, source, value);
+	if (target !== null && target.fork) return stage(target, source, value, origin);
 	const previous = source.v;
 	if (equal(source, previous, value)) return value;
 	const batch = target ?? opening();
@@ -347,6 +353,8 @@ export function write<T>(source: Source<T>, value: T): T {
 	remember(source, previous);
 	source.v = value;
 	source.wv = stamp();
+	if (batch.after !== null || pending.length > 0)
+		(batch.origins ??= new Map()).set(source, { order: origin ?? batch.order, version: source.wv });
 	if (DEV) {
 		updated(source, value, batch);
 		if (processing !== null) loopWrite(source);
@@ -365,10 +373,20 @@ export function write<T>(source: Source<T>, value: T): T {
 export function apply(batch: Batch): void {
 	for (const [source, value] of batch.after ?? []) {
 		batch.before.set(source, source.v);
+		if (source.kind === DERIVED) {
+			const derived = source as Derived;
+			present(() => {
+				for (const dep of derived.deps ?? []) if (dep.kind === DERIVED) refresh(dep as Derived);
+			});
+			derived.status = CLEAN;
+			derived.rv = stamp();
+		}
 		if (equal(source, source.v, value)) continue;
 		remember(source, source.v);
 		source.v = value;
 		source.wv = stamp();
+		const origin = batch.origins?.get(source);
+		if (origin !== undefined) batch.origins!.set(source, { ...origin, version: source.wv });
 		if (DEV) applied(source, batch);
 		dirty(source, batch.order);
 	}
@@ -406,8 +424,15 @@ export function onMerge(batch: Batch, fn: Transfer): void {
 	if (!found.done) (found.merges ??= []).push(fn);
 }
 
-export function skip(effect: Effect): void {
-	if (processing !== null) (processing.skipped ??= new Set()).add(effect);
+export function onCommit(batch: Batch, change: Change): void {
+	const found = alias(batch);
+	if (found.done) return;
+	found.commits.push(change);
+	if (found.started && found !== processing && !holds(found)) request();
+}
+
+export function skip(effect: Effect, batch: Batch | null = processing): void {
+	if (batch !== null) (alias(batch).skipped ??= new Set()).add(effect);
 }
 
 export function unskip(effect: Effect): void {
@@ -415,8 +440,8 @@ export function unskip(effect: Effect): void {
 	if (batch === null) return;
 	const skipped = batch.skipped !== null && batch.skipped.delete(effect);
 	(batch.shown ??= new Set()).add(effect);
-	const forked = effect.forked !== 0 && effect.forked !== batch.order;
-	if (skipped || forked || overlooked.has(effect)) requeue(batch, effect);
+	const foreign = effect.batch !== 0 && effect.batch !== batch.order;
+	if (skipped || foreign || overlooked.has(effect)) requeue(batch, effect);
 }
 
 export function processed(): Batch | null {

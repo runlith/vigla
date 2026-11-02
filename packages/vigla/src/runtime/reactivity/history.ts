@@ -16,8 +16,18 @@ function recycle(log: unknown[]): void {
 	spare ??= log;
 }
 
+export interface Origin {
+	readonly order: number;
+	readonly version: number;
+	readonly reads?: ReadonlyMap<Source, unknown>;
+}
+
+export function sequence(): number {
+	return ++orders;
+}
+
 export class History {
-	readonly order = ++orders;
+	readonly order = sequence();
 	log: unknown[] = fresh();
 	map: Map<Source, unknown> | null = null;
 	prior: Prior | null = null;

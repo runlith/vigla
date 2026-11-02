@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import { arm, close, empty, fallback, open, openElse } from '../../shared/markers.ts';
+import { hasAwait } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type {
 	AsyncBlock,
@@ -9,7 +10,7 @@ import type {
 	KeyedList,
 	UnkeyedList
 } from '../ir/nodes.ts';
-import { rewrite, runtime } from './script.ts';
+import { asyncThunk, rewrite, runtime } from './script.ts';
 import { Buffer, cleaned, fragmentCode, type TemplateContext } from './template.ts';
 
 export type Block = Branch | KeyedList | UnkeyedList | KeyedBlock | AsyncBlock;
@@ -107,7 +108,10 @@ function list(
 
 function awaited(context: TemplateContext, node: AsyncBlock, statements: ES.Statement[]): void {
 	const value = b.id(context.names.unique('$$promise'));
-	statements.push(b.constant(value.name, rewrite(context, node.promise)));
+	const input = hasAwait(node.promise, context.awaited)
+		? b.call(asyncThunk(context, node.promise, (value) => value))
+		: rewrite(context, node.promise);
+	statements.push(b.constant(value.name, input));
 	const pending = section(context, open, node.pending, false);
 	const then = section(context, openElse, node.resolved?.body ?? null, false);
 	const binding = node.resolved?.binding ?? null;

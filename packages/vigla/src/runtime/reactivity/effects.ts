@@ -13,7 +13,7 @@ import {
 	type Kind
 } from './graph.ts';
 import { abort } from './abort.ts';
-import { collect, orphaned, pending, retire, revisit, schedule } from './batch.ts';
+import { collect, orphaned, pending, processed, retire, revisit, schedule } from './batch.ts';
 import { disconnect } from './deriveds.ts';
 import { orphan } from './errors.ts';
 import { presently } from './past.ts';
@@ -51,7 +51,8 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 	const effect: Effect = {
 		kind,
 		status: DIRTY,
-		forked: 0,
+		batch: 0,
+		forked: false,
 		deps: null,
 		rv: 0,
 		fn,
@@ -132,7 +133,9 @@ export function run(effect: Effect): void {
 		setOwner(previous);
 	}
 	const hidden = tracked ? takeHidden() : null;
-	effect.forked = view !== null && view.batch.fork ? view.batch.order : 0;
+	const batch = view?.batch ?? processed();
+	effect.batch = batch?.order ?? 0;
+	effect.forked = batch?.fork ?? false;
 	if (failed) {
 		effect.status = CLEAN;
 		fail(effect, caught);

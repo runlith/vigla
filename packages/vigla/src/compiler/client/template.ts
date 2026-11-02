@@ -232,7 +232,8 @@ export function parts(
 			continue;
 		}
 		flush();
-		const pending = node.kind === 'snippet' ? [] : awaiting(context, [node]);
+		const pending =
+			node.kind === 'snippet' || node.kind === 'async-block' ? [] : awaiting(context, [node]);
 		if (pending.length > 0) {
 			result.push(anchorPart(asyncSetup(context, [node], pending, namespace, render)));
 			continue;

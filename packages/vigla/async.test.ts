@@ -1,13 +1,20 @@
 import assert from 'node:assert/strict';
 import { setImmediate } from 'node:timers/promises';
 import { test } from 'node:test';
-import { asyncDerived, work } from './src/runtime/reactivity/async.ts';
+import { cell, effect, external, fork, root, tick } from './src/entries/index.ts';
+import {
+	asyncDerived,
+	derived,
+	get,
+	proxy,
+	save,
+	set,
+	state,
+	unsave
+} from './src/entries/internal/client.ts';
+import { work } from './src/runtime/reactivity/async.ts';
 import { flushSync, resumed, settled, suspend } from './src/runtime/reactivity/batch.ts';
-import { block, effect } from './src/runtime/reactivity/effects.ts';
-import { fork } from './src/runtime/reactivity/fork.ts';
-import { root } from './src/runtime/reactivity/owners.ts';
-import { set, state } from './src/runtime/reactivity/sources.ts';
-import { get } from './src/runtime/reactivity/tracking.ts';
+import { block } from './src/runtime/reactivity/effects.ts';
 
 test('an earlier async commit becomes the visible base of a later pending result', async () => {
 	const scope = root();
@@ -195,6 +202,242 @@ test('a speculative async result cannot suppress a real publication', async () =
 		assert.equal(get(result), 1);
 	} finally {
 		discard();
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('a merged real commit supersedes older fork writes without losing other sources', async () => {
+	const scope = root();
+	const input = cell(0);
+	const other = cell(0);
+	let shown = -1;
+	try {
+		const value = await scope.run(() =>
+			asyncDerived(() => (input.current === 1 ? new Promise<number>(() => {}) : input.current))
+		);
+		scope.run(() =>
+			effect(() => {
+				shown = get(value);
+			})
+		);
+		await tick();
+		input.current = 1;
+		await setImmediate();
+		const staged = fork(() => {
+			input.current = 2;
+			other.current = 1;
+		});
+		await setImmediate();
+		input.current = 3;
+		await setImmediate();
+		assert.deepEqual([input.current, shown, other.current], [3, 3, 0]);
+		await staged.commit();
+		assert.deepEqual([input.current, shown, other.current], [3, 3, 1]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('a later fork write survives an earlier real commit', async () => {
+	const scope = root();
+	const input = cell(0);
+	let release!: (value: number) => void;
+	let shown = -1;
+	try {
+		const value = await scope.run(() =>
+			asyncDerived(() =>
+				input.current === 1
+					? new Promise<number>((resolve) => {
+							release = resolve;
+						})
+					: input.current
+			)
+		);
+		scope.run(() =>
+			effect(() => {
+				shown = get(value);
+			})
+		);
+		await tick();
+		input.current = 1;
+		await setImmediate();
+		const staged = fork(() => {
+			input.current = 2;
+		});
+		await setImmediate();
+		release(1);
+		await setImmediate();
+		assert.deepEqual([input.current, shown], [1, 1]);
+		await staged.commit();
+		assert.deepEqual([input.current, shown], [2, 2]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('a newer real dependency write invalidates an older fork derived override', async () => {
+	const scope = root();
+	const input = cell(0);
+	const other = cell(0);
+	let shown = -1;
+	try {
+		const value = scope.run(() => derived(() => input.current * 10));
+		scope.run(() =>
+			effect(() => {
+				shown = get(value);
+			})
+		);
+		await tick();
+		const staged = fork(() => {
+			input.current = 1;
+			set(value, 99);
+			other.current = 1;
+		});
+		input.current = 2;
+		await tick();
+		await staged.commit();
+		assert.deepEqual([input.current, get(value), shown, other.current], [2, 20, 20, 1]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('a resumed owner proxy write supersedes an older fork value', async () => {
+	const scope = root();
+	const value = proxy({ current: 0 });
+	const other = cell(0);
+	const gate = Promise.withResolvers<void>();
+	let shown = -1;
+	try {
+		scope.run(() =>
+			effect(() => {
+				shown = value.current;
+			})
+		);
+		await tick();
+		const running = scope.start(async () => {
+			(await save(gate.promise))();
+			try {
+				value.current = 3;
+			} finally {
+				unsave();
+			}
+		});
+		await tick();
+		const staged = fork(() => {
+			value.current = 2;
+			other.current = 1;
+		});
+		gate.resolve();
+		await running;
+		await tick();
+		assert.deepEqual([value.current, shown, other.current], [3, 3, 0]);
+		await staged.commit();
+		assert.deepEqual([value.current, shown, other.current], [3, 3, 1]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('an unchanged immediate derived dependency preserves a fork override', async () => {
+	const scope = root();
+	const input = cell(0);
+	let shown = -1;
+	try {
+		const parity = scope.run(() => derived(() => input.current % 2));
+		const output = scope.run(() => derived(() => get(parity)));
+		scope.run(() =>
+			effect(() => {
+				shown = get(output);
+			})
+		);
+		await tick();
+		const first = fork(() => set(output, 99));
+		input.current = 2;
+		await tick();
+		await first.commit();
+		assert.deepEqual([get(output), shown], [99, 99]);
+		const second = fork(() => {
+			input.current = 3;
+			set(output, 99);
+		});
+		input.current = 5;
+		await tick();
+		await second.commit();
+		assert.deepEqual([input.current, get(output), shown], [5, 99, 99]);
+		const third = fork(() => {
+			input.current = 7;
+			set(output, 88);
+			input.current = 9;
+		});
+		await third.commit();
+		assert.deepEqual([input.current, get(output), shown], [9, 88, 88]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('a resumed external emission supersedes an older fork value', async () => {
+	const scope = root();
+	const subscribers = new Set<(value: number) => void>();
+	let raw = 0;
+	const input = {
+		subscribe(receive: (value: number) => void) {
+			subscribers.add(receive);
+			receive(raw);
+			return () => {
+				subscribers.delete(receive);
+			};
+		}
+	};
+	const emit = (next: number) => {
+		raw = next;
+		for (const receive of subscribers) receive(next);
+	};
+	const value = scope.run(() => external(() => input));
+	const other = cell(0);
+	const gate = Promise.withResolvers<void>();
+	let shown = -1;
+	try {
+		scope.run(() =>
+			effect(() => {
+				shown = value.current;
+			})
+		);
+		await tick();
+		const running = scope.start(async () => {
+			(await save(gate.promise))();
+			try {
+				emit(3);
+			} finally {
+				unsave();
+			}
+		});
+		await tick();
+		const forkGate = Promise.withResolvers<void>();
+		let forkWork!: Promise<void>;
+		const staged = fork(() => {
+			emit(2);
+			other.current = 1;
+			forkWork = scope.start(() => forkGate.promise);
+		});
+		const completed = staged.commit();
+		await tick();
+		gate.resolve();
+		await running;
+		await tick();
+		assert.deepEqual([value.current, shown], [3, 3]);
+		forkGate.resolve();
+		await forkWork;
+		await completed;
+		assert.deepEqual([value.current, shown, other.current], [3, 3, 1]);
+	} finally {
 		scope.dispose();
 		flushSync();
 	}

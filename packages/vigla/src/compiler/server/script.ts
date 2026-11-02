@@ -166,11 +166,12 @@ function derivedPattern(context: Context, declarator: ES.VariableDeclarator): bo
 
 export function asyncThunk(
 	context: Context,
-	expression: ES.Expression
+	expression: ES.Expression,
+	wrap: (value: ES.Expression) => ES.Expression = (value) => b.object({ value })
 ): ES.ArrowFunctionExpression {
 	const saved = new Set([...(context.saved ?? []), ...resuming(expression)]);
 	const value = rewrite({ ...context, saved }, expression);
-	return { ...b.arrow([], b.object({ value })), async: true };
+	return { ...b.arrow([], wrap(value)), async: true };
 }
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {

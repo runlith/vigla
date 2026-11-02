@@ -1,7 +1,8 @@
 import { write } from './batch.ts';
 import { DERIVED, DIRTY, SOURCE, isDerived, type Derived, type Source } from './graph.ts';
 import { refresh } from './deriveds.ts';
-import { get, guard, localize, owner } from './tracking.ts';
+import { sequence } from './history.ts';
+import { get, guard, localize, owner, present, untrack, view } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
 	return { kind: SOURCE, v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
@@ -26,11 +27,21 @@ export function state<T>(value: T): Source<T> {
 
 export function set<T>(target: Source<T>, value: T): T {
 	guard(target);
+	const batch = view?.batch.fork ? view.batch : null;
+	let reads: ReadonlyMap<Source, unknown> | undefined;
 	if (isDerived(target)) {
-		refresh(target);
+		if (batch !== null) {
+			present(() => refresh(target));
+			reads = untrack(() => new Map((target.deps ?? []).map((dep) => [dep, get(dep)])));
+		} else refresh(target);
 		target.failure = null;
 	}
-	return write(target, value);
+	const result = write(target, value, sequence());
+	if (batch !== null && reads !== undefined) {
+		const origin = batch.origins!.get(target)!;
+		batch.origins!.set(target, { ...origin, reads });
+	}
+	return result;
 }
 
 export function update<T extends number | bigint>(source: Source<T>, delta: 1 | -1 = 1): T {

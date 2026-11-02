@@ -463,23 +463,6 @@ export function conceal(source: Source, value: unknown, batch: Batch): void {
 	view.hidden.set(source, batch);
 }
 
-export function forget(source: Source): void {
-	const given = view;
-	if (given === null) return;
-	given.values.delete(source);
-	given.hidden.delete(source);
-	const clear = (from: Source): void => {
-		for (const reaction of from.reactions ?? []) {
-			if (!isDerived(reaction) || !given.checked.has(reaction)) continue;
-			given.checked.delete(reaction);
-			given.values.delete(reaction);
-			given.reached.delete(reaction);
-			clear(reaction);
-		}
-	};
-	clear(source);
-}
-
 export function present<T>(fn: () => T): T {
 	const previousPast = setPast(null);
 	const previousView = view;

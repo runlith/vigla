@@ -1,6 +1,7 @@
 import { failure, warn } from '../../shared/diagnostics.ts';
 import { OPEN_ELSE } from '../../shared/markers.ts';
 import { reveal } from '../reactivity/async.ts';
+import { current, onCommit, skip as skipEffect } from '../reactivity/batch.ts';
 import { block, branch, destroy } from '../reactivity/effects.ts';
 import type { Boundary as Contract, Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
@@ -258,12 +259,28 @@ class Boundary implements Contract {
 			this.#escalate(error);
 			return;
 		}
-		this.#errored = true;
-		for (const built of [this.#main, this.#pending, this.#failed]) {
-			if (built !== null) discard(built);
+		const batch = current();
+		if (batch.fork) {
+			for (const built of [this.#main, this.#pending, this.#failed]) {
+				if (built !== null) skipEffect(built.effect, batch);
+			}
+			onCommit(batch, {
+				apply: () => {
+					if (!this.#effect.destroyed) this.#handle(error);
+				}
+			});
+			return;
 		}
+		this.#handle(error);
+	}
+
+	#handle(error: unknown): void {
+		const failed = this.#props.failed;
+		this.#errored = true;
+		const retiring = [this.#main, this.#pending, this.#failed];
 		this.#main = this.#pending = this.#failed = null;
 		this.showing = false;
+		for (const built of retiring) if (built !== null) discard(built);
 		task(() => {
 			if (this.#effect.destroyed) return;
 			let transformed: unknown;

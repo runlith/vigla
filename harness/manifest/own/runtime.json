@@ -59,6 +59,8 @@
 			"reason": "Application primitives: an external subscription follows any owner, releases when its selected source is cleared, and reads transiently after disposal; upstream 5.57.3 has no vigla entry"
 		},
 		"filtered-keyed-list": "contract",
+		"fork-attachment-lifetime": "contract",
+		"fork-boundary-failure": "contract",
 		"fork-dirt-consumed": {
 			"status": "contract",
 			"reason": "Review finding of the scheduler: a held real batch processed first must not consume a block a fork's async value dirtied, so the fork still builds what it preloads; green on upstream 5.57.3, kept as a regression test"

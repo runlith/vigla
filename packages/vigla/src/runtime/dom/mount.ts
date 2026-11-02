@@ -5,7 +5,7 @@ import { destroy, detached } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { introducing } from '../transitions/manager.ts';
-import { transformAt } from './boundary.ts';
+import { boundary, transformAt } from './boundary.ts';
 import { delegateRoot } from './events.ts';
 import {
 	claim,
@@ -54,7 +54,8 @@ const mounted = new WeakMap<object, Mounted>();
 
 function start<P extends Props, E extends Exports>(
 	component: Component<P, E>,
-	options: MountOptions<P>
+	options: MountOptions<P>,
+	open: ChildNode | null = null
 ): { instance: E; built: Built } {
 	let exports: E | void = undefined;
 	const props = options.props ?? ({} as P);
@@ -68,12 +69,24 @@ function start<P extends Props, E extends Exports>(
 	const built = introducing(options.intro ?? true, () =>
 		build((anchor) => {
 			if (owner !== null) transformAt(owner, options.transformError);
-			exports = withHydration(options.format ?? nativeFormat, options.target, () =>
-				withContext(options.context, () => component(anchor, props))
+			const node = open ?? document.createTextNode('');
+			if (open === null) anchor.before(node);
+			boundary(
+				node,
+				{ pending: () => {} },
+				(anchor) => {
+					exports = withHydration(options.format ?? nativeFormat, options.target, () =>
+						withContext(options.context, () => component(anchor, props))
+					);
+				},
+				options.transformError
 			);
 		}, create)
 	);
-	return { instance: (exports ?? {}) as E, built };
+	return {
+		instance: (exports ?? {}) as E,
+		built: open === null ? built : { ...built, first: open, last: cursor }
+	};
 }
 
 function finish(instance: object, built: Built, target: ParentNode): void {
@@ -111,7 +124,7 @@ export function hydrate<P extends Props, E extends Exports>(
 		const open = opening(target);
 		if (open === null) throw MISMATCH;
 		claim(open.nextSibling);
-		const { instance, built } = start(component, options);
+		const { instance, built } = start(component, options, open);
 		adopted = built;
 		if (!isClose(cursor)) mismatch();
 		finish(instance, built, target);

@@ -1,5 +1,6 @@
 import { DEV } from 'esm-env';
 import { write } from './batch.ts';
+import { sequence } from './history.ts';
 import { holdEager } from './eager.ts';
 import type { Source } from './graph.ts';
 import { source as plain, state } from './sources.ts';
@@ -125,13 +126,15 @@ function wrap<T>(value: T, aware: boolean): T {
 		const added = existing === undefined ? !Object.hasOwn(target, prop) : existing.v === ABSENT;
 		const found = source(prop);
 		guard(found);
-		write(found, nested(next));
+		const value = nested(next);
+		const origin = sequence();
+		write(found, value, origin);
 		if (array) {
 			const position = index(prop);
 			const length = sources.get('length') as Source<unknown>;
-			if (position >= (length.v as number)) write(length, position + 1);
+			if (position >= (length.v as number)) write(length, position + 1, origin);
 		}
-		if (added) write(keys, (keys.v as number) + 1);
+		if (added) write(keys, (keys.v as number) + 1, origin);
 	};
 
 	const wrapped = new Proxy(target, {
@@ -160,6 +163,7 @@ function wrap<T>(value: T, aware: boolean): T {
 			if (array && prop === 'length') {
 				const length = sources.get('length') as Source<unknown>;
 				guard(length);
+				const origin = sequence();
 				for (let position = next as number; position < (length.v as number); position++) {
 					const key = String(position);
 					const item = sources.get(key);
@@ -167,10 +171,10 @@ function wrap<T>(value: T, aware: boolean): T {
 						const missing = make(ABSENT);
 						sources.set(key, missing);
 						if (DEV) tag(missing, labelFor(path, key));
-					} else write(item, ABSENT);
+					} else write(item, ABSENT, origin);
 				}
-				write(length, next);
-				write(keys, (keys.v as number) + 1);
+				write(length, next, origin);
+				write(keys, (keys.v as number) + 1, origin);
 				return true;
 			}
 			assign(prop, next);
@@ -181,8 +185,9 @@ function wrap<T>(value: T, aware: boolean): T {
 			const found = source(prop);
 			if (found.v !== ABSENT) {
 				guard(found);
-				write(found, ABSENT);
-				write(keys, (keys.v as number) + 1);
+				const origin = sequence();
+				write(found, ABSENT, origin);
+				write(keys, (keys.v as number) + 1, origin);
 			}
 			return true;
 		},

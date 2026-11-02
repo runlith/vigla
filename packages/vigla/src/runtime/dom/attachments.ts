@@ -1,3 +1,4 @@
+import { alias, atCommit, atDiscard, atMerge, processed, type Batch } from '../reactivity/batch.ts';
 import { block, branch, destroy, effect, template } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
@@ -13,17 +14,48 @@ export function attachment(): symbol {
 export function attach(element: Element, get: () => unknown): Effect {
 	let current: unknown;
 	let shown: Effect | null = null;
-	return block(() => {
-		const fn = get();
-		if (fn === current) return;
-		current = fn;
-		if (shown !== null) {
-			destroy(shown);
-			shown = null;
+	let parent: Effect | null = null;
+	let stages: Map<Batch, unknown> | null = null;
+	const publish = (next: unknown): void => {
+		if (parent === null || parent.destroyed || next === current) return;
+		current = next;
+		if (shown !== null) destroy(shown);
+		shown = null;
+		if (typeof next !== 'function') return;
+		const previous = setOwner(parent);
+		try {
+			shown = branch(() => effect(() => (next as Attachment)(element)));
+		} finally {
+			setOwner(previous);
 		}
-		if (typeof fn !== 'function') return;
-		shown = branch(() => {
-			effect(() => (fn as Attachment)(element));
+	};
+	return block(() => {
+		parent = owner;
+		const next = get();
+		const batch = processed();
+		if (batch === null) {
+			publish(next);
+			return;
+		}
+		const pending = (stages ??= new Map());
+		const known = pending.has(batch);
+		pending.set(batch, next);
+		if (known) return;
+		atCommit({
+			apply() {
+				const target = alias(batch);
+				if (!pending.has(target)) return;
+				const selected = pending.get(target);
+				pending.delete(target);
+				publish(selected);
+			}
+		});
+		atDiscard(() => pending.delete(alias(batch)));
+		atMerge((from, into) => {
+			if (!pending.has(from)) return;
+			const selected = pending.get(from);
+			pending.delete(from);
+			if (from.order > into.order || !pending.has(into)) pending.set(into, selected);
 		});
 	});
 }

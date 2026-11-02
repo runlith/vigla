@@ -522,7 +522,8 @@ export function fragmentCode(
 		}
 		flushRun();
 		if (declaring(node)) continue;
-		const pending = node.kind === 'snippet' ? [] : awaiting(context, [node]);
+		const pending =
+			node.kind === 'snippet' || node.kind === 'async-block' ? [] : awaiting(context, [node]);
 		if (pending.length > 0) {
 			asyncChild(context, [node], pending, statements, buffer, fragmentCode);
 			continue;

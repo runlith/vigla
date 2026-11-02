@@ -74,7 +74,8 @@ export interface Effect extends Reaction {
 	units: Set<() => void> | null;
 	context: unknown;
 	order: number;
-	forked: number;
+	batch: number;
+	forked: boolean;
 	running: boolean;
 	destroyed: boolean;
 	inert: boolean;
