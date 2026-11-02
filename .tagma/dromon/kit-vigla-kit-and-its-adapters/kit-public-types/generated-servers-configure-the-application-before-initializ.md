@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/kit/src/types/internal/server.ts
 ---
-Adapters and preview configure the generated public server before initializing hooks; instrumentation may retain only its public exports, so private compiler options cannot be the deployment startup API. The root component, front-end format, templates and policy remain build-owned while the deployment supplies its manifest and platform capabilities. Configuration establishes environment, paths and build/prerender flags before user environment declarations and hooks evaluate; async-context ports remain platform inputs.
+Adapters and preview configure the generated public server before initializing hooks; instrumentation may retain only its public exports, so private compiler options cannot be the deployment startup API. The root component, front-end format, templates and policy remain build-owned while the deployment supplies its manifest and platform capabilities. Configuration supplies environment, paths and build/prerender flags, and finishes before application hooks initialize; async-context ports remain platform inputs.
