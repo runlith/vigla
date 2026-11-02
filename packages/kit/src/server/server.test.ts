@@ -5,6 +5,7 @@ import { getContext, getOwner, hydratable, onDestroy, setContext } from 'vigla';
 import type { Component } from 'vigla/server';
 import { unflatten } from 'devalue';
 import type { ServerInitOptions } from '../types/request.ts';
+import type { DataNode, EncodedDataResponse } from '../types/internal/data.ts';
 import type {
 	PageNode,
 	RequestStore,
@@ -1336,7 +1337,8 @@ it('renders the prerender fallback as an absolute-path CSR shell without routing
 	expect(html).not.toContain('node_ids:');
 });
 
-it('decodes inline hydration through the deferred bundle module namespace', async () => {
+it('decodes inline transport hydration with script-closing tracked query keys', async () => {
+	const key = '</script/><script>globalThis.pwned=1</script/>';
 	class Point {
 		readonly x: number;
 		constructor(x: number) {
@@ -1355,19 +1357,31 @@ it('decodes inline hydration through the deferred bundle module namespace', asyn
 			script: `let loaded; globalThis.__sveltekit_contract.app = {
 				init() {},
 				start(target, hydrate) {
-					loaded = { decode: (_name, value) => ({ x: value[0] }) };
-					try { target.resolve(hydrate().data[1].data.point); }
+					loaded = { decode: (name, value) => ({ name, x: value[0] }) };
+					try { target.resolve(hydrate().data[1]); }
 					catch (error) { target.reject(error); }
 				},
 				decode(name, value) { return loaded.decode(name, value); }
 			}`
 		}
 	};
-	app.nodes[2] = async () => node(2, { load: () => ({ point: new Point(42) }) }, undefined, layout);
+	app.nodes[2] = async () =>
+		node(
+			2,
+			{
+				load: ({ url }) => {
+					url.searchParams.get(key);
+					return { point: new Point(42) };
+				},
+				trailingSlash: 'ignore'
+			},
+			undefined,
+			layout
+		);
 	app.routes = [route('/', null, true)];
 	const config = options({
 		transport: {
-			Point: {
+			[key]: {
 				encode: (value) => value instanceof Point && [value.x],
 				decode: (value) => new Point(value[0])
 			}
@@ -1375,14 +1389,32 @@ it('decodes inline hydration through the deferred bundle module namespace', asyn
 	});
 	const server = await start(app, config);
 	const response = await server.respond(
-		request('/', { headers: { accept: 'text/html' } }),
+		request(`/?${new URLSearchParams([[key, 'tracked']])}`, {
+			headers: { accept: 'text/html' }
+		}),
 		address
 	);
 	const html = await response.text();
-	const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(html)![1]!;
-	const result = Promise.withResolvers<{ x: number }>();
+	const script = /<script[^>]*>([\s\S]*?)<\/script\b[^>]*>/.exec(html)![1]!;
+	const result = Promise.withResolvers<DataNode>();
 	runInNewContext(script, { document: { currentScript: { parentElement: result } }, Promise });
-	expect(await result.promise).toEqual({ x: 42 });
+	const hydrated = await result.promise;
+	expect(hydrated.data).toEqual({ point: { name: key, x: 42 } });
+	expect(hydrated.uses.search_params).toEqual([key]);
+	expect(hydrated.slash).toBe('ignore');
+	const dataResponse = await server.respond(
+		request(`/__data.json?${new URLSearchParams([[key, 'tracked']])}`),
+		address
+	);
+	const wire = (await dataResponse.json()) as EncodedDataResponse;
+	const dataNode = wire.nodes[1];
+	expect(wire.type).toBe('data');
+	if (dataNode?.type !== 'data') throw new Error('Expected a data node');
+	expect(dataNode.uses.search_params).toEqual([key]);
+	expect(dataNode.slash).toBe('ignore');
+	expect(unflatten(dataNode.data, { [key]: (value) => ({ name: key, x: value[0] }) })).toEqual({
+		point: { name: key, x: 42 }
+	});
 });
 
 it('emits an inline client stylesheet and its CSP hash without an external stylesheet', async () => {

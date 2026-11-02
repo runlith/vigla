@@ -1,9 +1,15 @@
 import { stringify, uneval } from 'devalue';
 import { getAbortSignal } from 'vigla';
-import type { DataErrorNode, DataSkippedNode, SerializedUses } from '../types/internal/data.ts';
+import type {
+	DataErrorNode,
+	DataNode,
+	DataSkippedNode,
+	SerializedUses
+} from '../types/internal/data.ts';
 import type { RequestStore, ServerDataNode, ServerRoute, Uses } from '../types/internal/server.ts';
 import type { Server } from './index.ts';
 import { encoders } from '../shared/serialization.ts';
+import { escapeJson } from '../shared/escape.ts';
 import { Redirect } from '../shared/outcomes.ts';
 import { serverLoad } from './load.ts';
 import { handleError } from './failure.ts';
@@ -96,7 +102,7 @@ export class DataSerializer {
 			if (id !== undefined) return `${this.#namespace}.defer(${id})`;
 			for (const [name, codec] of Object.entries(transport)) {
 				const encoded = codec.encode(value);
-				if (encoded) return `app.decode(${JSON.stringify(name)}, ${uneval(encoded, replace)})`;
+				if (encoded) return `app.decode(${escapeJson(name)}, ${uneval(encoded, replace)})`;
 			}
 			return undefined;
 		};
@@ -106,18 +112,24 @@ export class DataSerializer {
 	serialize(nodes: DataResult[]): SerializedData {
 		const strings = nodes.map((node) => {
 			if (!node) return 'null';
-			if (node.type !== 'data') return JSON.stringify(node);
+			if (node.type !== 'data') return this.#html ? this.#value(node) : JSON.stringify(node);
 			try {
-				const uses = serializedUses(node.uses);
+				const payload: DataNode = {
+					type: 'data',
+					data: node.data,
+					uses: serializedUses(node.uses)
+				};
+				if (node.slash) payload.slash = node.slash;
+				if (this.#html) return this.#value(payload);
 				const data = this.#value(node.data);
-				return `{"type":"data","data":${data},"uses":${JSON.stringify(uses)}${node.slash ? `,"slash":${JSON.stringify(node.slash)}` : ''}}`;
+				return `{"type":"data","data":${data},"uses":${JSON.stringify(payload.uses)}${node.slash ? `,"slash":${JSON.stringify(node.slash)}` : ''}}`;
 			} catch (error) {
 				if (error instanceof Error && 'path' in error)
 					errors.load_not_serializable(
 						{
 							id: this.#store.event.route.id ?? '',
 							message: error.message,
-							path: `data${error.path}`
+							path: this.#html ? String(error.path).slice(1) : `data${error.path}`
 						},
 						{ cause: error }
 					);
