@@ -19,7 +19,7 @@ edges:
 1. A service graph of at least ten layers: nested and sibling owners, context read through the live owner chain regardless of when it was set, dependents released before their dependencies, a lifetime abort signal per owner.
 2. Memoized derived values outside components, owned by the current owner, on client and server.
 3. Failure isolation: a failing effect or derived under an owner reaches the nearest handler on its owner chain; siblings keep updating; unhandled failures keep today's propagation.
-4. Async services: work started under an owner counts in `settled()`, is cancelled through the owner's signal on dispose, and re-enters its owner after `await` through `owner.run`; plain JavaScript continuations carry no ambient owner, and compiled code restores it itself.
+4. Async services: work started under an owner counts in `settled()`, is cancelled through the owner's signal on dispose, and re-enters its owner after `await` through `owner.run`. Without a platform async store, plain JavaScript continuations carry no ambient owner and compiled code restores it itself. With one installed through `carryAcrossAwait`, the owner and every `AsyncVariable` survive `await`.
 5. Server request scopes: a request owner carries services and context into `render()`, and disposing it ends every render owner, signal and teardown beneath it.
 6. External sources and subscribers (`external`, `createSubscriber`) live under service owners and release on dispose.
 7. Several independent applications in one realm keep isolated contexts and lifetimes, and neither one's pending work nor its unhandled failure reaches the other's flush or settlement.
