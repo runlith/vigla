@@ -22,9 +22,9 @@ export function stripHash(url: { href: string }): string {
 const inspectCustom = Symbol.for('nodejs.util.inspect.custom');
 
 function inspectAs(
-	value: object
+	value: () => object
 ): (depth: number, options: object, inspect: (value: object, options: object) => string) => string {
-	return (_depth, options, inspect) => inspect(value, options);
+	return (_depth, options, inspect) => inspect(value(), options);
 }
 
 export function makeTrackable(
@@ -36,7 +36,7 @@ export function makeTrackable(
 	const copy = new URL(url);
 	Object.defineProperty(copy.searchParams, inspectCustom, {
 		configurable: true,
-		value: inspectAs(url.searchParams)
+		value: inspectAs(() => new URL(url.href).searchParams)
 	});
 	const search = new Proxy(copy.searchParams, {
 		get(target, key) {
@@ -71,6 +71,9 @@ export function makeTrackable(
 	}
 	if (DEV && !allowHash)
 		Object.defineProperty(copy, 'hash', { configurable: true, get: url_hash_unavailable });
-	Object.defineProperty(copy, inspectCustom, { configurable: true, value: inspectAs(url) });
+	Object.defineProperty(copy, inspectCustom, {
+		configurable: true,
+		value: inspectAs(() => new URL(url.href))
+	});
 	return copy;
 }
