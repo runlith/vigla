@@ -1,8 +1,17 @@
 {
 	"samples": {
+		"crossfade-config-projection": "contract",
 		"issue-10252-initial-flip": {
 			"status": "difference",
 			"reason": "Svelte #10252: the first simultaneous crossfade with keyed FLIP displaces visible rows by 80px before their animations begin on upstream 5.57.3 Chromium"
+		},
+		"issue-10252-paired-layout": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 starts only four of eight expected no-FLIP crossfade motions when a user-deferred receive wrapper registers during resolution; Vigla settles all registrations before shared source and target endpoint measurement"
+		},
+		"issue-10252-placement": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 keeps matched senders in flow, displacing the grouped grid source by 41px at time zero; the same public row checks absolute/fixed/flex placement, authored declaration restoration, re-entry and untouched authored animations"
 		},
 		"issue-17969-contenteditable": {
 			"status": "difference",

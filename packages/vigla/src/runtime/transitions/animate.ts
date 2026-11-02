@@ -12,7 +12,7 @@ export interface AnimationConfig {
 
 export type Direction = 'in' | 'out';
 
-export type Deferred = (options: { direction: Direction }) => AnimationConfig | null | undefined;
+export type Deferred = (options: { direction: Direction }) => Options;
 
 export type Options = AnimationConfig | Deferred | null | undefined;
 
@@ -56,14 +56,9 @@ export function animate(
 		let running: Running | undefined;
 		task(() => {
 			if (aborted) return;
-			running = animate(
-				element,
-				options({ direction: intro ? 'in' : 'out' }),
-				counterpart,
-				target,
-				begin,
-				finish
-			);
+			const config = options({ direction: intro ? 'in' : 'out' });
+			if (aborted) return;
+			running = animate(element, config, counterpart, target, begin, finish);
 		});
 		return {
 			abort() {

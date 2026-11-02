@@ -1,15 +1,10 @@
 import { leaving, stayed } from '../reactivity/batch.ts';
-import { effect, hide, show } from '../reactivity/effects.ts';
+import { effect, hide, show, teardown } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
-import { task } from '../reactivity/tasks.ts';
+import { captureLayout, LayoutContext, play, withinLayout, type LayoutPlan } from './layout.ts';
+import { placementOf, type Capture } from './placement.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
-import {
-	animate,
-	type AnimationConfig,
-	type Direction,
-	type Options,
-	type Running
-} from './animate.ts';
+import { type AnimationConfig, type Direction, type Options, type Running } from './animate.ts';
 
 export const IN = 1;
 
@@ -30,6 +25,7 @@ export type AnimateFn<P> = (
 ) => AnimationConfig;
 
 interface Manager {
+	readonly element: Element;
 	readonly global: boolean;
 	in(): void;
 	out(done: () => void): void;
@@ -104,11 +100,28 @@ export function transition<P>(
 	const inert = element.inert;
 	const overflow = element.style.overflow;
 	let current: Options;
+	let context: LayoutContext;
 	let entering: Running | undefined;
 	let leaving: Running | undefined;
-	const options = (): Options =>
-		(current ??= outside(() => get()(element, params?.() as P, { direction })));
+	const options = (target: 0 | 1): Options => {
+		const next = target === 1 ? 'in' : 'out';
+		if (current == null) {
+			context = new LayoutContext(element, next);
+			try {
+				current = outside(() =>
+					withinLayout(context, () => get()(element, params?.() as P, { direction }))
+				);
+			} catch (error) {
+				context.cancel();
+				throw error;
+			} finally {
+				context.seal();
+			}
+		} else context.direction = next;
+		return current;
+	};
 	const manager: Manager = {
+		element,
 		global,
 		in() {
 			element.inert = inert;
@@ -119,9 +132,11 @@ export function transition<P>(
 				return;
 			}
 			if (!outro) entering?.abort();
-			entering = animate(
+			const config = options(1);
+			entering = play(
 				element,
-				options(),
+				context,
+				config,
 				leaving,
 				1,
 				() => dispatch(element, 'introstart'),
@@ -140,9 +155,11 @@ export function transition<P>(
 				return;
 			}
 			element.inert = true;
-			leaving = animate(
+			const config = options(0);
+			leaving = play(
 				element,
-				options(),
+				context,
+				config,
 				entering,
 				0,
 				() => dispatch(element, 'outrostart'),
@@ -155,12 +172,14 @@ export function transition<P>(
 		stop() {
 			entering?.abort();
 			leaving?.abort();
+			context?.cancel();
 		}
 	};
 	const host = owner as Effect;
 	let list = managers.get(host);
 	if (list === undefined) managers.set(host, (list = []));
 	list.push(manager);
+	teardown(() => manager.stop());
 	if (intro && allowed && (global || local)) effect(() => untrack(() => manager.in()));
 }
 
@@ -175,71 +194,78 @@ export function animation<P>(
 		found.element = element;
 		return;
 	}
-	let from: DOMRect;
+	let from: Capture;
 	let running: Running | undefined;
-	let original: { position: string; width: string; height: string; transform: string } | null =
-		null;
+	let release: (() => void) | undefined;
 	const mover: Mover = {
 		element,
 		measure() {
-			from = this.element.getBoundingClientRect();
+			from = captureLayout(this.element);
 		},
 		apply() {
-			running?.abort();
-			const to = this.element.getBoundingClientRect();
-			if (
-				from.left === to.left &&
-				from.right === to.right &&
-				from.top === to.top &&
-				from.bottom === to.bottom
-			) {
-				return;
-			}
-			const config = get()(this.element, { from, to }, params?.() as P);
-			running = animate(
-				this.element,
-				config,
+			const element = this.element;
+			const context = new LayoutContext(element);
+			let previous = running;
+			const start = from.rect;
+			let end: DOMRect;
+			let cancelled = false;
+			const plan: LayoutPlan = {
+				match() {},
+				stabilize() {},
+				measure() {
+					if (cancelled) return;
+					previous?.abort();
+					previous = undefined;
+					end = element.getBoundingClientRect();
+				},
+				read() {
+					if (
+						cancelled ||
+						(start.left === end.left &&
+							start.right === end.right &&
+							start.top === end.top &&
+							start.bottom === end.bottom)
+					)
+						return;
+					return withinLayout(context, () =>
+						get()(element, { from: start, to: end }, params?.() as P)
+					);
+				},
+				cancel() {
+					cancelled = true;
+				}
+			};
+			context.stage(plan);
+			context.seal();
+			const handle = play(
+				element,
+				context,
+				() => plan.read(),
 				undefined,
 				1,
 				() => {},
 				() => {
-					running?.abort();
+					if (running !== handle) return;
+					handle.abort();
 					running = undefined;
 				}
 			);
+			running = handle;
 		},
 		fix() {
-			const target = this.element as HTMLElement;
-			if (target.getAnimations().length > 0) return;
-			const { position, width, height } = getComputedStyle(target);
-			if (position === 'absolute' || position === 'fixed') return;
-			const style = target.style;
-			original = {
-				position: style.position,
-				width: style.width,
-				height: style.height,
-				transform: style.transform
-			};
-			style.position = 'absolute';
-			style.width = width;
-			style.height = height;
-			const to = target.getBoundingClientRect();
-			if (from.left !== to.left || from.top !== to.top) {
-				const shift = `translate(${from.left - to.left}px, ${from.top - to.top}px)`;
-				style.transform = style.transform ? `${style.transform} ${shift}` : shift;
-			}
+			if (release !== undefined || this.element.getAnimations().length > 0) return;
+			release = placementOf(this.element).acquire(from);
 		},
 		unfix() {
-			if (original === null) return;
-			const style = (this.element as HTMLElement).style;
-			style.position = original.position;
-			style.width = original.width;
-			style.height = original.height;
-			style.transform = original.transform;
-			original = null;
+			release?.();
+			release = undefined;
 		}
 	};
 	movers.set(host, mover);
+	teardown(() => {
+		running?.abort();
+		mover.unfix();
+	});
 }
 
 export function moverOf(row: Effect): Mover | undefined {
@@ -247,10 +273,7 @@ export function moverOf(row: Effect): Mover | undefined {
 }
 
 export function animateMoves(moved: readonly Mover[]): void {
-	if (moved.length === 0) return;
-	task(() => {
-		for (const mover of moved) mover.apply();
-	});
+	for (const mover of moved) mover.apply();
 }
 
 function collect(effect: Effect, inherited: boolean, found: Manager[]): void {
@@ -279,7 +302,9 @@ export function pause(branch: Effect, done: () => void): void {
 	const release = leaving(branch);
 	for (const manager of found) {
 		manager.out(() => {
-			if (--remaining === 0 && release()) done();
+			if (--remaining !== 0 || !release()) return;
+			for (const manager of found) manager.stop();
+			done();
 		});
 	}
 }
@@ -289,5 +314,6 @@ export function resume(branch: Effect): void {
 	show(branch);
 	const found: Manager[] = [];
 	collect(branch, true, found);
+	for (const manager of found) placementOf(manager.element).restore();
 	for (const manager of found) manager.in();
 }

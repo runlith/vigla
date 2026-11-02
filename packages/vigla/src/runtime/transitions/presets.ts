@@ -2,6 +2,8 @@ import { DEV } from 'esm-env';
 import { warn } from '../../shared/diagnostics.ts';
 import type { AnimationConfig } from './animate.ts';
 import { cubicInOut, cubicOut, linear, type Easing } from './easing.ts';
+import { layout, type LayoutContext, type LayoutPass, type LayoutPlan } from './layout.ts';
+import { capture, type Capture } from './placement.ts';
 
 export interface Timing {
 	delay?: number;
@@ -203,50 +205,159 @@ export function crossfade<P extends Keyed>({
 	fallback,
 	...defaults
 }: CrossfadeOptions<P>): [send: Half, receive: Half] {
-	const receiving = new Map<unknown, Element>();
-	const sending = new Map<unknown, Element>();
-	const fade = (from: Element, node: Element, params: CrossfadeParams): AnimationConfig => {
+	const receiving = new Map<unknown, Transfer>();
+	const sending = new Map<unknown, Transfer>();
+	const fade = (
+		from: Capture,
+		to: Capture,
+		params: CrossfadeParams,
+		prepared = false
+	): AnimationConfig => {
 		const {
 			delay = 0,
 			duration = (distance: number) => Math.sqrt(distance) * 30,
 			easing = cubicOut
 		} = { ...defaults, ...params };
-		const start = from.getBoundingClientRect();
-		const end = node.getBoundingClientRect();
-		const dx = start.left - end.left;
-		const dy = start.top - end.top;
-		const dw = start.width / end.width;
-		const dh = start.height / end.height;
+		const dx = from.rect.left - to.rect.left;
+		const dy = from.rect.top - to.rect.top;
+		const dw = from.rect.width / to.rect.width;
+		const dh = from.rect.height / to.rect.height;
+		const [ox = 0, oy = 0] = prepared ? to.origin.split(' ').map(parseFloat) : [];
+		const origin = prepared ? to.origin : 'top left';
 		const distance = Math.sqrt(dx * dx + dy * dy);
-		const style = getComputedStyle(node);
-		const transform = transformOf(style);
-		const opacity = +style.opacity;
 		return {
 			delay,
 			duration: typeof duration === 'function' ? duration(distance) : duration,
 			easing,
 			css: (t, u) => `
-			   opacity: ${t * opacity};
-			   transform-origin: top left;
-			   transform: ${transform} translate(${u * dx}px,${u * dy}px) scale(${t + (1 - t) * dw}, ${
-						t + (1 - t) * dh
-					});
-		   `
+				opacity: ${t * to.opacity};
+				transform-origin: ${origin};
+				transform: ${to.transform} translate(${u * (dx + (dw - 1) * ox)}px, ${u * (dy + (dh - 1) * oy)}px) scale(${t + u * dw}, ${t + u * dh});
+			`
 		};
 	};
+
+	class Pair {
+		#sender: Transfer | null;
+		#receiver: Transfer | null;
+		#stabilized = false;
+		#measured = false;
+		readonly from: Capture;
+		source!: Capture;
+		target!: Capture;
+
+		constructor(sender: Transfer, receiver: Transfer) {
+			this.#sender = sender;
+			this.#receiver = receiver;
+			this.from = sender.context!.captured;
+		}
+
+		stabilize(): void {
+			if (this.#stabilized) return;
+			this.#stabilized = true;
+			this.#sender!.pin();
+		}
+
+		measure(): void {
+			if (this.#measured) return;
+			this.#measured = true;
+			this.source = capture(this.#sender!.node);
+			this.target = capture(this.#receiver!.node);
+			this.#sender = this.#receiver = null;
+		}
+	}
+
+	class Transfer implements LayoutPlan {
+		readonly node: Element;
+		readonly context: LayoutContext | null;
+		readonly params: Keyed;
+		readonly intro: boolean;
+		readonly #items: Map<unknown, Transfer>;
+		readonly #counterparts: Map<unknown, Transfer>;
+		#config: AnimationConfig | undefined;
+		#stage: LayoutPass | null;
+		#release: (() => void) | undefined;
+		#resolved = false;
+		#cancelled = false;
+		pair: Pair | null = null;
+
+		constructor(node: Element, params: Keyed, intro: boolean) {
+			this.node = node;
+			this.params = params;
+			this.intro = intro;
+			this.context = layout?.element === node ? layout : null;
+			this.#items = intro ? receiving : sending;
+			this.#counterparts = intro ? sending : receiving;
+			this.#items.set(params.key, this);
+			this.#stage = this.context?.stage(this) ?? null;
+		}
+
+		#remove(): void {
+			if (this.#items.get(this.params.key) === this) this.#items.delete(this.params.key);
+		}
+
+		match(): void {
+			if (this.#cancelled || this.pair !== null || this.#stage === null) return;
+			const other = this.#counterparts.get(this.params.key);
+			if (other === undefined || other.#cancelled || other.#stage !== this.#stage) return;
+			this.pair = other.pair = this.intro ? new Pair(other, this) : new Pair(this, other);
+			this.#remove();
+			other.#remove();
+		}
+
+		pin(): void {
+			const context = this.context;
+			if (!this.#cancelled && context?.direction === 'out') {
+				this.#release ??= context.placement.acquire(context.captured);
+			}
+		}
+
+		stabilize(): void {
+			if (!this.#cancelled) this.pair?.stabilize();
+		}
+
+		measure(): void {
+			if (!this.#cancelled) this.pair?.measure();
+		}
+
+		read(): AnimationConfig | undefined {
+			if (this.#resolved) return this.#config;
+			if (this.#cancelled) return;
+			if (this.#stage !== null && !this.#stage.ready) {
+				this.#stage.withdraw(this);
+				this.#stage = null;
+			}
+			const pair = this.pair;
+			if (pair !== null) {
+				this.#resolved = true;
+				return (this.#config = this.intro
+					? fade(pair.from, pair.target, this.params, true)
+					: fade(pair.target, pair.source, this.params, true));
+			}
+			const other = this.#counterparts.get(this.params.key);
+			if (other !== undefined) {
+				this.#counterparts.delete(this.params.key);
+				return fade(capture(other.node), capture(this.node), this.params);
+			}
+			this.#remove();
+			return fallback?.(this.node, this.params as P, this.intro);
+		}
+
+		cancel(): void {
+			if (this.#cancelled) return;
+			this.#cancelled = true;
+			this.#remove();
+			this.#release?.();
+			this.#release = undefined;
+			this.pair = null;
+		}
+	}
+
 	const half =
-		(items: Map<unknown, Element>, counterparts: Map<unknown, Element>, intro: boolean): Half =>
+		(intro: boolean): Half =>
 		(node, params) => {
-			items.set(params.key, node);
-			return () => {
-				const other = counterparts.get(params.key);
-				if (other !== undefined) {
-					counterparts.delete(params.key);
-					return fade(other, node, params);
-				}
-				items.delete(params.key);
-				return fallback?.(node, params as P, intro);
-			};
+			const transfer = new Transfer(node, params, intro);
+			return () => transfer.read();
 		};
-	return [half(sending, receiving, false), half(receiving, sending, true)];
+	return [half(false), half(true)];
 }
