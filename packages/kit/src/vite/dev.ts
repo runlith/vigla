@@ -348,6 +348,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						env: project.environment.values,
 						read,
 						scope,
+						assets: project.config.paths.assets ? '/_svelte_kit_assets' : project.config.paths.base,
 						fix_stack_trace: fixStack
 					});
 					const ready = instance
