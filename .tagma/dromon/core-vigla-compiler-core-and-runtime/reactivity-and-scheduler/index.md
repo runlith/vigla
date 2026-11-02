@@ -56,6 +56,9 @@ fields:
       },
       {
         "at": "carried.ts"
+      },
+      {
+        "at": "front.ts"
       }
     ],
     "id": "reactivity",
