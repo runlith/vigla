@@ -37,6 +37,6 @@ edges:
 4. *No flag.* `experimental.remoteFunctions` is not required (658ccea4); the build-errors entry asserting the flag is a recorded difference.
 
 **Acceptance.**
-- The remote entries of the `async` and `options-2` apps pass in dev and build on `targets/vigla/kit`, recorded app by app with `--record` in the change that first makes them pass.
+- The remote entries of the `async` and `options-2` apps pass in dev and build on `targets/vigla/kit`; first-attempt passing ids are added manually to the shared passing set and land with the change that makes them pass.
 - Kit's unit and type entries for remote functions and form data pass.
 - A test of Vigla's own holds a query from a detached root: the entry survives the unmount of a component that also read it and is released when the root is disposed. A second test shows a query resolved in a server `load` hydrating without a request.
