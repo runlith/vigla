@@ -23,6 +23,9 @@ fields:
       },
       {
         "at": "snippet.ts"
+      },
+      {
+        "at": "placement.ts"
       }
     ],
     "id": "ssr",

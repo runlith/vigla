@@ -44,6 +44,9 @@ fields:
       },
       {
         "at": "slots.ts"
+      },
+      {
+        "at": "nesting.ts"
       }
     ],
     "id": "shared",
