@@ -9,4 +9,4 @@ fields:
     "status": "in_work"
   }
 ---
-Complete invalid event-handler diagnostics and dispatch behavior for the five assigned runtime-runes samples, route compiler producers with generated evidence, and record newly passing variants with their runtime fix.
+Event expressions containing calls now cache their handler under a derived; development invocation reports invalid values and failed thunk reads at the source expression, preserving original errors and silent plain nullish handlers. All nine assigned sample variants passed, including seven manually added rows, and thirteen existing event variants passed in the scoped regression run; core and adapter tsrs checks passed. Evidence is retained in the event-diagnostics thread scratch under event-baseline, event-fixed, propagation-isolated and event-regressions. The earlier grouped propagation failure was contamination from invalid-values leaving its test error listener installed after its assertion failed; isolated propagation already passed.
