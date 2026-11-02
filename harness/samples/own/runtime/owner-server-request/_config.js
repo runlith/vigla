@@ -1,4 +1,4 @@
-import { root } from 'vigla/internal/index-server';
+import { root } from 'vigla';
 import { render } from 'vigla/server';
 import { test } from '@vigla/harness/helpers';
 

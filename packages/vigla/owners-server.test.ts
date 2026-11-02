@@ -55,6 +55,15 @@ test('a server derived declared outside owners does not cache a request context'
 	}
 });
 
+test('server deep state keeps plain values and nothing tracks', () => {
+	const value = { name: 'a' };
+	const form = core.state(value);
+	form.current.name = 'b';
+	assert.equal(form.current, value);
+	form.current = { name: 'c' };
+	assert.deepEqual([form.current.name, core.tracking()], ['c', false]);
+});
+
 test('server child owners see context installed after their creation and own their signals', () => {
 	const parent = core.root();
 	const child = core.root(undefined, parent);

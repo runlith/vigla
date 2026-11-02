@@ -65,6 +65,12 @@ export function cell<T>(value: T): Cell<T> {
 	return { current: value };
 }
 
+export { cell as state };
+
+export function tracking(): boolean {
+	return false;
+}
+
 export async function tick(): Promise<void> {}
 
 export async function settled(): Promise<void> {}

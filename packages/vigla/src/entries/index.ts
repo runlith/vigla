@@ -23,7 +23,7 @@ export type {
 } from '../runtime/dom/mount.ts';
 
 export { flushSync, settled, tick } from '../runtime/reactivity/batch.ts';
-export { effect } from '../runtime/reactivity/effects.ts';
+export { effect, tracking } from '../runtime/reactivity/effects.ts';
 export { getAbortSignal } from '../runtime/reactivity/abort.ts';
 export { external } from '../runtime/reactivity/external.ts';
 export type {
@@ -37,5 +37,6 @@ export { fork } from '../runtime/reactivity/fork.ts';
 export type { Fork } from '../runtime/reactivity/fork.ts';
 export { Owner, getOwner, root } from '../runtime/reactivity/owners.ts';
 export { cell, memo as derived } from '../runtime/reactivity/sources.ts';
+export { deep as state } from '../runtime/reactivity/proxy.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
 export { untrack } from '../runtime/reactivity/tracking.ts';

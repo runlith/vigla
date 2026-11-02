@@ -292,6 +292,51 @@ test('external sources and subscribers under a service owner release when it is 
 	}
 });
 
+test('deep state tracks nested writes, proxies assigned values and stays local to a deriving run', () => {
+	const owner = root();
+	const form = core.state<{ name: string; tags: string[] }>({ name: 'a', tags: [] });
+	const seen: string[] = [];
+	try {
+		owner.run(() =>
+			effect(() => void seen.push(`${form.current.name}:${form.current.tags.length}`))
+		);
+		flushSync();
+		form.current.name = 'b';
+		flushSync();
+		form.current = { name: 'c', tags: [] };
+		form.current.tags.push('x');
+		flushSync();
+		assert.deepEqual(seen, ['a:0', 'b:0', 'c:1']);
+		const counted = core.derived(() => {
+			const local = core.state({ count: 0 });
+			local.current.count++;
+			return local.current.count;
+		});
+		assert.equal(counted.current, 1);
+	} finally {
+		owner.dispose();
+	}
+});
+
+test('tracking reports whether a reaction is reading', () => {
+	const owner = root();
+	const seen: boolean[] = [];
+	try {
+		owner.run(() =>
+			effect(() => {
+				seen.push(core.tracking(), core.untrack(core.tracking));
+			})
+		);
+		flushSync();
+		assert.deepEqual(
+			[core.tracking(), owner.run(core.tracking), ...seen],
+			[false, false, true, false]
+		);
+	} finally {
+		owner.dispose();
+	}
+});
+
 test('independent applications keep their own context, failures and lifetimes', () => {
 	const [scope, setScope] = createContext<string>();
 	const first = root();

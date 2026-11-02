@@ -1,6 +1,5 @@
-import { getOwner, hydrated, onDestroy, openHydration, root, type Owner } from 'vigla';
+import { getOwner, hydrated, onDestroy, openHydration, root, tracking, type Owner } from 'vigla';
 import { createSubscriber } from 'vigla/reactivity';
-import { tracking } from 'vigla/internal/client';
 import { DEV } from 'esm-env';
 import type { RemoteData, RemoteNode } from '../../types/internal/remote.ts';
 import { getRemoteKey } from '../../shared/remote.ts';

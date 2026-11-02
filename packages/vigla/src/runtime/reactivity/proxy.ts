@@ -3,7 +3,7 @@ import { write } from './batch.ts';
 import { sequence } from './history.ts';
 import { holdEager } from './eager.ts';
 import type { Source } from './graph.ts';
-import { source as plain, state } from './sources.ts';
+import { set, source as plain, state, type Cell } from './sources.ts';
 import { get, guard, local, untrack } from './tracking.ts';
 import { labelFor, labelled, tag } from './trace.ts';
 
@@ -80,6 +80,18 @@ export function snapshot<T>(value: T): T {
 
 export function proxy<T>(value: T): T {
 	return wrap(value, true);
+}
+
+export function deep<T>(value: T): Cell<T> {
+	const held = state(proxy(value));
+	return {
+		get current() {
+			return get(held);
+		},
+		set current(next) {
+			set(held, proxy(next));
+		}
+	};
 }
 
 export function original<T>(value: T): T {
