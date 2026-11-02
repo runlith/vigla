@@ -23,6 +23,7 @@ import {
 	requested
 } from '../../entries/app/server/server.ts';
 import { Server, handleRemote, initRemote } from '../../entries/internal/server.ts';
+import { redirect } from '../../entries/index.ts';
 import { HttpError, Redirect, ValidationError } from '../../shared/outcomes.ts';
 import { deserialize } from '../../shared/serialization.ts';
 import { encodeArgument, getRemoteKey } from '../../shared/remote.ts';
@@ -213,6 +214,29 @@ test('validation failures reach the error hook and redirects retain their remote
 	});
 	expect(validations).toBe(1);
 	expect(await call(server, 'move')).toEqual({ redirect: '/next' });
+});
+
+test('batch queries retain public redirect envelopes without exposing their event URL', async () => {
+	const move = query.batch('unchecked', async ([location]: string[]) => {
+		await Promise.resolve();
+		expect(() => getRequestEvent().url).toThrow('Cannot access `event.url` in a query');
+		redirect(307, location!);
+	});
+	const server = await app({ exports: { move } });
+	for (const location of ['/next', 'https://app.test/next']) {
+		const response = await server.respond(
+			request('/_app/remote/hash/move', {
+				method: 'POST',
+				headers: { origin: 'https://app.test', 'content-type': 'application/json' },
+				body: JSON.stringify({ payloads: [encodeArgument(location)] })
+			}),
+			address
+		);
+		const body = (await response.json()) as RemoteResponse;
+		expect(response.status).toBe(200);
+		expect(body.type).toBe('result');
+		expect(deserialize(body.type === 'result' ? body.data! : '')).toEqual({ redirect: location });
+	}
 });
 
 test('native keyed forms render their own result and redact rejected sensitive input per request', async () => {
