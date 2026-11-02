@@ -47,6 +47,7 @@ async/test/client.test.js > remote function mutations > query.live does not rese
 async/test/client.test.js > remote function mutations > query.live is async-iterable and joins the shared cache stream (test-dev-1/chromium-dev)
 async/test/client.test.js > remote function mutations > query.live marks finite iterators as done and only reconnects explicitly (test-dev-1/chromium-dev)
 async/test/client.test.js > remote function mutations > query.live streams updates and reconnects after disconnect (test-dev-1/chromium-dev)
+async/test/client.test.js > remote function mutations > query.set from within a query during SSR inlines the set values (test-dev-1/chromium-dev)
 async/test/client.test.js > remote function mutations > query.set works (test-dev-1/chromium-dev)
 async/test/client.test.js > remote function mutations > query/command inside endpoint works (test-dev-1/chromium-dev)
 async/test/client.test.js > remote function mutations > refreshAll reloads remote functions and load functions (test-dev-1/chromium-dev)
