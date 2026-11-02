@@ -30,7 +30,9 @@ fields:
         "placement.ts"
       ],
       [
-        "animate.ts",
+        "animate.ts"
+      ],
+      [
         "layout.ts"
       ],
       [
