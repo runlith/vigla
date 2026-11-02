@@ -6,6 +6,7 @@ import type { Server } from './index.ts';
 import type { LoadedNode } from './load.ts';
 import { escapeHtml, escapeJson } from '../shared/escape.ts';
 import { hash } from '../shared/hash.ts';
+import { addDataSuffix } from '../shared/pathname.ts';
 import { errorGuards } from '../shared/render.ts';
 import { Redirect } from '../shared/outcomes.ts';
 import { DataSerializer } from './data.ts';
@@ -123,7 +124,10 @@ export async function renderDocument(
 	csp.scriptHashes(rendered.hashes.script);
 	const paths = state.prerendering?.fallback
 		? { base: options.paths.base, assets: options.paths.assets || options.paths.base }
-		: documentPaths(event.url.pathname, options.paths);
+		: documentPaths(
+				event.isDataRequest ? addDataSuffix(event.url.pathname) : event.url.pathname,
+				options.paths
+			);
 	const head: string[] = [rendered.head];
 	let body = rendered.body;
 	const headers = new Headers({ 'content-type': 'text/html', 'x-sveltekit-page': 'true' });
