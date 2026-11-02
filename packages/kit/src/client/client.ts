@@ -190,6 +190,7 @@ export class Client {
 				hydrating
 			);
 			this.current = result;
+			if (DEV) document.querySelector('style[data-sveltekit]')?.remove();
 			apply();
 			this.pages.fetches.initial = false;
 			await this.view.settle();
