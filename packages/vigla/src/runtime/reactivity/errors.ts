@@ -1,15 +1,7 @@
-import { DEV } from 'esm-env';
-
-function create(code: string, message: string): Error {
-	const error = new Error(
-		DEV ? `${code}\n${message}\nhttps://svelte.dev/e/${code}` : `https://svelte.dev/e/${code}`
-	);
-	error.name = 'Svelte error';
-	return error;
-}
+import { failure } from '../../shared/diagnostics.ts';
 
 function fail(code: string, message: string): never {
-	throw create(code, message);
+	throw failure(code, message);
 }
 
 export function orphan(rune: string): never {
@@ -52,7 +44,7 @@ export function unsafeMutation(): never {
 }
 
 export function depthExceeded(): Error {
-	return create(
+	return failure(
 		'effect_update_depth_exceeded',
 		'Maximum update depth exceeded. This typically indicates that an effect reads and writes the same piece of state'
 	);

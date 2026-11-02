@@ -25,8 +25,16 @@ export function warn(code: string, message: string): void {
 	reporter.warn(code, DEV ? message : null);
 }
 
+const failures = new WeakSet<object>();
+
 export function failure(code: string, message: string): Error {
-	return reporter.error(code, DEV ? message : null);
+	const error = reporter.error(code, DEV ? message : null);
+	failures.add(error);
+	return error;
+}
+
+export function isFailure(error: unknown): boolean {
+	return typeof error === 'object' && error !== null && failures.has(error);
 }
 
 export function formatFrame(frame: string): string {

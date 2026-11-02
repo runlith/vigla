@@ -90,8 +90,7 @@ export function first(fragment: Node, text = false): ChildNode {
 export function child(node: Node, text = false): ChildNode {
 	const found = node.firstChild;
 	if (!hydrating) return found as ChildNode;
-	if (text) return textAt(found, null, node);
-	if (found === null) mismatch();
+	if (text || found === null) return textAt(found, null, node);
 	return claim(found);
 }
 

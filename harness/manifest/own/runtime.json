@@ -61,6 +61,10 @@
 			"status": "contract",
 			"reason": "Review finding of the scheduler: a held real batch processed first must not consume a block a fork's async value dirtied, so the fork still builds what it preloads; green on upstream 5.57.3, kept as a regression test"
 		},
+		"hydration-error-recovery": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 remounts after a native construction error without disposing the failed component: the public onDestroy callback remains at zero instead of one"
+		},
 		"hydration-mismatch-lifetime": {
 			"status": "difference",
 			"reason": "Native per-tree hydration formats and their published-data lifetime use public vigla entries, which upstream does not provide"

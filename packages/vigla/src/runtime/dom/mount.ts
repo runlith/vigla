@@ -1,4 +1,4 @@
-import { failure, warn } from '../../shared/diagnostics.ts';
+import { failure, isFailure, warn } from '../../shared/diagnostics.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
 import { destroy, detached } from '../reactivity/effects.ts';
@@ -118,7 +118,8 @@ export function hydrate<P extends Props, E extends Exports>(
 		return instance;
 	} catch (error) {
 		if (adopted !== null) destroy(adopted.effect);
-		if (error !== MISMATCH) throw error;
+		if (isFailure(error)) throw error;
+		if (error !== MISMATCH) console.warn('Failed to hydrate: ', error);
 		if (options.recover === false) {
 			throw failure('hydration_failed', 'Failed to hydrate the application');
 		}
