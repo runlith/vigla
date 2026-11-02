@@ -41,4 +41,4 @@ sources:
   - kind: dir
     ref: harness
 ---
-Vigla's compatibility harness runs upstream's test samples, copied in as data, through runners of its own against an install tree, so the same samples judge upstream Svelte first and Vigla after. It owns the copied samples, the import rewrite map, the manifest giving each sample and variant a status, and the runners with their timing fakes and HTML comparison; what a target must reset between samples is that target's own hook.
+Vigla's compatibility harness runs copied upstream tests and its own regression samples through shared runners against an install tree, so the same samples judge upstream first and Vigla after. It owns the copied samples, the import rewrite map, the manifest giving each sample and variant a status, and the runners with their timing fakes and HTML comparison; what a target must reset between samples is that target's own hook.
