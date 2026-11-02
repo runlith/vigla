@@ -435,14 +435,18 @@ export function buildPlugin(
 						.filter((file) => file.file.endsWith('.css'))
 						.map((file) => file.file)
 				: [];
-			const inlined = new Set(inline ? [initial.file, ...inlineStyles] : []);
+			const inlined = new Set(inline ? [initial.file, `${initial.file}.map`, ...inlineStyles] : []);
 			const inlineScript = inline
-				? clientSources.get(initial.file)! + `;globalThis.${project.global}.app=__sveltekit_bundle;`
+				? clientSources.get(initial.file)!.replace(/\n\/\/# sourceMappingURL=\S+\s*$/, '\n') +
+					`;globalThis.${project.global}.app=__sveltekit_bundle;`
 				: '';
 			context.manifest.immutable.push(
 				...walk(client)
 					.filter(
-						(file) => file.startsWith(project.config.appDir + '/immutable/') && !inlined.has(file)
+						(file) =>
+							file.startsWith(project.config.appDir + '/immutable/') &&
+							!file.endsWith('.map') &&
+							!inlined.has(file)
 					)
 					.map((path) => ({ path }))
 			);
@@ -485,7 +489,7 @@ export function buildPlugin(
 			replaceManifest(client, clientSources, context);
 			if (context.artifacts.client.inline)
 				context.artifacts.client.inline.script = manifestCode(inlineScript, context);
-			for (const file of inlined) rmSync(path.join(client, file));
+			for (const file of inlined) rmSync(path.join(client, file), { force: true });
 			replaceManifest(server, serverSources, context);
 			await pruneRemotes(project);
 			createBuilder(context).generateEnvModule();
