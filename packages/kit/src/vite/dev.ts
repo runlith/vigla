@@ -163,7 +163,6 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						server.config.mode,
 						project.api
 					);
-					validateEnvironment(environment);
 					project.environment = environment;
 				}
 				project.sync.writeEnvironment(project.environment.file, project.environment.variables);
@@ -294,6 +293,14 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 				}
 				await pending;
 				if (syncError) throw syncError;
+				if (!current) {
+					project.environment.values = project.api.loadEnv(
+						server.config.mode,
+						project.config.env.dir,
+						''
+					);
+					validateEnvironment(project.environment);
+				}
 				const loaded = (await environment.runner.import(ids.server)) as DevelopmentModule;
 				if (loaded !== current?.module) {
 					const tree = project.tree;

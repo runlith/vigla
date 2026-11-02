@@ -94,7 +94,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 			const sync = createSync(config, root);
 			const tree = await sync.initial(resolved.mode);
 			const environment = await loadEnvironment(config, root, resolved.mode, runtime);
-			validateEnvironment(environment);
+			if (resolved.command === 'build') validateEnvironment(environment);
 			sync.writeEnvironment(environment.file, environment.variables);
 			const firstFormat = api.frontEnds[0]?.compiler.format;
 			const sameFormat = api.frontEnds.every(
