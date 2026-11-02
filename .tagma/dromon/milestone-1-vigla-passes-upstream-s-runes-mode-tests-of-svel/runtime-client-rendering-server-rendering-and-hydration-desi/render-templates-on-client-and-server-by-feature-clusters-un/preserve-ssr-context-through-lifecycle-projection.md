@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a19c27-068d-7f8e-b1a2-52c63bba6c90",
-    "status": "in_work"
+    "status": "done"
   }
 ---
 Resolve the four routed server-side-rendering variants through render results, owner context and adapter lifecycle projection. All four were unrecorded progress at baseline: context (async-ssr), async-context-throws-after-await (async-ssr), constructor-prefer-passed-context (ssr)/(async-ssr). Preserve general Core owners and explicit-map precedence over inherited owner context, while letting the adapter select an independent context chain. The single read-only review exposed missing selected-layer inheritance in render-owned descendants; its public root/render regression is fixed. The real Kit Server.respond load-to-render context test also passes after restoring Core's owner-context inheritance. Land the producer changes with the four exact sorted passing rows.
