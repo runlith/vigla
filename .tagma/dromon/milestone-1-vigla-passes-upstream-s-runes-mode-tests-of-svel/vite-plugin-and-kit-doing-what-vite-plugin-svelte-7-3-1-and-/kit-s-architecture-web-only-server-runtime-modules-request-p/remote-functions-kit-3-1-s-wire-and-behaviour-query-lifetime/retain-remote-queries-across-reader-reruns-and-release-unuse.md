@@ -5,7 +5,8 @@ ord: 4
 tags: ["task"]
 fields:
   {
-    "status": "open"
+    "holder": "tagma:01a1945b-1c58-71fb-adba-35b832991389",
+    "status": "in_work"
   }
 ---
 Retain a query across a reader rerun using a microtask-deferred per-run release, and release keys no run reads after an argument change. Prove both lifetimes through the client contract, verify refreshAll and remaining remote entries in approved groups of at most twenty, and record first-attempt passes with the fix.
