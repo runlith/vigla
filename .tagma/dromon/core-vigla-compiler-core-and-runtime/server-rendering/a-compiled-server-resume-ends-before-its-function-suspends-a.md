@@ -23,7 +23,7 @@ The token belongs to one call of the function. A thunk called synchronously insi
 
 Once a function resumes anywhere, every `await` in it goes through `save`, the last one included, even though restoring after the last one gains nothing. A plain `await` after a resume would suspend with the segment open. Nested functions are not segmented, and their awaits stay plain. A `$derived(await …)` evaluates in an async thunk of its own; the enclosing function's segment is restored after it only when that function has a segment.
 
-A top-level `for await` cannot route its implicit awaits through `save`. Its iterable is evaluated inside the segment, which it then `leave`s. Each iteration `reenter`s the segment and ends it in a `finally`, and the segment is re-entered after the loop.
+A top-level `for await` cannot route its implicit awaits through `save`. `acquire` takes the iterator while the segment is open. It wraps the iterator's `next` and `return` so that each call runs inside the segment, which closes again before the loop awaits the result. The loop's binding moves into the body, after the body `reenter`s, so destructuring defaults also read the render's context. Labels stay on the loop itself, so `continue` keeps a valid target. An `await using` declaration is refused in an async script, because its disposal awaits at block exit, where no `finally` of the function can close the segment first.
 
 Ending a segment restores the state that opening it replaced, so segments nest strictly. Any suspension with an open segment breaks that order and leaks stale state into every later close.
 
