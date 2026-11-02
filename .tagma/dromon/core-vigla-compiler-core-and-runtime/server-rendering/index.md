@@ -29,6 +29,9 @@ fields:
       },
       {
         "at": "derived.ts"
+      },
+      {
+        "at": "cells.ts"
       }
     ],
     "id": "ssr",
