@@ -13,5 +13,8 @@ sources:
   - kind: symbol
     ref: packages/vigla/src/compiler/client/template.ts
     symbol: render
+  - kind: symbol
+    ref: packages/vigla/src/runtime/dom/template.ts
+    symbol: freshScript
 ---
-Parsing a template makes its scripts inert, so cloning alone cannot execute authored script elements. The compiler marks those fragments for recreation before insertion, keeping ordinary templates off that scan path. Raw-HTML fragments are not marked, and hydration claims existing scripts without executing them again; standalone script templates must return the recreated node so their owner still removes the live script.
+Parsing a template makes its scripts inert, so cloning alone cannot execute authored script elements. The compiler marks those fragments for recreation before insertion, keeping ordinary templates off that scan path. Raw-HTML fragments are not marked, and hydration claims existing scripts without executing them again; standalone script templates must return the recreated node so their owner still removes the live script. Copied attributes follow their actual namespace: HTML permits prefixed names with no namespace, which the namespace-aware setter would reject.
