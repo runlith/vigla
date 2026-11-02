@@ -186,6 +186,13 @@ export async function prerender(
 		await save(url, response, new Uint8Array(await response.arrayBuffer()), referrer, expected);
 		for (const [href, dependency] of dependencies) {
 			const destination = new URL(href, url);
+			const prerender = dependency.response.headers.get('x-sveltekit-prerender');
+			const encoded = dependency.response.headers.get('x-sveltekit-routeid');
+			if (prerender && encoded !== null) {
+				const id = decodeURI(encoded);
+				if (result.prerenderMap.get(id) !== 'auto')
+					result.prerenderMap.set(id, prerender === 'true' ? true : 'auto');
+			}
 			const body =
 				dependency.body === null
 					? new Uint8Array(await dependency.response.arrayBuffer())

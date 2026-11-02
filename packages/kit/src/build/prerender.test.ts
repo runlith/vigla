@@ -8,14 +8,20 @@ import { prerender as remotePrerender, query } from '../entries/app/server/serve
 import { Server, handleRemote, initRemote } from '../entries/internal/server.ts';
 import type { RemoteExport, RemoteResponse } from '../types/internal/remote.ts';
 import type {
+	Endpoint,
 	PageNode,
 	ServerHooks,
 	ServerManifest,
-	ServerOptions
+	ServerOptions,
+	ServerRoute
 } from '../types/internal/server.ts';
+import { resolveConfig, validateConfig } from '../config/index.ts';
+import { parseRoute } from '../shared/routing/index.ts';
 import { encodeArgument } from '../shared/remote.ts';
 import { deserialize } from '../shared/serialization.ts';
 import { analyse } from './analysis.ts';
+import { createBuilder, createLogger } from './builder.ts';
+import type { BuildContext } from './types.ts';
 import { prerender } from './prerender.ts';
 import type { PolicyReporter, PrerenderJob } from './jobs.ts';
 import { loadEmulator, type Runtime } from './runtime.ts';
@@ -216,6 +222,137 @@ test('a reached page with actions rejects prerendering through its HTTP error po
 			throw failure;
 		})
 	).rejects.toBe(failure);
+});
+
+test('fetched route metadata reaches Builder without promoting auto or unidentified dependencies', async () => {
+	const runtime = await app({
+		functions: {},
+		hooks: {
+			handleFetch: async ({ request, fetch }) => {
+				const response = await fetch(request);
+				if (new URL(request.url).pathname !== '/unidentified') return response;
+				const headers = new Headers(response.headers);
+				headers.delete('x-sveltekit-routeid');
+				return new Response(response.body, { status: response.status, headers });
+			}
+		}
+	});
+	const page = await runtime.manifest.nodes[0]!();
+	page.universal = {
+		load: async ({ fetch }) => {
+			const responses = await Promise.all([
+				fetch('/implicit/value.json'),
+				fetch('/auto/value.json'),
+				fetch('/unidentified'),
+				fetch('/asset.txt')
+			]);
+			await Promise.all(responses.map((response) => response.text()));
+			const [implicit, auto, unidentified, asset] = responses;
+			return {
+				value: [
+					implicit.headers.get('x-sveltekit-prerender'),
+					auto.headers.get('x-sveltekit-prerender'),
+					unidentified.headers.get('x-sveltekit-prerender'),
+					unidentified.headers.get('x-sveltekit-routeid'),
+					asset.headers.get('x-sveltekit-prerender'),
+					asset.headers.get('x-sveltekit-routeid')
+				]
+					.map(String)
+					.join(':')
+			};
+		}
+	};
+	runtime.manifest.nodes[0] = async () => page;
+	runtime.manifest.nodes[1] = async () => ({
+		...page,
+		index: 1,
+		server: { prerender: 'auto' },
+		universal: undefined
+	});
+	const route = (id: string, endpoint: Endpoint | null, leaf?: number): ServerRoute => ({
+		id,
+		...parseRoute(id),
+		page: leaf === undefined ? null : { layouts: [], errors: [], leaf },
+		endpoint: endpoint ? async () => endpoint : null
+	});
+	runtime.manifest.routes = [
+		route('/page', null, 0),
+		route('/implicit/[value].json', { GET: () => Response.json({ answer: 42 }) }),
+		route('/auto/[value].json', { GET: () => new Response('auto') }, 1),
+		route('/unidentified', { GET: () => new Response('unidentified') })
+	];
+	runtime.manifest.assets.add('asset.txt');
+	runtime.manifest.mime_types['.txt'] = 'text/plain';
+	writeFileSync(path.join(directory, 'asset.txt'), 'asset');
+	const input = await job(runtime, 'dependency-promotion');
+	const config = resolveConfig(validateConfig({ outDir: input.directory }), directory);
+	input.directory = path.join(config.outDir, 'output');
+	input.entries = ['/page'];
+	const result = await prerender(input, runtime, fail);
+	for (const [file, body] of [
+		['implicit/value.json', '{"answer":42}'],
+		['auto/value.json', 'auto'],
+		['unidentified', 'unidentified'],
+		['asset.txt', 'asset']
+	])
+		expect(
+			readFileSync(path.join(input.directory, 'prerendered/dependencies', file!), 'utf8')
+		).toBe(body);
+	expect(
+		readFileSync(
+			path.join(input.directory, 'prerendered/pages', result.prerendered.pages.get('/page')!.file),
+			'utf8'
+		)
+	).toContain('<output>true:true:true:null:null:null</output>');
+	expect(result.prerenderMap.get('/auto/[value].json')).toBe('auto');
+	expect(result.prerenderMap.get('/unidentified')).toBe(false);
+	expect(result.prerenderMap.has('/asset.txt')).toBe(false);
+	expect(result.prerenderMap.has('/implicit/value.json')).toBe(false);
+	const context: BuildContext = {
+		root: directory,
+		config,
+		mode: input.mode,
+		tree: {
+			assets: [],
+			hooks: { server: null, client: null, universal: null },
+			params: null,
+			nodes: [0, 1].map(() => ({ depth: 0, parent: null, options: null })),
+			routes: runtime.manifest.routes.map((route) => ({
+				id: route.id,
+				parent: null,
+				segment: route.id.split('/').at(-1)!,
+				pattern: route.pattern,
+				params: route.params,
+				layout: null,
+				error: null,
+				leaf: route.page?.leaf ?? null,
+				page: route.page,
+				endpoint: route.endpoint ? { file: 'endpoint.ts', options: null } : null
+			}))
+		},
+		artifacts: {
+			client: null,
+			nodes: [],
+			endpoints: {},
+			matchers: null,
+			remotes: {},
+			chunks: {},
+			serviceWorker: null
+		},
+		analysis: input.analysis,
+		prerendered: result.prerendered,
+		prerenderMap: result.prerenderMap,
+		manifest: { immutable: [], assets: [], prerendered: [], routes: [] },
+		environment: {},
+		log: createLogger(false)
+	};
+	const builder = createBuilder(context);
+	expect(builder.routes.find((route) => route.id === '/auto/[value].json')!.prerender).toBe('auto');
+	expect(builder.routes.find((route) => route.id === '/unidentified')!.prerender).toBe(false);
+	expect(result.prerenderMap.get('/implicit/[value].json')).toBe(true);
+	expect(builder.routes.find((route) => route.id === '/implicit/[value].json')!.prerender).toBe(
+		true
+	);
 });
 
 test('reroute-fetched prerendered endpoints without entries retain their body and route identity', async () => {
