@@ -106,6 +106,15 @@ export function buildPlugin(
 				base: config.paths.relative || config.paths.assets ? './' : (config.paths.base || '') + '/',
 				builder: { sharedConfigBuild: true, sharedPlugins: true },
 				build: { emptyOutDir: false, manifest: true, cssCodeSplit: !inline },
+				worker: {
+					rolldownOptions: {
+						output: {
+							entryFileNames: `${immutable}/workers/[name]-[hash].js`,
+							chunkFileNames: `${immutable}/workers/chunks/[hash].js`,
+							assetFileNames: `${immutable}/workers/assets/[name]-[hash][extname]`
+						}
+					}
+				},
 				experimental: {
 					renderBuiltUrl(filename, { ssr, hostType }) {
 						const relative = config.paths.relative || !!config.paths.assets;
@@ -210,34 +219,34 @@ export function buildPlugin(
 				internal: ids.options,
 				env: ids.env
 			};
-			context.artifacts.nodes = project.tree.nodes.map((node, index) => {
-				const component = `entries/pages/component-${index}`;
-				inputs[component] = node.component
-					? path.resolve(project.root, node.component)
-					: index === 1
-						? ids.error
-						: ids.layout;
-				const universal = node.universal ? `entries/pages/universal-${index}` : undefined;
-				const server = node.server ? `entries/pages/server-${index}` : undefined;
-				if (universal) inputs[universal] = path.resolve(project.root, node.universal!);
-				if (server) inputs[server] = path.resolve(project.root, node.server!);
-				return {
-					component: component + '.js',
-					universal: universal && universal + '.js',
-					server: server && server + '.js',
-					imports: [],
-					stylesheets: [],
-					fonts: []
-				};
+			const component = (index: number): string => {
+				const file = project.tree.nodes[index]!.component;
+				return file ? path.resolve(project.root, file) : index === 1 ? ids.error : ids.layout;
+			};
+			const named = (kind: string, file: string): string => {
+				const relative = decodeURIComponent(
+					posix(path.relative(project.config.files.routes, file))
+				);
+				return relative.startsWith('..')
+					? `entries/fallbacks/${path.basename(file)}`
+					: `entries/${kind}/${relative.replace(/\.js$/, '')}`;
+			};
+			project.tree.nodes.forEach((node, index) => {
+				inputs[
+					node.component
+						? named('pages', component(index))
+						: `entries/fallbacks/${index === 1 ? 'error' : 'layout'}.svelte`
+				] = component(index);
+				for (const file of [node.universal, node.server])
+					if (file) {
+						const resolved = path.resolve(project.root, file);
+						inputs[named('pages', resolved)] = resolved;
+					}
 			});
 			for (const route of project.tree.routes)
 				if (route.endpoint) {
 					const file = path.resolve(project.root, route.endpoint.file);
-					const relative = decodeURIComponent(
-						posix(path.relative(project.config.files.routes, file))
-					);
-					const name = `entries/endpoints/${relative.slice(0, -path.extname(relative).length)}`;
-					inputs[name] = file;
+					inputs[named('endpoints', file)] = file;
 				}
 			if (project.tree.params) {
 				inputs['entries/params'] = path.resolve(project.root, project.tree.params);
@@ -251,6 +260,15 @@ export function buildPlugin(
 			builder.environments.ssr!.config.build.rolldownOptions.input = inputs;
 			await builder.build(builder.environments.ssr!);
 			const serverManifest = json(path.join(server, '.vite/manifest.json'));
+			const built = (file: string): string => entry(serverManifest, file, project.root).file;
+			context.artifacts.nodes = project.tree.nodes.map((node, index) => ({
+				component: built(component(index)),
+				universal: node.universal && built(path.resolve(project.root, node.universal)),
+				server: node.server && built(path.resolve(project.root, node.server)),
+				imports: [],
+				stylesheets: [],
+				fonts: []
+			}));
 			for (const route of project.tree.routes)
 				if (route.endpoint)
 					context.artifacts.endpoints[route.id] = entry(
@@ -351,17 +369,8 @@ export function buildPlugin(
 				node.fonts = deps.fonts;
 				if (split) {
 					const source = project.tree.nodes[index]!;
-					const component = dependencies(
-						serverManifest,
-						source.component
-							? path.resolve(project.root, source.component)
-							: index === 1
-								? ids.error
-								: ids.layout,
-						project.root,
-						true
-					);
-					const rendered = new Set(component.bySource.keys());
+					const rendering = dependencies(serverManifest, component(index), project.root, true);
+					const rendered = new Set(rendering.bySource.keys());
 					if (source.universal) {
 						const universal = dependencies(
 							serverManifest,
@@ -374,7 +383,7 @@ export function buildPlugin(
 					const stylesheets = new Set<string>();
 					const fonts = new Set<string>();
 					for (const [id, resources] of deps.bySource)
-						if (rendered.has(id === deps.source ? component.source : id)) {
+						if (rendered.has(id === deps.source ? rendering.source : id)) {
 							for (const file of resources.stylesheets) stylesheets.add(file);
 							for (const file of resources.fonts) fonts.add(file);
 						}
@@ -460,7 +469,11 @@ export function buildPlugin(
 			await pruneRemotes(project);
 			createBuilder(context).generateEnvModule();
 			if (project.serviceWorker) {
-				await builder.build(builder.environments.serviceWorker!);
+				const serviceWorker = builder.environments.serviceWorker!;
+				serviceWorker.config.experimental.renderBuiltUrl = (filename) => ({
+					runtime: `new URL(${JSON.stringify(filename)}, location.href).pathname`
+				});
+				await builder.build(serviceWorker);
 				context.artifacts.serviceWorker = 'service-worker.js';
 			}
 			full();

@@ -183,7 +183,7 @@ test('the app builder emits Kit deployment artifacts and calls the adapter after
 	)) as { manifest: ServerManifest };
 	expect(manifest.assets.has('service-worker.js')).toBe(true);
 	const worker = readFileSync(path.join(output, 'client/service-worker.js'), 'utf8');
-	expect(worker).toContain('/entry/7');
+	expect(worker).toContain('"entry/7"');
 	expect(worker).toContain('_app/immutable/');
 	expect(worker).not.toContain('__SVELTEKIT_MANIFEST_');
 	await adapted.generateFallback(path.join(output, 'fallback.html'));
