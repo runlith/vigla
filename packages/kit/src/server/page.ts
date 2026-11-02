@@ -117,21 +117,7 @@ export async function errorResponse(
 		return new Response(null, { status: failure.status, headers: { location: failure.location } });
 	const body = await handleError(store, failure);
 	const { event, state } = store;
-	const accept = negotiate(event.request.headers.get('accept') ?? 'text/html', [
-		'application/json',
-		'text/html'
-	]);
-	if (
-		event.isDataRequest ||
-		wantsActionJson(event.request) ||
-		accept === 'application/json' ||
-		(event.request.headers.get('sec-fetch-dest') &&
-			!['document', 'iframe', 'frame', 'empty'].includes(
-				event.request.headers.get('sec-fetch-dest')!
-			))
-	)
-		return Response.json(body, { status: body.status });
-	if (!state.error) {
+	if (!state.error && !event.request.headers.has('x-sveltekit-error')) {
 		state.error = true;
 		try {
 			const candidates = route?.page?.errors ?? [1];
@@ -155,16 +141,16 @@ export async function errorResponse(
 					);
 					prefix = [{ depth: 0, node: root, server: data, data: universal }];
 				}
-				const response = await renderDocument(server, store, {
+				const settings = pageSettings(prefix.map((loaded) => loaded.node));
+				return await renderDocument(server, store, {
 					branch: [...prefix, { depth: depth + 1, node, server: null, data: null }],
 					errors: [],
 					status: body.status,
 					error: body,
 					form: null,
-					ssr: true,
-					csr: true
+					ssr: settings.ssr,
+					csr: settings.csr
 				});
-				return response;
 			}
 		} catch (error) {
 			if (error instanceof Redirect)
@@ -175,8 +161,27 @@ export async function errorResponse(
 			if (!(error instanceof FrameworkError)) console.error(error);
 		}
 	}
+	return staticErrorPage(server, body);
+}
+
+export async function fatalResponse(
+	server: Server,
+	store: RequestStore,
+	failure: unknown
+): Promise<Response> {
+	const body = await handleError(store, failure);
+	const accept = negotiate(store.event.request.headers.get('accept') || 'text/html', [
+		'application/json',
+		'text/html'
+	]);
+	if (store.event.isDataRequest || accept === 'application/json')
+		return Response.json(body, { status: body.status });
+	return staticErrorPage(server, body);
+}
+
+function staticErrorPage(server: Server, body: App.Error): Response {
 	return new Response(
 		server.options.templates.error({ status: body.status, message: escapeHtml(body.message) }),
-		{ status: body.status, headers: { 'content-type': 'text/html' } }
+		{ status: body.status, headers: { 'content-type': 'text/html; charset=utf-8' } }
 	);
 }

@@ -5,9 +5,11 @@ import type { Server } from './index.ts';
 import { runRequest } from './scope.ts';
 import * as errors from './errors.ts';
 
+const bodyMethods = ['POST', 'PUT', 'PATCH', 'DELETE', 'QUERY'] as const;
+
 export function allowedMethods(endpoint: Endpoint): string[] {
 	const allowed = methods.filter((method) => endpoint[method]);
-	if (endpoint.GET && !endpoint.HEAD) allowed.splice(allowed.indexOf('GET') + 1, 0, 'HEAD');
+	if (endpoint.GET && !endpoint.HEAD) allowed.push('HEAD');
 	return allowed;
 }
 
@@ -34,13 +36,9 @@ export async function endpointResponse(
 		});
 	}
 	const prerender = endpoint.prerender ?? state.prerenderDefault;
-	if (
-		prerender &&
-		(endpoint.fallback ||
-			['POST', 'PUT', 'PATCH', 'DELETE'].some((method) => endpoint[method as keyof Endpoint]))
-	)
+	if (prerender && (endpoint.fallback || bodyMethods.some((method) => endpoint[method])))
 		errors.prerender_endpoint_methods({
-			methods: 'POST, PUT, PATCH, DELETE',
+			methods: bodyMethods.join(', '),
 			id: event.route.id ?? ''
 		});
 	if (state.prerendering && !state.prerendering.insideReroute && !prerender) {

@@ -1,4 +1,13 @@
-export const methods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] as const;
+export const methods = [
+	'GET',
+	'POST',
+	'PUT',
+	'PATCH',
+	'DELETE',
+	'OPTIONS',
+	'HEAD',
+	'QUERY'
+] as const;
 
 interface MediaRange {
 	major: string;

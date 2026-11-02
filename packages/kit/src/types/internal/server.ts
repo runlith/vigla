@@ -28,7 +28,7 @@ import type { TrailingSlash } from './data.ts';
 import type { RemoteExport, RemoteRequestState } from './remote.ts';
 
 export type { TrailingSlash } from './data.ts';
-export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
+export type HttpMethod = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'QUERY';
 export type Read = (file: string) => MaybePromise<ReadableStream<Uint8Array> | null>;
 
 export interface AsyncContext {

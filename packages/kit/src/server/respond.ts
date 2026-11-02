@@ -1,4 +1,5 @@
 import type {
+	Endpoint,
 	PageNode,
 	RequestState,
 	RequestStore,
@@ -28,12 +29,39 @@ import { RequestScope, runRequest } from './scope.ts';
 import { createFetch } from './fetch.ts';
 import { endpointResponse } from './endpoint.ts';
 import { dataResponse } from './data.ts';
-import { pageResponse, pageSettings, errorResponse } from './page.ts';
+import { pageResponse, pageSettings, errorResponse, fatalResponse } from './page.ts';
 import { resolutionResponse } from './routing.ts';
 import { FrameworkError } from './failure.ts';
 import { appEvent } from './hooks.ts';
 import { renderDocument } from './document.ts';
 import { restrictSearch } from './url.ts';
+
+const subresources = new Set([
+	'audio',
+	'audioworklet',
+	'font',
+	'image',
+	'json',
+	'manifest',
+	'paintworklet',
+	'report',
+	'script',
+	'serviceworker',
+	'sharedworker',
+	'style',
+	'track',
+	'video',
+	'webidentity',
+	'worker',
+	'xslt'
+]);
+
+function handlesPageMethod(endpoint: Endpoint, method: string): boolean {
+	if (method === 'POST') return !!(endpoint.POST || endpoint.fallback);
+	if (method === 'GET' || method === 'HEAD')
+		return !!(endpoint.GET || endpoint.fallback || (method === 'HEAD' && endpoint.HEAD));
+	return true;
+}
 
 export async function respond(
 	server: Server,
@@ -215,7 +243,9 @@ export async function respond(
 				)
 			);
 		const endpoint = route?.endpoint ? await route.endpoint() : null;
-		const useEndpoint = !!endpoint && (!route?.page || isEndpoint(request));
+		const useEndpoint =
+			!!endpoint &&
+			(!route?.page || (isEndpoint(request) && handlesPageMethod(endpoint, request.method)));
 		const slash = remote
 			? 'ignore'
 			: route && (url.pathname === base || url.pathname === `${base}/`)
@@ -282,8 +312,8 @@ export async function respond(
 						server.scope
 					);
 				}
-				if (!route) return await errorResponse(server, store, new FrameworkError(404, 'Not Found'));
-				if (data) return await dataResponse(server, store, route, invalidated);
+				if (!route) return await notFound(store);
+				if (data) return await dataResponse(server, store, route.page, invalidated);
 				if (useEndpoint) return await endpointResponse(server, store, endpoint!);
 				if (!route.page)
 					return await errorResponse(server, store, new FrameworkError(404, 'Not Found'));
@@ -339,11 +369,22 @@ export async function respond(
 						: new Response(null, { status: error.status, headers: { location: error.location } });
 				return finish(response);
 			}
-			return finish(await errorResponse(server, scope.store, error, route));
+			return finish(await fatalResponse(server, scope.store, error));
 		} catch (fatal) {
 			scope.close();
 			throw fatal;
 		}
+	}
+
+	async function notFound(store: RequestStore): Promise<Response> {
+		if (parent?.state.error) state.error = true;
+		else if (state.depth === 0) {
+			if (data && !state.prerendering && invalidated?.length === 1 && invalidated[0])
+				return dataResponse(server, store, { layouts: [], errors: [], leaf: 0 }, invalidated);
+			if (subresources.has(request.headers.get('sec-fetch-dest') ?? ''))
+				return new Response('Not Found', { status: 404, headers: { vary: 'Sec-Fetch-Dest' } });
+		}
+		return errorResponse(server, store, new FrameworkError(404, 'Not Found'));
 	}
 
 	function finish(response: Response, vary = false): Response {

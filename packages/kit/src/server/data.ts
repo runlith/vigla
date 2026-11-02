@@ -6,7 +6,8 @@ import type {
 	DataSkippedNode,
 	SerializedUses
 } from '../types/internal/data.ts';
-import type { RequestStore, ServerDataNode, ServerRoute, Uses } from '../types/internal/server.ts';
+import type { RequestStore, ServerDataNode, Uses } from '../types/internal/server.ts';
+import type { PageBranch } from '../types/internal/routes.ts';
 import type { Server } from './index.ts';
 import { encoders } from '../shared/serialization.ts';
 import { escapeJson } from '../shared/escape.ts';
@@ -148,15 +149,15 @@ export class DataSerializer {
 export async function dataResponse(
 	server: Server,
 	store: RequestStore,
-	route: ServerRoute,
+	page: PageBranch | null,
 	invalidated?: boolean[]
 ): Promise<Response> {
-	if (!route.page)
+	if (!page)
 		return new Response(null, {
 			status: 404,
 			headers: { 'x-sveltekit-version': server.options.version.name }
 		});
-	const indexes = [...route.page.layouts, route.page.leaf];
+	const indexes = [...page.layouts, page.leaf];
 	const loads: Array<() => Promise<ServerDataNode | null>> = [];
 	let aborted = false;
 	for (const [index, id] of indexes.entries()) {

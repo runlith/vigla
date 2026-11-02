@@ -869,26 +869,24 @@ it('reports invalid load results at their source and serializes data paths once'
 		server_id: 'src/routes/+page.server.js'
 	});
 	app.routes = [route('/', null, true)];
+	const reported: string[] = [];
 	const server = await start(
 		app,
-		options({ handleError: ({ error }) => ({ message: (error as Error).message }) })
+		options({
+			handleError: ({ error }) => {
+				reported.push((error as Error).message);
+				return { message: 'failed' };
+			}
+		})
 	);
-	const invalid = await server.respond(
-		request('/', { headers: { accept: 'application/json' } }),
-		address
-	);
-	expect((await invalid.json()).message).toMatch(
+	expect((await server.respond(request('/'), address)).status).toBe(500);
+	expect(reported.at(-1)).toMatch(
 		/load_invalid_response[\s\S]*in src\/routes\/\+page.server.js[\s\S]*an array/
 	);
 	app.nodes[2] = async () =>
 		node(2, { load: () => ({ nope: new (class Unsupported {})() }) }, undefined, layout);
-	const serialized = await server.respond(
-		request('/', { headers: { accept: 'application/json' } }),
-		address
-	);
-	expect((await serialized.json()).message).toContain(
-		'Cannot stringify arbitrary non-POJOs (`data.nope`)'
-	);
+	expect((await server.respond(request('/'), address)).status).toBe(500);
+	expect(reported.at(-1)).toContain('Cannot stringify arbitrary non-POJOs (`data.nope`)');
 });
 
 it('keeps rendered boundary errors inside their ancestor layout and updates the page status', async () => {
