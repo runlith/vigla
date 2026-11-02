@@ -1,7 +1,7 @@
 import * as vitest from 'vitest';
 import { ruling, runsOn, type Manifest } from '../manifest.ts';
 import { selects } from '../scope.ts';
-import { suiteId, type Suite } from '../suites.ts';
+import { suiteId, upstreamSkip, type Suite } from '../suites.ts';
 import type { Target } from '../target.ts';
 
 export * from 'vitest';
@@ -51,10 +51,12 @@ function register(name: string, body: Body, skipped: boolean, timeout?: number):
 	const rule = ruling(manifest, key);
 	if (rule === undefined) {
 		vitest.it(name, () => vitest.assert.fail(`${id}/${key} has no status in the manifest`));
-	} else if (runsOn(rule.status, suite.project, target.name) && !skipped) {
-		vitest.it(name, body, timeout);
-	} else {
+	} else if (!runsOn(rule.status, suite.project, target.name)) {
 		vitest.it.skip(name, body);
+	} else if (skipped) {
+		vitest.it.skip(name, { meta: upstreamSkip }, body);
+	} else {
+		vitest.it(name, body, timeout);
 	}
 }
 

@@ -29,6 +29,18 @@ export interface Suite {
 
 const variant = /^(.*) \((dom|hydrate|ssr|async-ssr)\)$/;
 
+declare module 'vitest' {
+	interface TaskMeta {
+		skippedBy?: 'upstream';
+	}
+}
+
+export const upstreamSkip = { skippedBy: 'upstream' } as const;
+
+export function skippedUpstream(meta: Readonly<Record<string, unknown>> | undefined): boolean {
+	return meta?.skippedBy === upstreamSkip.skippedBy;
+}
+
 export function entryId(sample: string, variant?: string): string {
 	return variant === undefined ? sample : `${sample} (${variant})`;
 }

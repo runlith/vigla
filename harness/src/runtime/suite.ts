@@ -6,7 +6,7 @@ import { root, ruling } from '../manifest.ts';
 import { forced } from '../reference.ts';
 import { unloadable, workspace, type Sample } from '../samples.ts';
 import { selects } from '../scope.ts';
-import { entryId, suiteNamed } from '../suites.ts';
+import { entryId, suiteNamed, upstreamSkip } from '../suites.ts';
 import type { Fresh } from '../target.ts';
 import { compileDirectory } from './compile.ts';
 import type { Base, Config, Variant } from './config.ts';
@@ -85,14 +85,16 @@ export async function sampleSuite<C extends Base>(suite: string, kind: Kind<C>):
 				it(title, () => assert.fail(`${suite}/${name}/${variant} has no status in the manifest`));
 				continue;
 			}
-			const skipped = config.skip || present === 'skipped' || !running(rule.status);
+			const upstream = config.skip === true || present === 'skipped';
+			const runs = running(rule.status);
 			const test = kind.concurrent ? it.concurrent : it;
-			const register = skipped ? test.skip : config.solo ? test.only : test;
+			const register = upstream || !runs ? test.skip : config.solo ? test.only : test;
+			const options = upstream && runs ? { meta: upstreamSkip } : { timeout: config.timeout };
 			if (sample.broken !== undefined) {
-				register(title, unloadable(sample));
+				register(title, options, unloadable(sample));
 				continue;
 			}
-			register(title, { timeout: config.timeout }, async () => {
+			register(title, options, async () => {
 				setup ??= (async () => {
 					const options = reference(kind.root === 'sample' ? cwd : run, config.compileOptions);
 					if (!config.load_compiled) kind.compile(cwd, options);

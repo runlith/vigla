@@ -38,6 +38,7 @@ interface Seen {
 	ran: boolean;
 	failed: boolean;
 	runs: boolean;
+	upstream: boolean;
 	message?: string;
 }
 
@@ -132,7 +133,7 @@ export function judge(judgement: Judgement): Verdict {
 		if (!selects(result.suite, id)) continue;
 		const status = ruling(manifest(result.suite), result.key, result.variant)?.status ?? 'unruled';
 		const cell = `${result.suite}\n${status} ${result.state}`;
-		counts.set(cell, (counts.get(cell) ?? 0) + 1);
+		if (!result.upstream) counts.set(cell, (counts.get(cell) ?? 0) + 1);
 		if (status === 'unruled') errors.push(`${result.suite}: ${id} has no status in the manifest`);
 		const byId = entries.get(result.suite) ?? new Map<string, Seen>();
 		entries.set(result.suite, byId);
@@ -145,6 +146,7 @@ export function judge(judgement: Judgement): Verdict {
 			failed,
 			runs:
 				status !== 'unruled' && runsOn(status, result.suite.split('/')[0] ?? '', judgement.target),
+			upstream: result.upstream === true && (before?.upstream ?? true),
 			...(message === undefined ? {} : { message })
 		});
 		if (!progress && result.state === 'failed')
@@ -177,11 +179,13 @@ export function judge(judgement: Judgement): Verdict {
 				const problem =
 					entry === undefined
 						? 'recorded, not reported'
-						: !entry.runs
-							? 'recorded, does not run by its status'
-							: passed(entry)
-								? null
-								: `recorded, failed${entry.message ? `: ${entry.message}` : ''}`;
+						: entry.upstream
+							? 'recorded, skipped by upstream'
+							: !entry.runs
+								? 'recorded, does not run by its status'
+								: passed(entry)
+									? null
+									: `recorded, failed${entry.message ? `: ${entry.message}` : ''}`;
 				if (problem === null) continue;
 				failing++;
 				errors.push(`${suite}/${id} ${problem}`);
@@ -207,6 +211,8 @@ export function judge(judgement: Judgement): Verdict {
 				.map(([state, count]) => `${count} ${state}`);
 			if (cells.length > 0) console.log(`  ${status}: ${cells.join(', ')}`);
 		}
+		const upstream = [...(entries.get(suite)?.values() ?? [])].filter((entry) => entry.upstream);
+		if (upstream.length > 0) console.log(`  skipped by upstream: ${upstream.length}`);
 		const mark = recorded.get(suite);
 		if (mark !== undefined) {
 			const failing = mark.failing > 0 ? ` (${mark.failing} failing)` : '';

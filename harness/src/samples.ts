@@ -4,7 +4,7 @@ import { afterAll, assert, inject, it } from 'vitest';
 import { faults, load, root, ruling, runsOn, type Manifest, type Status } from './manifest.ts';
 import type { Base } from './runtime/config.ts';
 import { reaches, selects } from './scope.ts';
-import { suiteId, suiteNamed } from './suites.ts';
+import { suiteId, suiteNamed, upstreamSkip } from './suites.ts';
 
 export interface Sample<C extends Base> {
 	name: string;
@@ -98,9 +98,9 @@ function register(
 		it(title, () => assert.fail(`${id}/${title} has no status in the manifest`));
 		return;
 	}
-	const skipped = config.skip || !running(rule.status);
-	const test = skipped ? it.skip : config.solo ? it.only : it;
-	test(title, { timeout: config.timeout }, body);
+	const runs = running(rule.status);
+	const test = !runs || config.skip ? it.skip : config.solo ? it.only : it;
+	test(title, runs && config.skip ? { meta: upstreamSkip } : { timeout: config.timeout }, body);
 }
 
 export function unloadable(sample: Sample<Base>): () => never {

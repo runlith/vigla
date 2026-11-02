@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { entryOfTest, suiteId, suiteOfFile } from './suites.ts';
+import { entryOfTest, skippedUpstream, suiteId, suiteOfFile } from './suites.ts';
 import { entryOfTree, treeNamed, type Tree } from './trees.ts';
 
 export interface Run {
@@ -16,6 +16,7 @@ export interface Outcome {
 	state: string;
 	variant: string | undefined;
 	message?: string;
+	upstream?: true;
 }
 
 export interface Result extends Outcome {
@@ -32,6 +33,7 @@ interface Vitest {
 			title: string;
 			status: string;
 			failureMessages?: string[];
+			meta?: Record<string, unknown>;
 		}[];
 	}[];
 }
@@ -158,7 +160,8 @@ export function suiteResults(file: string): Suites {
 				key: entry.sample,
 				variant: entry.variant,
 				state: test.status,
-				...(message === undefined ? {} : { message })
+				...(message === undefined ? {} : { message }),
+				...(skippedUpstream(test.meta) ? { upstream: true as const } : {})
 			});
 		}
 	}
