@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { stringify } from 'devalue';
-import { effect, mount, root, tick, unmount, type Owner } from 'vigla';
+import { cell, effect, getOwner, mount, root, tick, unmount, type Owner } from 'vigla';
 import { render } from 'vigla/server';
 import {
 	hydrated as serverHydrated,
@@ -105,6 +105,7 @@ test('a detached owner retains a query after component unmount, and its disposal
 	await held.refresh();
 	expect(await read()).toBe(2);
 	service.dispose();
+	await tick();
 	expect(await read()).toBe(3);
 	expect(await read()).toBe(4);
 });
@@ -276,6 +277,66 @@ test('set and a later refresh supersede older in-flight responses', async () => 
 	expect(value.current).toBe(6);
 });
 
+test('refreshAll reuses an inline query while its consuming effect reruns', async () => {
+	runtime.dispose();
+	const read = query<void, number>('hash/inline');
+	let consumer: Owner | undefined;
+	let requests = 0;
+	vi.stubGlobal('fetch', async () => response({ _: ++requests }));
+	const application = app();
+	application.root = (anchor) => {
+		const text = document.createTextNode('');
+		anchor.parentNode!.insertBefore(text, anchor);
+		effect(() => {
+			consumer = getOwner()!;
+			void read().then((value) => {
+				text.data = String(value);
+			});
+		});
+		return {};
+	};
+	runtime = new Client(application, document.querySelector('main')!);
+	await runtime.start();
+	await vi.waitFor(() => expect(document.querySelector('main')!.textContent).toBe('1'));
+	await runtime.invalidate(undefined, true);
+	await vi.waitFor(() => expect(document.querySelector('main')!.textContent).toBe('2'));
+	expect(requests).toBe(2);
+	consumer!.dispose();
+	await tick();
+	expect(await read()).toBe(3);
+});
+
+test('an inline query releases arguments its effect no longer reads', async () => {
+	runtime.dispose();
+	const read = query<number, number>('hash/argument');
+	const argument = cell(1);
+	const requests: number[] = [];
+	vi.stubGlobal('fetch', async (url: string) => {
+		const value = decodeArgument(new URL(url, location.href).searchParams.get('payload'));
+		requests.push(value);
+		return response({ _: value });
+	});
+	const application = app();
+	application.root = (anchor) => {
+		const text = document.createTextNode('');
+		anchor.parentNode!.insertBefore(text, anchor);
+		effect(() => {
+			void read(argument.current).then((value) => {
+				text.data = String(value);
+			});
+		});
+		return {};
+	};
+	runtime = new Client(application, document.querySelector('main')!);
+	await runtime.start();
+	await vi.waitFor(() => expect(document.querySelector('main')!.textContent).toBe('1'));
+	argument.current = 2;
+	await vi.waitFor(() => expect(document.querySelector('main')!.textContent).toBe('2'));
+	await tick();
+	await runtime.invalidate(undefined, true);
+	expect(requests).toEqual([1, 2, 2]);
+});
+
 test('refresh failures stay on retained queries during navigation, invalidation and a successful form', async () => {
 	runtime.dispose();
 	history.replaceState(null, '', '/one');
@@ -389,6 +450,7 @@ test('live queries share their stream, reconnect after transport loss, and abort
 	await expect(next).resolves.toEqual({ value: 2, done: false });
 	expect(value.current).toBe(2);
 	service.dispose();
+	await vi.advanceTimersByTimeAsync(0);
 	expect(aborted[1]).toBe(true);
 	await expect(iterator.next()).resolves.toMatchObject({ done: true });
 });

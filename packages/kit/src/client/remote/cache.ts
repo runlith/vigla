@@ -1,4 +1,6 @@
 import { getOwner, hydrated, onDestroy, type Owner } from 'vigla';
+import { createSubscriber } from 'vigla/reactivity';
+import { tracking } from 'vigla/internal/client';
 import { DEV } from 'esm-env';
 import type { RemoteData, RemoteNode } from '../../types/internal/remote.ts';
 import { getRemoteKey } from '../../shared/remote.ts';
@@ -19,6 +21,8 @@ interface Entry {
 	kind: QueryType;
 	resource: Resource;
 	holders: Set<Owner>;
+	readers: number;
+	subscribe: () => void;
 }
 interface BatchCall {
 	result: PromiseWithResolvers<any>;
@@ -85,24 +89,42 @@ export class Remotes {
 					: new Query(this, key, (flight) => this.load(kind, id, argument, flight), seed)
 			);
 			if (holder === null) return resource;
-			entry = { id, kind, resource, holders: new Set() };
+			const held: Entry = {
+				id,
+				kind,
+				resource,
+				holders: new Set(),
+				readers: 0,
+				subscribe: createSubscriber(() => {
+					held.readers++;
+					return () => this.#release(key, held);
+				})
+			};
+			entry = held;
 			this.#entries.set(key, entry);
 		}
-		if (holder && !entry.holders.has(holder)) {
+		if (tracking()) entry.subscribe();
+		else if (holder && !entry.holders.has(holder)) {
 			entry.holders.add(holder);
+			entry.readers++;
 			const held = entry;
 			holder.run(() =>
 				onDestroy(() => {
 					held.holders.delete(holder);
-					if (held.holders.size === 0 && this.#entries.get(key) === held) {
-						this.#entries.delete(key);
-						this.#seeds.delete(key);
-						if (held.resource instanceof LiveQuery) held.resource.destroy();
-					}
+					queueMicrotask(() => this.#release(key, held));
 				})
 			);
 		}
 		return entry.resource;
+	}
+
+	#release(key: string, entry: Entry): void {
+		entry.readers--;
+		if (entry.readers === 0 && this.#entries.get(key) === entry) {
+			this.#entries.delete(key);
+			this.#seeds.delete(key);
+			if (entry.resource instanceof LiveQuery) entry.resource.destroy();
+		}
 	}
 
 	*keys(id: string): Iterable<string> {
