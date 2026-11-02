@@ -47,6 +47,9 @@ fields:
       },
       {
         "at": "abort.ts"
+      },
+      {
+        "at": "loss.ts"
       }
     ],
     "id": "reactivity",
