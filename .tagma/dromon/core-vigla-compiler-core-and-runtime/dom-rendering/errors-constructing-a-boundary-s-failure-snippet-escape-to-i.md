@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/vigla/src/runtime/dom/boundary.ts
 ---
-Retrying the same failure snippet while constructing it cannot make progress and can refill the deferred task queue indefinitely. Construction therefore routes errors outward, while the completed failure snippet keeps the boundary for its later reactive updates.
+Retrying the same failure snippet while constructing it cannot make progress and can refill the deferred task queue indefinitely. Construction therefore routes errors outward, while the completed failure snippet keeps the boundary for its later reactive updates. Outward routing resumes at the declaring owner rather than a captured parent boundary, preserving owner failure handlers registered between DOM boundary scopes.
