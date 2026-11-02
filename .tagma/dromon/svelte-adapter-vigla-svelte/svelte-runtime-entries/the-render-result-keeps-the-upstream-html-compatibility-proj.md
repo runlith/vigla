@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/svelte/src/entries/server.ts
 ---
-The synchronous result's `html` getter exposes the same body for callers such as nested server renders. An awaited result rejects that deprecated getter with `html_deprecated`, while preserving `head`, `body` and script hashes. This projection belongs to the adapter so the general Core result carries only its own output contract.
+The synchronous result's `html` getter exposes the same body for callers such as nested server renders. An awaited result rejects that deprecated getter with `html_deprecated`, while preserving `head`, `body` and script hashes. This projection belongs to the adapter so the general Core result carries only its own output contract. Adapter renders also default to an independent context chain; Core renders retain owner-context inheritance by default.
