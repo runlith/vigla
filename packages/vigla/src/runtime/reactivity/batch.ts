@@ -220,7 +220,8 @@ export function enqueue(batch: Batch, effect: Effect): void {
 		if (known.has(effect)) return;
 		known.add(effect);
 	}
-	batch.queued.push(effect);
+	const queued = batch.queued;
+	queued[queued.length] = effect;
 }
 
 export function schedule(effect: Effect): void {
