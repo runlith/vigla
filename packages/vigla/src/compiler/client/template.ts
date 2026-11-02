@@ -37,6 +37,8 @@ export interface TemplateContext extends Context {
 	readonly events: Set<string>;
 	readonly groups: Map<GroupKey, ES.Identifier>;
 	readonly instance: ES.Statement[];
+	readonly early: ES.Statement[];
+	readonly moduleSetup: ES.Statement[];
 	readonly scoping: Scoping;
 	readonly format: Format;
 	readonly positions: Positions;

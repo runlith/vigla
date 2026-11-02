@@ -1,11 +1,25 @@
 import { DEV } from 'esm-env';
 import { warn } from '../../shared/diagnostics.ts';
-import type { RawFactory, SnippetArgs } from '../../shared/snippet.ts';
+import { invalidArgs, type RawFactory, type SnippetArgs } from '../../shared/snippet.ts';
 import { teardown } from '../reactivity/effects.ts';
 import { claim, cursor, hydrating } from './hydration.ts';
 import { parse } from './html.ts';
 
 type Snippet<Values extends unknown[]> = (anchor: ChildNode, ...args: SnippetArgs<Values>) => void;
+
+let nodeType: (() => unknown) | undefined;
+
+export function snippetArgs(args: IArguments): void {
+	nodeType ??= Object.getOwnPropertyDescriptor(Node.prototype, 'nodeType')!.get!;
+	try {
+		nodeType.call(args[0]);
+	} catch {
+		invalidArgs();
+	}
+	for (let index = 1; index < args.length; index++) {
+		if (typeof args[index] !== 'function') invalidArgs();
+	}
+}
 
 export function createRawSnippet<Values extends unknown[]>(
 	factory: RawFactory<Values>

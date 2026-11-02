@@ -1,3 +1,5 @@
+import { DEV } from 'esm-env';
+import { failure } from '../../shared/diagnostics.ts';
 import { OPEN_ELSE } from '../../shared/markers.ts';
 import { block } from '../reactivity/effects.ts';
 import { Branches, REPAIRED } from './branches.ts';
@@ -36,7 +38,20 @@ export function render(
 	snippet: () => Snippet | null | undefined,
 	...args: (() => unknown)[]
 ): void {
-	swap(node, snippet, (fn) => (anchor) => fn(anchor, ...args), false);
+	swap(
+		node,
+		() => {
+			const fn = snippet();
+			if (DEV && fn == null)
+				throw failure(
+					'invalid_snippet',
+					'Could not `{@render}` snippet due to the expression being `null` or `undefined`. Consider using optional chaining `{@render snippet?.()}`'
+				);
+			return fn;
+		},
+		(fn) => (anchor) => fn(anchor, ...args),
+		false
+	);
 }
 
 export function component(

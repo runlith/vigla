@@ -124,6 +124,8 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		events: new Set(),
 		groups: new Map(),
 		instance: [],
+		early: [],
+		moduleSetup: [],
 		scoping: options.scoping,
 		positions: new Positions(options.dev ? analysis.unit.source : '', options.filename),
 		filename: options.filename,
@@ -210,7 +212,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		body.push(b.statement(runtime(context, 'script', anchor, { ...fn, async: true })));
 	} else {
 		const template = render(context, analysis.root, anchor, analysis.namespace, true);
-		body.push(...script, ...context.instance, ...separate, ...template);
+		body.push(...context.early, ...script, ...context.instance, ...separate, ...template);
 	}
 	body.push({
 		type: 'ReturnStatement',
@@ -240,6 +242,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),
 		...imports,
+		...context.moduleSetup,
 		...level,
 		...context.hoisted,
 		...(options.hmr

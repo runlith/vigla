@@ -406,10 +406,25 @@ export function snippetDeclarations(
 	const result: ES.Statement[] = [];
 	for (const node of nodes) {
 		if (node.kind !== 'snippet') continue;
-		if (context.component.lifted.has(node)) {
-			context.hoisted.push(snippetDeclaration({ ...context, props: null }, node));
+		const lifted = context.component.lifted.has(node);
+		const declaration = snippetDeclaration(lifted ? { ...context, props: null } : context, node);
+		const initialize = context.dev
+			? b.statement(runtime(context, 'snippet', { ...declaration.id! }))
+			: null;
+		if (lifted) {
+			context.hoisted.push(declaration);
+			if (initialize !== null) context.moduleSetup.push(initialize);
 		} else {
-			result.push(snippetDeclaration(context, node));
+			result.push(declaration);
+			if (initialize !== null) {
+				if (
+					!context.component.asynchronous &&
+					context.awaited === undefined &&
+					context.component.root.includes(node)
+				)
+					context.early.push(initialize);
+				else result.push(initialize);
+			}
 		}
 	}
 	return result;
@@ -424,7 +439,14 @@ function snippetDeclaration(context: TemplateContext, node: Snippet): ES.Functio
 		type: 'FunctionDeclaration',
 		id: { ...node.name, name: context.names.bound(node.name) },
 		params: [anchor, ...params],
-		body: { type: 'BlockStatement', body: [...declarations, ...body] },
+		body: {
+			type: 'BlockStatement',
+			body: [
+				...(context.dev ? [b.statement(runtime(context, 'snippetArgs', b.id('arguments')))] : []),
+				...declarations,
+				...body
+			]
+		},
 		async: false,
 		generator: false
 	};
@@ -450,7 +472,7 @@ export function renderCall(
 	node: Render,
 	anchor: ES.Expression
 ): ES.Statement[] {
-	const { call } = callOf(node);
+	const { call, optional } = callOf(node);
 	const declarations: ES.Statement[] = [];
 	const args = call.arguments.map((argument) => {
 		if (argument.type === 'SpreadElement')
@@ -464,8 +486,9 @@ export function renderCall(
 		]);
 	}
 	const callee = rewrite(context, call.callee as ES.Expression);
+	const selected = optional ? b.logical('??', callee, runtime(context, 'noop')) : callee;
 	return scoped(context, node, 'render', [
 		...declarations,
-		b.statement(runtime(context, 'render', anchor, b.arrow([], callee), ...args))
+		b.statement(runtime(context, 'render', anchor, b.arrow([], selected), ...args))
 	]);
 }

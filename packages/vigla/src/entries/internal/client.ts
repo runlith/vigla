@@ -2,6 +2,8 @@ export { clsx } from '../../shared/attributes.ts';
 export { assignment, mutationTarget } from '../../shared/assignment.ts';
 export { failure, setReporter } from '../../shared/diagnostics.ts';
 export type { Reporter } from '../../shared/diagnostics.ts';
+export { snippet } from '../../shared/snippet.ts';
+export { snippetArgs } from '../../runtime/dom/snippet.ts';
 export {
 	attr,
 	attributes,

@@ -66,6 +66,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		scoping: options.scoping,
 		format: options.format,
 		hoisted: [],
+		early: [],
 		dev: options.dev,
 		externalCells: new Map()
 	};
@@ -104,10 +105,10 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 	if (analysis.asynchronous) buffer.text(close);
 	buffer.flush(template, content);
 	if (analysis.asynchronous) {
-		const fn = { ...b.arrow([inner], [...script, ...content]), async: true };
+		const fn = { ...b.arrow([inner], [...context.early, ...script, ...content]), async: true };
 		body.push(b.statement(b.call(b.member(out, 'child'), fn)));
 	} else {
-		body.push(...script, ...content);
+		body.push(...context.early, ...script, ...content);
 	}
 	body.push(b.statement(runtime(context, 'pop')));
 	return b.program([

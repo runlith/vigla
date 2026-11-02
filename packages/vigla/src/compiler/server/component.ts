@@ -299,10 +299,21 @@ export function snippetDeclarations(
 	const result: ES.Statement[] = [];
 	for (const node of nodes) {
 		if (node.kind !== 'snippet') continue;
-		if (context.component.lifted.has(node)) {
-			context.hoisted.push(snippetDeclaration({ ...context, props: null }, node));
+		const lifted = context.component.lifted.has(node);
+		const declaration = snippetDeclaration(lifted ? { ...context, props: null } : context, node);
+		const initialize = context.dev
+			? b.statement(runtime(context, 'snippet', { ...declaration.id! }))
+			: null;
+		if (lifted) {
+			context.hoisted.push(declaration);
+			if (initialize !== null) context.hoisted.unshift(initialize);
 		} else {
-			result.push(snippetDeclaration(context, node));
+			result.push(declaration);
+			if (initialize !== null) {
+				if (context.awaited === undefined && context.component.root.includes(node))
+					context.early.push(initialize);
+				else result.push(initialize);
+			}
 		}
 	}
 	return result;
@@ -319,7 +330,13 @@ function snippetDeclaration(context: TemplateContext, node: Snippet): ES.Functio
 		type: 'FunctionDeclaration',
 		id: { ...node.name, name: context.names.bound(node.name) },
 		params: [out, ...node.parameters.map((parameter) => rewrite(context, parameter))],
-		body: { type: 'BlockStatement', body: statements },
+		body: {
+			type: 'BlockStatement',
+			body: [
+				...(context.dev ? [b.statement(runtime(context, 'snippetArgs', out))] : []),
+				...statements
+			]
+		},
 		async: false,
 		generator: false
 	};

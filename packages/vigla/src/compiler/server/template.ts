@@ -39,6 +39,7 @@ export interface TemplateContext extends Context {
 	readonly scoping: Scoping;
 	readonly format: Format;
 	readonly hoisted: (ES.Statement | ES.ModuleDeclaration)[];
+	readonly early: ES.Statement[];
 	readonly optionValue?: Expression;
 }
 
