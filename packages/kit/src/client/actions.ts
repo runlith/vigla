@@ -1,5 +1,6 @@
 import type { ActionResult } from '../types/forms.ts';
 import type { Client } from './client.ts';
+import type { DataRedirectNode } from '../types/internal/data.ts';
 import type { Loaded } from './load.ts';
 
 export class Actions {
@@ -8,7 +9,7 @@ export class Actions {
 		this.#client = client;
 	}
 
-	async result(page: Loaded, action: ActionResult): Promise<Loaded> {
+	async result(page: Loaded, action: ActionResult): Promise<Loaded | DataRedirectNode> {
 		if (action.type === 'error')
 			return this.#client.pages.failure(
 				page,
@@ -16,6 +17,10 @@ export class Actions {
 				page.route.layouts.length + 1,
 				action.error
 			);
+		return this.settled(page, action);
+	}
+
+	settled(page: Loaded, action: ActionResult): Loaded {
 		if (action.type === 'success' || action.type === 'failure')
 			return { ...page, status: action.status, form: action.data ?? null };
 		return page;
@@ -28,6 +33,7 @@ export class Actions {
 		if (!client.current) return;
 		const generation = client.generation;
 		const result = await this.result(client.current, action);
+		if (result.type === 'redirect') return client.goto(result.location, { refreshAll: true });
 		const apply = await client.view.prepare(result, client.state.page.state);
 		if (generation !== client.generation) return;
 		apply();

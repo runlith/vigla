@@ -391,11 +391,17 @@ export class Client {
 				try {
 					errors.redirect_loop({ url: url.href });
 				} catch (error) {
-					result = await this.pages.rootError(loadIntent, error);
+					const root = await this.pages.rootError(loadIntent, error);
+					if (root.type === 'redirect') {
+						location.href = new URL(root.location, url).href;
+						completion.resolve();
+						return;
+					}
+					result = root;
 				}
 			}
 			if (options.action && options.action.type !== 'error')
-				result = await this.actions.result(result, options.action);
+				result = this.actions.settled(result, options.action);
 			if (!options.shallow) {
 				result = { ...result, url: new URL(result.url) };
 				result.url.hash = loadIntent.url.hash;

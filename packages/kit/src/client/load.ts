@@ -276,27 +276,42 @@ export class Pages {
 		};
 	}
 
-	async rootError(intent: Intent, error: unknown): Promise<Loaded> {
+	async rootError(intent: Intent, error: unknown): Promise<Loaded | DataRedirectNode> {
+		return this.#root(
+			intent,
+			await this.error(error, {
+				url: intent.url,
+				params: {},
+				route: { id: intent.route.id }
+			})
+		);
+	}
+
+	async #root(intent: Intent, body: App.Error): Promise<Loaded | DataRedirectNode> {
 		const fallback: Intent = {
 			url: intent.url,
 			params: {},
 			route: { ...this.fallback(intent.route.id), errors: [] }
 		};
-		const body = await this.error(error, {
-			url: intent.url,
-			params: {},
-			route: { id: intent.route.id }
-		});
 		let data: DataNode | null = null;
-		if (this.app.serverLoads.includes(0)) {
-			const response = await fetchData(intent.url, [true], this.transport, this.state);
+		const response = this.app.serverLoads.includes(0)
+			? await fetchData(intent.url, [true], this.transport, this.state).catch(() => null)
+			: null;
+		if (response) {
 			if (response.type !== 'data') throw new HandledError(body);
 			const node = response.nodes[0];
 			if (node?.type === 'error') throw new HandledError(node.error);
 			if (node && node.type !== 'data') throw new HandledError(body);
 			data = node ?? null;
 		}
-		const root = await this.node(this.app.nodes[0]!, data, fallback, async () => ({}));
+		let root: Branch;
+		try {
+			root = await this.node(this.app.nodes[0]!, data, fallback, async () => ({}));
+		} catch (error) {
+			if (error instanceof Redirect)
+				return { type: 'redirect', status: error.status, location: error.location };
+			throw error;
+		}
 		const loader = this.app.nodes[1]!;
 		const leaf: Branch = {
 			loader,
@@ -432,7 +447,7 @@ export class Pages {
 		branch: Array<Branch | undefined>,
 		depth: number,
 		error: App.Error
-	): Promise<Loaded> {
+	): Promise<Loaded | DataRedirectNode> {
 		let index = Math.max(0, Math.min(depth - 1, intent.route.errors.length - 1));
 		while (index > 0 && !intent.route.errors[index]) index--;
 		let loader = intent.route.errors[index] ?? this.app.nodes[1]!;
@@ -455,15 +470,7 @@ export class Pages {
 		)
 			index--;
 		const kept = branch.slice(0, index + 1);
-		if (!kept[0]) {
-			kept[0] = {
-				node: await this.routes.load(this.app.nodes[0]!),
-				loader: this.app.nodes[0]!,
-				data: {},
-				server: null,
-				uses: null
-			};
-		}
+		if (!kept[0]) return this.#root(intent, error);
 		kept.push({ node, loader, data: {}, server: null, uses: null });
 		return { ...intent, type: 'loaded', branch: kept, status: error.status, error, form: null };
 	}
