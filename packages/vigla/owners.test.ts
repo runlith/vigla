@@ -331,6 +331,68 @@ test('an owner settles once the work under it settles, whatever other owners sti
 	}
 });
 
+test('public effects return their disposal; a pre effect runs at once and an effect root outlives its caller', () => {
+	const app = root();
+	const [scope, setScope] = createContext<string>();
+	const input = cell(0);
+	const seen: string[] = [];
+	app.run(() => setScope('app'));
+	const stop = app.run(() => effect(() => void seen.push(`effect ${input.current}`)));
+	const stopPre = app.run(() => effect.pre(() => void seen.push(`pre ${input.current}`)));
+	const detached = app.run(() =>
+		effect.root(() => effect(() => void seen.push(`root ${scope()} ${input.current}`)))
+	);
+	assert.deepEqual(seen, ['pre 0']);
+	flushSync();
+	stop();
+	stopPre();
+	app.dispose();
+	input.current = 1;
+	flushSync();
+	detached();
+	input.current = 2;
+	flushSync();
+	assert.deepEqual(seen.sort(), ['effect 0', 'pre 0', 'root app 0', 'root app 1']);
+	assert.equal(Object.hasOwn(core, 'Owner'), false);
+});
+
+test('an owned resource publishes each run in its batch, and latest reads past the hold', async () => {
+	const app = root();
+	const id = cell(1);
+	const loads = new Map<number, PromiseWithResolvers<string>>();
+	let shown = '';
+	let eager = 0;
+	try {
+		const first = app.run(() =>
+			core.resource(() => {
+				const load = Promise.withResolvers<string>();
+				loads.set(id.current, load);
+				return load.promise;
+			})
+		);
+		loads.get(1)!.resolve('one');
+		const value = await first;
+		app.run(() =>
+			effect(() => {
+				shown = value.current;
+				eager = core.latest(() => id.current);
+			})
+		);
+		flushSync();
+		id.current = 2;
+		await tick();
+		assert.deepEqual([shown, eager], ['one', 2]);
+		loads.get(2)!.resolve('two');
+		await app.settled();
+		await tick();
+		assert.deepEqual([shown, eager], ['two', 2]);
+		const copy = core.snapshot({ list: [1] });
+		assert.deepEqual(copy, { list: [1] });
+	} finally {
+		app.dispose();
+	}
+});
+
 test('external sources and subscribers under a service owner release when it is disposed', async () => {
 	const app = root();
 	const service = root(undefined, app);

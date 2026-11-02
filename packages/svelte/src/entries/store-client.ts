@@ -1,5 +1,4 @@
-import { getOwner } from 'vigla/internal/index-client';
-import { effectRoot, template, tracking } from 'vigla/internal/client';
+import { effect, getOwner, tracking } from 'vigla/internal/index-client';
 import { createSubscriber } from 'vigla/internal/reactivity-client';
 import { get, subscribe, writable, type Readable, type Writable } from './store.ts';
 
@@ -21,8 +20,8 @@ export function toStore<T>(read: () => T, write?: (value: T) => void): Readable<
 	const store = writable(initial, (publish) => {
 		let ran = initial !== read();
 		const start = (): (() => void) =>
-			effectRoot(() => {
-				template(() => {
+			effect.root(() => {
+				effect.pre(() => {
 					const value = read();
 					if (ran) publish(value);
 				});

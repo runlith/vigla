@@ -3,6 +3,15 @@ import type * as client from './index.ts';
 import type { Cell } from '../runtime/reactivity/sources.ts';
 import { unit } from '../runtime/reactivity/async.ts';
 import { owner } from '../runtime/reactivity/tracking.ts';
+import type { Resource } from '../runtime/reactivity/public.ts';
+import { external as connect } from '../runtime/server/external.ts';
+import {
+	expose,
+	type External,
+	type Subscribable,
+	type WritableExternal,
+	type WritableSource
+} from '../shared/external.ts';
 
 export {
 	createContext,
@@ -15,7 +24,6 @@ export {
 	setContext
 } from '../runtime/server/context.ts';
 export type { Context } from '../shared/context.ts';
-export { external } from '../runtime/server/external.ts';
 export type {
 	External,
 	Subscribable,
@@ -58,10 +66,41 @@ export const hydrate: typeof client.hydrate = () => unavailable('hydrate');
 export const unmount: typeof client.unmount = () => unavailable('unmount');
 export const fork: typeof client.fork = () => unavailable('fork');
 
-export { Owner, getOwner, root } from '../runtime/reactivity/owners.ts';
+export { getOwner, root } from '../runtime/reactivity/owners.ts';
+export type { Owner } from '../runtime/reactivity/owners.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
+export type { Effects, Resource } from '../runtime/reactivity/public.ts';
+export { snapshot } from '../runtime/reactivity/proxy.ts';
 
-export function effect(..._args: Parameters<typeof client.effect>): void {}
+const noop = (): void => {};
+
+export const effect: typeof client.effect = Object.assign(() => noop, {
+	pre: () => noop,
+	root: () => noop
+});
+
+export function external<T>(read: () => WritableSource<T> | null | undefined): WritableExternal<T>;
+export function external<T>(read: () => Subscribable<T> | null | undefined): External<T>;
+export function external<T>(read: () => Subscribable<T> | null | undefined): WritableExternal<T> {
+	return expose(connect(read));
+}
+
+export async function resource<T>(fn: () => T | PromiseLike<T>): Promise<Resource<T>> {
+	const finish = unit(owner);
+	try {
+		return { current: await fn() };
+	} finally {
+		finish();
+	}
+}
+
+export function pending(): number {
+	return 0;
+}
+
+export function latest<T>(fn: () => T): T {
+	return fn();
+}
 
 export function cell<T>(value: T): Cell<T> {
 	return { current: value };

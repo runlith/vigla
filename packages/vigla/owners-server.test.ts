@@ -97,6 +97,35 @@ test('server teardowns outside an owner are refused and services outlive later t
 	assert.throws(() => core.onDestroy(() => {}), /teardown_without_owner/);
 });
 
+test('server public effects never run and a server resource settles under its owner', async () => {
+	const owner = core.root();
+	const [loading, load] = gate();
+	let ran = false;
+	try {
+		const disposals = owner.run(() => [
+			core.effect(() => void (ran = true)),
+			core.effect.pre(() => void (ran = true)),
+			core.effect.root(() => void (ran = true))
+		]);
+		for (const dispose of disposals) dispose();
+		const resource = owner.run(() => core.resource(() => loading.then(() => 'value')));
+		let quiet = false;
+		void owner.settled().then(() => (quiet = true));
+		await Promise.resolve();
+		assert.equal(quiet, false);
+		load();
+		assert.equal((await resource).current, 'value');
+		await owner.settled();
+		assert.deepEqual(
+			[ran, core.pending(), core.latest(() => 1), core.snapshot({ a: [1] })],
+			[false, 0, 1, { a: [1] }]
+		);
+		assert.equal(Object.hasOwn(core, 'Owner'), false);
+	} finally {
+		owner.dispose();
+	}
+});
+
 test('server child owners see context installed after their creation and own their signals', () => {
 	const parent = core.root();
 	const child = core.root(undefined, parent);

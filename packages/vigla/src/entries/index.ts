@@ -23,10 +23,13 @@ export type {
 } from '../runtime/dom/mount.ts';
 
 export { flushSync, settled, tick } from '../runtime/reactivity/batch.ts';
-export { effect, tracking } from '../runtime/reactivity/effects.ts';
+export { tracking } from '../runtime/reactivity/effects.ts';
 export { getAbortSignal } from '../runtime/reactivity/abort.ts';
-export { hold } from '../runtime/reactivity/async.ts';
-export { external } from '../runtime/reactivity/external.ts';
+export { hold, pending } from '../runtime/reactivity/async.ts';
+export { effect, external, resource } from '../runtime/reactivity/public.ts';
+export type { Effects, Resource } from '../runtime/reactivity/public.ts';
+export { latest } from '../runtime/reactivity/latest.ts';
+export { snapshot } from '../runtime/reactivity/proxy.ts';
 export type {
 	External,
 	Subscribable,
@@ -36,7 +39,8 @@ export type {
 } from '../shared/external.ts';
 export { fork } from '../runtime/reactivity/fork.ts';
 export type { Fork } from '../runtime/reactivity/fork.ts';
-export { Owner, getOwner, root } from '../runtime/reactivity/owners.ts';
+export { getOwner, root } from '../runtime/reactivity/owners.ts';
+export type { Owner } from '../runtime/reactivity/owners.ts';
 export { cell, memo as derived } from '../runtime/reactivity/sources.ts';
 export { deep as state } from '../runtime/reactivity/proxy.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';

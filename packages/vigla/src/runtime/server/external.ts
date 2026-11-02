@@ -1,25 +1,16 @@
 import {
 	Connection,
-	type External,
+	type Connected,
 	type Subscribable,
-	type WritableExternal,
 	type WritableSource
 } from '../../shared/external.ts';
 import { onDestroy } from './context.ts';
 import { owner } from '../reactivity/tracking.ts';
 
 export function external<T>(
-	read: () => WritableSource<T> | null | undefined,
-	name?: string
-): WritableExternal<T>;
-export function external<T>(
-	read: () => Subscribable<T> | null | undefined,
-	name?: string
-): External<T>;
-export function external<T>(
 	read: () => Subscribable<T> | null | undefined,
 	name = 'source'
-): WritableExternal<T> {
+): Connected<T> {
 	const connection = new Connection<T>();
 	if (owner !== null) onDestroy(() => connection.dispose());
 	const current = (): T => {

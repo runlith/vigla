@@ -16,13 +16,40 @@ export interface WritableSource<T> extends Subscribable<T> {
 export interface External<T> {
 	readonly current: T;
 	readonly peek: T;
-	refresh<R>(result: R): R;
+	refresh(): void;
 	dispose(): void;
 }
 
 export interface WritableExternal<T> extends External<T> {
 	current: T;
+}
+
+export interface Connected<T> {
+	current: T;
+	readonly peek: T;
+	refresh<R>(result: R): R;
 	mutate<R>(result: R): R;
+	dispose(): void;
+}
+
+export function expose<T>(connected: Connected<T>): WritableExternal<T> {
+	return {
+		get current() {
+			return connected.current;
+		},
+		set current(value: T) {
+			connected.current = value;
+		},
+		get peek() {
+			return connected.peek;
+		},
+		refresh() {
+			connected.refresh(undefined);
+		},
+		dispose() {
+			connected.dispose();
+		}
+	};
 }
 
 export class Connection<T> {

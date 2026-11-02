@@ -1,9 +1,8 @@
 import { DEV } from 'esm-env';
 import {
 	Connection,
-	type External,
+	type Connected,
 	type Subscribable,
-	type WritableExternal,
 	type WritableSource
 } from '../../shared/external.ts';
 import { write } from './batch.ts';
@@ -14,20 +13,10 @@ import { tag } from './trace.ts';
 import { get, untrack } from './tracking.ts';
 
 export function external<T>(
-	read: () => WritableSource<T> | null | undefined,
-	name?: string,
-	label?: string
-): WritableExternal<T>;
-export function external<T>(
-	read: () => Subscribable<T> | null | undefined,
-	name?: string,
-	label?: string
-): External<T>;
-export function external<T>(
 	read: () => Subscribable<T> | null | undefined,
 	name = 'source',
 	label = name
-): WritableExternal<T> {
+): Connected<T> {
 	const value = mutableSource<T>(undefined as T);
 	if (DEV) tag(value, label);
 	const connection = new Connection<T>((_before, next) => {
