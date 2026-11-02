@@ -1,6 +1,8 @@
 import { failure } from '../shared/diagnostics.ts';
 import type * as client from './index.ts';
 import type { Cell } from '../runtime/reactivity/sources.ts';
+import { unit } from '../runtime/reactivity/async.ts';
+import { owner } from '../runtime/reactivity/tracking.ts';
 
 export {
 	createContext,
@@ -73,4 +75,13 @@ export function tracking(): boolean {
 
 export async function tick(): Promise<void> {}
 
-export async function settled(): Promise<void> {}
+export { drained as settled } from '../runtime/reactivity/async.ts';
+
+export async function hold<T>(fn: () => T): Promise<Awaited<T>> {
+	const finish = unit(owner);
+	try {
+		return await fn();
+	} finally {
+		finish();
+	}
+}

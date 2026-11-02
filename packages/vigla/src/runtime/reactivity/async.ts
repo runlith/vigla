@@ -86,9 +86,75 @@ function count(boundary: Boundary | null, delta: 1 | -1): void {
 }
 
 let outstanding = 0;
+const watchers = new Set<() => void>();
+const speculative = new WeakSet<() => void>();
+let drains: (() => void)[] = [];
 
 export function unsettled(): boolean {
 	return outstanding > 0;
+}
+
+function released(): void {
+	if (--outstanding === 0) {
+		quieted();
+		const resolved = drains;
+		drains = [];
+		for (const done of resolved) done();
+	}
+	recheck();
+}
+
+function recheck(): void {
+	if (watchers.size === 0) return;
+	for (const check of [...watchers]) check();
+}
+
+function busy(effect: Effect): boolean {
+	if (effect.destroyed) return false;
+	for (const settle of effect.units ?? []) if (!speculative.has(settle)) return true;
+	for (let child = effect.first; child !== null; child = child.next) if (busy(child)) return true;
+	return false;
+}
+
+export function unit(holder: Effect | null): () => void {
+	outstanding++;
+	let open = true;
+	const settle = (): void => {
+		if (!open) return;
+		open = false;
+		holder?.units?.delete(settle);
+		released();
+	};
+	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
+	return settle;
+}
+
+export function drained(): Promise<void> {
+	return new Promise((done) => {
+		if (outstanding === 0) queueMicrotask(done);
+		else drains.push(done);
+	});
+}
+
+export function settledUnder(effect: Effect): Promise<void> {
+	return new Promise((done) => {
+		const check = (): void => {
+			if (busy(effect)) return;
+			watchers.delete(check);
+			queueMicrotask(done);
+		};
+		watchers.add(check);
+		check();
+	});
+}
+
+export async function hold<T>(fn: () => T): Promise<Awaited<T>> {
+	const finish = work();
+	try {
+		return await fn();
+	} finally {
+		finish();
+	}
 }
 
 export function work(): () => void {
@@ -112,7 +178,8 @@ export function work(): () => void {
 		unsettled = false;
 		holder?.units?.delete(settle);
 		count(boundary, -1);
-		if (counted && --outstanding === 0) quieted();
+		if (counted) released();
+		else recheck();
 		if (!blocking) return;
 		const target = alias(batch);
 		target.work -= 1;
@@ -124,6 +191,7 @@ export function work(): () => void {
 		}
 		if (!target.done && !holds(target)) request();
 	};
+	if (!counted) speculative.add(settle);
 	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
 	return settle;
 }

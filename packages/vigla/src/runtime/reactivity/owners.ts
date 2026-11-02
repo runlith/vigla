@@ -1,7 +1,7 @@
 import type { Layer } from '../../shared/context.ts';
 import { destroy, detached, run } from './effects.ts';
 import { lifetime } from './abort.ts';
-import { work } from './async.ts';
+import { settledUnder, unit } from './async.ts';
 import type { Boundary, Effect } from './graph.ts';
 import { owner as running, setOwner, withoutReaction } from './tracking.ts';
 
@@ -113,12 +113,18 @@ export class Owner {
 	}
 
 	async start<T>(fn: () => T): Promise<Awaited<T>> {
-		const finish = this.run(work);
+		const effect = effectOf(this);
+		if (effect.destroyed) throw new Error('Cannot run code under a disposed owner');
+		const finish = unit(effect);
 		try {
 			return await this.run(fn);
 		} finally {
 			finish();
 		}
+	}
+
+	settled(): Promise<void> {
+		return settledUnder(effectOf(this));
 	}
 
 	dispose(): void {

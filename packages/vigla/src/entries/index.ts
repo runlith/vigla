@@ -25,6 +25,7 @@ export type {
 export { flushSync, settled, tick } from '../runtime/reactivity/batch.ts';
 export { effect, tracking } from '../runtime/reactivity/effects.ts';
 export { getAbortSignal } from '../runtime/reactivity/abort.ts';
+export { hold } from '../runtime/reactivity/async.ts';
 export { external } from '../runtime/reactivity/external.ts';
 export type {
 	External,

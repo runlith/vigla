@@ -12,7 +12,7 @@ import {
 	state,
 	unsave
 } from './src/entries/internal/client.ts';
-import { work } from './src/runtime/reactivity/async.ts';
+import { hold, work } from './src/runtime/reactivity/async.ts';
 import { flushSync, resumed, settled, suspend } from './src/runtime/reactivity/batch.ts';
 import { block } from './src/runtime/reactivity/effects.ts';
 
@@ -319,6 +319,46 @@ test('a resumed owner proxy write supersedes an older fork value', async () => {
 			})
 		);
 		await tick();
+		const running = scope.run(() =>
+			hold(async () => {
+				(await save(gate.promise))();
+				try {
+					value.current = 3;
+				} finally {
+					unsave();
+				}
+			})
+		);
+		await tick();
+		const staged = fork(() => {
+			value.current = 2;
+			other.current = 1;
+		});
+		gate.resolve();
+		await running;
+		await tick();
+		assert.deepEqual([value.current, shown, other.current], [3, 3, 0]);
+		await staged.commit();
+		assert.deepEqual([value.current, shown, other.current], [3, 3, 1]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('a resumed owner proxy write outside a hold also supersedes an older fork value', async () => {
+	const scope = root();
+	const value = proxy({ current: 0 });
+	const other = cell(0);
+	const gate = Promise.withResolvers<void>();
+	let shown = -1;
+	try {
+		scope.run(() =>
+			effect(() => {
+				shown = value.current;
+			})
+		);
+		await tick();
 		const running = scope.start(async () => {
 			(await save(gate.promise))();
 			try {
@@ -411,21 +451,23 @@ test('a resumed external emission supersedes an older fork value', async () => {
 			})
 		);
 		await tick();
-		const running = scope.start(async () => {
-			(await save(gate.promise))();
-			try {
-				emit(3);
-			} finally {
-				unsave();
-			}
-		});
+		const running = scope.run(() =>
+			hold(async () => {
+				(await save(gate.promise))();
+				try {
+					emit(3);
+				} finally {
+					unsave();
+				}
+			})
+		);
 		await tick();
 		const forkGate = Promise.withResolvers<void>();
 		let forkWork!: Promise<void>;
 		const staged = fork(() => {
 			emit(2);
 			other.current = 1;
-			forkWork = scope.start(() => forkGate.promise);
+			forkWork = scope.run(() => hold(() => forkGate.promise));
 		});
 		const completed = staged.commit();
 		await tick();

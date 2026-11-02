@@ -64,6 +64,29 @@ test('server deep state keeps plain values and nothing tracks', () => {
 	assert.deepEqual([form.current.name, core.tracking()], ['c', false]);
 });
 
+test('server owner work and holds count toward owner and global settlement', async () => {
+	const owner = core.root();
+	const [started, finish] = gate();
+	const [holding, release] = gate();
+	const quiet: string[] = [];
+	try {
+		const work = owner.start(() => started);
+		const held = owner.run(() => core.hold(() => holding));
+		void owner.settled().then(() => quiet.push('owner'));
+		void core.settled().then(() => quiet.push('all'));
+		await Promise.resolve();
+		finish();
+		await work;
+		assert.deepEqual(quiet, []);
+		release();
+		await held;
+		await new Promise((resolve) => setTimeout(resolve));
+		assert.deepEqual(quiet.sort(), ['all', 'owner']);
+	} finally {
+		owner.dispose();
+	}
+});
+
 test('server child owners see context installed after their creation and own their signals', () => {
 	const parent = core.root();
 	const child = core.root(undefined, parent);

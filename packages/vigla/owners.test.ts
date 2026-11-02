@@ -249,6 +249,63 @@ test('an owner signal cancels registered async work and each owner has its own l
 	}
 });
 
+test('owned background work settles without holding writes, while an explicit hold does', async () => {
+	const app = root();
+	const status = cell('idle');
+	const background = Promise.withResolvers<void>();
+	const saving = Promise.withResolvers<void>();
+	let shown = '';
+	let quiet = false;
+	try {
+		app.run(() => effect(() => void (shown = status.current)));
+		flushSync();
+		status.current = 'loading';
+		const work = app.start(() => background.promise);
+		const waiting = app.settled().then(() => (quiet = true));
+		await tick();
+		assert.deepEqual([shown, quiet], ['loading', false]);
+		status.current = 'saving';
+		const held = app.run(() => core.hold(() => saving.promise));
+		await tick();
+		assert.equal(shown, 'loading');
+		saving.resolve();
+		await held;
+		await tick();
+		assert.deepEqual([shown, quiet], ['saving', false]);
+		background.resolve();
+		await work;
+		await waiting;
+		assert.equal(quiet, true);
+	} finally {
+		app.dispose();
+	}
+});
+
+test('an owner settles once the work under it settles, whatever other owners still run', async () => {
+	const app = root();
+	const service = root(undefined, app);
+	const other = root();
+	const mine = Promise.withResolvers<void>();
+	let quiet = false;
+	try {
+		void other.start(() => new Promise<void>(() => {}));
+		void service.start(() => mine.promise);
+		const waiting = app.settled().then(() => (quiet = true));
+		await tick();
+		assert.equal(quiet, false);
+		mine.resolve();
+		await waiting;
+		assert.equal(quiet, true);
+		void service.start(() => new Promise<void>(() => {}));
+		const disposed = service.settled();
+		service.dispose();
+		await disposed;
+	} finally {
+		app.dispose();
+		other.dispose();
+	}
+});
+
 test('external sources and subscribers under a service owner release when it is disposed', async () => {
 	const app = root();
 	const service = root(undefined, app);
