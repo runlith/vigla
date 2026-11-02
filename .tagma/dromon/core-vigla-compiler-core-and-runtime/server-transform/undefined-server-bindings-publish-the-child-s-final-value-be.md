@@ -5,17 +5,17 @@ ord: 3
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/compiler/server/index.ts
-    symbol: server
-  - kind: symbol
     ref: packages/vigla/src/compiler/server/component.ts
     symbol: bindingProperties
   - kind: symbol
-    ref: packages/vigla/src/runtime/server/render.ts
-    symbol: Output.stabilize
+    ref: packages/vigla/src/compiler/server/index.ts
+    symbol: server
   - kind: symbol
     ref: packages/vigla/src/runtime/server/render.ts
     symbol: bindProps
+  - kind: symbol
+    ref: packages/vigla/src/runtime/server/render.ts
+    symbol: Output.stabilize
   - kind: symbol
     ref: packages/vigla/src/runtime/server/render.ts
     symbol: Settlement

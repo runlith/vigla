@@ -7,13 +7,13 @@ sources:
   - kind: file
     ref: packages/vigla/src/compiler/ir/estree.ts
   - kind: symbol
-    ref: packages/vigla/src/compiler/client/script.ts
-    symbol: read
+    ref: packages/vigla/src/compiler/client/blocks.ts
+    symbol: listCode
   - kind: symbol
     ref: packages/vigla/src/compiler/client/script.ts
     symbol: effectCallee
   - kind: symbol
-    ref: packages/vigla/src/compiler/client/blocks.ts
-    symbol: listCode
+    ref: packages/vigla/src/compiler/client/script.ts
+    symbol: read
 ---
 Replacing a source expression must not erase its mapping when it becomes a runtime call or a props read. The ESTree rewrite preserves a replaced node's location; generated identifiers that remain visible to the printer, including props members, effect callees and each parameters, carry the source identifier's location explicitly because mapping a generated parent alone does not map its leaves.

@@ -5,10 +5,10 @@ ord: 18
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/sources.ts
-    symbol: derived
-  - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/effects.ts
     symbol: create
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/sources.ts
+    symbol: derived
 ---
 V8 lays out an object literal's fields in the order written, and the marking walk and staleness checks read `kind` and `status` of every reaction they visit, then its `reactions` or `deps`. With `status` at the end, a derived (152 bytes) or effect (192 bytes) needed a second cache line per visit beside the header's. Keeping the fields every visit reads directly after `kind` puts them on the header's line. Measured on Node 26.8: the walk's share of `kairo_mux_unowned` fell from 13.9% to 12.3% from the reorder alone. A field added to either record goes after these, unless every visit reads it too.

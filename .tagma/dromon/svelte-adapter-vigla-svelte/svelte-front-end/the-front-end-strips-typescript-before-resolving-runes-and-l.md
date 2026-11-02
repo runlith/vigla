@@ -5,11 +5,11 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: file
+    ref: packages/svelte/src/front/diagnostics.ts
+  - kind: file
     ref: packages/svelte/src/front/lower.ts
   - kind: file
     ref: packages/svelte/src/front/typescript.ts
-  - kind: file
-    ref: packages/svelte/src/front/diagnostics.ts
   - kind: file
     ref: packages/svelte/src/front/validate/anchors.ts
 ---

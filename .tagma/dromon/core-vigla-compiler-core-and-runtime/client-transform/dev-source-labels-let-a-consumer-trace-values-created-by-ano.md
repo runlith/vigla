@@ -8,9 +8,9 @@ edges:
     to: 01a193c4-e7ae-7f38-8d9f-ed92226fbb20
 sources:
   - kind: file
-    ref: packages/vigla/src/compiler/client/inspect.ts
-  - kind: file
     ref: packages/vigla/src/compiler/client/classes.ts
+  - kind: file
+    ref: packages/vigla/src/compiler/client/inspect.ts
   - kind: file
     ref: packages/vigla/src/compiler/client/patterns.ts
 ---

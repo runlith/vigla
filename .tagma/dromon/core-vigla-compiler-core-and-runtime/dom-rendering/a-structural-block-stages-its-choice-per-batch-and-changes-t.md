@@ -8,13 +8,13 @@ edges:
     to: 01a1868a-e2b1-75a8-92fb-02edaa9fb09b
 sources:
   - kind: file
-    ref: packages/vigla/src/runtime/dom/branches.ts
-  - kind: file
-    ref: packages/vigla/src/runtime/dom/list.ts
-  - kind: file
     ref: packages/vigla/src/runtime/dom/await.ts
   - kind: file
     ref: packages/vigla/src/runtime/dom/boundary.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/dom/branches.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/dom/list.ts
 ---
 A block's rerun decides what *its batch* shows, not what the page shows: `{#if}`, `{#key}`, dynamic components and `{@render}` record the chosen key per batch in a `Branches`, `{#each}` the chosen rows in a `List`, and each registers a commit and a discard callback with that batch. The DOM changes only when that batch commits, so a held batch's structure lands with its content and an earlier batch committing meanwhile shows its own choice, never the held one's. A batch that reruns the block again before committing replaces its own staged choice; the same block may hold different choices for several held batches at once. While any choice is pending, a batch selecting the on-screen branch still records that choice, so another batch cannot remove a branch it needs. A merge transfers the staged choice to the receiving batch, and commit and discard callbacks resolve that batch's alias; an incoming batch's intermediate choice can therefore never overwrite the combined structure pass. A boundary receiving a fork's failure skips its content only in that fork and defers retirement, error transformation, `onerror` and fallback publication until the owning commit; discarding the fork preserves the visible content. Retirement clears its range references and pending visibility before destroying their owners, since destruction settles work synchronously and could otherwise reinsert the content being retired.
 

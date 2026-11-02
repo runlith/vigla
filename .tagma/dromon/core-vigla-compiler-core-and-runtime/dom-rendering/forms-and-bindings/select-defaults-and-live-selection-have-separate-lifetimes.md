@@ -6,12 +6,12 @@ tags: ["explanation"]
 sources:
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/select.ts
-    symbol: selectDefault
-  - kind: symbol
-    ref: packages/vigla/src/runtime/dom/select.ts
     symbol: applyDefault
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/select.ts
     symbol: initSelect
+  - kind: symbol
+    ref: packages/vigla/src/runtime/dom/select.ts
+    symbol: selectDefault
 ---
 Changing a default changes the form-reset choice without moving the user's current selection. Spread defaults wait for option setup, and one observer keeps defaults and controlled values aligned when options arrive later; setting an already-correct selected attribute again can make the browser undo a user selection.

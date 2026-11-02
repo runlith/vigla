@@ -5,8 +5,8 @@ ord: 5
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/kit/src/server/document.ts
-  - kind: file
     ref: packages/kit/src/server/data.ts
+  - kind: file
+    ref: packages/kit/src/server/document.ts
 ---
 `global.ready` waits for the client entry to import and initialize its channel, not for startup to finish: an initial universal load may itself await a deferred chunk. Hydration data and later chunks are thunks so the client can decode them under the tab owner after its init hook, while the server only schedules their delivery. The observable `defer` and `resolve` names remain the wire contract.

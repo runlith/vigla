@@ -9,13 +9,13 @@ edges:
 sources:
   - kind: symbol
     ref: packages/vigla/src/runtime/server/context.ts
-    symbol: release
-  - kind: symbol
-    ref: packages/vigla/src/runtime/server/context.ts
     symbol: onDestroy
   - kind: symbol
     ref: packages/vigla/src/runtime/server/context.ts
     symbol: push
+  - kind: symbol
+    ref: packages/vigla/src/runtime/server/context.ts
+    symbol: release
   - kind: symbol
     ref: packages/vigla/src/runtime/server/render.ts
     symbol: render

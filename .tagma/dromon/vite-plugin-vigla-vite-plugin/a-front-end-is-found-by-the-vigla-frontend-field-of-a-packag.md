@@ -5,15 +5,15 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/vite-plugin/src/front-end.ts
-  - kind: file
     ref: packages/vite-plugin/src/compile.ts
   - kind: file
-    ref: packages/vite-plugin/src/plugins/compile-module.ts
+    ref: packages/vite-plugin/src/front-end.ts
+  - kind: file
+    ref: packages/vite-plugin/src/id.ts
   - kind: file
     ref: packages/vite-plugin/src/index.ts
   - kind: file
-    ref: packages/vite-plugin/src/id.ts
+    ref: packages/vite-plugin/src/plugins/compile-module.ts
   - kind: file
     ref: packages/vite-plugin/src/plugins/optimizer.ts
 ---

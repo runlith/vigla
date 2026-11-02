@@ -7,9 +7,9 @@ sources:
   - kind: file
     ref: packages/vigla/src/compiler/client/constants.ts
   - kind: file
-    ref: packages/vigla/src/compiler/server/template.ts
-  - kind: file
     ref: packages/vigla/src/compiler/client/template.ts
+  - kind: file
+    ref: packages/vigla/src/compiler/server/template.ts
   - kind: symbol
     ref: packages/vigla/src/compiler/analysis/template.ts
     symbol: Template.fragment

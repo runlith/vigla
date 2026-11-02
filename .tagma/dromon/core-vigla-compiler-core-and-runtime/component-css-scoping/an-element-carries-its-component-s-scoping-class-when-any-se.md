@@ -5,13 +5,13 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
+    ref: packages/vigla/src/compiler/css/marks.ts
+  - kind: file
     ref: packages/vigla/src/compiler/css/prune.ts
   - kind: file
     ref: packages/vigla/src/compiler/css/relations.ts
   - kind: file
     ref: packages/vigla/src/compiler/css/template.ts
-  - kind: file
-    ref: packages/vigla/src/compiler/css/marks.ts
   - kind: symbol
     ref: packages/vigla/src/compiler/css/index.ts
     symbol: analyzeStyle

@@ -10,9 +10,9 @@ edges:
     to: 01a19562-da29-716c-baa8-d5d4fbee9bcb
 sources:
   - kind: file
-    ref: packages/vigla/src/runtime/reactivity/loss.ts
-  - kind: file
     ref: packages/vigla/src/compiler/client/loss.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/reactivity/loss.ts
 ---
 A value read after a plain `await` inside an async function becomes no dependency of the async expression that called the function: nothing restores the run's reading there, so unless the run also read it at a tracked point, a later change to it never reruns the expression. DEV client output therefore wraps each `await` and `for await` inside an async function body with `trackLoss` and `trackLossEach`, unless a `save` already resumes it or a `svelte-ignore await_reactivity_loss` span in the unit's ignore map covers it. Awaits outside function bodies — template expressions, `$derived`, top-level script — stay plain: what follows them is resumed with `save` and tracked, and wrapping would only add a microtask turn to every DEV await.
 

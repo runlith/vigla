@@ -5,9 +5,9 @@ ord: 3
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/kit/src/types/request.ts
-  - kind: file
     ref: packages/kit/src/types/navigation.ts
+  - kind: file
+    ref: packages/kit/src/types/request.ts
   - kind: file
     ref: packages/kit/src/types/state.ts
 ---

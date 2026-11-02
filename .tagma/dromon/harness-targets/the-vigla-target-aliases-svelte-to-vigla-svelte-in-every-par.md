@@ -12,9 +12,9 @@ sources:
   - kind: file
     ref: targets/vigla/fresh.ts
   - kind: file
-    ref: targets/vigla/package.json
-  - kind: file
     ref: targets/vigla/kit/package.json
+  - kind: file
+    ref: targets/vigla/package.json
   - kind: file
     ref: targets/vigla/vite-plugin/package.json
 ---

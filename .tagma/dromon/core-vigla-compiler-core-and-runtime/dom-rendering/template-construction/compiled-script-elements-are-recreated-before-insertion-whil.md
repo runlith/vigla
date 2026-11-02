@@ -5,14 +5,14 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/dom/template.ts
-    symbol: fragment
+    ref: packages/vigla/src/compiler/client/template.ts
+    symbol: render
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/template.ts
     symbol: activateScripts
   - kind: symbol
-    ref: packages/vigla/src/compiler/client/template.ts
-    symbol: render
+    ref: packages/vigla/src/runtime/dom/template.ts
+    symbol: fragment
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/template.ts
     symbol: freshScript

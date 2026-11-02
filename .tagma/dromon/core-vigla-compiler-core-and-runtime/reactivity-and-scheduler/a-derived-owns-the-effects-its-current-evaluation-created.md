@@ -8,11 +8,8 @@ edges:
     to: 01a193e7-b8d8-74a9-9509-eecedc7f7aeb
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/graph.ts
-    symbol: Derived
-  - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/tracking.ts
-    symbol: destroyEffects
+    ref: packages/vigla/src/runtime/dom/context.ts
+    symbol: userEffect
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/effects.ts
     symbol: create
@@ -20,11 +17,14 @@ sources:
     ref: packages/vigla/src/runtime/reactivity/effects.ts
     symbol: freeze
   - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/graph.ts
+    symbol: Derived
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/tracking.ts
+    symbol: destroyEffects
+  - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/tracking.ts
     symbol: unsubscribe
-  - kind: symbol
-    ref: packages/vigla/src/runtime/dom/context.ts
-    symbol: userEffect
 ---
 An attached effect created directly while a derived evaluates belongs to that evaluation, while retaining the declaration owner's context and place in the effect tree. Recomputing or disconnecting the derived destroys those effects before replacing its work; otherwise a cached expression can retain a subscription to a value it no longer returns. An explicit root belongs to its chosen parent, or stands independently with no parent; the caller's derived never adopts it. A component's `$effect` created while a derived evaluates during the component's initialisation is created at once rather than at the end of initialisation, as upstream defers only outside a reaction: deferred, no derived would own it.
 

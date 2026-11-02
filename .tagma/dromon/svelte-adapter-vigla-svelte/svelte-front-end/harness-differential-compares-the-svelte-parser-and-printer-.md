@@ -4,10 +4,10 @@ title: "`harness:differential` compares the `.svelte` parser and printer with up
 ord: 3
 tags: ["explanation"]
 sources:
-  - kind: file
-    ref: harness/src/differential.ts
   - kind: dir
     ref: packages/svelte/src/front/parse
+  - kind: file
+    ref: harness/src/differential.ts
 ---
 `bun run harness:differential parse|print|fuzz [--filter <path part>] [--step <n>]` compiles nothing and runs no runner. It loads `svelte/compiler` from `targets/upstream` and from `targets/vigla` through each target's installed package. For every `.svelte` file under `.external/svelte/packages/svelte/tests` it compares the two JSON outputs as text, so key order counts:
 - `parse` compares the legacy, modern and modern-loose parses of each file;

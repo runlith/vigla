@@ -7,10 +7,10 @@ sources:
   - kind: file
     ref: packages/vigla/src/runtime/dom/select.ts
   - kind: symbol
-    ref: packages/vigla/src/runtime/dom/attributes.ts
-    symbol: attributes
-  - kind: symbol
     ref: packages/vigla/src/compiler/client/element.ts
     symbol: spread
+  - kind: symbol
+    ref: packages/vigla/src/runtime/dom/attributes.ts
+    symbol: attributes
 ---
 Select options can publish non-string values after the element's spread first runs, so initial selection waits until option setup completes and an initially undefined value preserves the DOM default. Later spread updates use ordinary selection semantics: an unmatched value, including undefined on a single select, clears selection. The stored value remains available to the option mutation observer; bind:value owns its own initialization instead of adding a second spread initializer.

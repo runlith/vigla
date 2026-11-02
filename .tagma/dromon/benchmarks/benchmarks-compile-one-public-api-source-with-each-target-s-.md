@@ -5,11 +5,11 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: benchmarks/src/prepare.ts
+    ref: benchmarks/reactivity/util.svelte.js
   - kind: file
     ref: benchmarks/src/cli.ts
   - kind: file
-    ref: benchmarks/reactivity/util.svelte.js
+    ref: benchmarks/src/prepare.ts
 ---
 Each target compiles the benchmark modules with its own `svelte/compiler` and runs them on its own runtime. Each comparison then measures two complete implementations of one source, as an application switching by alias would see them, and never Vigla's runtime driven through upstream's internals. Upstream's reactivity benchmarks call `$.state`, `$.derived`, `$.render_effect`, `block` and `$.flush` directly; the ports use `$state.raw`, `$derived`, `$effect.pre` (upstream's `render_effect` with the user flag) inside `$effect.root`, and `flushSync`.
 

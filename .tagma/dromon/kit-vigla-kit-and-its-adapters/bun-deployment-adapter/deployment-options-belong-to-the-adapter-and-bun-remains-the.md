@@ -5,9 +5,9 @@ ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/adapter-bun/src/index.ts
-  - kind: file
     ref: packages/adapter-bun/src/build.ts
+  - kind: file
+    ref: packages/adapter-bun/src/index.ts
   - kind: file
     ref: packages/adapter-bun/src/server.ts
 ---

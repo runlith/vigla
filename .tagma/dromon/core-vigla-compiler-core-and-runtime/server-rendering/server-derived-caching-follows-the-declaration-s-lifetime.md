@@ -5,14 +5,14 @@ ord: 5
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/server/derived.ts
-    symbol: derived
-  - kind: symbol
     ref: packages/vigla/src/runtime/server/context.ts
     symbol: isRendering
   - kind: symbol
     ref: packages/vigla/src/runtime/server/context.ts
     symbol: memo
+  - kind: symbol
+    ref: packages/vigla/src/runtime/server/derived.ts
+    symbol: derived
 ---
 A module's compiled derived can outlive many requests, so it re-evaluates on each read rather than retaining the first request's value. Created during rendering, it keeps a lazy cache for that instance. Its compiled assignment protocol uses a non-nullish override; a nullish assignment clears that override.
 

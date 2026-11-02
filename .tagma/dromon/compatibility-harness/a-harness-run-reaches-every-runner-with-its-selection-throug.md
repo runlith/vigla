@@ -8,11 +8,11 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9fab49056597
 sources:
   - kind: file
-    ref: harness/src/scope.ts
-  - kind: file
     ref: harness/src/cli.ts
   - kind: file
     ref: harness/src/reports.ts
+  - kind: file
+    ref: harness/src/scope.ts
 ---
 `cli.ts` turns its selectors — `<project>`, `<project>/<suite>`, `<project>/<suite>/<entry prefix>` — or, under `--passing`, the recorded entries they reach, into a scope file and names it in `VIGLA_SCOPE`. A prefix selects an entry equal to it or continuing with ` (`, ` > ` or `/`, so `each` never selects `each-keyed`, and a selector that selects nothing fails the run instead of passing empty.
 

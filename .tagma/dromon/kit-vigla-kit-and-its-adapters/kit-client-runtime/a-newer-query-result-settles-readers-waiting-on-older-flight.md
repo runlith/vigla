@@ -5,12 +5,12 @@ ord: 6
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/kit/src/client/remote/result.ts
-  - kind: file
-    ref: packages/kit/src/client/remote/query.ts
-  - kind: file
     ref: packages/kit/src/client/remote/cache.ts
   - kind: file
     ref: packages/kit/src/client/remote/channel.ts
+  - kind: file
+    ref: packages/kit/src/client/remote/query.ts
+  - kind: file
+    ref: packages/kit/src/client/remote/result.ts
 ---
 Refreshes can overlap, and a mutation's side-channel update can arrive before the query request it supersedes. The originating query's response node and primary result share one flight identity; otherwise a stale side-channel node bypasses supersession. Superseded readers settle on the accepted value rather than the later arrival order, so a stale response cannot replace a mutation's refreshed value or keep an awaiting component suspended.

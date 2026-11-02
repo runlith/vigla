@@ -9,12 +9,12 @@ edges:
   - kind: relates
     to: 01a185b6-09f2-796e-90b2-9fab49056597
 sources:
-  - kind: file
-    ref: harness/src/passing.ts
-  - kind: file
-    ref: harness/src/judge.ts
   - kind: dir
     ref: targets/vigla/passing
+  - kind: file
+    ref: harness/src/judge.ts
+  - kind: file
+    ref: harness/src/passing.ts
 ---
 A target whose `package.json` names a directory in `harness.passing` is judged by its passing set; a target naming none, as `targets/upstream`, fails on every running entry that does not pass. Vigla passes a fraction of the contract while it is built, and its run must already be a test suite under [[468243f4]]: an entry joins the set in the change that first makes it pass, and from then on its failure fails the run.
 

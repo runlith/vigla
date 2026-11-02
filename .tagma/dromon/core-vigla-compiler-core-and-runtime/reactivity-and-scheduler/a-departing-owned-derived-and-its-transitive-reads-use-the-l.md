@@ -13,23 +13,23 @@ edges:
 sources:
   - kind: file
     ref: packages/vigla/src/runtime/reactivity/leaving.ts
-  - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/tracking.ts
-    symbol: get
-  - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/effects.ts
-    symbol: destroy
-  - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/batch.ts
-    symbol: write
+  - kind: file
+    ref: packages/vigla/src/runtime/reactivity/proxy.ts
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/batch.ts
     symbol: apply
   - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/batch.ts
+    symbol: write
+  - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/deriveds.ts
     symbol: refresh
-  - kind: file
-    ref: packages/vigla/src/runtime/reactivity/proxy.ts
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/effects.ts
+    symbol: destroy
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/tracking.ts
+    symbol: get
 ---
 A derived declared under a departing branch evaluates against that branch's last-selected source view; its synchronous transitive reads, including deriveds declared outside the branch, share that view and a local cache. Direct source, prop and outside-owned-derived reads outside the computation keep their normal current batch view. New state created by the computation remains local and reads its own writes. The isolated evaluation leaves committed derived caches, subscriptions and evaluation resources intact, so a later current reader cannot inherit an outgoing result or lose its abort signal when an outgoing cache ends. Proxy key enumeration uses the selected membership view without adding property-value dependencies to a key-only read.
 

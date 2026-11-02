@@ -5,9 +5,9 @@ ord: 8
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/kit/src/server/remote/requested.ts
-  - kind: file
     ref: packages/kit/src/server/remote/collect.ts
+  - kind: file
+    ref: packages/kit/src/server/remote/requested.ts
   - kind: file
     ref: packages/kit/src/server/remote/resource.ts
 ---

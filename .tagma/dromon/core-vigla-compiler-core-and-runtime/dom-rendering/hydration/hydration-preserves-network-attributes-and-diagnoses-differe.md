@@ -5,8 +5,8 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/vigla/src/runtime/dom/attributes.ts
-  - kind: file
     ref: packages/vigla/src/compiler/client/element.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/dom/attributes.ts
 ---
 Resetting `src`, `srcset` or a link's `href` can start another network request, so hydration leaves the server value in place even when the client differs. DEV comparison resolves URLs against the element's document and keeps srcset descriptors significant; compiled ignore metadata suppresses the same check for direct and spread attributes.

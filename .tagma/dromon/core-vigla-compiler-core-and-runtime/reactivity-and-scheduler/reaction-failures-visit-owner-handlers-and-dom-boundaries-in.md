@@ -5,20 +5,20 @@ ord: 14
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/tracking.ts
-    symbol: settled
+    ref: packages/vigla/src/runtime/reactivity/deriveds.ts
+    symbol: refresh
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/effects.ts
     symbol: dispose
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/deriveds.ts
-    symbol: refresh
+    ref: packages/vigla/src/runtime/reactivity/effects.ts
+    symbol: fail
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/settle.ts
     symbol: due
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/effects.ts
-    symbol: fail
+    ref: packages/vigla/src/runtime/reactivity/tracking.ts
+    symbol: settled
 ---
 A reaction's failure walks outward through its effect scope, visiting the nearest registered owner handler or introduced DOM boundary first. Owner registrations are looked up at failure time, so a handle obtained after its children were created can still contain their failures. The latest live handler on an owner takes the error; removing it restores the previous registration. A handler that throws passes its replacement error outward, including any DOM boundary introduced on the same effect; a parentless `$effect.root` therefore keeps its copied declaring boundary. DOM boundary escalation resumes from its captured declaring owner, so an owner handler between two DOM boundaries is not bypassed by an inner boundary without recovery or by a later fallback failure. Unhandled errors retain their existing propagation. Pending counts, visibility and inherited `Effect.boundary` pointers stay on their original paths; only failure delivery walks owner handlers.
 

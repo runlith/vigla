@@ -8,11 +8,11 @@ edges:
     to: 01a187bd-ab40-7693-b307-bc614c3b5c2e
 sources:
   - kind: file
-    ref: packages/vigla/src/runtime/transitions/manager.ts
-  - kind: file
     ref: packages/vigla/src/runtime/dom/branches.ts
   - kind: file
     ref: packages/vigla/src/runtime/dom/list.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/transitions/manager.ts
 ---
 A transition belongs to the block whose branch renders its element. When a branch leaves, the blocks ask `pause` to play the outros of that branch's own elements and of those rendered through components, dynamic `{@render}` or component blocks and `<svelte:element>`'s tag block, which are transparent. A nested `{#if}`, `{#each}`, `{#key}` or `{#await}` makes everything under it non-local, so only its `|global` transitions play. Symmetrically, a local intro plays only when its nearest non-transparent block builds the branch on an update, never on that block's first run, and every intro waits for the mount's `intro` option, `true` unless set. Upstream 5.57.3 reads the same rules from its effect flags (`EFFECT_TRANSPARENT`, `REACTION_RAN`); Vigla takes them from the block that is building: `building` around each branch or row a block creates, `seeThrough` for the transparent swaps, and component instance owners (root effects linked under a branch) counted as transparent.
 

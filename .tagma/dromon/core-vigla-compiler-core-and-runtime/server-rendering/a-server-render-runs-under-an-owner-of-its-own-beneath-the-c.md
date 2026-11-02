@@ -12,9 +12,9 @@ sources:
   - kind: file
     ref: packages/vigla/src/runtime/server/context.ts
   - kind: file
-    ref: packages/vigla/src/runtime/server/render.ts
-  - kind: file
     ref: packages/vigla/src/runtime/server/hydration.ts
+  - kind: file
+    ref: packages/vigla/src/runtime/server/render.ts
 ---
 `render()` creates a root owner under the owner current at the call — a request's, when an application renders inside `owner.run` — makes it the owner of the synchronous render and of every continuation `save` restores, and disposes it when the render ends: at once for a synchronous render, after settlement for an asynchronous one, on a thrown error too. Disposal is the render's lifetime: its abort signal ends with the stale-reaction reason, and roots linked under it die with it. Selecting a separate owner inside a render keeps that owner's abort signal and teardown registrations with its own lifetime. Component `onDestroy` callbacks are teardowns of the render's owner ([[27516cba]]).
 

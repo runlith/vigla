@@ -5,10 +5,10 @@ ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/dom/hydration.ts
-    symbol: resumeHydration
-  - kind: symbol
     ref: packages/vigla/src/runtime/dom/async.ts
     symbol: save
+  - kind: symbol
+    ref: packages/vigla/src/runtime/dom/hydration.ts
+    symbol: resumeHydration
 ---
 Several await continuations can resume before either queued cleanup runs. Restoring a saved previous boolean would let one cleanup restore another continuation's temporary hydration mode, so each continuation owns a removable segment and cleanup restores the newest live segment or the ambient mode when none remains.

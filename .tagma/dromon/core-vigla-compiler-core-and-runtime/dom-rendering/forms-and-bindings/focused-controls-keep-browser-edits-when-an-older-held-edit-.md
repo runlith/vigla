@@ -9,10 +9,10 @@ sources:
     symbol: BindingEdits
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/bindings.ts
-    symbol: markEdits
+    symbol: bindValue
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/bindings.ts
-    symbol: bindValue
+    symbol: markEdits
   - kind: symbol
     ref: packages/vigla/src/runtime/dom/select.ts
     symbol: bindSelect

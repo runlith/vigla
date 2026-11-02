@@ -8,8 +8,8 @@ edges:
     to: 01a185b6-09f2-796e-90b2-9faa07b61535
 sources:
   - kind: file
-    ref: packages/vigla/src/entries/compiler.ts
-  - kind: file
     ref: packages/svelte/src/compiler/index.ts
+  - kind: file
+    ref: packages/vigla/src/entries/compiler.ts
 ---
 `compile` and `compileModule` take `runtime`, the specifiers generated code imports its client and server runtime from; absent, `vigla/internal/client` and `vigla/internal/server`. The Svelte adapter passes `svelte/internal/client` and `svelte/internal/server`: an app that switches by aliasing `svelte` declares only `svelte`, so under a strict install `vigla`, a dependency of the adapter, need not resolve from its source files, and vite-plugin-svelte builds its prebundling lists from the `svelte` package's exports. Both names still reach one runtime instance because each adapter entry re-exports the matching core entry, and the core stays free of the `svelte` name. `runtime.names` may rename generated helper calls: the adapter uses it for upstream's effect-helper spellings, re-exporting those names over the same core operations.

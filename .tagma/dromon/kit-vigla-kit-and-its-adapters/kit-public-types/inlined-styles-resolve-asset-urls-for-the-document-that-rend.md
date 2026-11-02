@@ -5,9 +5,9 @@ ord: 6
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/kit/src/types/internal/server.ts
-  - kind: file
     ref: packages/kit/src/build/manifest.ts
+  - kind: file
+    ref: packages/kit/src/types/internal/server.ts
   - kind: file
     ref: packages/kit/src/vite/styles.ts
 ---

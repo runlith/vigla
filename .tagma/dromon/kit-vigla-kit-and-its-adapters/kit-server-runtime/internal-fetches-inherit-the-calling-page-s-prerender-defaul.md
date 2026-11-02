@@ -5,10 +5,10 @@ ord: 20
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/kit/src/server/respond.ts
+    ref: packages/kit/src/server/endpoint.ts
   - kind: file
     ref: packages/kit/src/server/page.ts
   - kind: file
-    ref: packages/kit/src/server/endpoint.ts
+    ref: packages/kit/src/server/respond.ts
 ---
 An endpoint with no explicit declaration can be a deployment dependency solely because a prerendered load fetches it. Losing the page's default at subrequest creation rejects that valid dependency; explicit endpoint declarations remain authoritative.
