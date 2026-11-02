@@ -243,9 +243,9 @@ export async function respond(
 			? 'ignore'
 			: route && (url.pathname === base || url.pathname === `${base}/`)
 				? 'always'
-				: useEndpoint
-					? (endpoint!.trailingSlash ?? 'never')
-					: pageSettings(nodes).trailingSlash;
+				: route?.page
+					? pageSettings(nodes).trailingSlash
+					: (endpoint?.trailingSlash ?? 'never');
 		if (options.emulator?.platform && route) {
 			const config = endpoint
 				? (endpoint.config ?? {})

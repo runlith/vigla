@@ -961,6 +961,8 @@ options/test/paths.test.js > assets path > serves static assets with correct pre
 options/test/paths.test.js > base path > loads CSS (test-build-3/chromium-build)
 options/test/paths.test.js > base path > paths available on server side (test-dev-3/chromium-dev)
 options/test/paths.test.js > base path > paths available on server side (test-dev-3/chromium-dev-no-js)
+options/test/paths.test.js > base path > server load fetch to root does not invoke the server (test-dev-3/chromium-dev)
+options/test/paths.test.js > base path > server load fetch to root does not invoke the server (test-dev-3/chromium-dev-no-js)
 options/test/paths.test.js > base path > serves / (test-build-3/chromium-build)
 options/test/paths.test.js > base path > serves a useful 404 when visiting unprefixed path (test-build-3/chromium-build)
 options/test/paths.test.js > base path > sets params correctly (test-build-3/chromium-build)
