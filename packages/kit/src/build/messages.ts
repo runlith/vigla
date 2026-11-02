@@ -125,6 +125,12 @@ export function prerender_root_non_html({ base }: { base: string }): never {
 		prerender_root_non_html
 	);
 }
+export function prerender_redirect_location_missing({ path }: { path: string }): void {
+	warnDiagnostic(
+		'prerender_redirect_location_missing',
+		`\`location\` header missing on redirect received from \`${path}\``
+	);
+}
 export function prerender_client_address(): never {
 	throwDiagnostic(
 		'prerender_client_address',

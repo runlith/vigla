@@ -1,10 +1,12 @@
 import path from 'node:path';
-import { resolveRoute } from '../shared/routing/index.ts';
+import { uneval } from 'devalue';
+import { routeSegments } from '../shared/routing/index.ts';
 import { addDataSuffix } from '../shared/pathname.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import { encodeArgument } from '../shared/remote.ts';
 import type { RemotePrerenderInternals } from '../types/internal/remote.ts';
 import type { PrerenderDependency } from '../types/internal/server.ts';
+import { createReadableStream } from '../node/index.ts';
 import { crawl } from './crawl.ts';
 import { walk, write } from './files.ts';
 import type { PolicyReporter, PrerenderJob, PrerenderResult } from './jobs.ts';
@@ -69,6 +71,9 @@ export async function prerender(
 		else remoteEntries.push(remotePrefix + internals.id);
 	}
 	const remoteResponses = new Map<string, Promise<any>>();
+	const saved = new Map<string, string>();
+	const emitted = reader(path.join(job.directory, 'server'));
+	const assets = reader(job.assets);
 	const queue = new Queue(job.concurrency);
 	const known = new Set(walk(path.join(job.directory, 'client')));
 	known.add(runtime.manifest.app_dir + '/env.js');
@@ -105,22 +110,26 @@ export async function prerender(
 					message: e.prerender_entry_generator_mismatch(expected, pathname, id ?? pathname)
 				}
 			});
+		if (id) visitedRoutes.add(id);
 		if (response.status === 204) return;
 		if (response.status >= 300 && response.status < 400) {
-			if (id) visitedRoutes.add(id);
-			if (!result.prerendered.paths.includes(pathname)) result.prerendered.paths.push(pathname);
 			const location = response.headers.get('location');
-			if (!location) throw new Error(`Redirect from ${pathname} has no location header`);
+			if (!location) {
+				e.prerender_redirect_location_missing({ path: pathname });
+				return;
+			}
+			enqueue(new URL(location, url).href, pathname);
+			if (response.headers.has('x-sveltekit-normalize')) return;
+			if (!result.prerendered.paths.includes(pathname)) result.prerendered.paths.push(pathname);
 			result.prerendered.redirects.set(pathname, { status: response.status, location });
 			const file = filename(pathname, true);
 			if (!written.has(file)) {
 				write(
 					path.join(target, 'pages', file),
-					`<!doctype html><meta http-equiv="refresh" content="0;url=${escapeHtml(location, true)}">`
+					`<script>location.href=${uneval(location)};</script><meta http-equiv="refresh" content="${escapeHtml(`0;url=${location}`, true)}">`
 				);
 				written.add(file);
 			}
-			enqueue(new URL(location, url).href, pathname);
 			return;
 		}
 		if (response.status !== 200) {
@@ -136,7 +145,6 @@ export async function prerender(
 			});
 			return;
 		}
-		if (id) visitedRoutes.add(id);
 		const type = response.headers.get('content-type') ?? 'application/octet-stream';
 		const html = type.split(';')[0] === 'text/html';
 		if (!html && pathname.slice(job.base.length + 1) === '')
@@ -153,6 +161,8 @@ export async function prerender(
 		if (!written.has(file)) {
 			write(destination, body);
 			written.add(file);
+			saved.set(file, destination);
+			runtime.manifest.assets.add(file);
 			if (html) result.prerendered.pages.set(pathname, { file });
 			else result.prerendered.assets.set(pathname, { type });
 		}
@@ -188,7 +198,12 @@ export async function prerender(
 			},
 			prerendering: { fallback: false, insideReroute: false, dependencies, remoteResponses },
 			emulator: runtime.emulator,
-			read: reader(job.assets)
+			read: (file) =>
+				saved.has(file)
+					? createReadableStream(saved.get(file)!)
+					: file.startsWith(`${runtime.manifest.app_dir}/`)
+						? emitted(file)
+						: assets(file)
 		});
 		await save(url, response, new Uint8Array(await response.arrayBuffer()), referrer, expected);
 		for (const [href, dependency] of dependencies) {
@@ -263,8 +278,9 @@ export async function prerender(
 		}
 		for (const [id, metadata] of job.analysis.routes) {
 			if (!metadata.prerender) continue;
-			if (!runtime.manifest.routes.find((route) => route.id === id)?.params.length)
-				enqueue(job.base + resolveRoute(id, {}), null);
+			const segments = routeSegments(id).filter((segment) => !segment.startsWith('[['));
+			if (!segments.some((segment) => segment.includes('[')))
+				enqueue(`${job.base}/${segments.join('/')}`, null);
 		}
 	}
 	for (const [id, metadata] of job.analysis.routes)
