@@ -8,4 +8,4 @@ sources:
     ref: packages/kit/src/vite/build.ts
     symbol: buildPlugin
 ---
-Applications may use import.meta.url to associate an endpoint with its neighboring route modules. Source-relative entry directories and module names keep that identity meaningful after bundling; ordinal output names make those relationships depend on route-table ordering and break endpoint consumers.
+Applications may inspect import.meta.url to recognize an endpoint's route directory and module name. Source-relative output keeps that identity meaningful after bundling; ordinal names make it depend on route-table ordering and break consumers that validate where an endpoint call originated.
