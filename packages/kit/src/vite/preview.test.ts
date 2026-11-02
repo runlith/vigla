@@ -88,7 +88,7 @@ beforeAll(async () => {
 				paths: { base: '/base', assets: input.assets, relative: false },
 				env: { set: () => ({ public: {}, private: {}, rendered: {} }) },
 				serviceWorker: null, version: { name: 'fixture', pollInterval: 0 },
-				output: { preloadStrategy: 'modulepreload', bundleStrategy: 'split', linkHeaderPreload: false },
+				output: { bundleStrategy: 'split', linkHeaderPreload: false },
 				router: { type: 'pathname', resolution: 'client' }, embedded: false, tracing: { server: false },
 				dev: false, building: false, prerendering: false
 			});

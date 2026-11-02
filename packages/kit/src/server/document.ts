@@ -32,6 +32,13 @@ export interface PageDocument {
 	csr: boolean;
 }
 
+function scriptString(value: string): string {
+	return value.replace(
+		/[\\'<\n\r]/g,
+		(char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`
+	);
+}
+
 export async function renderDocument(
 	server: Server,
 	store: RequestStore,
@@ -197,13 +204,8 @@ export async function renderDocument(
 		const client = manifest.client;
 		for (const file of imports) {
 			const path = clientPath(file, paths);
-			if (!client.inline && preload({ type: 'js', path })) {
-				const relation =
-					options.output.preloadStrategy === 'modulepreload'
-						? 'rel="modulepreload"'
-						: 'rel="preload" as="script" crossorigin';
-				link(file, relation, relation.replaceAll(' ', '; '));
-			}
+			if (!client.inline && preload({ type: 'js', path }))
+				link(file, 'rel="modulepreload"', 'rel="modulepreload"');
 		}
 		const fallback = !!state.prerendering?.fallback;
 		const base = !options.paths.relative
@@ -247,7 +249,7 @@ export async function renderDocument(
 				: `const element=document.currentScript.parentElement;const appPromise=${prepare}.then(()=>import(${escapeJson(clientPath(client.start, paths))}));${namespace}.ready=appPromise.then(app=>{app.init?.(${namespace});});${namespace}.ready.then(async()=>{const app=await appPromise;return app.start(element,${hydrated});});`;
 		const worker = options.serviceWorker;
 		const registration = worker
-			? `if('serviceWorker' in navigator){const script_url=${escapeJson(clientPath(worker.file, paths))};const policy=globalThis.window?.trustedTypes?.createPolicy('sveltekit-trusted-url',{createScriptURL(url){return url;}});const sanitised=policy?.createScriptURL(script_url)??script_url;addEventListener('load',function(){navigator.serviceWorker.register(sanitised, ${escapeJson({ ...worker.options, type: 'module' })});});}`
+			? `if('serviceWorker' in navigator){const script_url = '${scriptString(clientPath(worker.file, paths))}';const policy=globalThis.window?.trustedTypes?.createPolicy('sveltekit-trusted-url',{createScriptURL(url){return url;}});const sanitised=policy?.createScriptURL(script_url)??script_url;addEventListener('load',function(){navigator.serviceWorker.register(sanitised, ${escapeJson({ ...worker.options, type: 'module' })});});}`
 			: '';
 		const script = `{globalThis.${namespace}={${properties.join(',')}};${boot}${registration}}`;
 		await csp.script(script);
@@ -267,8 +269,13 @@ export async function renderDocument(
 			chunks = null;
 		} else chunks = renderedChunks();
 	}
-	if (prerender) head.unshift(csp.meta());
-	else csp.apply(headers);
+	if (prerender) {
+		const cache = state.prerendering?.cache;
+		head.unshift(
+			csp.meta() +
+				(cache ? `<meta http-equiv="cache-control" content="${escapeHtml(cache, true)}">` : '')
+		);
+	} else csp.apply(headers);
 	if (links.length) headers.set('link', links.join(', '));
 	const html = options.templates.app({
 		head: head.join('\n'),

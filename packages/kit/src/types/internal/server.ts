@@ -189,7 +189,6 @@ export interface ServerVersion {
 }
 
 export interface ServerOutput {
-	preloadStrategy: 'modulepreload' | 'preload-js' | 'preload-mjs';
 	bundleStrategy: 'split' | 'single' | 'inline';
 	linkHeaderPreload: boolean;
 }
@@ -280,6 +279,7 @@ export interface PrerenderState {
 	insideReroute: boolean;
 	dependencies: Map<string, PrerenderDependency>;
 	remoteResponses?: Map<string, Promise<any>>;
+	cache?: string;
 }
 
 export interface RespondOptions {

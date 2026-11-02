@@ -82,7 +82,7 @@ async function app(fixture: Fixture): Promise<Server> {
 		env: { set: () => ({ public: {}, private: {}, rendered: {} }) },
 		serviceWorker: null,
 		version: { name: 'remote', pollInterval: 0 },
-		output: { preloadStrategy: 'modulepreload', bundleStrategy: 'split', linkHeaderPreload: false },
+		output: { bundleStrategy: 'split', linkHeaderPreload: false },
 		router: { type: 'pathname', resolution: 'client' },
 		embedded: false,
 		tracing: { server: false },

@@ -16,6 +16,7 @@ import { respond } from './respond.ts';
 import { configureEnvironment } from './environment.ts';
 import { configurePaths } from './paths.ts';
 import { configureRead } from './read.ts';
+import { configureTransport } from './transport.ts';
 
 export class Server implements ServerInstance {
 	readonly manifest: ServerManifest;
@@ -56,6 +57,7 @@ export class Server implements ServerInstance {
 			await this.configure(options);
 			await this.tracer.init(this.options.tracing.server);
 			this.hooks = await this.options.getHooks();
+			configureTransport(this.hooks.transport);
 			await this.hooks.init?.();
 		})());
 	}

@@ -87,7 +87,7 @@ function options(hooks: ServerHooks = {}): ServerOptions {
 		},
 		serviceWorker: null,
 		version: { name: 'test', pollInterval: 0 },
-		output: { preloadStrategy: 'modulepreload', bundleStrategy: 'split', linkHeaderPreload: false },
+		output: { bundleStrategy: 'split', linkHeaderPreload: false },
 		router: { type: 'pathname', resolution: 'client' },
 		embedded: false,
 		tracing: { server: false },

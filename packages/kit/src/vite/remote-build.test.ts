@@ -147,7 +147,7 @@ export { saved as two } from './two/data.remote.js';
 		env: { set: () => ({ public: {}, private: {}, rendered: {} }) },
 		serviceWorker: null,
 		version: { name: 'test', pollInterval: 0 },
-		output: { preloadStrategy: 'modulepreload', bundleStrategy: 'split', linkHeaderPreload: false },
+		output: { bundleStrategy: 'split', linkHeaderPreload: false },
 		router: { type: 'pathname', resolution: 'client' },
 		embedded: false,
 		tracing: { server: false },

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { uneval } from 'devalue';
 import { resolveRoute } from '../shared/routing/index.ts';
-import { addDataSuffix } from '../shared/pathname.ts';
+import { addDataSuffix, addResolutionSuffix } from '../shared/pathname.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import { encodeArgument } from '../shared/remote.ts';
 import type { RemotePrerenderInternals } from '../types/internal/remote.ts';
@@ -121,6 +121,7 @@ export async function prerender(
 			const resolved = new URL(location, url);
 			enqueue(resolved.href, pathname);
 			if (response.headers.has('x-sveltekit-normalize')) return;
+			enqueueData(url, pathname, id);
 			if (!result.prerendered.paths.includes(pathname)) result.prerendered.paths.push(pathname);
 			result.prerendered.redirects.set(pathname, {
 				status: response.status,
@@ -187,15 +188,28 @@ export async function prerender(
 					}
 				});
 			if (job.crawl) for (const href of found.hrefs) enqueue(href, pathname);
-			const route = runtime.manifest.routes.find((route) => route.id === id);
-			if (
-				route?.page &&
-				[...route.page.layouts, route.page.leaf].some(
-					(index) => index !== undefined && job.analysis.nodes[index]?.hasServerLoad
-				)
-			)
-				enqueue(addDataSuffix(url.pathname), pathname);
+			enqueueData(url, pathname, id);
+			if (runtime.manifest.client?.routes) {
+				enqueue(addResolutionSuffix(url.pathname), pathname);
+				if (id)
+					enqueue(
+						addResolutionSuffix(
+							`${job.base}/${runtime.manifest.app_dir}/routes${id === '/' ? '' : id}`
+						),
+						pathname
+					);
+			}
 		}
+	}
+	function enqueueData(url: URL, pathname: string, id: string | null): void {
+		const route = runtime.manifest.routes.find((route) => route.id === id);
+		if (
+			route?.page &&
+			[...route.page.layouts, route.page.leaf].some(
+				(index) => index !== undefined && job.analysis.nodes[index]?.hasServerLoad
+			)
+		)
+			enqueue(addDataSuffix(url.pathname), pathname);
 	}
 	async function visit(url: URL, referrer: string | null, expected?: string): Promise<void> {
 		const dependencies = new Map<string, PrerenderDependency>();

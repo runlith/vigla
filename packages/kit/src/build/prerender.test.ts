@@ -15,6 +15,7 @@ import type {
 	ServerOptions,
 	ServerRoute
 } from '../types/internal/server.ts';
+import { redirect } from '../entries/index.ts';
 import { resolveConfig, validateConfig } from '../config/index.ts';
 import { parseRoute } from '../shared/routing/index.ts';
 import { encodeArgument } from '../shared/remote.ts';
@@ -83,7 +84,7 @@ async function app(fixture: Fixture): Promise<Runtime> {
 		env: { set: () => ({ public: {}, private: {}, rendered: {} }) },
 		serviceWorker: null,
 		version: { name: 'test', pollInterval: 0 },
-		output: { preloadStrategy: 'modulepreload', bundleStrategy: 'split', linkHeaderPreload: false },
+		output: { bundleStrategy: 'split', linkHeaderPreload: false },
 		router: { type: 'pathname', resolution: 'client' },
 		embedded: false,
 		tracing: { server: false },
@@ -393,6 +394,30 @@ test('reroute-fetched prerendered endpoints without entries retain their body an
 			'utf8'
 		)
 	).toContain('<output>destination</output>');
+});
+
+test('`*` seeds escaped static routes and redirect metadata carries the resolved location', async () => {
+	const runtime = await app({
+		functions: {},
+		load: ({ url }) => {
+			if (url.pathname === '/nested/old') redirect(307, 'next');
+			return { value: url.pathname };
+		}
+	});
+	const route = (id: string): ServerRoute => ({
+		id,
+		...parseRoute(id),
+		page: { layouts: [], errors: [], leaf: 0 },
+		endpoint: null
+	});
+	runtime.manifest.routes = ['/hello[x+20]world', '/nested/old', '/nested/next'].map(route);
+	const input = await job(runtime, 'escaped-redirect');
+	const result = await prerender(input, runtime, fail);
+	expect(result.prerendered.pages.has('/hello world')).toBe(true);
+	expect(result.prerendered.redirects.get('/nested/old')).toEqual({
+		status: 307,
+		location: '/nested/next'
+	});
 });
 
 test('an input generator failure rejects prerendering without turning it into an HTTP policy issue', async () => {

@@ -135,7 +135,12 @@ export async function respond(
 			: options.platform,
 		request,
 		route: { id: null as string | null },
-		setHeaders: headers.set,
+		setHeaders: (values: Record<string, string>) => {
+			headers.set(values);
+			if (state.prerendering)
+				for (const [name, value] of Object.entries(values))
+					if (name.toLowerCase() === 'cache-control') state.prerendering.cache = value;
+		},
 		url,
 		isDataRequest: data,
 		isSubRequest: !!parent,
