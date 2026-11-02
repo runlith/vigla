@@ -5,7 +5,8 @@ ord: 4
 tags: ["task"]
 fields:
   {
-    "status": "open"
+    "holder": "tagma:01a19c39-11c0-7140-9b1c-8da3de24b8d1",
+    "status": "in_work"
   }
 ---
 Implement the coupled compiler and runtime DEV binding-validation producer for binding-property-static DOM/hydrate: warn for the five plain or raw property bindings while keeping reactive proxies and accessors quiet. Preserve actual value/control semantics, ignore metadata and adapter-owned diagnostic presentation; prove scoped public cases and land exact manual passing rows with source.
