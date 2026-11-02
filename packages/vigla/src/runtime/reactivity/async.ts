@@ -215,6 +215,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 	});
 	const effect: Effect = block(() => {
 		const batch = current();
+		let order = Math.max(rank(batch), realOrder(true));
 		latest.get(batch)?.supersede();
 		const done = initial ? null : work();
 		initial = false;
@@ -222,7 +223,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		let owned = true;
 		const token: AsyncRun = {
 			stale() {
-				return changed(run.values);
+				return changed(run.values, run.reaction);
 			},
 			supersede() {
 				if (!owned) return;
@@ -232,6 +233,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			},
 			adopt(into) {
 				move(target, into);
+				order = Math.max(order, rank(into));
 				if (owned) {
 					latest.delete(target);
 					latest.set(into, token);
@@ -258,14 +260,13 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			latest.delete(target);
 			const current = alias(target);
 			if (effect.destroyed || current.discarded) return false;
-			return current.fork || rank(current) >= realOrder(true);
+			return current.fork || order >= realOrder(true);
 		};
 		promise.then(
 			(value) => {
 				if (own()) {
 					within(batch, () => {
 						const holder = alias(target);
-						const order = rank(holder);
 						if (holder.fork || order >= realOrder()) write(signal, value);
 						else inside(holder, () => stage(holder, signal, value));
 						retain(current(), run, order);

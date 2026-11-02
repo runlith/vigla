@@ -1,5 +1,5 @@
 import { DEV } from 'esm-env';
-import type { Batch } from './batch.ts';
+import { revisit, type Batch } from './batch.ts';
 import { computed, traced, tracedRun, tracing } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
 import { capture, clear as clearReads, retain } from './reads.ts';
@@ -606,6 +606,18 @@ function settleRun(target: Reaction, current: Frame): void {
 	retain(target, current);
 	target.rv = now();
 	target.status = invalidated ? DIRTY : CLEAN;
+}
+
+export function validate<T>(target: Reaction, fn: () => T): T {
+	const previous = frame;
+	const current = opened(target);
+	try {
+		return fn();
+	} finally {
+		closed(previous);
+		if (!isDerived(target)) revisit(target as Effect, current.hidden);
+		finished(current);
+	}
 }
 
 export function takeHidden(): Set<Batch> | null {

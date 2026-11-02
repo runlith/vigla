@@ -1,6 +1,16 @@
 import { refresh } from './deriveds.ts';
-import { CLEAN, DIRTY, MAYBE, equal, isDerived, type Reaction, type Source } from './graph.ts';
-import { affected, get, untrack, view } from './tracking.ts';
+import {
+	BLOCK,
+	CLEAN,
+	DIRTY,
+	MAYBE,
+	equal,
+	isDerived,
+	type Effect,
+	type Reaction,
+	type Source
+} from './graph.ts';
+import { affected, get, validate, view } from './tracking.ts';
 
 const collecting = new WeakMap<object, Map<Source, unknown>>();
 const observed = new WeakMap<Reaction, Map<Source, unknown>>();
@@ -21,8 +31,8 @@ export function clear(frame: object): void {
 	collecting.delete(frame);
 }
 
-export function changed(reads: ReadonlyMap<Source, unknown>): boolean {
-	return untrack(() => {
+export function changed(reads: ReadonlyMap<Source, unknown>, target: Reaction): boolean {
+	return validate(target, () => {
 		for (const [source, value] of reads) if (!equal(source, value, get(source))) return true;
 		return false;
 	});
@@ -31,9 +41,12 @@ export function changed(reads: ReadonlyMap<Source, unknown>): boolean {
 export function stale(target: Reaction, recheck = false): boolean {
 	if (recheck) {
 		if (target.deps === null) return true;
+		const effect = target as Effect;
+		if (effect.kind === BLOCK && effect.forked !== 0 && effect.forked !== view?.batch.order)
+			return true;
 		const reads = observed.get(target);
 		if (reads !== undefined) {
-			const dirty = changed(reads);
+			const dirty = changed(reads, target);
 			if (!dirty) target.status = CLEAN;
 			return dirty;
 		}

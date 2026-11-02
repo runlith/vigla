@@ -136,6 +136,36 @@ test('a merged batch can publish a later run through a restored continuation', a
 	}
 });
 
+test('an older held batch publishes a fresh run after a newer commit', async () => {
+	const scope = root();
+	const a = state(1);
+	const b = state(2);
+	const queued: (() => void)[] = [];
+	try {
+		const result = await scope.run(() =>
+			asyncDerived(() => {
+				const value = get(a) + get(b);
+				return value === 3
+					? value
+					: new Promise<number>((resolve) => queued.push(() => resolve(value)));
+			})
+		);
+		set(a, 2);
+		flushSync();
+		set(b, 3);
+		flushSync();
+		queued.pop()!();
+		await setImmediate();
+		assert.equal(get(result), 4);
+		queued.pop()!();
+		await settled();
+		assert.equal(get(result), 5);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
 test('a speculative async result cannot suppress a real publication', async () => {
 	const scope = root();
 	const value = state(0);
