@@ -1,6 +1,7 @@
 import type * as ES from 'estree';
 import { hash } from '../../shared/hash.ts';
 import { hasAwait, unsupported } from '../analysis/index.ts';
+import { nameOf } from '../analysis/validate/report.ts';
 import * as b from '../ir/estree.ts';
 import { isCapture } from '../../shared/html.ts';
 import type { Binding as BindingNode, Fragment, Special, Title } from '../ir/nodes.ts';
@@ -133,7 +134,7 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				if (attribute.value.kind !== 'expression' || !/^on/i.test(attribute.name)) {
 					throw unsupported(
 						attribute,
-						`The ${attribute.name} attribute on the ${node.target} target`
+						`The ${attribute.name} attribute on <${nameOf(node.target)}>`
 					);
 				}
 				let type = attribute.name.slice(2).toLowerCase();
@@ -159,10 +160,7 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				statements.push(attachCall(context, target, attribute));
 				break;
 			default:
-				throw unsupported(
-					attribute,
-					`The ${attribute.kind} directive on the ${node.target} target`
-				);
+				throw unsupported(attribute, `The ${attribute.kind} directive on <${nameOf(node.target)}>`);
 		}
 	}
 	return statements;

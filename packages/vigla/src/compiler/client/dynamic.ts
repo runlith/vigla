@@ -1,5 +1,6 @@
 import type * as ES from 'estree';
 import { unsupported } from '../analysis/index.ts';
+import { nameOf } from '../analysis/validate/report.ts';
 import * as b from '../ir/estree.ts';
 import type { DynamicElement, Transition } from '../ir/nodes.ts';
 import { binding, hasContentBinding } from './bindings.ts';
@@ -63,7 +64,7 @@ export function dynamicCall(
 				attributes = true;
 				break;
 			default:
-				throw unsupported(attribute, `The ${attribute.kind} directive on a dynamic element`);
+				throw unsupported(attribute, `The ${attribute.kind} directive on <${nameOf('element')}>`);
 		}
 	}
 	if (attributes) spread(context, node, element, emit);

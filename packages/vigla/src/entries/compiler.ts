@@ -9,6 +9,7 @@ import {
 	validateModule,
 	type ValidateOptions
 } from '../compiler/analysis/validate/index.ts';
+import { speaking } from '../compiler/analysis/validate/report.ts';
 import { client, clientModule, type Fragments } from '../compiler/client/index.ts';
 import { analyzeStyle, injected, renderStyle, type Stylesheet } from '../compiler/css/index.ts';
 import type { Namespace } from '../compiler/ir/nodes.ts';
@@ -122,6 +123,14 @@ function printed(program: ES.Program, unit: ComponentUnit | ModuleUnit, mapping:
 }
 
 export function compile(unit: ComponentUnit, options: CompileOptions): Output {
+	return speaking(options.validation?.wording, () => component(unit, options));
+}
+
+export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output {
+	return speaking(options.validation?.wording, () => module(unit, options));
+}
+
+function component(unit: ComponentUnit, options: CompileOptions): Output {
 	const validated = validateComponent(unit, {
 		...options.validation,
 		customElement: options.customElement ?? options.validation?.customElement,
@@ -176,7 +185,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 	return { js: printed(program, unit, options), css: inject ? null : css, warnings };
 }
 
-export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output {
+function module(unit: ModuleUnit, options: ModuleOptions): Output {
 	const warnings = validateModule(unit, options.validation);
 	const analysis = analyzeModule(unit);
 	const runtime = options.runtime ?? runtimes;
