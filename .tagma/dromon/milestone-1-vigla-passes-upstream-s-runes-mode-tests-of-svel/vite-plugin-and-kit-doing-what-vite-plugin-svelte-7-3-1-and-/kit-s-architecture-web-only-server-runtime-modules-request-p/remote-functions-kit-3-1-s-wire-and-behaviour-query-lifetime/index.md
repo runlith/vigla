@@ -21,7 +21,7 @@ edges:
   - batching per microtask;
   - live queries over the stream, with reconnection;
   - a command or form applying the refreshes its response carries;
-  - forms with `fields`, issues, `enhance`, `for(id)` instances and `preflight`;
+  - forms with `fields`, issues, `enhance`, `for(id)` instances and `preflight`; field edits leave sibling controls untouched, and `fields.value()` returns a detached snapshot;
   - prerendered results.
 - `kit-vite` (`vite/remote.ts`): the transform of `*.remote.*` modules.
   - On the server environment it appends a registration through `<kit>/internal/server` that gives every export its id `<hash>/<name>`, where `<hash>` hashes the file's path from the root.
