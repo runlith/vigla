@@ -5,7 +5,7 @@ ord: 17
 tags: ["spec"]
 fields:
   {
-    "status": "closed"
+    "status": "open"
   }
 edges:
   - kind: relates
@@ -22,7 +22,10 @@ edges:
 4. Async services: work started under an owner counts in `settled()`, is cancelled through the owner's signal on dispose, and re-enters its owner after `await` through `owner.run`; plain JavaScript continuations carry no ambient owner, and compiled code restores it itself.
 5. Server request scopes: a request owner carries services and context into `render()`, and disposing it ends every render owner, signal and teardown beneath it.
 6. External sources and subscribers (`external`, `createSubscriber`) live under service owners and release on dispose.
-7. Several independent applications in one realm keep isolated contexts and lifetimes.
+7. Several independent applications in one realm keep isolated contexts and lifetimes, and neither one's pending work nor its unhandled failure reaches the other's flush or settlement.
+8. Background service work started under an owner never holds unrelated writes from reaching the screen; holding a batch is an explicit, separate act.
+9. Disposing an owner releases everything created under it — services after their dependents, mounted DOM and its listeners — and no lifecycle registration outside an owner is silently dropped.
+10. On the server, a request's ambient owner never reaches another request's continuation, and owned derived values follow their cells.
 
 **Acceptance.**
 - A public-contract scenario suite in `packages/vigla` covers 1–7 on the client entry and the server variants of 2, 5 and 7, importing only public `vigla` entries; it is recorded and green.
