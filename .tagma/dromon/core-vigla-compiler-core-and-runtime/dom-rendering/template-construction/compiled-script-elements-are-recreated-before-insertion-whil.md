@@ -1,7 +1,7 @@
 ---
 id: 01a19c4f-3497-780a-8466-75b98a6014d7
 title: Compiled script elements are recreated before insertion while raw HTML stays inert
-ord: 31
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol

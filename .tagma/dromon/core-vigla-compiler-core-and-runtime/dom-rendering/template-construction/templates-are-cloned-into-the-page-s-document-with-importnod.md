@@ -1,7 +1,7 @@
 ---
 id: 01a1878d-0a4c-78ad-8e38-8870fd049d9e
 title: Templates are cloned into the page's document with `importNode`, in every browser
-ord: 3
+ord: 1
 tags: ["explanation"]
 sources:
   - kind: file
