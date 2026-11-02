@@ -217,7 +217,7 @@ export async function renderDocument(
 					: escapeJson(paths.base);
 		const properties = [
 			`base:${base}`,
-			`assets:${escapeJson(paths.assets)}`,
+			...(options.paths.assets ? [`assets:${escapeJson(options.paths.assets)}`] : []),
 			`version:${escapeJson(options.version.name)}`,
 			`version_poll_interval:${options.version.pollInterval}`,
 			`app_dir:${escapeJson(manifest.app_dir)}`,

@@ -19,7 +19,7 @@ export function init(value: ClientPayload): ClientGlobal {
 	payload = value;
 	hashRouting = value.hash ?? false;
 	base = value.base ?? '';
-	assets = value.assets ?? '';
+	assets = value.assets ?? base;
 	appDir = value.app_dir ?? '_app';
 	version = value.version ?? '';
 	env = value.env ?? {};
