@@ -66,6 +66,13 @@ async function app(fixture: Fixture): Promise<Runtime> {
 				fonts: [],
 				component: async () => () => {},
 				server: { prerender: true, load: fixture.load }
+			}),
+			async () => ({
+				index: 1,
+				imports: [],
+				stylesheets: [],
+				fonts: [],
+				component: async () => () => {}
 			})
 		]
 	};
