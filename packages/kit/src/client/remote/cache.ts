@@ -37,6 +37,7 @@ export class Remotes {
 	readonly channel: Channel;
 	readonly #input: Owner;
 	readonly #entries = new Map<string, Entry>();
+	readonly #flights = new Map<string, QueryFlight>();
 	readonly #seeds = new Map<string, RemoteNode>();
 	readonly #claimed = new Set<string>();
 	readonly #batches = new Map<string, Batch>();
@@ -81,18 +82,21 @@ export class Remotes {
 		const holder = getOwner();
 		let entry = this.#entries.get(key);
 		if (!entry) {
-			const seed = this.seed(key);
+			const pending = this.#pending(key);
+			const seed = pending ? undefined : this.seed(key);
 			if (kind === 'prerender' && seed)
 				void Promise.resolve(seed)
 					.then((node) => {
 						if (!node.e) return this.persist(id, argument, node.v);
 					})
 					.catch(() => {});
-			const resource = this.owner.run(() =>
-				kind === 'query_live'
-					? new LiveQuery(this, id, argument, seed, holder === null)
-					: new Query(this, key, (flight) => this.load(kind, id, argument, flight), seed)
-			);
+			const resource =
+				pending ??
+				this.owner.run(() =>
+					kind === 'query_live'
+						? new LiveQuery(this, id, argument, seed, holder === null)
+						: new Query(this, key, (flight) => this.load(kind, id, argument, flight), seed)
+				);
 			if (holder === null) return resource;
 			const held: Entry = {
 				id,
@@ -121,6 +125,19 @@ export class Remotes {
 			);
 		}
 		return entry.resource;
+	}
+
+	track(flight: QueryFlight): void {
+		this.#flights.set(flight.key, flight);
+		const release = () => {
+			if (this.#flights.get(flight.key) === flight) this.#flights.delete(flight.key);
+		};
+		void flight.request.promise.then(release, release);
+	}
+
+	#pending(key: string): Query<any> | undefined {
+		const flight = this.#flights.get(key);
+		return flight?.resource.pending(flight.request) ? flight.resource : undefined;
 	}
 
 	#release(key: string, entry: Entry): void {
@@ -171,13 +188,13 @@ export class Remotes {
 					}
 					continue;
 				}
-				const entry = this.#entries.get(key);
-				if (entry) {
-					if (node.e) entry.resource.fail(new HttpError(node.e));
+				const resource = this.#entries.get(key)?.resource ?? this.#pending(key);
+				if (resource) {
+					if (node.e) resource.fail(new HttpError(node.e));
 					else {
-						entry.resource.set(node.v);
-						if (kind === 'query_live' && entry.resource instanceof LiveQuery)
-							void entry.resource.reconnect().catch(() => {});
+						resource.set(node.v);
+						if (kind === 'query_live' && resource instanceof LiveQuery)
+							void resource.reconnect().catch(() => {});
 					}
 				} else if (!node.e) this.#seeds.set(key, node);
 			}
@@ -372,6 +389,7 @@ export class Remotes {
 		for (const entry of this.#entries.values())
 			if (entry.resource instanceof LiveQuery) entry.resource.destroy();
 		this.#entries.clear();
+		this.#flights.clear();
 		this.#seeds.clear();
 		this.#claimed.clear();
 		this.#forms.clear();

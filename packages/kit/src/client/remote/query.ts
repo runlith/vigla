@@ -57,6 +57,12 @@ export class Query<T> extends Result<T> {
 		}
 	}
 
+	override begin(): PromiseWithResolvers<void> {
+		const request = super.begin();
+		this.#remotes.track({ key: this.#key, resource: this, request });
+		return request;
+	}
+
 	override start(): void {
 		if (untrack(() => this.promise.current) === undefined) void this.refresh().catch(() => {});
 	}

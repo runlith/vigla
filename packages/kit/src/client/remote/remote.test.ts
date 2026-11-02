@@ -214,6 +214,33 @@ test('a query first read after startup consumes its server hydration seed only o
 	expect(requests).toBe(1);
 });
 
+test('simultaneous ownerless awaits share a pending query that an owned reader can retain', async () => {
+	const read = query<void, number>('hash/shared');
+	const key = getRemoteKey('hash/shared', '');
+	const gate = Promise.withResolvers<void>();
+	let requests = 0;
+	let value = 1;
+	vi.stubGlobal('fetch', async () => {
+		requests++;
+		await gate.promise;
+		return response({ _: value, q: { [key]: { v: value } } });
+	});
+	const pending = Promise.all([read(), read(), read()]);
+	await vi.waitFor(() => expect(requests).toBeGreaterThan(0));
+	const reader = owner();
+	const retained = reader.run(() => read());
+	gate.resolve();
+	expect(await pending).toEqual([1, 1, 1]);
+	expect(requests).toBe(1);
+	expect(await retained).toBe(1);
+	expect(await read()).toBe(1);
+	reader.dispose();
+	await tick();
+	value = 2;
+	expect(await read()).toBe(2);
+	expect(requests).toBe(2);
+});
+
 test('batch queries deduplicate equal payloads into one microtask request', async () => {
 	const requests: string[][] = [];
 	vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
