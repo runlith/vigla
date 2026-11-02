@@ -298,7 +298,7 @@ export class Pages {
 			? await fetchData(intent.url, [true], this.transport, this.state).catch(() => null)
 			: null;
 		if (response) {
-			if (response.type !== 'data') throw new HandledError(body);
+			if (response.type === 'redirect') return response;
 			const node = response.nodes[0];
 			if (node?.type === 'error') throw new HandledError(node.error);
 			if (node && node.type !== 'data') throw new HandledError(body);
@@ -351,7 +351,9 @@ export class Pages {
 		for (const loader of intent.route.errors)
 			if (loader) void this.routes.load(loader).catch(() => {});
 		for (const entry of entries) if (entry) void this.routes.load(entry[1]).catch(() => {});
-		const moved = !!previous && this.routes.key(previous.url) !== this.routes.key(intent.url);
+		const page = (url: URL) =>
+			this.routes.hash ? url.hash.slice(1) + url.search : this.routes.key(url);
+		const moved = !!previous && page(previous.url) !== page(intent.url);
 		let parent = false;
 		const invalid = entries.map((entry, depth) => {
 			const old = previous?.branch[depth];
