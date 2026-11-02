@@ -183,7 +183,7 @@ export function serverGuard(getConfig: () => ValidatedConfig): Plugin {
 			return environment.config.consumer === 'client';
 		},
 		async resolveId(id, importer, options) {
-			if (!importer || importer.endsWith('/index.html')) return;
+			if (!importer || importer.endsWith('/index.html') || importer === packageImporter) return;
 			const resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
 			if (!resolved) return;
 			const file = posix(resolved.id.split('?')[0]!);
