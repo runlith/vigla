@@ -10,5 +10,8 @@ sources:
     ref: packages/vigla/src/compiler/server/asynchronous.ts
   - kind: file
     ref: packages/vigla/src/runtime/dom/async.ts
+  - kind: symbol
+    ref: packages/vigla/src/compiler/server/script.ts
+    symbol: asyncThunk
 ---
 An expression containing an await may still evaluate to a promise, as `(await input).pending` does in an await block. Async setup waits for the explicit await operations, not that final promise: the thunk returns a non-thenable box and consumers unwrap its value. Lifting individual awaits instead would change evaluation order around calls and assignments; returning the expression directly would assimilate its final promise and could prevent pending content from rendering.
