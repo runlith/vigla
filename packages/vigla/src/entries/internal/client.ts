@@ -32,7 +32,8 @@ export {
 	bindProperty,
 	bindSize,
 	bindThis,
-	bindValue
+	bindValue,
+	validateBinding
 } from '../../runtime/dom/bindings.ts';
 export {
 	bindCurrentTime,

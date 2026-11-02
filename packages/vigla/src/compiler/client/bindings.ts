@@ -1,7 +1,7 @@
 import type * as ES from 'estree';
 import { unsupported, type Binding } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
-import type { Binding as BindingNode, DynamicElement, Element } from '../ir/nodes.ts';
+import type { Binding as BindingNode, DynamicElement, Element, Node } from '../ir/nodes.ts';
 import { rewrite, runtime } from './script.ts';
 import type { Emit, TemplateContext } from './template.ts';
 
@@ -103,6 +103,41 @@ export function bindThisCall(
 	return runtime(context, 'bindThis', ...args);
 }
 
+export function validateBinding(
+	context: TemplateContext,
+	node: Node,
+	attribute: BindingNode
+): ES.Statement[] {
+	const expression = attribute.expression;
+	if (
+		!context.dev ||
+		expression.type !== 'MemberExpression' ||
+		context.externalRows ||
+		context.component.ignored.get(node)?.has('binding_property_non_reactive') ||
+		(attribute.name === 'this' && node.kind !== 'component' && !context.structural)
+	)
+		return [];
+	let base: ES.Node = expression;
+	while (base.type === 'MemberExpression') base = base.object;
+	if (base.type === 'Identifier' && context.analysis.externals.has(base)) return [];
+	const position = context.positions.at(attribute.start);
+	const property = expression.computed
+		? rewrite(context, expression.property as ES.Expression)
+		: b.literal((expression.property as ES.Identifier).name);
+	return [
+		b.statement(
+			runtime(
+				context,
+				'validateBinding',
+				b.literal(context.component.unit.source.slice(attribute.start, attribute.end)),
+				b.arrow([], rewrite(context, expression.object as ES.Expression)),
+				b.arrow([], property),
+				b.template(['', ':', ':', ''], [position.file!, position.line!, position.column!])
+			)
+		)
+	];
+}
+
 export function hasContentBinding(node: Element | DynamicElement): boolean {
 	return node.attributes.some(
 		(attribute) => attribute.kind === 'binding' && editable.has(attribute.name)
@@ -116,6 +151,7 @@ export function binding(
 ): (element: ES.Identifier, emit: Emit) => void {
 	const name = attribute.name;
 	return (element, emit) => {
+		emit.init.push(...validateBinding(context, node, attribute));
 		if (name === 'this') {
 			emit.init.push(b.statement(bindThisCall(context, element, attribute.expression)));
 			return;

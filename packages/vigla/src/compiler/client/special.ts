@@ -4,7 +4,7 @@ import { hasAwait, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import { isCapture } from '../../shared/html.ts';
 import type { Binding as BindingNode, Fragment, Special, Title } from '../ir/nodes.ts';
-import { accessors } from './bindings.ts';
+import { accessors, validateBinding } from './bindings.ts';
 import { asyncThunks } from './asynchronous.ts';
 import { actionCall, attachCall } from './directives.ts';
 import { handler, named } from './events.ts';
@@ -149,6 +149,7 @@ function targetCode(context: TemplateContext, node: Special): ES.Statement[] {
 				break;
 			}
 			case 'binding':
+				statements.push(...validateBinding(context, node, attribute));
 				statements.push(b.statement(targetBinding(context, target, attribute)));
 				break;
 			case 'action':

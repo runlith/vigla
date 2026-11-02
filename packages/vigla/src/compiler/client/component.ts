@@ -2,7 +2,7 @@ import type * as ES from 'estree';
 import { spanOf, unsupported } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Boundary, Component, Node, Render, Snippet } from '../ir/nodes.ts';
-import { bindThisCall } from './bindings.ts';
+import { bindThisCall, validateBinding } from './bindings.ts';
 import { snippetParameters } from './parameters.ts';
 import { valueOf } from './values.ts';
 import { accessor, rewrite, runtime } from './script.ts';
@@ -314,6 +314,10 @@ export function componentCall(
 	anchor: ES.Expression
 ): ES.Statement[] {
 	const declarations = snippetDeclarations(context, cleaned(context, node.body));
+	for (const attribute of node.attributes) {
+		if (attribute.kind === 'binding')
+			declarations.push(...validateBinding(context, node, attribute));
+	}
 	const props = propsObject(context, node, declarations);
 	const self = node.attributes.find(
 		(attribute): attribute is Extract<typeof attribute, { kind: 'binding' }> =>

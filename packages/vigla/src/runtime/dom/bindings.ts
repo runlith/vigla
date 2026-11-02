@@ -1,3 +1,5 @@
+import { DEV } from 'esm-env';
+import { warn } from '../../shared/diagnostics.ts';
 import {
 	active,
 	alias,
@@ -15,12 +17,40 @@ import { untrack } from '../reactivity/tracking.ts';
 import { unowned } from './events.ts';
 import { hydrating } from './hydration.ts';
 import { onReset } from './reset.ts';
+import { captureMutable } from './props.ts';
 
 type Get<T> = () => T;
 type Set<T> = (value: T) => void;
 
 interface Valued {
 	__value?: unknown;
+}
+
+export function validateBinding(
+	binding: string,
+	object: Get<Record<PropertyKey, unknown>>,
+	property: Get<PropertyKey>,
+	location: string
+): void {
+	if (!DEV) return;
+	let warned = false;
+	template(() => {
+		if (warned) return;
+		const [target, mutable] = captureMutable(object);
+		if (mutable) return;
+		const key = property();
+		let checked = false;
+		const probe = template(() => {
+			if (!checked) target[key];
+		});
+		checked = true;
+		if (probe.deps !== null && probe.deps.length > 0) return;
+		warn(
+			'binding_property_non_reactive',
+			`\`${binding}\` (${location}) is binding to a non-reactive property`
+		);
+		warned = true;
+	});
 }
 
 function markEdits(writes: WeakSet<Batch>, batch: Batch): void {

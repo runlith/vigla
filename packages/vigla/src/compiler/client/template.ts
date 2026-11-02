@@ -43,6 +43,8 @@ export interface TemplateContext extends Context {
 	readonly format: Format;
 	readonly positions: Positions;
 	readonly boundContent?: boolean;
+	readonly structural?: boolean;
+	readonly externalRows?: boolean;
 }
 
 export function scopeHash(context: TemplateContext, node: Host): string | null {

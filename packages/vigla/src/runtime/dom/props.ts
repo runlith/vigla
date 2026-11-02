@@ -1,3 +1,4 @@
+import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { proxy } from '../reactivity/proxy.ts';
@@ -16,11 +17,34 @@ type Props = Record<PropertyKey, unknown>;
 const entries = new WeakSet<object>();
 const mutableGetters = new WeakSet<object>();
 const mutableAccessors = new WeakSet<object>();
+let mutableRead = false;
+
+export function captureMutable<T>(read: () => T): [T, boolean] {
+	const previous = mutableRead;
+	mutableRead = false;
+	try {
+		const value = read();
+		return [value, mutableRead];
+	} finally {
+		mutableRead = previous;
+	}
+}
 
 export function mutableProps<T extends object>(props: T, keys: readonly string[]): T {
 	for (const key of keys) {
-		const getter = Object.getOwnPropertyDescriptor(props, key)?.get;
-		if (getter !== undefined) mutableGetters.add(getter);
+		const descriptor = Object.getOwnPropertyDescriptor(props, key);
+		const getter = descriptor?.get;
+		if (getter === undefined) continue;
+		if (!DEV) {
+			mutableGetters.add(getter);
+			continue;
+		}
+		const read = function (this: unknown): unknown {
+			mutableRead = true;
+			return getter.call(this);
+		};
+		mutableGetters.add(read);
+		Object.defineProperty(props, key, { ...descriptor, get: read });
 	}
 	return props;
 }
@@ -30,8 +54,15 @@ export function forwardProps<T extends object, V>(props: T, key: string, accesso
 }
 
 function marked<T>(accessor: Accessor<T>, mutable: boolean): Accessor<T> {
-	if (mutable) mutableAccessors.add(accessor);
-	return accessor;
+	if (!mutable) return accessor;
+	const result: Accessor<T> = DEV
+		? function (this: unknown, ...args: [value?: T, mutation?: boolean]): T {
+				mutableRead = true;
+				return accessor.apply(this, args);
+			}
+		: accessor;
+	mutableAccessors.add(result);
+	return result;
 }
 
 export function entry(props: object): void {

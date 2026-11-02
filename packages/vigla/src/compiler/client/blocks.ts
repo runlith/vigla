@@ -27,7 +27,16 @@ export function arm(
 	const namespace = context.component.fragmentNamespaces.get(fragment) ?? 'html';
 	return b.arrow(
 		[anchor, ...params],
-		[...prelude, ...render(context, cleaned(context, fragment), anchor, namespace, textFirst)]
+		[
+			...prelude,
+			...render(
+				{ ...context, structural: true },
+				cleaned(context, fragment),
+				anchor,
+				namespace,
+				textFirst
+			)
+		]
 	);
 }
 
@@ -145,12 +154,12 @@ function listCode(
 		node.item === null || named !== null
 			? []
 			: patternValues(context, node.item, facts.names, item);
-	const body = arm(context, node.body, true, [item, index], prelude);
-	const args: ES.Expression[] = [anchor, collection, key, body];
 	let mutable = false;
 	b.walk(node.collection, (node) => {
 		if (node.type === 'Identifier' && context.analysis.externals.has(node)) mutable = true;
 	});
+	const body = arm({ ...context, externalRows: mutable }, node.body, true, [item, index], prelude);
+	const args: ES.Expression[] = [anchor, collection, key, body];
 	if (node.fallback !== null || mutable)
 		args.push(node.fallback === null ? b.literal(null) : arm(context, node.fallback, true));
 	if (mutable) args.push(b.literal(true));
