@@ -8,4 +8,4 @@ sources:
     ref: packages/vigla/src/compiler/client/script.ts
     symbol: propDeclarators
 ---
-A default created for a bindable prop is the child's mutable state; an ordinary prop default stays raw. Proxying belongs to declaration lowering so the prop runtime does not pull proxy machinery into components whose defaults need none. Lazy fallback evaluation retains that ownership and creates the proxy only when the default is needed.
+A default created for a bindable prop is the child's mutable state; an ordinary prop default stays raw. The lowering owns this distinction, avoiding an unconditional dependency from the prop runtime to proxy machinery. Lazy fallback evaluation retains that ownership and creates the proxy only when the default is needed.
