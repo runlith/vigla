@@ -1,7 +1,7 @@
 ---
 id: 01a19c25-ab5e-7184-a3af-2102c7302fc3
 title: Event expressions cache calls while diagnostics retain the expression's source
-ord: 22
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: file

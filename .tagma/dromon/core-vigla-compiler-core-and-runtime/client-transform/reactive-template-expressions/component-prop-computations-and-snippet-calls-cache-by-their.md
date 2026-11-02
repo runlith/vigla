@@ -1,7 +1,7 @@
 ---
 id: 01a1954e-42f5-74e8-a72b-e17de7b9ba39
 title: Component prop computations and snippet calls cache by their own dependencies
-ord: 15
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol
