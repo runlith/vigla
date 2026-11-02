@@ -196,10 +196,7 @@ export function listen(client: Client): () => void {
 			}
 			return;
 		}
-		if (metadata.historyIndex === client.history.index) {
-			client.cancel();
-			return;
-		}
+		if (metadata.historyIndex === client.history.index) return;
 		const source = client.history.current;
 		const delta = metadata.historyIndex - source.historyIndex;
 		const reset = metadata.resetIndex !== source.resetIndex;
@@ -213,6 +210,7 @@ export function listen(client: Client): () => void {
 				(client.navigated &&
 					(metadata.pageUrl === undefined || metadata.pageUrl === location.href)));
 		client.restoration.capture(client.history.index, client.view.components);
+		client.history.accept(metadata);
 		void client
 			.navigate(new URL(location.href), {
 				type: 'popstate',
@@ -226,16 +224,10 @@ export function listen(client: Client): () => void {
 			.catch(console.error);
 	});
 	listener(window, 'hashchange', () => {
-		const url = new URL(location.href);
-		if (fragment) {
-			client.history.fragment(url, fragment.source, fragment.reset);
-			client.restoration.clear(client.history.index);
-			fragment = undefined;
-		} else if (
-			!client.routes.hash &&
-			client.routes.key(url) === client.routes.key(client.current?.url ?? url)
-		)
-			client.updateUrl(url);
+		if (!fragment) return;
+		client.history.fragment(new URL(location.href), fragment.source, fragment.reset);
+		client.restoration.clear(client.history.index);
+		fragment = undefined;
 	});
 	listener(window, 'beforeunload', (event) => {
 		client.restoration.capture(client.history.index, client.view.components);
