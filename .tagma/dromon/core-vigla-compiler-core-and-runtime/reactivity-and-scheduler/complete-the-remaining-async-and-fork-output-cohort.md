@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a18754-3a91-778c-bdc8-cf0239ed279a",
-    "status": "in_work"
+    "status": "done"
   }
 edges:
   - kind: discovered-from
@@ -16,4 +16,6 @@ edges:
   - kind: waits-on
     to: 01a19d4f-5933-7ef2-9528-3cac99cea84e
 ---
-Recheck the exact 20 variants in async-batch-fork-output from compat-refresh's owner-clusters.json after the latest equality, locality and owner-restoration fixes. The cohort covers async-await, async-effect-pending-eager, async-error, async-fork, fork attributes/writable/equal-result/failure/nested-branch cases, and overlapping arrays/batches. Fix still-wrong Core producers while preserving outgoing, equality, cancellation and application-owner contracts; identify compiler/DOM first-loss boundaries explicitly before expanding there. Land manually added passing ids with source, or record already-green cases from applicable current evidence. Do not weaken modes/assertions or change unrelated layout WIP.
+Complete the exact 20 async-batch-fork-output variants from compat-refresh's owner-clusters.json. Core preserves fresh write intents across restored/merged identities, batch-local structural reads, equality after view-local reads, writable derived assignments and coherent earlier intersecting views. Coupled emitters leave await-block inputs with their own promise lifecycle and matching server markers; mounted pending scope supplies counts without restricting service roots. Failure and attachment retirement/publication belong to the owning commit, while discard preserves the visible lifetime.
+
+Landed as a7d4368c91e6547f3651ee7bec5cf74b1e226d1d on the accepted [[99cea84e|commit-wave ABI]] at a42afbc8359fd9fb6c68b14438fc551e9f520e4a. The audited artifact contains exactly the 30 contributed paths, 20 original passing IDs and two own IDs; peer compiler/proxy projection, geometry and adjacent rows remain outside it. One review's two MAJOR findings have public red-then-green controls for fresh proxy intent and equal immediate derived dependencies; the producer audit also corrected external emission intent. The signed review is unchanged and author dispositions are separate. Final unchanged scoped proof is 20 cohort, 13 equality, 19 writable, 18 locality, 19 prior regressions, six emission/store and 22 async/outgoing/owner module cases green, plus direct Core tsrs exit 0. Source ceilings, row sorting and commit gates pass. This is bounded shared-tree evidence, not committed-only, full-runtime, browser or benchmark acceptance. The retained scratch at /Users/teunlao/.tagma-dev/scratch/01a18754-3a91-778c-bdc8-cf0239ed279a/ contains dbd-review-dispositions.txt, final scoped JSON, dbd-prelanding.json and dbd-landed-audit.json.
