@@ -270,7 +270,7 @@ export async function renderDocument(
 		} else chunks = renderedChunks();
 	}
 	if (prerender) {
-		const cache = state.prerendering?.cache;
+		const cache = state.prerendering && state.prerenderCache;
 		head.unshift(
 			csp.meta() +
 				(cache ? `<meta http-equiv="cache-control" content="${escapeHtml(cache, true)}">` : '')

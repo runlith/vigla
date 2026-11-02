@@ -139,7 +139,7 @@ export async function respond(
 			headers.set(values);
 			if (state.prerendering)
 				for (const [name, value] of Object.entries(values))
-					if (name.toLowerCase() === 'cache-control') state.prerendering.cache = value;
+					if (name.toLowerCase() === 'cache-control') state.prerenderCache = value;
 		},
 		url,
 		isDataRequest: data,

@@ -279,7 +279,6 @@ export interface PrerenderState {
 	insideReroute: boolean;
 	dependencies: Map<string, PrerenderDependency>;
 	remoteResponses?: Map<string, Promise<any>>;
-	cache?: string;
 }
 
 export interface RespondOptions {
@@ -331,6 +330,7 @@ export interface RequestState {
 	rerouted: string | null;
 	prerendering?: PrerenderState;
 	prerenderDefault?: PrerenderOption;
+	prerenderCache?: string;
 	fetched: Fetched[];
 	resolveOptions: ResolveOptions;
 	isRendering: boolean;

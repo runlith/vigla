@@ -427,6 +427,39 @@ test('`*` seeds escaped static routes and redirect metadata carries the resolved
 	});
 });
 
+test("a fetched endpoint's cache-control does not replace its page's meta", async () => {
+	const runtime = await app({
+		functions: {},
+		load: async ({ setHeaders, fetch }) => {
+			setHeaders({ 'cache-control': 'no-store' });
+			return { value: await (await fetch('/api')).text() };
+		}
+	});
+	runtime.manifest.routes = [
+		{ ...runtime.manifest.routes[0]! },
+		{
+			id: '/api',
+			...parseRoute('/api'),
+			page: null,
+			endpoint: async () => ({
+				GET: ({ setHeaders }) => {
+					setHeaders({ 'cache-control': 'max-age=3600' });
+					return new Response('api');
+				}
+			})
+		}
+	];
+	const input = await job(runtime, 'cache-meta');
+	input.entries = ['/a'];
+	const result = await prerender(input, runtime, fail);
+	const html = readFileSync(
+		path.join(input.directory, 'prerendered/pages', result.prerendered.pages.get('/a')!.file),
+		'utf8'
+	);
+	expect(html).toContain('<meta http-equiv="cache-control" content="no-store">');
+	expect(html).not.toContain('max-age=3600');
+});
+
 test('an input generator failure rejects prerendering without turning it into an HTTP policy issue', async () => {
 	const failure = new Error('input generation failed');
 	const read = remotePrerender('unchecked', (value) => value, {
