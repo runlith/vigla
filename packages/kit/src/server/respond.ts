@@ -146,7 +146,7 @@ export async function respond(
 			current: server.tracer.current()
 		}
 	} satisfies RequestEvent<Record<string, ParamValue>>;
-	const scope = new RequestScope(server, event, state, server.scope, parent);
+	const scope = new RequestScope(server, event, state, server.scope);
 	event.fetch = createFetch(server, scope.store, jar);
 	let route: ServerRoute | undefined;
 	let nodes: Array<PageNode | undefined> = [];

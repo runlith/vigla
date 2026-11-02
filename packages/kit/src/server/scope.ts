@@ -84,15 +84,14 @@ export class RequestScope {
 		server: Server,
 		event: RequestEvent<Record<string, ParamValue>>,
 		state: RequestState,
-		context?: AsyncContext,
-		parent?: RequestStore
+		context?: AsyncContext
 	) {
 		this.#context = context;
 		this.#signal = event.request.signal;
 		this.store = {
 			event,
 			state,
-			owner: root(undefined, parent?.owner ?? null),
+			owner: root(),
 			manifest: server.manifest,
 			options: server.options,
 			environment: server.environment,

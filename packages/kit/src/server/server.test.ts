@@ -516,6 +516,23 @@ it('dispatches same-origin event fetch internally with credentials and imports r
 	);
 });
 
+it('keeps an internal response readable after the calling response ends', async () => {
+	const app = manifest();
+	let held: Response | undefined;
+	app.routes = [
+		route('/outer', async () => ({
+			GET: async ({ fetch }) => {
+				held = await fetch('/inner');
+				return new Response('outer');
+			}
+		})),
+		route('/inner', async () => ({ GET: () => Response.json({ answer: 42 }) }))
+	];
+	const server = await start(app, options());
+	expect(await (await server.respond(request('/outer'), address)).text()).toBe('outer');
+	expect(await held!.json()).toEqual({ answer: 42 });
+});
+
 it('loads server parents on demand for invalidated data and streams deferred values as NDJSON', async () => {
 	const app = manifest();
 	let complete!: (value: string) => void;
