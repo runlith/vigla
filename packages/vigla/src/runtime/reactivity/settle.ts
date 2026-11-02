@@ -6,9 +6,12 @@ import { stale } from './tracking.ts';
 export let eager: Set<Effect> | null = null;
 export let instant = false;
 
-export function due(effect: Effect): boolean {
+export function due(effect: Effect, recheck = false, batch: Batch | null = null): boolean {
 	try {
-		return stale(effect);
+		const run = recheck ? batch?.runs?.get(effect) : undefined;
+		const dirty = run === undefined ? stale(effect, recheck) : run.stale();
+		if (!dirty) effect.status = CLEAN;
+		return dirty;
 	} catch (error) {
 		effect.status = CLEAN;
 		throw error;
@@ -48,8 +51,8 @@ export function settle(
 			if (effect.destroyed || effect.running) continue;
 			if (batch.skipped !== null || offscreen.size > 0 ? excluded(effect, batch) : effect.inert)
 				continue;
-			if (force) effect.status = DIRTY;
-			if (!due(effect)) continue;
+			const recheck = batch.forced?.delete(effect) === true;
+			if (!due(effect, force || recheck, batch)) continue;
 			const marked = new Set<Effect>();
 			eager = marked;
 			run(effect);

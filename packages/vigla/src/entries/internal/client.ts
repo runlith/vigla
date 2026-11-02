@@ -41,7 +41,7 @@ export {
 	bindMediaControl,
 	bindPaused
 } from '../../runtime/dom/media.ts';
-export { async, deferredExports, save, script } from '../../runtime/dom/async.ts';
+export { async, deferredExports, prepareAsync, save, script } from '../../runtime/dom/async.ts';
 export { awaited } from '../../runtime/dom/await.ts';
 export { animation, transition } from '../../runtime/transitions/manager.ts';
 export { branch, key } from '../../runtime/dom/blocks.ts';

@@ -59,12 +59,33 @@ interface Value {
 	readonly value: unknown;
 }
 
+type AsyncThunk = () => Value | PromiseLike<Value>;
+
+type AsyncRender = (anchor: ChildNode | null, ...values: Source[]) => void;
+
+export function prepareAsync(
+	node: ChildNode | null,
+	thunks: readonly AsyncThunk[],
+	fn: AsyncRender
+): () => void {
+	const parked = park(node);
+	return () => startAsync(node, parked, thunks, fn);
+}
+
 export function async(
 	node: ChildNode | null,
-	thunks: readonly (() => Value | PromiseLike<Value>)[],
-	fn: (anchor: ChildNode | null, ...values: Source[]) => void
+	thunks: readonly AsyncThunk[],
+	fn: AsyncRender
 ): void {
-	const parked = park(node);
+	startAsync(node, park(node), thunks, fn);
+}
+
+function startAsync(
+	node: ChildNode | null,
+	parked: Resume,
+	thunks: readonly AsyncThunk[],
+	fn: AsyncRender
+): void {
 	const anchor = parked.end ?? node;
 	const at = owner;
 	const done = work();

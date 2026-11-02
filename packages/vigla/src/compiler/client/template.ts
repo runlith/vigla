@@ -58,6 +58,7 @@ export interface Emit {
 	readonly update: ES.Statement[];
 	readonly thunks: ES.Expression[];
 	readonly params: ES.Identifier[];
+	content?: ES.Statement[];
 }
 
 export interface Part {
@@ -219,7 +220,7 @@ export function parts(
 			const pending = awaiting(context, run);
 			result.push(
 				pending.length > 0
-					? anchorPart(asyncSetup(context, run, pending, namespace, render))
+					? anchorPart(asyncSetup(context, run, pending, namespace, render, 'content'))
 					: textPart(context, run)
 			);
 		}
@@ -392,12 +393,20 @@ export function navigate(
 }
 
 export function flush(context: TemplateContext, emit: Emit): ES.Statement[] {
+	const content = emit.content ?? [];
 	if (emit.update.length === 0)
-		return emit.after.length === 0 ? emit.init : [...emit.init, ...emit.after];
+		return content.length === 0 && emit.after.length === 0
+			? emit.init
+			: [...emit.init, ...content, ...emit.after];
 	const fn = b.arrow(emit.params, emit.update);
 	const args: ES.Expression[] = [fn];
 	if (emit.thunks.length > 0) args.push({ type: 'ArrayExpression', elements: emit.thunks });
-	return [...emit.init, b.statement(runtime(context, 'content', ...args)), ...emit.after];
+	return [
+		...emit.init,
+		...content,
+		b.statement(runtime(context, 'content', ...args)),
+		...emit.after
+	];
 }
 
 function hasScript(part: Part): boolean {

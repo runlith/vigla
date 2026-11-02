@@ -23,7 +23,7 @@ import {
 	type Reaction,
 	type Source
 } from './graph.ts';
-import { stale, type View } from './tracking.ts';
+import type { View } from './tracking.ts';
 import { DEV } from 'esm-env';
 import { merged } from './trace.ts';
 
@@ -91,7 +91,7 @@ export function untouched(batch: Batch): void {
 }
 
 export function others(batch: Batch): boolean {
-	if (batch.fork || (open !== null && open !== batch)) return true;
+	if (batch.after !== null || batch.fork || (open !== null && open !== batch)) return true;
 	for (const other of pending) if (other !== batch) return true;
 	return false;
 }
@@ -294,6 +294,7 @@ export function rescue(batch: Batch, effects: readonly Effect[]): void {
 }
 
 function defer(
+	batch: Batch,
 	effects: readonly Effect[],
 	into: Effect[] | null,
 	queued: readonly (readonly [Batch, Set<Effect>])[]
@@ -302,7 +303,12 @@ function defer(
 	const list = into ?? [];
 	const known = new Set(list);
 	for (const effect of effects) {
-		if (effect.destroyed || known.has(effect) || !stale(effect)) continue;
+		if (
+			effect.destroyed ||
+			known.has(effect) ||
+			(effect.status === CLEAN && batch.forced?.has(effect) !== true)
+		)
+			continue;
 		effect.status = CLEAN;
 		known.add(effect);
 		list.push(effect);
@@ -320,8 +326,8 @@ export function hold(batch: Batch, content: readonly Effect[]): void {
 		if (other !== batch && !other.done && other.queued.length > 0)
 			queued.push([other, members(other)]);
 	if (open !== null && open !== batch && open.queued.length > 0) queued.push([open, members(open)]);
-	batch.content = defer(content, batch.content, queued);
-	batch.deferred = defer(batch.effects.splice(0), batch.deferred, queued);
+	batch.content = defer(batch, content, batch.content, queued);
+	batch.deferred = defer(batch, batch.effects.splice(0), batch.deferred, queued);
 	if (!pending.includes(batch)) pending.push(batch);
 }
 
@@ -361,6 +367,7 @@ function rebase(batch: Batch, committed: Batch, changed: readonly Source[]): voi
 	for (const source of changed) {
 		if (after !== null && after.has(source)) {
 			const value = committed.after?.has(source) ? committed.after.get(source) : source.v;
+			batch.before.set(source, value);
 			if (batch.fork || batch.order > committed.order || equal(source, value, after.get(source)))
 				continue;
 			after.set(source, value);

@@ -2,6 +2,8 @@ import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
 import { computed, traced, tracedRun, tracing } from './trace.ts';
 import { unsafeMutation } from './errors.ts';
+import { capture, clear as clearReads, retain } from './reads.ts';
+export { stale } from './reads.ts';
 import { refresh } from './deriveds.ts';
 import { destroy, freeze, thaw } from './effects.ts';
 import { past, recall, setPast } from './past.ts';
@@ -21,7 +23,6 @@ import {
 	DERIVED,
 	DIRTY,
 	EAGER,
-	MAYBE,
 	ROOT,
 	isDerived,
 	now,
@@ -50,6 +51,7 @@ interface Frame {
 export interface Resumption {
 	readonly reaction: Reaction;
 	readonly reads: Set<Source>;
+	readonly values: Map<Source, unknown>;
 }
 
 let versions = 0;
@@ -102,6 +104,7 @@ function closed(previous: Frame | null): void {
 }
 
 function finished(current: Frame): void {
+	clearReads(current);
 	current.old = current.extra = null;
 	current.hidden = null;
 	current.local = null;
@@ -250,6 +253,15 @@ export function setView(next: View | null): View | null {
 }
 
 export function get<T>(source: Source<T>): T {
+	const value = read(source);
+	if (view !== null && frame !== null) capture(frame, source, value);
+	const run = frame === late ? late?.run : awaited;
+	if (run !== null && run !== undefined && frame?.target === run.reaction)
+		run.values.set(source, value);
+	return value;
+}
+
+function read<T>(source: Source<T>): T {
 	const at = frame;
 	if (DEV && tracing !== null) traced(source, at?.target ?? null);
 	if (at !== null && source.read !== at.version && (at.local === null || !at.local.has(source)))
@@ -591,6 +603,7 @@ function settleRun(target: Reaction, current: Frame): void {
 		current,
 		current.keep || (view !== null && (view.batch.fork || current.hidden !== null))
 	);
+	retain(target, current);
 	target.rv = now();
 	target.status = invalidated ? DIRTY : CLEAN;
 }
@@ -599,27 +612,4 @@ export function takeHidden(): Set<Batch> | null {
 	const found = hiddenByLast;
 	hiddenByLast = null;
 	return found;
-}
-
-export function stale(target: Reaction): boolean {
-	const status = target.status;
-	if (status === DIRTY) return true;
-	if (status === MAYBE) {
-		const deps = target.deps;
-		if (deps !== null) {
-			for (let index = 0; index < deps.length; index++) {
-				const dep = deps[index] as Source;
-				if (isDerived(dep)) {
-					if (view !== null) {
-						if (affected(dep, view)) return true;
-						refresh(dep);
-						if (view.values.has(dep)) return true;
-					} else if (dep.status !== CLEAN) refresh(dep);
-				}
-				if (dep.wv > target.rv) return true;
-			}
-		}
-		target.status = CLEAN;
-	}
-	return false;
 }

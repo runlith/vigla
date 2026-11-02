@@ -3,22 +3,35 @@ import {
 	collect,
 	current,
 	holds,
+	inside,
+	onMerge,
 	quieted,
 	request,
+	stage,
 	within,
 	write,
 	type Batch
 } from './batch.ts';
 import { staleReaction } from '../../shared/abort.ts';
 import { block, fail } from './effects.ts';
+import { changed } from './reads.ts';
+import { waitFor } from './held.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
 import type { Boundary, Effect, Source } from './graph.ts';
 import { source } from './sources.ts';
 import { awaiting, get, owner, running, settleReads, type Resumption } from './tracking.ts';
 
 export interface AsyncRun {
+	stale(): boolean;
 	supersede(): void;
 	adopt(batch: Batch): void;
+}
+
+interface Result {
+	readonly order: number;
+	readonly revision: number;
+	readonly reading: Resumption;
+	readonly speculative: boolean;
 }
 
 interface Tally {
@@ -118,7 +131,81 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 	if (owner === null) asyncOrphan();
 	const signal = source<T>(undefined as T);
 	const latest = new Map<Batch, AsyncRun>();
+	const results = new Map<Batch, Result>();
+	const ranks = new WeakMap<Batch, number>();
 	let resolved = false;
+	let committed = 0;
+	let committedRevision = 0;
+	let revision = 0;
+	let retained: Resumption | null = null;
+	const prune = (): void => {
+		if (latest.size === 0 && results.size === 0 && retained !== null) settleReads(retained);
+	};
+	const realOrder = (finished = false): number => {
+		let order = committed;
+		for (const [holder, result] of results) {
+			const batch = alias(holder);
+			if (batch.fork || batch.discarded || (finished && !batch.done)) continue;
+			order = Math.max(order, result.order);
+		}
+		return order;
+	};
+	const rank = (given: Batch): number => {
+		const batch = alias(given);
+		const result = results.get(batch);
+		let order = Math.max(batch.order, ranks.get(batch) ?? 0, result?.order ?? 0);
+		if (result?.speculative && !batch.fork) order = Math.max(order, realOrder(true));
+		return order;
+	};
+	const move = (from: Batch, into: Batch): void => {
+		ranks.set(into, Math.max(from.order, ranks.get(from) ?? 0, rank(into)));
+		const incoming = results.get(from);
+		if (incoming === undefined) return;
+		results.delete(from);
+		const current = results.get(into);
+		const newer =
+			current === undefined ||
+			incoming.order > current.order ||
+			(incoming.order === current.order && incoming.revision > current.revision);
+		const selected = newer ? incoming : current;
+		results.set(into, {
+			...selected,
+			speculative: incoming.speculative || current?.speculative === true
+		});
+	};
+	const finish = (holder: Batch): void => {
+		const batch = alias(holder);
+		const result = results.get(batch);
+		if (result === undefined) return;
+		results.delete(batch);
+		if (!batch.discarded) {
+			const order = result.speculative ? Math.max(committed, result.order) : result.order;
+			if (
+				result.speculative ||
+				order > committed ||
+				(order === committed && result.revision > committedRevision)
+			) {
+				committed = order;
+				ranks.set(batch, Math.max(rank(batch), order));
+				committedRevision = result.revision;
+				retained = result.reading;
+			}
+		}
+		prune();
+	};
+	const retain = (batch: Batch, reading: Resumption, order: number): void => {
+		ranks.set(batch, Math.max(rank(batch), order));
+		const current = results.get(batch);
+		results.set(batch, {
+			order,
+			revision: ++revision,
+			reading,
+			speculative: batch.fork || current?.speculative === true
+		});
+		if (current !== undefined) return;
+		onMerge(batch, move);
+		void waitFor(batch).then(() => finish(batch));
+	};
 	let initial = true;
 	let first!: (source: Source<T>) => void;
 	let refuse!: (error: unknown) => void;
@@ -134,6 +221,9 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		let target = batch;
 		let owned = true;
 		const token: AsyncRun = {
+			stale() {
+				return changed(run.values);
+			},
 			supersede() {
 				if (!owned) return;
 				owned = false;
@@ -141,6 +231,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 				done?.();
 			},
 			adopt(into) {
+				move(target, into);
 				if (owned) {
 					latest.delete(target);
 					latest.set(into, token);
@@ -150,7 +241,11 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		};
 		latest.set(batch, token);
 		(batch.runs ??= new Map()).set(owner as Effect, token);
-		const run: Resumption = { reaction: running() as Effect, reads: new Set() };
+		const run: Resumption = {
+			reaction: running() as Effect,
+			reads: new Set(),
+			values: new Map()
+		};
 		let promise: Promise<T>;
 		try {
 			promise = Promise.resolve(awaiting(run, fn));
@@ -161,21 +256,30 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			if (!owned || latest.get(target) !== token) return false;
 			owned = false;
 			latest.delete(target);
-			return !effect.destroyed && !alias(target).discarded;
+			const current = alias(target);
+			if (effect.destroyed || current.discarded) return false;
+			return current.fork || rank(current) >= realOrder(true);
 		};
 		promise.then(
 			(value) => {
 				if (own()) {
-					if (latest.size === 0) settleReads(run);
-					within(batch, () => write(signal, value));
+					within(batch, () => {
+						const holder = alias(target);
+						const order = rank(holder);
+						if (holder.fork || order >= realOrder()) write(signal, value);
+						else inside(holder, () => stage(holder, signal, value));
+						retain(current(), run, order);
+					});
 					resolved = true;
 					first(signal);
 				}
+				prune();
 				done?.();
 			},
 			(error: unknown) => {
 				if (error === staleReaction) return;
 				const owned = own();
+				prune();
 				done?.();
 				if (!owned) return;
 				if (resolved) fail(effect, error);

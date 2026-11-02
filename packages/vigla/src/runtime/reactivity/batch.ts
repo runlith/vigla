@@ -1,5 +1,13 @@
 import { DEV } from 'esm-env';
-import { applied, forgotten, loopWrite, reportLoop, resetLoop, updated } from './trace.ts';
+import {
+	applied,
+	computed,
+	forgotten,
+	loopWrite,
+	reportLoop,
+	resetLoop,
+	updated
+} from './trace.ts';
 import { asynchronous, parked, showing, unsettled, type AsyncRun } from './async.ts';
 import {
 	BLOCK,
@@ -295,14 +303,22 @@ function dirty(source: Source, forked = 0): void {
 
 let staging = false;
 
-function staged<T>(fork: Batch, source: Source<T>, value: T): T {
-	const after = (fork.after ??= new Map());
-	const shown = after.has(source) ? after.get(source) : source.v;
+export function stage<T>(batch: Batch, source: Source<T>, value: T): T {
+	const after = (batch.after ??= new Map());
+	const selected = view !== null && view.batch === batch && view.values.has(source);
+	const shown = after.has(source)
+		? after.get(source)
+		: selected
+			? view!.values.get(source)
+			: source.v;
 	if (equal(source, shown as T, value)) return value;
-	record(fork, source, source.v, false);
+	record(batch, source, batch.fork ? source.v : shown, false);
 	after.set(source, value);
-	if (DEV) updated(source, value, fork);
-	if (view !== null && view.batch === fork) {
+	if (DEV) {
+		if (batch.fork) updated(source, value, batch);
+		else computed(source, value, batch);
+	}
+	if (view !== null && view.batch === batch) {
 		forget(source);
 		view.values.set(source, value);
 	}
@@ -317,7 +333,7 @@ function staged<T>(fork: Batch, source: Source<T>, value: T): T {
 
 export function write<T>(source: Source<T>, value: T): T {
 	const target = receiver();
-	if (target !== null && target.fork) return staged(target, source, value);
+	if (target !== null && target.fork) return stage(target, source, value);
 	const previous = source.v;
 	if (equal(source, previous, value)) return value;
 	const batch = target ?? opening();
@@ -441,16 +457,17 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 			}
 			continue;
 		}
-		if (batch.forced !== null && batch.forced.delete(child)) child.status = DIRTY;
+		const forced = batch.forced?.has(child) === true;
 		switch (child.kind) {
 			case BLOCK:
-				if (child.status !== CLEAN && due(child)) run(child);
+				if (forced) batch.forced?.delete(child);
+				if ((forced || child.status !== CLEAN) && due(child, forced, batch)) run(child);
 				break;
 			case TEMPLATE:
 				content.push(child);
 				break;
 			case EFFECT:
-				if (child.status !== CLEAN) batch.effects.push(child);
+				if (forced || child.status !== CLEAN) batch.effects.push(child);
 				break;
 		}
 		if (child.pending) traverse(child, batch, content);

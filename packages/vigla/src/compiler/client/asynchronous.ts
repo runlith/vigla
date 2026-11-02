@@ -38,7 +38,8 @@ export function asyncSetup(
 	nodes: readonly Node[],
 	expressions: readonly ES.Expression[],
 	namespace: Namespace,
-	render: Render
+	render: Render,
+	phase: 'init' | 'content' = 'init'
 ): (anchor: ES.Identifier, emit: Emit) => void {
 	return (anchor, emit) => {
 		const ids = expressions.map(() => b.id(context.names.unique('$async')));
@@ -50,16 +51,18 @@ export function asyncSetup(
 		const thunks = asyncThunks(context, expressions);
 		const target = b.id(context.names.unique('$$anchor'));
 		const body = render(inner, nodes, target, namespace, false);
-		emit.init.push(
-			b.statement(
-				runtime(
-					context,
-					'async',
-					anchor,
-					{ type: 'ArrayExpression', elements: thunks },
-					b.arrow([target, ...ids], body)
-				)
-			)
+		const setup = runtime(
+			context,
+			phase === 'init' ? 'async' : 'prepareAsync',
+			anchor,
+			{ type: 'ArrayExpression', elements: thunks },
+			b.arrow([target, ...ids], body)
 		);
+		if (phase === 'init') emit.init.push(b.statement(setup));
+		else {
+			const start = b.id(context.names.unique('$start'));
+			emit.init.push(b.constant(start.name, setup));
+			(emit.content ??= []).push(b.statement(b.call(start)));
+		}
 	};
 }
