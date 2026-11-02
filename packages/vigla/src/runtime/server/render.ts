@@ -310,6 +310,7 @@ export interface RenderOptions<P extends Props> {
 	readonly csp?: Csp;
 	readonly idPrefix?: string;
 	readonly context?: Map<unknown, unknown>;
+	readonly inheritContext?: boolean;
 	readonly transformError?: (error: unknown) => unknown;
 }
 
@@ -341,7 +342,7 @@ export function render<P extends Props>(
 	const caller = owner;
 	const scope = detached(null, caller);
 	const data = storeOf(caller) ?? new Data();
-	const saved = begin(scope, data);
+	const saved = begin(scope, data, options.inheritContext !== false);
 	try {
 		push(options.context);
 		out.push(open);

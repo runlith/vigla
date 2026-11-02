@@ -3,6 +3,7 @@ import {
 	hasAwait,
 	inspection,
 	patternNames,
+	resuming,
 	spanOf,
 	unsupported,
 	type Binding,
@@ -160,6 +161,15 @@ function derivedPattern(context: Context, declarator: ES.VariableDeclarator): bo
 	if (declarator.id.type === 'Identifier' || init?.type !== 'CallExpression') return false;
 	const rune = context.analysis.runes.get(init.callee);
 	return rune === '$derived' || rune === '$derived.by';
+}
+
+export function asyncThunk(
+	context: Context,
+	expression: ES.Expression
+): ES.ArrowFunctionExpression {
+	const saved = new Set([...(context.saved ?? []), ...resuming(expression)]);
+	const value = rewrite({ ...context, saved }, expression);
+	return { ...b.arrow([], b.object({ value })), async: true };
 }
 
 export function rewrite<T extends ES.Node>(context: Context, node: T): T {

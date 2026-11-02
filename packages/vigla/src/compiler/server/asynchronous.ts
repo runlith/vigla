@@ -3,7 +3,7 @@ import { close, open } from '../../shared/markers.ts';
 import { hasAwait, ownExpressions } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Node } from '../ir/nodes.ts';
-import { rewrite, runtime } from './script.ts';
+import { asyncThunk, runtime } from './script.ts';
 import { Buffer, type TemplateContext } from './template.ts';
 
 export function awaiting(context: TemplateContext, nodes: readonly Node[]): ES.Expression[] {
@@ -40,10 +40,7 @@ export function asyncChild(
 	for (const expression of expressions) {
 		const id = b.id(context.names.unique('$async'));
 		awaited.set(expression, id);
-		const thunk = {
-			...b.arrow([], b.object({ value: rewrite(context, expression) })),
-			async: true
-		};
+		const thunk = asyncThunk(context, expression);
 		const value = b.member(
 			b.call({
 				type: 'AwaitExpression',

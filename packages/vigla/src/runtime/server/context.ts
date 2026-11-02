@@ -14,7 +14,6 @@ interface Layer {
 }
 
 interface Render {
-	layer: Layer | null;
 	readonly scope: Effect;
 	readonly destroys: (() => void)[];
 	readonly hydration: Data;
@@ -30,27 +29,30 @@ let destroying: Render | null = null;
 
 const stores = new WeakMap<Effect, Data>();
 const signals = new WeakMap<Effect, AbortController>();
+const resumed = new WeakSet<Layer>();
 
 function layerOf(effect: Effect | null): Layer | null {
 	return (effect?.context as Layer | null | undefined) ?? null;
 }
 
-function current(): Layer | null {
-	return render !== null ? render.layer : layerOf(owner);
-}
-
 export function push(map?: Map<unknown, unknown>): void {
 	if (render === null) return;
-	render.layer = { parent: render.layer, owner: null, component: true, map: map ?? null };
+	render.scope.context = {
+		parent: layerOf(render.scope),
+		owner: null,
+		component: true,
+		map: map ?? null
+	};
 }
 
 export function pop(): void {
-	if (render !== null) render.layer = render.layer?.parent ?? null;
+	if (render !== null) render.scope.context = layerOf(render.scope)?.parent ?? null;
 }
 
-export function begin(scope: Effect, hydration: Data): Saved {
+export function begin(scope: Effect, hydration: Data, inheritContext = true): Saved {
 	const saved = { render, owner };
-	render = { layer: layerOf(scope), scope, destroys: [], hydration };
+	if (!inheritContext) scope.context = null;
+	render = { scope, destroys: [], hydration };
 	setOwner(scope);
 	return saved;
 }
@@ -91,7 +93,8 @@ export function hydrationData(): Data | null {
 }
 
 export function getAbortSignal(): AbortSignal {
-	const scope = (destroying ?? render)?.scope ?? owner;
+	const scope =
+		destroying?.scope ?? (render !== null && owner === render.scope ? render.scope : owner);
 	if (scope === null) return new AbortController().signal;
 	let controller = signals.get(scope);
 	if (controller !== undefined) return controller.signal;
@@ -113,11 +116,11 @@ export function getAbortSignal(): AbortSignal {
 
 export function capture(): () => void {
 	const captured = render;
-	const layer = captured?.layer ?? null;
+	const layer = layerOf(captured?.scope ?? null);
 	return () => {
 		render = captured;
 		if (captured === null) return;
-		captured.layer = layer;
+		captured.scope.context = layer;
 		setOwner(captured.scope);
 		queueMicrotask(() => {
 			if (render !== captured) return;
@@ -129,9 +132,11 @@ export function capture(): () => void {
 
 export async function save<T>(value: T | PromiseLike<T>): Promise<() => T> {
 	const restore = capture();
+	const layer = layerOf(render?.scope ?? null);
 	const resolved = await value;
 	return () => {
 		restore();
+		if (layer != null) resumed.add(layer);
 		return resolved;
 	};
 }
@@ -140,15 +145,17 @@ export function isRendering(): boolean {
 	return render !== null;
 }
 
-export type Phase = 'initializing' | null;
+export type Phase = 'initializing' | 'running' | null;
 
 export function phase(): Phase {
-	return render?.layer != null ? 'initializing' : null;
+	const layer = render !== null && owner === render.scope ? layerOf(owner) : null;
+	if (layer === null || !layer.component) return null;
+	return resumed.has(layer) ? 'running' : 'initializing';
 }
 
 function own(): Layer {
-	const layer = current();
-	if (render !== null && layer !== null && layer.component) return layer;
+	const layer = layerOf(owner);
+	if (render !== null && owner === render.scope && layer !== null && layer.component) return layer;
 	if (owner === null) {
 		throw failure('context_without_owner', 'Context can only be set where an owner exists');
 	}
@@ -159,7 +166,7 @@ function own(): Layer {
 }
 
 export function getContext<T>(key: unknown): T {
-	for (let layer = current(); layer !== null; layer = layer.parent) {
+	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) {
 		if (layer.map?.has(key)) return layer.map.get(key) as T;
 	}
 	return undefined as T;
@@ -172,7 +179,7 @@ export function setContext<T>(key: unknown, value: T): T {
 }
 
 export function hasContext(key: unknown): boolean {
-	for (let layer = current(); layer !== null; layer = layer.parent) {
+	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) {
 		if (layer.map?.has(key)) return true;
 	}
 	return false;
@@ -184,7 +191,7 @@ export function createContext<T>(): Context<T> {
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
 	const chain: Layer[] = [];
-	for (let layer = current(); layer !== null; layer = layer.parent) chain.push(layer);
+	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) chain.push(layer);
 	const all = new Map<unknown, unknown>();
 	for (let index = chain.length - 1; index >= 0; index--) {
 		for (const [key, value] of chain[index]?.map ?? []) all.set(key, value);
@@ -193,6 +200,6 @@ export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, un
 }
 
 export function onDestroy(fn: () => void): void {
-	if (render !== null) render.destroys.push(fn);
+	if (render !== null && owner === render.scope) render.destroys.push(fn);
 	else if (owner !== null) teardown(fn);
 }

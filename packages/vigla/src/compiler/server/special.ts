@@ -4,7 +4,7 @@ import { hash } from '../../shared/hash.ts';
 import { hasAwait } from '../analysis/index.ts';
 import * as b from '../ir/estree.ts';
 import type { Fragment, Special, Title } from '../ir/nodes.ts';
-import { rewrite, runtime } from './script.ts';
+import { asyncThunk, rewrite, runtime } from './script.ts';
 import { Buffer, fragmentCode, type TemplateContext } from './template.ts';
 
 function titleCode(context: TemplateContext, node: Title): ES.Statement {
@@ -17,8 +17,9 @@ function titleCode(context: TemplateContext, node: Title): ES.Statement {
 		if (awaited.has(part.expression) || !hasAwait(part.expression)) continue;
 		const id = b.id(context.names.unique('$async'));
 		awaited.set(part.expression, id);
-		const saved = runtime(context, 'save', rewrite(context, part.expression));
-		statements.push(b.constant(id.name, b.call({ type: 'AwaitExpression', argument: saved })));
+		const saved = runtime(context, 'save', b.call(asyncThunk(context, part.expression)));
+		const value = b.member(b.call({ type: 'AwaitExpression', argument: saved }), 'value');
+		statements.push(b.constant(id.name, value));
 	}
 	const asynchronous = statements.length > 0;
 	const inner: TemplateContext = { ...context, out, awaited };
