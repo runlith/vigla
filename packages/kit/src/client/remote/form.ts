@@ -1,4 +1,5 @@
 import { cell, getOwner, onDestroy, tick, type Owner } from 'vigla';
+import { proxy } from 'vigla/internal/client';
 import { createAttachmentKey } from 'vigla/attachments';
 import { DEV } from 'esm-env';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
@@ -117,7 +118,7 @@ export class Form {
 	readonly key: string | number | undefined;
 	readonly instance: RemoteForm<any, any>;
 	readonly fields: OpenFields;
-	readonly #input = cell<Record<string, any>>({});
+	readonly #input = cell<Record<string, any>>(proxy({}));
 	readonly #issues = cell<InternalFormIssue[]>([]);
 	readonly #result = cell<any>(undefined);
 	readonly #pending = cell(0);
@@ -157,7 +158,7 @@ export class Form {
 		const seed = forms.remote.seed(this.actionId);
 		const initialize = (value: RemoteFormResult | undefined): void => {
 			if (!value) return;
-			this.#input.current = value.input ?? {};
+			this.#input.current = proxy(value.input ?? {});
 			this.#issues.current = value.issues ?? [];
 			this.#result.current = value.result;
 		};
@@ -218,13 +219,11 @@ export class Form {
 
 	write(path: (string | number)[], value: any, interactive = false): void {
 		if (!path.length) {
-			this.#input.current = value;
+			this.#input.current = proxy(value);
 			return;
 		}
 		if (value === deepGet(this.#input.current, path)) return;
-		const input = { ...this.#input.current };
-		deepSet(input, path, value);
-		this.#input.current = input;
+		deepSet(this.#input.current, path, value);
 		if (interactive) {
 			const key = buildPath(path);
 			this.#dirty.current = { ...this.#dirty.current, [key]: true };
@@ -242,7 +241,7 @@ export class Form {
 		if (Object.hasOwn(this.#dirty.current, name)) this.#canValidate[name] = true;
 	}
 	reset(data?: FormData): void {
-		if (data) this.#input.current = convertFormData(this.forms.id, data);
+		if (data) this.#input.current = proxy(convertFormData(this.forms.id, data));
 		this.#issues.current = [];
 		this.#dirty.current = {};
 		this.#touched.current = {};

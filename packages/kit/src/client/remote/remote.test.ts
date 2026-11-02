@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { stringify } from 'devalue';
 import { cell, effect, getOwner, hydratable, mount, root, tick, unmount, type Owner } from 'vigla';
+import { attributes, initSelect } from 'vigla/internal/client';
 import { render } from 'vigla/server';
 import {
 	hydrated as serverHydrated,
@@ -642,6 +643,37 @@ test('enhanced forms intercept their own action and expose the submitted element
 	const other = new SubmitEvent('submit', { bubbles: true, cancelable: true, submitter: button });
 	element.dispatchEvent(other);
 	expect(other.defaultPrevented).toBe(false);
+	detach();
+});
+
+test('editing a remote form field preserves an untouched select and earlier value snapshots', async () => {
+	const save = form('hash/select');
+	const { element, detach } = connect(save);
+	const input = document.createElement('input');
+	input.name = save.fields.message!.as('text').name;
+	const select = document.createElement('select');
+	select.innerHTML = '<option>one</option><option>two</option>';
+	element.append(input, select);
+	const scope = owner();
+	let previous: ReturnType<typeof attributes> | undefined;
+	scope.run(() => {
+		effect(() => {
+			previous = attributes(select, previous, { ...save.fields.number!.as('select') });
+		});
+		initSelect(select, () => previous);
+	});
+	await tick();
+	expect(select.value).toBe('one');
+	input.value = 'hello';
+	input.dispatchEvent(new Event('input', { bubbles: true }));
+	await tick();
+	expect(new FormData(element).get(select.name)).toBe('one');
+	const snapshot = save.fields.value();
+	save.fields.message!.set('later');
+	await tick();
+	expect(snapshot).toEqual({ message: 'hello' });
+	expect(save.fields.value()).toEqual({ message: 'later' });
+	expect(select.value).toBe('one');
 	detach();
 });
 
