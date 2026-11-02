@@ -117,6 +117,13 @@ function request(path = '/', init?: RequestInit): Request {
 	return new Request(`https://app.test${path}`, init);
 }
 
+it('rejects a malformed original pathname when reroute selects a valid path', async () => {
+	const server = await start(manifest(), options({ reroute: () => '/target' }));
+	const response = await server.respond(request('/%c0%ae%c0%ae/etc/passwd'), address);
+	expect(response.status).toBe(400);
+	await response.text();
+});
+
 it.each(['', '/__data.json'])(
 	'serves rerouted prerendered resources through their deployment URL%s',
 	async (suffix) => {

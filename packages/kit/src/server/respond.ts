@@ -150,14 +150,16 @@ export async function respond(
 				if (state.prerendering) state.prerendering.insideReroute = before ?? false;
 			}
 		}
+		let original: string;
 		try {
 			path = decodePathname(path);
+			original = decodePathname(url.pathname);
 		} catch {
 			throw new FrameworkError(400, 'Malformed URI');
 		}
 		if (
 			!state.prerendering?.fallback &&
-			path !== decodePathname(url.pathname) &&
+			path !== original &&
 			(server.manifest.prerendered_routes.has(path) ||
 				(path.endsWith('/') && server.manifest.prerendered_routes.has(path.slice(0, -1))))
 		) {
