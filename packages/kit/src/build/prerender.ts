@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { uneval } from 'devalue';
-import { routeSegments } from '../shared/routing/index.ts';
+import { resolveRoute } from '../shared/routing/index.ts';
 import { addDataSuffix } from '../shared/pathname.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import { encodeArgument } from '../shared/remote.ts';
@@ -118,10 +118,17 @@ export async function prerender(
 				e.prerender_redirect_location_missing({ path: pathname });
 				return;
 			}
-			enqueue(new URL(location, url).href, pathname);
+			const resolved = new URL(location, url);
+			enqueue(resolved.href, pathname);
 			if (response.headers.has('x-sveltekit-normalize')) return;
 			if (!result.prerendered.paths.includes(pathname)) result.prerendered.paths.push(pathname);
-			result.prerendered.redirects.set(pathname, { status: response.status, location });
+			result.prerendered.redirects.set(pathname, {
+				status: response.status,
+				location:
+					resolved.origin === url.origin
+						? resolved.pathname + resolved.search + resolved.hash
+						: location
+			});
 			const file = filename(pathname, true);
 			if (!written.has(file)) {
 				write(
@@ -278,9 +285,8 @@ export async function prerender(
 		}
 		for (const [id, metadata] of job.analysis.routes) {
 			if (!metadata.prerender) continue;
-			const segments = routeSegments(id).filter((segment) => !segment.startsWith('[['));
-			if (!segments.some((segment) => segment.includes('[')))
-				enqueue(`${job.base}/${segments.join('/')}`, null);
+			const params = runtime.manifest.routes.find((route) => route.id === id)?.params ?? [];
+			if (params.every((param) => param.optional)) enqueue(job.base + resolveRoute(id, {}), null);
 		}
 	}
 	for (const [id, metadata] of job.analysis.routes)
