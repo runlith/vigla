@@ -26,10 +26,12 @@ fields:
     "kind": "product",
     "order": [
       [
-        "easing.ts"
+        "easing.ts",
+        "placement.ts"
       ],
       [
-        "animate.ts"
+        "animate.ts",
+        "layout.ts"
       ],
       [
         "manager.ts",
