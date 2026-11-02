@@ -20,13 +20,14 @@ export function keyed<T>(contexts: Contexts): Context<T> {
 	const key = {};
 	return [
 		() => {
-			if (!contexts.hasContext(key)) {
+			const value = contexts.getContext<T>(key);
+			if (value === undefined && !contexts.hasContext(key)) {
 				throw failure(
 					'missing_context',
 					'Context was not set in the current component or any of its ancestors'
 				);
 			}
-			return contexts.getContext<T>(key);
+			return value;
 		},
 		(value) => contexts.setContext(key, value),
 		() => contexts.hasContext(key)

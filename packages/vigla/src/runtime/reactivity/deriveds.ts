@@ -22,9 +22,9 @@ import {
 	stale,
 	takeHidden,
 	track,
-	unsubscribe,
 	view
 } from './tracking.ts';
+import { unsubscribe } from './edges.ts';
 
 const evaluating: Derived[] = [];
 
@@ -122,8 +122,7 @@ export function forget(source: Source): void {
 
 export function disconnect(derived: Derived): void {
 	destroyEffects(derived);
-	for (const dep of derived.deps ?? []) unsubscribe(dep, derived);
-	derived.deps = null;
+	unsubscribe(derived);
 	derived.status = DIRTY;
 	marked();
 }

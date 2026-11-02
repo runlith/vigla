@@ -35,9 +35,13 @@ async function track(fn) {
 }
 
 export async function fastest(times, fn) {
+	return fastestFresh(times, () => fn);
+}
+
+export async function fastestFresh(times, prepare) {
 	let best = null;
 	for (let i = 0; i < times; i++) {
-		const result = await track(fn);
+		const result = await track(prepare());
 		if (best === null || result.time < best.time) best = result;
 	}
 	return best;

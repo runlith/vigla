@@ -82,6 +82,30 @@ export default [
 			}
 		};
 	}),
+	measure('effect_reads_1000_writes_1000', () => {
+		const sources = Array.from({ length: 1000 }, (_, i) => cell(i));
+		const rows = Array.from({ length: 1000 }, (_, i) => cell(i));
+		const trigger = cell(0);
+		let sink = 0;
+		let n = 0;
+		const destroy = $effect.root(() => {
+			$effect.pre(() => {
+				const t = trigger.v;
+				for (const source of sources) sink += source.v;
+				for (const row of rows) row.v = t;
+			});
+		});
+		return {
+			destroy,
+			run() {
+				for (let i = 0; i < 200; i++) {
+					flushSync(() => {
+						trigger.v = ++n;
+					});
+				}
+			}
+		};
+	}),
 	measure('writes_1000_effects_1000', () => {
 		const sources = Array.from({ length: 1000 }, (_, i) => cell(i));
 		let n = 0;

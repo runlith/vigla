@@ -31,12 +31,14 @@ export interface Source<T = unknown> {
 	logged: number;
 	slot: number;
 	read: number;
+	links: number[] | null;
 }
 
 export interface Reaction {
 	status: Status;
 	deps: Source[] | null;
 	rv: number;
+	slots: number[] | null;
 }
 
 export interface Failure {

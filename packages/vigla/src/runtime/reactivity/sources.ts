@@ -13,7 +13,16 @@ import { sequence } from './history.ts';
 import { get, guard, localize, owner, present, untrack, view } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
-	return { kind: SOURCE, v: value, wv: 0, reactions: null, logged: 0, slot: 0, read: 0 };
+	return {
+		kind: SOURCE,
+		v: value,
+		wv: 0,
+		reactions: null,
+		logged: 0,
+		slot: 0,
+		read: 0,
+		links: null
+	};
 }
 
 export function mutableEqual(before: unknown, after: unknown): boolean {
@@ -108,7 +117,9 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 		computed: false,
 		logged: 0,
 		slot: 0,
-		read: 0
+		read: 0,
+		slots: null,
+		links: null
 	};
 	if (equals !== undefined) created.equals = equals;
 	return created;

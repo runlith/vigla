@@ -5,7 +5,8 @@ import { unsafeMutation } from './errors.ts';
 import { capture, clear as clearReads, retain } from './reads.ts';
 export { stale } from './reads.ts';
 import { enter, leave, refresh } from './deriveds.ts';
-import { destroy, freeze, thaw } from './effects.ts';
+import { destroy } from './effects.ts';
+import { add, depsOf, extend, rebuild, retainDeps, truncate, unsubscribe } from './edges.ts';
 import { past, recall, setPast } from './past.ts';
 import { lose, lost, pauseLoss, resumeLoss } from './loss.ts';
 import { swapCollector } from './collector.ts';
@@ -135,31 +136,6 @@ export function destroyEffects(derived: Derived): void {
 	for (const effect of effects) destroy(effect);
 }
 
-function subscribe(dep: Source, reaction: Reaction): void {
-	const reactions = dep.reactions;
-	if (reactions !== null) {
-		reactions.push(reaction);
-		return;
-	}
-	dep.reactions = [reaction];
-	if (isDerived(dep) && dep.frozen !== null) thaw(dep);
-}
-
-export function unsubscribe(dep: Source, reaction: Reaction): void {
-	const reactions = dep.reactions;
-	if (reactions === null) return;
-	const index = reactions.indexOf(reaction);
-	if (index === -1) return;
-	const last = reactions.length - 1;
-	if (last > 0) {
-		reactions[index] = reactions[last] as Reaction;
-		reactions.pop();
-		return;
-	}
-	dep.reactions = null;
-	if (isDerived(dep) && dep.effects !== null) freeze(dep);
-}
-
 export function localize(source: Source): void {
 	const at = top();
 	if (at !== null && kindOf(at) === DERIVED) {
@@ -192,21 +168,12 @@ function record(at: Frame, source: Source): void {
 
 function adopt(run: Resumption, source: Source): void {
 	run.reads.add(source);
-	const deps = (run.reaction.deps ??= []);
-	if (deps.includes(source)) return;
-	deps.push(source);
-	subscribe(source, run.reaction);
+	add(run.reaction, source);
 }
 
 export function settleReads(run: Resumption): void {
-	const deps = run.reaction.deps;
-	if (deps === null || (run.reaction as Effect).destroyed === true) return;
-	let count = 0;
-	for (const dep of deps) {
-		if (run.reads.has(dep)) deps[count++] = dep;
-		else unsubscribe(dep, run.reaction);
-	}
-	deps.length = count;
+	if (run.reaction.deps === null || (run.reaction as Effect).destroyed === true) return;
+	retainDeps(run.reaction, run.reads);
 }
 
 function readBy(at: Frame, source: Source): boolean {
@@ -419,14 +386,9 @@ function compute(derived: Derived, given: View): unknown {
 		executing = previousReaction;
 		evaluating = previousEvaluation;
 		setOwner(previousOwner);
-		const deps = (derived.deps ??= []);
 		const extra = current.extra ?? [];
-		if (deps.length === 0 && extra.length > 0) own(derived);
-		for (const dep of extra) {
-			if (deps.includes(dep)) continue;
-			deps.push(dep);
-			subscribe(dep, derived);
-		}
+		if (depsOf(derived).length === 0 && extra.length > 0) own(derived);
+		for (const dep of extra) add(derived, dep);
 		if (current.hidden !== null) {
 			given.reached.set(derived, current.hidden);
 			note(current.hidden);
@@ -489,9 +451,12 @@ export function present<T>(fn: () => T): T {
 }
 
 export function readDuringRun(source: Source): void {
+	const read = source.read;
+	if (depth === 0 || read < (frames[0] as Frame).version) return;
 	for (let index = depth - 1; index >= 0; index--) {
 		const current = frames[index] as Frame;
-		if (!current.invalidated && readBy(current, source)) current.invalidated = true;
+		if (current.version <= read && !current.invalidated && readBy(current, source))
+			current.invalidated = true;
 	}
 }
 
@@ -506,57 +471,18 @@ function reconcile(target: Reaction, current: Frame, keep: boolean): void {
 	const extra = current.extra;
 	const matched = current.matched;
 	if (old === previous && extra === null) {
-		if (old === null) target.deps = [];
-		else if (!keep && matched < old.length) {
-			for (let index = matched; index < old.length; index++)
-				unsubscribe(old[index] as Source, target);
-			old.length = matched;
-		}
+		if (old === null) depsOf(target);
+		else if (!keep && matched < old.length) truncate(target, matched);
 		return;
 	}
 	if (old === previous && extra !== null) {
-		const taken = current.version + 2;
-		const tail = current.version + 1;
 		const empty = old === null || old.length === 0;
-		if (old !== null) {
-			for (let index = 0; index < matched; index++) (old[index] as Source).read = taken;
-			for (let index = matched; index < old.length; index++) (old[index] as Source).read = tail;
-		}
-		let count = 0;
-		for (let index = 0; index < extra.length; index++) {
-			const dep = extra[index] as Source;
-			const mark = dep.read;
-			if (mark === taken) continue;
-			dep.read = taken;
-			if (mark !== tail) subscribe(dep, target);
-			else if (keep) continue;
-			extra[count++] = dep;
-		}
-		extra.length = count;
-		if (old === null) target.deps = extra;
-		else if (keep) for (const dep of extra) old.push(dep);
-		else {
-			for (let index = matched; index < old.length; index++) {
-				const dep = old[index] as Source;
-				if (dep.read === tail) unsubscribe(dep, target);
-			}
-			if (matched === 0) target.deps = extra;
-			else {
-				old.length = matched;
-				for (const dep of extra) old.push(dep);
-			}
-		}
+		const count = extend(target, matched, extra, keep, current.version);
 		if (empty && count > 0 && isDerived(target)) own(target);
 		return;
 	}
 	const kept = new Set(reads(current));
-	const subscribed = new Set(previous);
-	for (const dep of subscribed) {
-		if (keep) kept.add(dep);
-		else if (!kept.has(dep)) unsubscribe(dep, target);
-	}
-	for (const dep of kept) if (!subscribed.has(dep)) subscribe(dep, target);
-	target.deps = [...kept];
+	rebuild(target, kept, keep);
 	if ((previous === null || previous.length === 0) && kept.size > 0 && isDerived(target))
 		own(target);
 }
@@ -580,7 +506,7 @@ export function track<T>(target: Reaction, fn: () => T, isolated = false): T {
 		evaluating = previousEvaluation;
 		if (!isolated) {
 			hiddenByLast = current.hidden;
-			if ((target as Effect).destroyed === true) target.deps = null;
+			if ((target as Effect).destroyed === true) unsubscribe(target);
 			else settleRun(target, current);
 			if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
 		}

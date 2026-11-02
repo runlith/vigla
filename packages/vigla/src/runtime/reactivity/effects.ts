@@ -30,10 +30,10 @@ import {
 	setOwner,
 	takeHidden,
 	track,
-	unsubscribe,
 	withoutReaction,
 	view
 } from './tracking.ts';
+import { unsubscribe } from './edges.ts';
 
 let created = 0;
 
@@ -74,7 +74,8 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		destroyed: false,
 		inert: false,
 		pending: false,
-		scope: false
+		scope: false,
+		slots: null
 	};
 	if (parent !== null) {
 		effect.prev = parent.last;
@@ -357,8 +358,7 @@ export function destroy(effect: Effect): void {
 	stayed(effect);
 	destroyChildren(effect);
 	release(effect);
-	for (const dep of effect.deps ?? []) unsubscribe(dep, effect);
-	effect.deps = null;
+	unsubscribe(effect);
 	const teardown = effect.teardown;
 	effect.teardown = null;
 	effect.fn = null;
@@ -395,8 +395,7 @@ export function freeze(derived: Derived): void {
 		if (!holding(effect)) continue;
 		destroyChildren(effect);
 		release(effect);
-		for (const dep of effect.deps ?? []) unsubscribe(dep, effect);
-		effect.deps = null;
+		unsubscribe(effect);
 		effect.status = CLEAN;
 		const teardown = effect.teardown;
 		effect.teardown = null;
