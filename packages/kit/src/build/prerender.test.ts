@@ -218,6 +218,45 @@ test('a reached page with actions rejects prerendering through its HTTP error po
 	).rejects.toBe(failure);
 });
 
+test('reroute-fetched prerendered endpoints without entries retain their body and route identity', async () => {
+	const runtime = await app({
+		functions: {},
+		load: () => ({ value: 'destination' }),
+		hooks: {
+			reroute: ({ url, fetch }) =>
+				url.pathname === '/alias'
+					? fetch('/api/value').then((response) => response.text())
+					: undefined
+		}
+	});
+	runtime.manifest.routes = [
+		runtime.manifest.routes.find((route) => route.id === '/b')!,
+		{
+			id: '/api/[value]',
+			pattern: /^\/api\/([^/]+?)\/?$/,
+			params: [{ name: 'value', optional: false, rest: false, chained: false }],
+			page: null,
+			endpoint: async () => ({
+				prerender: true,
+				GET: () => new Response('/b', { headers: { 'content-type': 'text/plain' } })
+			})
+		}
+	];
+	const input = await job(runtime, 'reroute-endpoint');
+	input.entries = ['/alias'];
+	const result = await prerender(input, runtime, fail);
+	expect(result.prerendered.assets.get('/api/value')).toEqual({ type: 'text/plain' });
+	expect(
+		readFileSync(path.join(input.directory, 'prerendered/dependencies/api/value'), 'utf8')
+	).toBe('/b');
+	expect(
+		readFileSync(
+			path.join(input.directory, 'prerendered/pages', result.prerendered.pages.get('/alias')!.file),
+			'utf8'
+		)
+	).toContain('<output>destination</output>');
+});
+
 test('an input generator failure rejects prerendering without turning it into an HTTP policy issue', async () => {
 	const failure = new Error('input generation failed');
 	const read = remotePrerender('unchecked', (value) => value, {

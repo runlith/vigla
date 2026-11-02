@@ -62,14 +62,19 @@ export async function endpointResponse(
 		);
 		if (!(response instanceof Response))
 			errors.endpoint_invalid_response({ path: event.url.pathname });
-		if (!state.prerendering) return response;
+		if (!state.prerendering || (state.prerendering.insideReroute && !prerender)) return response;
 		const headers = new Headers(response.headers);
 		headers.set('x-sveltekit-prerender', String(prerender));
-		return new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers
-		});
+		const result = new Response(
+			state.prerendering.insideReroute ? response.clone().body : response.body,
+			{ status: response.status, statusText: response.statusText, headers }
+		);
+		if (state.prerendering.insideReroute) {
+			result.headers.set('x-sveltekit-routeid', encodeURI(event.route.id!));
+			state.prerendering.dependencies.set(event.url.pathname, { response: result, body: null });
+			return response;
+		}
+		return result;
 	} catch (error) {
 		if (error instanceof Redirect)
 			return new Response(null, { status: error.status, headers: { location: error.location } });
