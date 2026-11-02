@@ -1,6 +1,6 @@
 ---
 id: 01a19e46-1155-797e-a839-59a627516cba
-title: A server render's component teardowns end with its owner, deepest first in document order
+title: A server render's component teardowns end with its owner, deepest first in its retained output's order
 ord: 8
 tags: ["explanation"]
 edges:
@@ -24,4 +24,4 @@ Each server component instance is a context layer placed into the output where t
 
 Release is a teardown of the render's owner: it runs when the render settles, when it fails, or when an ancestor such as a request owner is disposed mid-render. The render owner is an application scope, so it releases before services created under the same parent before it.
 
-Instances whose placements a boundary recovery or a binding retry discarded release first: their callbacks carry `external` and `$store` subscriptions, which would otherwise outlive the request. A callback registered after the owner ended, by a continuation still rendering after disposal, runs at once. Every callback runs even when one throws; the first error then propagates from the release, out of `render()` or through the disposing owner's failure path, unless the render itself failed, whose error wins.
+Instances whose placements a boundary recovery or a binding retry discarded release first, newest first, since no retained output orders them any more: their callbacks carry `external` and `$store` subscriptions, which would otherwise outlive the request. A callback registered after the owner ended, by a continuation still rendering after disposal, runs at once. Every component callback runs even when one of them, or the teardown of an owner created under the render, throws: a render ending on its own releases its instances itself when destruction stopped at such an error. The first error then propagates, out of `render()` or through the disposing owner's failure path, unless the render itself failed, whose error wins.
