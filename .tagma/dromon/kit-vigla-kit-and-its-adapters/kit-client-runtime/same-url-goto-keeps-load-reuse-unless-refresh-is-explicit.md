@@ -11,4 +11,4 @@ sources:
   - kind: file
     ref: packages/kit/src/client/load.ts
 ---
-Programmatic navigation to the current URL still uses tracked dependencies: selective invalidation must not refresh unrelated server or universal loads. Full refresh comes from explicit navigation options or the same-URL link handler, which also owns link-specific history behavior; treating URL equality as a full refresh inside the router silently widens a caller's invalidation set.
+Programmatic navigation to the current URL still uses tracked dependencies: selective invalidation must not refresh unrelated server or universal loads. Full refresh comes from explicit navigation options or the same-URL link handler, which also owns link-specific history behavior; treating URL equality as a full refresh inside the router silently widens a caller's invalidation set. A failed branch cannot take the unchanged-result shortcut, or revisiting its URL would make the error permanent after the load recovers.
