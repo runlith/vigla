@@ -1,6 +1,6 @@
 ---
 id: 01a1868a-e2b1-75a8-92fb-02edaa9fb09b
-title: A batch settles structure before content, and a held batch never shows another uncommitted batch's writes
+title: A batch settles structure before content and rebases by source-write chronology
 ord: 1
 tags: ["explanation"]
 edges:
