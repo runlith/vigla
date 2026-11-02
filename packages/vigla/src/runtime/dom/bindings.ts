@@ -10,6 +10,7 @@ import {
 } from '../reactivity/batch.ts';
 import { effect, teardown, template } from '../reactivity/effects.ts';
 import { original } from '../reactivity/proxy.ts';
+import { task } from '../reactivity/tasks.ts';
 import { untrack } from '../reactivity/tracking.ts';
 import { unowned } from './events.ts';
 import { hydrating } from './hydration.ts';
@@ -175,12 +176,12 @@ export function bindGroup(
 	});
 	if (!sorting.has(group)) {
 		sorting.add(group);
-		queueMicrotask(() => {
+		task(() => {
 			group.sort((a, b) => (a.compareDocumentPosition(b) === 4 ? -1 : 1));
 			sorting.delete(group);
 		});
 	}
-	queueMicrotask(() => {
+	task(() => {
 		if (!mismatched) return;
 		if (checkbox) set(groupValue(group, undefined, input.checked));
 		else {
