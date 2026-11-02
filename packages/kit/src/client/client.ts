@@ -162,6 +162,7 @@ export class Client {
 			this.chunks.bind(this.app, this.owner);
 			const hydration = input ? this.owner.run(input) : undefined;
 			const url = new URL(location.href);
+			if (this.routes.hash) url.hash = decodeURIComponent(url.hash);
 			let result: Loaded | { type: 'redirect'; status: number; location: string };
 			if (hydration) result = await this.pages.hydrate(hydration, url);
 			else {

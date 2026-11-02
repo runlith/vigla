@@ -1353,7 +1353,7 @@ it('rejects prerender query reads outside reroute and preserves route ids on err
 	});
 });
 
-it('renders the prerender fallback as an absolute-path CSR shell without routing or request hooks', async () => {
+it('renders the prerender fallback as an absolute-path CSR shell with root layout styles, without routing or request hooks', async () => {
 	const app = manifest();
 	app.client = {
 		start: '_app/start.js',
@@ -1367,8 +1367,9 @@ it('renders the prerender fallback as an absolute-path CSR shell without routing
 		throw new Error('fallback must not match routes');
 	};
 	app.nodes = [
+		async () => ({ ...node(0, undefined, undefined, layout), stylesheets: ['_app/layout.css'] }),
 		async () => {
-			throw new Error('fallback must not load nodes');
+			throw new Error('fallback must not load page nodes');
 		}
 	];
 	const config = options({
@@ -1394,6 +1395,30 @@ it('renders the prerender fallback as an absolute-path CSR shell without routing
 	expect(response.status).toBe(200);
 	expect(html).toContain('import("/base/_app/start.js")');
 	expect(html).toContain('import("/base/_app/env.js")');
+	expect(html).toContain('<link rel="stylesheet" href="/base/_app/layout.css">');
+	expect(html).not.toContain('<main>');
+	expect(html).not.toContain('node_ids:');
+});
+
+it('serves hash-routed documents as a CSR shell without rendering the page', async () => {
+	const app = manifest();
+	app.client = {
+		start: '_app/start.js',
+		app: '_app/app.js',
+		imports: [],
+		stylesheets: [],
+		fonts: [],
+		uses_env_dynamic_public: false
+	};
+	app.nodes[2] = async () => node(2, undefined, { load: () => ({ layout: 'page' }) }, layout);
+	app.routes = [route('/', null, true)];
+	const config = options();
+	config.router = { type: 'hash', resolution: 'client' };
+	const server = await start(app, config);
+	const response = await server.respond(request('/'), address);
+	const html = await response.text();
+	expect(response.status).toBe(200);
+	expect(html).toContain('hash:true');
 	expect(html).not.toContain('<main>');
 	expect(html).not.toContain('node_ids:');
 });

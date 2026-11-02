@@ -153,17 +153,7 @@ export async function respond(
 	try {
 		if (state.prerendering?.fallback) {
 			jar.route('ignore');
-			return finish(
-				await renderDocument(server, scope.store, {
-					branch: [],
-					errors: [],
-					status: 200,
-					error: null,
-					form: null,
-					ssr: false,
-					csr: true
-				})
-			);
+			return finish(await shell(scope.store));
 		}
 		let path = url.pathname;
 		if (!remote && server.hooks.reroute && !path.includes(`/${server.manifest.app_dir}/routes/`)) {
@@ -297,6 +287,7 @@ export async function respond(
 						}
 					});
 				}
+				if (server.options.router.type === 'hash') return await shell(store);
 				if (remote) {
 					if (!server.options.remote)
 						return new Response('Remote functions are not implemented', { status: 501 });
@@ -374,6 +365,19 @@ export async function respond(
 			scope.close();
 			throw fatal;
 		}
+	}
+
+	async function shell(store: RequestStore): Promise<Response> {
+		const layout = await server.manifest.nodes[0]!();
+		return renderDocument(server, store, {
+			branch: [{ depth: 0, node: layout, server: null, data: null }],
+			errors: [],
+			status: 200,
+			error: null,
+			form: null,
+			ssr: false,
+			csr: true
+		});
 	}
 
 	async function notFound(store: RequestStore): Promise<Response> {

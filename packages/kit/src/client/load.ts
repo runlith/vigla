@@ -17,7 +17,7 @@ import type {
 import type { NavigationEvent, LoadEvent } from '../types/request.ts';
 import { HttpError, Redirect, FrameworkError, HandledError } from '../shared/outcomes.ts';
 import { load_invalid_response } from '../shared/errors.ts';
-import { makeTrackable, stripHash, normalizePath } from '../shared/url.ts';
+import { makeTrackable, normalizePath } from '../shared/url.ts';
 import { fetchData } from './data.ts';
 import type { FetchCache } from './fetch.ts';
 import type { Intent, Route, Routes } from './routes.ts';
@@ -70,14 +70,15 @@ function changed(
 	previous: Loaded | null,
 	next: Intent,
 	changes: Changes,
-	parent: boolean
+	parent: boolean,
+	moved: boolean
 ): boolean {
 	if (changes.all) return true;
 	if (!usage || !previous) return !previous;
 	if (
 		(usage.parent && parent) ||
 		(usage.route && previous.route.id !== next.route.id) ||
-		(usage.url && stripHash(previous.url) !== stripHash(next.url))
+		(usage.url && moved)
 	)
 		return true;
 	for (const name of usage.params) if (previous.params[name] !== next.params[name]) return true;
@@ -335,6 +336,7 @@ export class Pages {
 		for (const loader of intent.route.errors)
 			if (loader) void this.routes.load(loader).catch(() => {});
 		for (const entry of entries) if (entry) void this.routes.load(entry[1]).catch(() => {});
+		const moved = !!previous && this.routes.key(previous.url) !== this.routes.key(intent.url);
 		let parent = false;
 		const invalid = entries.map((entry, depth) => {
 			const old = previous?.branch[depth];
@@ -342,7 +344,14 @@ export class Pages {
 				!(actionError && depth === entries.length - 1) &&
 				!!entry?.[0] &&
 				(entry[1] !== old?.loader ||
-					changed(old.server ? uses(old.server.uses) : null, previous, intent, changes, parent));
+					changed(
+						old.server ? uses(old.server.uses) : null,
+						previous,
+						intent,
+						changes,
+						parent,
+						moved
+					));
 			parent ||= reload;
 			return reload;
 		});
@@ -373,7 +382,7 @@ export class Pages {
 			if (
 				old?.loader === entry[1] &&
 				(!data || data.type === 'skip') &&
-				!changed(old.uses, previous, intent, changes, parent)
+				!changed(old.uses, previous, intent, changes, parent, moved)
 			)
 				return Promise.resolve(old);
 			parent = true;

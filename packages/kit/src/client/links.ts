@@ -136,8 +136,13 @@ export function listen(client: Client): () => void {
 		const link = info(element);
 		if (!link || link.ignore) return;
 		const same = client.routes.key(link.url) === client.routes.key(new URL(location.href));
-		const hasHash = (client.routes.hash ? link.url.hash.slice(1) : link.url.href).includes('#');
-		if (!link.external && same && hasHash && !link.options.replace) {
+		if (
+			!client.routes.hash &&
+			!link.external &&
+			same &&
+			link.url.href.includes('#') &&
+			!link.options.replace
+		) {
 			client.restoration.capture(client.history.index, client.view.components);
 			if (link.url.href === location.href) {
 				event.preventDefault();

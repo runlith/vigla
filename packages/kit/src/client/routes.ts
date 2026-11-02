@@ -110,13 +110,20 @@ export class Routes {
 
 	async match(url: URL): Promise<Intent | null> {
 		if (this.outside(url)) return null;
-		let path = this.hash ? url.hash.slice(1).split(/[?#]/)[0] || '/' : url.pathname;
+		const route = (url: URL) =>
+			this.hash ? url.hash.slice(1).split(/[?#]/)[0] || '/' : url.pathname;
+		let path = route(url);
 		if (this.#app.hooks.reroute) {
 			let rerouted = this.#rerouted.get(url.href);
 			if (!rerouted) {
 				try {
 					rerouted = Promise.resolve(this.#app.hooks.reroute({ url: new URL(url), fetch })).then(
-						(result) => result ?? path
+						(result) => {
+							if (result == null || !this.hash) return result ?? path;
+							const target = new URL(url);
+							target.hash = result;
+							return route(target);
+						}
 					);
 				} catch {
 					return null;
