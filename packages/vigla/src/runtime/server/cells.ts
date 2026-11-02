@@ -1,7 +1,7 @@
 import type { Layer } from '../../shared/context.ts';
 import { fail } from '../reactivity/effects.ts';
 import { ambient } from '../reactivity/carried.ts';
-import type { Effect } from '../reactivity/graph.ts';
+import type { Effect, Failure } from '../reactivity/graph.ts';
 import type { Cell } from '../reactivity/sources.ts';
 import { collect, collected } from '../reactivity/collector.ts';
 import { owner, setOwner, untrack, withoutReaction } from '../reactivity/tracking.ts';
@@ -61,6 +61,7 @@ class Memo<T> implements Cell<T>, Dependency {
 	readonly #layer: Layer<Effect> | null = layerOf(this.#scope);
 	#reads: Read[] | null = null;
 	#assigned = false;
+	#failure: Failure | null = null;
 	#value = undefined as T;
 
 	constructor(fn: () => T, equals: (before: T, after: T) => boolean = Object.is) {
@@ -69,31 +70,35 @@ class Memo<T> implements Cell<T>, Dependency {
 	}
 
 	get current(): T {
-		this.settle();
-		track(this);
+		try {
+			this.settle();
+		} finally {
+			track(this);
+		}
+		if (this.#failure !== null) throw this.#failure.error;
 		return this.#value;
 	}
 
 	set current(next: T) {
 		this.settle();
 		this.#assigned = true;
-		this.#publish(next);
+		const failed = this.#failure !== null;
+		this.#failure = null;
+		this.#publish(next, failed);
 	}
 
 	settle(): void {
 		const kept = this.#scope !== null || this.#assigned;
 		if (kept && this.#reads !== null && unchanged(this.#reads)) return;
-		const first = this.#reads === null;
+		const fresh = this.#reads === null || this.#failure !== null;
 		this.#assigned = false;
+		this.#failure = null;
 		const next = this.#evaluate();
-		if (first) {
-			this.#value = next;
-			this.version++;
-		} else this.#publish(next);
+		if (this.#failure === null) this.#publish(next, fresh);
 	}
 
-	#publish(next: T): void {
-		if (this.#equals(this.#value, next)) return;
+	#publish(next: T, fresh: boolean): void {
+		if (!fresh && this.#equals(this.#value, next)) return;
 		this.#value = next;
 		this.version++;
 	}
@@ -107,8 +112,11 @@ class Memo<T> implements Cell<T>, Dependency {
 		try {
 			return withoutReaction(() => collect(recorded, this.#fn));
 		} catch (error) {
+			this.#failure = { error };
+			this.#value = undefined as T;
+			this.version++;
 			if (scope === null) throw error;
-			fail(scope, error);
+			if (!scope.destroyed) fail(scope, error);
 			return undefined as T;
 		} finally {
 			this.#reads = recorded;

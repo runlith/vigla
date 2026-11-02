@@ -85,6 +85,65 @@ test('an owned server derived follows every external emission and ignores reads 
 	}
 });
 
+test('a server derived keeps a handled failure for its readers until a dependency changes or an assignment publishes', () => {
+	const owner = core.root();
+	const input = core.cell(0);
+	const failure = new Error('derived');
+	const handled: unknown[] = [];
+	const thrown = (caught: unknown): boolean => caught === failure;
+	const value = owner.run(() =>
+		core.derived(() => {
+			if (input.current === 0) throw failure;
+			return input.current;
+		})
+	);
+	const doubled = owner.run(() => core.derived(() => value.current * 2));
+	try {
+		owner.onError((error) => handled.push(error));
+		assert.throws(() => doubled.current, thrown);
+		assert.throws(() => value.current, thrown);
+		assert.deepEqual(handled, [failure, failure]);
+		value.current = 5;
+		assert.equal(doubled.current, 10);
+		input.current = 1;
+		assert.equal(doubled.current, 2);
+		owner.dispose();
+		input.current = 0;
+		assert.throws(() => value.current, thrown);
+		assert.deepEqual(handled, [failure, failure]);
+	} finally {
+		owner.dispose();
+	}
+});
+
+test('a server derived that read an unhandled failure recovers with its source', () => {
+	const owner = core.root();
+	const input = core.cell(0);
+	const other = core.cell(0);
+	const failure = new Error('derived');
+	const thrown = (caught: unknown): boolean => caught === failure;
+	const source = (): number => {
+		if (input.current === 0) throw failure;
+		return 1;
+	};
+	const owned = owner.run(() => core.derived(source));
+	const unowned = core.derived(source);
+	const fromOwned = owner.run(() => core.derived(() => owned.current * 2));
+	const fromUnowned = owner.run(() => core.derived(() => other.current + unowned.current));
+	try {
+		assert.throws(() => fromOwned.current, thrown);
+		input.current = 1;
+		assert.deepEqual([fromOwned.current, fromUnowned.current], [2, 1]);
+		input.current = 0;
+		other.current = 1;
+		assert.throws(() => fromUnowned.current, thrown);
+		input.current = 1;
+		assert.equal(fromUnowned.current, 2);
+	} finally {
+		owner.dispose();
+	}
+});
+
 test('a server derived declared outside owners does not cache a request context', () => {
 	const [read, write] = core.createContext<number>();
 	const value = core.derived(read);
