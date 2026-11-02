@@ -95,6 +95,12 @@ fields:
         "for": [
           "33d45c4b"
         ]
+      },
+      {
+        "at": "ownership.ts",
+        "for": [
+          "33d45c4b"
+        ]
       }
     ],
     "id": "dom",
