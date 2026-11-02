@@ -14,8 +14,13 @@ import { analyzeStyle, injected, renderStyle, type Stylesheet } from '../compile
 import type { Namespace } from '../compiler/ir/nodes.ts';
 import { chain, sourceName, type InputMap, type OutputMap } from '../compiler/ir/maps.ts';
 import type { ComponentUnit, Diagnostic, ModuleUnit } from '../compiler/ir/port.ts';
-import type { Runtime } from '../compiler/ir/runtime.ts';
-export type { Runtime, RuntimeNames } from '../compiler/ir/runtime.ts';
+import type { ExpressionProjection, Runtime } from '../compiler/ir/runtime.ts';
+export type {
+	ClientExpression,
+	ExpressionProjection,
+	Runtime,
+	RuntimeNames
+} from '../compiler/ir/runtime.ts';
 import { server, serverModule } from '../compiler/server/index.ts';
 
 export type * from '../compiler/ir/nodes.ts';
@@ -61,6 +66,7 @@ export type Generate = 'client' | 'server';
 export interface ModuleOptions {
 	readonly generate: Generate;
 	readonly runtime?: Runtime;
+	readonly clientExpression?: ExpressionProjection;
 	readonly dev?: boolean;
 	readonly validation?: ValidateOptions;
 }
@@ -158,6 +164,7 @@ export function compile(unit: ComponentUnit, options: CompileOptions): Output {
 			: client(analysis, {
 					...generation,
 					runtime: runtime.client,
+					project: options.clientExpression,
 					hmr: options.hmr ?? false,
 					filename: options.devFilename ?? unit.filename ?? '(unknown)',
 					discloseVersion: options.discloseVersion ?? '0'
@@ -177,6 +184,7 @@ export function compileModule(unit: ModuleUnit, options: ModuleOptions): Output 
 					dev: options.dev ?? false
 				})
 			: clientModule(analysis, {
+					project: options.clientExpression,
 					runtime: runtime.client,
 					runtimeNames: runtime.names,
 					dev: options.dev ?? false

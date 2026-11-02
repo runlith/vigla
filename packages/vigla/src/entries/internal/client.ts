@@ -113,6 +113,6 @@ export {
 export { external } from '../../runtime/reactivity/external.ts';
 export { latest } from '../../runtime/reactivity/latest.ts';
 export { tag, tagProxy, trace, traceStacks } from '../../runtime/reactivity/trace.ts';
-export { proxy, snapshot } from '../../runtime/reactivity/proxy.ts';
+export { original, proxy, snapshot } from '../../runtime/reactivity/proxy.ts';
 export { derived, set, state, update, updatePre } from '../../runtime/reactivity/sources.ts';
 export { endReading as unsave, get } from '../../runtime/reactivity/tracking.ts';

@@ -25,6 +25,7 @@ import {
 import { Diagnostics, relativeFilename, type Warning } from './diagnostics.ts';
 import { validate } from './options.ts';
 import { format } from '../shared/format.ts';
+import { proxyDiagnostics } from './proxy.ts';
 
 export { CompileError, CompileWarning, type Location, type Warning } from './diagnostics.ts';
 export { format } from '../shared/format.ts';
@@ -217,6 +218,10 @@ export function compile(input: string, options: CompileOptions = {}): CompileRes
 		const output = compileUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
+			clientExpression:
+				options.dev && generated(options) === 'client'
+					? proxyDiagnostics(reading.unit, relativeFilename(options))
+					: undefined,
 			format,
 			devFilename: relativeFilename(options),
 			discloseVersion: options.discloseVersion === false ? false : '5',
@@ -266,6 +271,10 @@ export function compileModule(input: string, options: ModuleCompileOptions = {})
 		const output = compileModuleUnit(reading.unit, {
 			generate: generated(options),
 			runtime,
+			clientExpression:
+				options.dev && generated(options) === 'client'
+					? proxyDiagnostics(reading.unit, relativeFilename(options))
+					: undefined,
 			dev: options.dev,
 			validation
 		});

@@ -159,6 +159,14 @@
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): layer's WorldHooks filled with public `vigla` API alone — `root`, `effect`, `cell`, `untrack`; upstream 5.57.3 has no such entry, so the sample cannot run there"
 		},
+		"proxy-diagnostic-nondev": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 globally patches array searches in a DEV runtime, so components compiled with dev:false still emit three proxy identity warnings; Vigla keeps the diagnostics in DEV compiled expressions"
+		},
+		"proxy-diagnostic-projection": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 array diagnostics coerce the indexOf fromIndex three times; the public control retains its single native coercion, native assignment key coercions, custom receivers and prop mutation validation"
+		},
 		"rich-select-dom": "contract",
 		"server-derived-override": "contract",
 		"server-failure-pending-sibling": {

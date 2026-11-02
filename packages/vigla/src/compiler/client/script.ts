@@ -14,7 +14,7 @@ import {
 import * as b from '../ir/estree.ts';
 import type { ExternalBinding, Rune } from '../ir/port.ts';
 import { external } from './external.ts';
-import type { RuntimeNames } from '../ir/runtime.ts';
+import type { ExpressionProjection, RuntimeNames } from '../ir/runtime.ts';
 import { classBody, fieldValue, privateField } from './classes.ts';
 import { destructured } from './patterns.ts';
 import { inspectCall, tagged, tracedFunction } from './inspect.ts';
@@ -25,6 +25,7 @@ export interface Context {
 	readonly names: b.Names;
 	readonly runtime: ES.Identifier;
 	readonly runtimeNames?: RuntimeNames;
+	readonly project?: ExpressionProjection;
 	readonly plain: ReadonlySet<Binding>;
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
@@ -58,6 +59,10 @@ export function runtime(
 	...args: ES.Expression[]
 ): ES.SimpleCallExpression {
 	return b.call(b.member(context.runtime, context.runtimeNames?.[name] ?? name), ...args);
+}
+
+function project(context: Context, original: ES.Expression, lowered: ES.Expression): ES.Expression {
+	return context.project?.({ original, lowered, runtime: context.runtime }) ?? lowered;
 }
 
 export function primitive(node: ES.Expression): boolean {
@@ -458,7 +463,7 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						left: next(current.left),
 						right: next(current.right)
 					};
-					return validateMutation(context, current, value);
+					return validateMutation(context, current, project(context, current, value));
 				}
 				if (current.left.type !== 'Identifier') return undefined;
 				const binding = references.get(current.left);
@@ -507,7 +512,12 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 				const inspected = inspection(runes, current);
 				if (inspected !== null) return inspectCall(context, inspected, next);
 				const rune = runes.get(current.callee);
-				if (rune === undefined) return undefined;
+				if (rune === undefined)
+					return project(context, current, {
+						...current,
+						callee: next(current.callee),
+						arguments: current.arguments.map((argument) => next(argument))
+					});
 				if (rune === '$host') return runtime(context, 'host', context.props ?? b.id('undefined'));
 				if (rune === '$state.eager')
 					return runtime(context, 'latest', b.arrow([], next(single(current) as ES.Expression)));

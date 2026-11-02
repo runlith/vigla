@@ -1,6 +1,6 @@
 import type * as ES from 'estree';
 import type { Format } from '../../shared/format.ts';
-import type { RuntimeNames } from '../ir/runtime.ts';
+import type { ExpressionProjection, RuntimeNames } from '../ir/runtime.ts';
 import {
 	patternNames,
 	spanOf,
@@ -24,6 +24,7 @@ import { render, type TemplateContext } from './template.ts';
 export interface ModuleOptions {
 	readonly runtime: string;
 	readonly runtimeNames?: RuntimeNames;
+	readonly project?: ExpressionProjection;
 	readonly dev: boolean;
 }
 
@@ -119,6 +120,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		names,
 		runtime: id,
 		runtimeNames: options.runtimeNames,
+		project: options.dev ? options.project : undefined,
 		plain: new Set(),
 		hoisted: [],
 		props,
@@ -276,6 +278,7 @@ export function clientModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		names,
 		runtime: id,
 		runtimeNames: options.runtimeNames,
+		project: options.dev ? options.project : undefined,
 		plain: new Set(),
 		hoisted: [],
 		props: null,

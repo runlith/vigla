@@ -13,7 +13,7 @@ export function assignment<T>(write: (value: T) => void): AssignmentTarget<T> {
 export function mutationTarget<T extends object, K extends keyof T>(
 	object: T,
 	key: K,
-	notify: () => void
+	notify: (value: T[K]) => void
 ): AssignmentTarget<T[K]> {
 	return {
 		get current() {
@@ -21,7 +21,7 @@ export function mutationTarget<T extends object, K extends keyof T>(
 		},
 		set current(value: T[K]) {
 			object[key] = value;
-			notify();
+			notify(value);
 		}
 	};
 }
