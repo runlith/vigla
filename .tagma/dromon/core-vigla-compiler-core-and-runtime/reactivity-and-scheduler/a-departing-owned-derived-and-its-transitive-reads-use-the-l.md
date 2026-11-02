@@ -25,6 +25,9 @@ sources:
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/batch.ts
     symbol: apply
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/deriveds.ts
+    symbol: refresh
 ---
 A derived declared under a departing branch evaluates against that branch's last-selected source view; its synchronous transitive reads, including deriveds declared outside the branch, share that view and a local cache. Direct source, prop and outside-owned-derived reads outside the computation keep their normal current batch view. New state created by the computation remains local and reads its own writes. The isolated evaluation leaves committed derived caches and subscriptions intact, so a later current reader cannot inherit an outgoing result.
 
