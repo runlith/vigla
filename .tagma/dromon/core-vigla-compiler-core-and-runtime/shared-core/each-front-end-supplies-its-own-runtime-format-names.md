@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/vigla/src/shared/format.ts
 ---
-Format names belong to the app that produced the tree: metadata properties, version-disclosure globals, component CSS wrappers and hydration-data globals use native names by default. An adapter supplies its format per compile and per render, mount or hydrate call, so one runtime can serve several front ends without changing another tree's names.
+Format names belong to the app that produced the tree: metadata properties, version-disclosure globals, component CSS wrappers, hydration-data globals and the Trusted Types policy name use native names by default; a format that names no policy uses the native one. An adapter supplies its format per compile and per render, mount or hydrate call, so one runtime can serve several front ends without changing another tree's names.

@@ -1,7 +1,7 @@
 ---
 id: 01a19405-1074-7436-a650-4ab0a702c1c5
 title: Raw snippet HTML is one element so hydration and setup share a stable node
-ord: 14
+ord: 4
 tags: ["explanation"]
 edges:
   - kind: relates
