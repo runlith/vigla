@@ -1,6 +1,6 @@
 {
   "conversions": {
-    "utils.js": "Playwright runs its bundled Chromium instead of the `chrome` channel"
+    "utils.js": "Playwright uses bundled Chromium and a validated KIT_E2E_PORT loopback origin for readiness, public Node startup and relative test URLs"
   },
   "samples": {}
 }
