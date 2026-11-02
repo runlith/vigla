@@ -15,6 +15,11 @@ export function normalizePath(path: string, slash: TrailingSlash): string {
 	return path.endsWith('/') ? path.slice(0, -1) : path;
 }
 
+export function relativePathname(from: string, to: string): string {
+	const segment = to.replace(/\/$/, '').split('/').at(-1);
+	return from.endsWith('/') ? `../${segment}` : `./${segment}/`;
+}
+
 export function stripHash(url: { href: string }): string {
 	return url.href.split('#')[0]!;
 }

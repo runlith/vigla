@@ -1686,7 +1686,7 @@ it('normalizes page slashes and answers conditional requests without a response 
 		address
 	);
 	expect(redirect.status).toBe(308);
-	expect(redirect.headers.get('location')).toBe('/page/');
+	expect(redirect.headers.get('location')).toBe('./page/');
 	expect(redirect.headers.get('x-sveltekit-normalize')).toBe('1');
 	await redirect.body?.cancel();
 	const document = await server.respond(
@@ -1715,7 +1715,7 @@ it('serves the root route under a base path with a trailing slash whatever the p
 		address
 	);
 	expect(redirect.status).toBe(308);
-	expect(redirect.headers.get('location')).toBe('/base/?q=1');
+	expect(redirect.headers.get('location')).toBe('./base/?q=1');
 	await redirect.body?.cancel();
 	const document = await server.respond(
 		request('/base/', { headers: { accept: 'text/html' } }),

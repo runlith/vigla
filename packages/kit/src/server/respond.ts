@@ -17,7 +17,7 @@ import {
 	stripDataSuffix,
 	stripResolutionSuffix
 } from '../shared/pathname.ts';
-import { decodePathname, normalizePath } from '../shared/url.ts';
+import { decodePathname, normalizePath, relativePathname } from '../shared/url.ts';
 import { findRoute } from '../shared/routing/index.ts';
 import { isEndpoint, negotiate } from '../shared/http.ts';
 import { Redirect } from '../shared/outcomes.ts';
@@ -278,14 +278,11 @@ export async function respond(
 			try {
 				const normalized = normalizePath(url.pathname, slash);
 				if (!data && !remote && normalized !== url.pathname && !state.prerendering?.fallback) {
-					const location = new URL(url);
-					location.pathname = normalized;
+					const { search } = new URL(url.href);
 					return new Response(null, {
 						status: 308,
 						headers: {
-							location: location.pathname.startsWith('//')
-								? location.href
-								: location.pathname + location.search,
+							location: relativePathname(url.pathname, normalized) + search,
 							'x-sveltekit-normalize': '1'
 						}
 					});
