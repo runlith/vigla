@@ -32,10 +32,12 @@ export function assignmentTarget(receiver: unknown, key: PropertyKey, location: 
 		if (value !== null && typeof value === 'object') {
 			const current = untrack(() => object[property!]);
 			if (current !== value && identity(current) !== current) {
-				reporter.warn(
-					'assignment_value_stale',
-					`Assignment to \`${String(property)}\` property (${location}) will evaluate to the right-hand side, not the value of \`${String(property)}\` following the assignment. This may result in unexpected behaviour.`
-				);
+				reporter.warn({
+					code: 'assignment_value_stale',
+					message: `Assignment to \`${String(property)}\` property (${location}) will evaluate to the right-hand side, not the value of \`${String(property)}\` following the assignment. This may result in unexpected behaviour.`,
+					values: {},
+					dev: true
+				});
 			}
 		}
 	});
@@ -64,10 +66,12 @@ export function search(receiver: unknown, key: Search) {
 				for (let index = start; index < end; index++) {
 					const value = object[index];
 					if (value !== args[0] && identity(value) === args[0]) {
-						reporter.warn(
-							'state_proxy_equality_mismatch',
-							`Reactive \`$state(...)\` proxies and the values they proxy have different identities. Because of this, comparisons with \`array.${key}(...)\` will produce unexpected results`
-						);
+						reporter.warn({
+							code: 'state_proxy_equality_mismatch',
+							message: `Reactive \`$state(...)\` proxies and the values they proxy have different identities. Because of this, comparisons with \`array.${key}(...)\` will produce unexpected results`,
+							values: {},
+							dev: true
+						});
 						break;
 					}
 				}

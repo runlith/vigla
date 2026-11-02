@@ -1,4 +1,4 @@
-import type { Reporter, Values } from 'vigla/internal/server';
+import type { Notice, Reporter, Values } from 'vigla/internal/server';
 
 interface Projection {
 	readonly code: string;
@@ -27,25 +27,35 @@ const projections: Readonly<Record<string, Projection>> = {
 	}
 };
 
+const explained = new Set([
+	'async_local_storage_unavailable',
+	'await_invalid',
+	'dynamic_element_invalid_tag',
+	'html_deprecated',
+	'hydratable_clobbering',
+	'hydratable_serialization_failed',
+	'invalid_csp',
+	'invalid_id_prefix',
+	'lifecycle_function_unavailable',
+	'server_context_required'
+]);
+
 const entries = /\/svelte\/src\/entries\//;
 
 function link(code: string): string {
 	return `https://svelte.dev/e/${code}`;
 }
 
-function project(
-	code: string,
-	message: string | null,
-	values: Values = {}
-): [string, string | null] {
+function project({ code, message, values, dev }: Notice): [string, string | null] {
 	const found = projections[code];
-	if (found === undefined) return [code, message];
-	return [found.code, message === null ? null : found.message(values)];
+	const shown = found === undefined ? code : found.code;
+	if (!dev && !explained.has(shown)) return [shown, null];
+	return [shown, found === undefined ? message : found.message(values)];
 }
 
 export const reporter: Reporter = {
-	warn(given, text, values) {
-		const [code, message] = project(given, text, values);
+	warn(notice) {
+		const [code, message] = project(notice);
 		if (message === null) console.warn(link(code));
 		else {
 			console.warn(
@@ -55,8 +65,8 @@ export const reporter: Reporter = {
 			);
 		}
 	},
-	error(given, text, values) {
-		const [code, message] = project(given, text, values);
+	error(notice) {
+		const [code, message] = project(notice);
 		const error = new Error(message === null ? link(code) : `${code}\n${message}\n${link(code)}`);
 		error.name = 'Svelte error';
 		return error;

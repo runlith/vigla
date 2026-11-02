@@ -1,7 +1,7 @@
 export { clsx } from '../../shared/attributes.ts';
 export { assignment, mutationTarget } from '../../shared/assignment.ts';
 export { failure, setReporter } from '../../shared/diagnostics.ts';
-export type { Reporter, Values } from '../../shared/diagnostics.ts';
+export type { Notice, Reporter, Values } from '../../shared/diagnostics.ts';
 export { snippet } from '../../shared/snippet.ts';
 export { snippetArgs } from '../../runtime/dom/snippet.ts';
 export {
