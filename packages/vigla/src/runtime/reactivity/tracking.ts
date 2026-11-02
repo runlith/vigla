@@ -56,6 +56,7 @@ export interface Resumption {
 
 let versions = 0;
 let depth = 0;
+let floor = 0;
 let marks = 0;
 
 export function marked(): void {
@@ -111,7 +112,7 @@ function finished(current: Frame): void {
 }
 
 function top(): Frame | null {
-	return depth === 0 ? null : (frames[depth - 1] as Frame);
+	return depth === floor ? null : (frames[depth - 1] as Frame);
 }
 
 function kindOf(at: Frame): number {
@@ -299,11 +300,14 @@ export function evaluation(): object | null {
 
 export function withoutReaction<T>(fn: () => T): T {
 	const previous = executing;
+	const previousFloor = floor;
 	executing = null;
+	floor = depth;
 	try {
 		return untrack(fn);
 	} finally {
 		executing = previous;
+		floor = previousFloor;
 	}
 }
 
