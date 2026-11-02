@@ -196,7 +196,10 @@ export function listen(client: Client): () => void {
 			}
 			return;
 		}
-		if (metadata.historyIndex === client.history.index) return;
+		if (metadata.historyIndex === client.history.index) {
+			client.cancel();
+			return;
+		}
 		const source = client.history.current;
 		const delta = metadata.historyIndex - source.historyIndex;
 		const reset = metadata.resetIndex !== source.resetIndex;
@@ -210,7 +213,6 @@ export function listen(client: Client): () => void {
 				(client.navigated &&
 					(metadata.pageUrl === undefined || metadata.pageUrl === location.href)));
 		client.restoration.capture(client.history.index, client.view.components);
-		client.history.accept(metadata);
 		void client
 			.navigate(new URL(location.href), {
 				type: 'popstate',

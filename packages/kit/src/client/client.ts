@@ -265,6 +265,13 @@ export class Client {
 		return true;
 	}
 
+	cancel(): void {
+		this.#token++;
+		untrack(() => {
+			this.state.navigation.current = null;
+		});
+	}
+
 	updateUrl(url: URL): void {
 		this.#token++;
 		if (this.current) this.current = { ...this.current, url };

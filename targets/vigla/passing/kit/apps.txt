@@ -351,6 +351,7 @@ basics/test/playwright/cross-platform/client.test.js > Scrolling > clicking # or
 basics/test/playwright/cross-platform/client.test.js > Scrolling > no-anchor url will scroll to top when navigated from bottom of page (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Scrolling > no-anchor url will scroll to top when navigated from scrolled page (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Scrolling > scroll is restored after hitting the back button (test-dev-1/chromium-dev)
+basics/test/playwright/cross-platform/client.test.js > Scrolling > scroll is restored after hitting the back button (test-server-side-route-resolution-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Scrolling > scroll is restored after hitting the back button for an in-app cross-document navigation (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Scrolling > scroll position is top of page on ssr:false reload (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/client.test.js > Scrolling > scroll positions are recovered on reloading the page (test-dev-1/chromium-dev)
