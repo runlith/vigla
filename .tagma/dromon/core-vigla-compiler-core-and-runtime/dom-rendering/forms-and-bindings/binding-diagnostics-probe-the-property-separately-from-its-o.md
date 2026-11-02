@@ -1,7 +1,7 @@
 ---
 id: 01a19c3f-c63d-7270-abb9-afc5da04bfda
 title: Binding diagnostics probe the property separately from its object and key
-ord: 31
+ord: 9
 tags: ["explanation"]
 edges:
   - kind: relates
