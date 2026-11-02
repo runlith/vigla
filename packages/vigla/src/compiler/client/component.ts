@@ -490,7 +490,9 @@ export function renderCall(
 		]);
 	}
 	const callee = rewrite(context, call.callee as ES.Expression);
-	const selected = optional ? b.logical('??', callee, runtime(context, 'noop')) : callee;
+	const selected = optional
+		? b.logical('??', callee, b.member(context.runtime, context.runtimeNames?.noop ?? 'noop'))
+		: callee;
 	return scoped(context, node, 'render', [
 		...declarations,
 		b.statement(runtime(context, 'render', anchor, b.arrow([], selected), ...args))
