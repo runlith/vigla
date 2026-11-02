@@ -1,26 +1,34 @@
 import { keyed, type Context, type Layer } from '../../shared/context.ts';
 import { lifetime } from '../reactivity/abort.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { fail, teardown } from '../reactivity/effects.ts';
+import { destroy, fail, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import type { Cell } from '../reactivity/sources.ts';
 import { ownContext, ownerOf } from '../reactivity/owners.ts';
 import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
 import type { Data } from './hydration.ts';
+import type { Output } from './render.ts';
 
-interface Render {
-	readonly scope: Effect;
-	readonly destroys: (() => void)[];
-	readonly hydration: Data;
+export interface Instance extends Layer<Effect> {
+	destroys: (() => void)[] | null;
 }
 
-export interface Saved {
+interface Saved {
 	readonly render: Render | null;
 	readonly owner: Effect | null;
+	readonly site: Output | null;
+}
+
+export interface Render {
+	readonly scope: Effect;
+	readonly out: Output;
+	readonly instances: Instance[];
+	readonly saved: Saved;
+	released: boolean;
 }
 
 let render: Render | null = null;
-let destroying: Render | null = null;
+let site: Output | null = null;
 
 const stores = new WeakMap<Effect, Data>();
 const resumed = new WeakSet<Layer<Effect>>();
@@ -29,22 +37,32 @@ function layerOf(effect: Effect | null): Layer<Effect> | null {
 	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
 }
 
+export function enter(output: Output | null): Output | null {
+	const previous = site;
+	site = output;
+	return previous;
+}
+
 export function push(map?: Map<unknown, unknown>): void {
 	if (render === null) return;
-	render.scope.context = {
+	const instance: Instance = {
 		parent: layerOf(render.scope),
 		owner: null,
 		component: true,
-		map: map ?? null
+		map: map ?? null,
+		destroys: null
 	};
+	render.scope.context = instance;
+	render.instances.push(instance);
+	site?.place(instance);
 }
 
 export function pop(): void {
 	if (render !== null) render.scope.context = layerOf(render.scope)?.parent ?? null;
 }
 
-export function begin(scope: Effect, hydration: Data, inheritContext = true): Saved {
-	const saved = { render, owner };
+export function begin(scope: Effect, hydration: Data, out: Output, inheritContext = true): Render {
+	const saved = { render, owner, site };
 	scope.context = {
 		parent: inheritContext ? layerOf(scope) : null,
 		owner: scope,
@@ -53,22 +71,72 @@ export function begin(scope: Effect, hydration: Data, inheritContext = true): Sa
 		map: null
 	};
 	ownerOf(scope);
-	render = { scope, destroys: [], hydration };
+	stores.set(scope, hydration);
+	const opened: Render = { scope, out, instances: [], saved, released: false };
+	render = opened;
+	site = out;
 	setOwner(scope);
-	return saved;
+	teardown(() => release(opened));
+	return opened;
 }
 
-export function end(saved: Saved): void {
-	const done = render;
-	render = saved.render;
-	setOwner(saved.owner);
-	const previous = destroying;
-	destroying = done;
-	try {
-		for (const fn of done?.destroys ?? []) fn();
-	} finally {
-		destroying = previous;
+export function end(done: Render): void {
+	render = done.saved.render;
+	site = done.saved.site;
+	setOwner(done.saved.owner);
+}
+
+export function finish(done: Render, failed: boolean): void {
+	let caught = false;
+	let first: unknown;
+	for (const step of [() => destroy(done.scope), () => release(done)]) {
+		try {
+			step();
+		} catch (error) {
+			if (!caught) first = error;
+			caught = true;
+		}
 	}
+	if (caught && !failed) throw first;
+}
+
+function within(instance: Instance, ancestor: Instance): boolean {
+	for (let at = instance.parent; at !== null; at = at.parent) if (at === ancestor) return true;
+	return false;
+}
+
+function release(done: Render): void {
+	if (done.released) return;
+	done.released = true;
+	const ordered: Instance[] = [];
+	const open: Instance[] = [];
+	done.out.instances((instance) => {
+		while (open.length > 0 && !within(instance, open.at(-1)!)) ordered.push(open.pop()!);
+		open.push(instance);
+	});
+	while (open.length > 0) ordered.push(open.pop()!);
+	if (ordered.length < done.instances.length) {
+		const reached = new Set(ordered);
+		ordered.unshift(...done.instances.filter((instance) => !reached.has(instance)).reverse());
+	}
+	const previous = setOwner(done.scope);
+	let failed = false;
+	let first: unknown;
+	try {
+		for (const instance of ordered) {
+			for (const fn of instance.destroys ?? []) {
+				try {
+					fn();
+				} catch (error) {
+					if (!failed) first = error;
+					failed = true;
+				}
+			}
+		}
+	} finally {
+		setOwner(previous);
+	}
+	if (failed) throw first;
 }
 
 export function storeOf(effect: Effect | null): Data | null {
@@ -90,13 +158,11 @@ export function openStore(data: Data): void {
 }
 
 export function hydrationData(): Data | null {
-	return render?.hydration ?? storeOf(owner);
+	return storeOf(owner);
 }
 
 export function getAbortSignal(): AbortSignal {
-	const scope =
-		destroying?.scope ?? (render !== null && owner === render.scope ? render.scope : owner);
-	return scope === null ? new AbortController().signal : lifetime(scope);
+	return owner === null ? new AbortController().signal : lifetime(owner);
 }
 
 export function memo<T>(fn: () => T, _equals?: (before: T, after: T) => boolean): Cell<T> {
@@ -135,14 +201,17 @@ export function memo<T>(fn: () => T, _equals?: (before: T, after: T) => boolean)
 export function capture(): () => void {
 	const captured = render;
 	const layer = layerOf(captured?.scope ?? null);
+	const at = site;
 	return () => {
 		render = captured;
+		site = at;
 		if (captured === null) return;
 		captured.scope.context = layer;
 		setOwner(captured.scope);
 		queueMicrotask(() => {
 			if (render !== captured) return;
 			render = null;
+			site = null;
 			if (owner === captured.scope) setOwner(null);
 		});
 	};
@@ -214,7 +283,20 @@ export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, un
 	return all as T;
 }
 
+function instanceOf(effect: Effect): Instance | null {
+	for (let layer = layerOf(effect); layer !== null; layer = layer.parent) {
+		if (layer.component) return layer as Instance;
+	}
+	return null;
+}
+
 export function onDestroy(fn: () => void): void {
-	if (render !== null && owner === render.scope) render.destroys.push(fn);
-	else if (owner !== null) teardown(fn);
+	if (owner === null) return;
+	if (owner.destroyed) {
+		fn();
+		return;
+	}
+	const instance = render !== null && owner === render.scope ? instanceOf(owner) : null;
+	if (instance === null) teardown(fn);
+	else (instance.destroys ??= []).push(fn);
 }

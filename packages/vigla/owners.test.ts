@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import * as core from 'vigla';
+import { createSubscriber } from 'vigla/reactivity';
 
 const { cell, effect, root, tick, flushSync, onDestroy, createContext, getAbortSignal, settled } =
 	core;
@@ -245,5 +246,84 @@ test('an owner signal cancels registered async work and each owner has its own l
 		assert.equal(value, 42);
 	} finally {
 		app.dispose();
+	}
+});
+
+test('external sources and subscribers under a service owner release when it is disposed', async () => {
+	const app = root();
+	const service = root(undefined, app);
+	const view = root();
+	let subscriptions = 0;
+	let started = 0;
+	let emit = (_value: number): void => {};
+	const source: core.Subscribable<number> = {
+		subscribe(run) {
+			subscriptions++;
+			emit = run;
+			run(1);
+			return () => subscriptions--;
+		}
+	};
+	const listen = createSubscriber(() => {
+		started++;
+		return () => started--;
+	});
+	const value = service.run(() => core.external(() => source));
+	const doubled = service.run(() =>
+		core.derived(() => {
+			listen();
+			return value.current * 2;
+		})
+	);
+	let shown = 0;
+	try {
+		view.run(() => effect(() => void (shown = doubled.current)));
+		flushSync();
+		assert.deepEqual([shown, subscriptions, started], [2, 1, 1]);
+		emit(2);
+		flushSync();
+		assert.equal(shown, 4);
+		app.dispose();
+		await Promise.resolve();
+		assert.deepEqual([subscriptions, started], [0, 0]);
+	} finally {
+		view.dispose();
+		app.dispose();
+	}
+});
+
+test('independent applications keep their own context, failures and lifetimes', () => {
+	const [scope, setScope] = createContext<string>();
+	const first = root();
+	const second = root();
+	const input = cell(0);
+	const failure = new Error('first');
+	const failures: unknown[] = [];
+	const seen: string[] = [];
+	try {
+		first.run(() => setScope('first'));
+		second.run(() => setScope('second'));
+		first.onError((error) => failures.push(error));
+		root(() => {
+			effect(() => {
+				if (input.current === 1) throw failure;
+			});
+		}, first);
+		root(() => {
+			effect(() => void seen.push(`${scope()} ${input.current}`));
+		}, second);
+		flushSync();
+		input.current = 1;
+		flushSync();
+		first.dispose();
+		input.current = 2;
+		flushSync();
+		assert.deepEqual(failures, [failure]);
+		assert.deepEqual(seen, ['second 0', 'second 1', 'second 2']);
+		assert.equal(second.disposed, false);
+		assert.equal(second.run(scope), 'second');
+	} finally {
+		first.dispose();
+		second.dispose();
 	}
 });

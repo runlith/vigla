@@ -17,19 +17,17 @@ export {
 } from '../../runtime/server/attributes.ts';
 export { phase, pop, push, save } from '../../runtime/server/context.ts';
 export { popElement, pushElement } from '../../runtime/server/placement.ts';
+export { derived, held, updateDerived } from '../../runtime/server/derived.ts';
 export {
 	appendStyles,
 	bindProps,
 	boundary,
-	derived,
 	element,
 	head,
-	held,
 	iterate,
 	Output,
 	propsId,
 	Settlement,
 	snapshot,
-	spreadProps,
-	updateDerived
+	spreadProps
 } from '../../runtime/server/render.ts';

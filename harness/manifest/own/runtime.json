@@ -161,6 +161,10 @@
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): a server render() runs under an owner of its own beneath the caller's, sees context and hydratable values set on a request owner before it, and ends with its abort signal and teardowns; upstream 5.57.3 has no `vigla` entry"
 		},
+		"owner-server-request": {
+			"status": "difference",
+			"reason": "Public request scopes (spec 37f29ce1): disposing a request owner mid-render releases the render's component teardowns, those of content a boundary discarded first, and releases a component rendered after it at once; upstream 5.57.3 has no `vigla` entry"
+		},
 		"owner-service-async": {
 			"status": "difference",
 			"reason": "Application primitives: a service owner outlives its creating branch, holds settled() for owned async work and releases effects with its parent; upstream 5.57.3 has no vigla entry"

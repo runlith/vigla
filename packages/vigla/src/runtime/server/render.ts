@@ -1,14 +1,13 @@
 import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import type { Placed } from './placement.ts';
-import { isRendering } from './context.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { Data, type Csp, type Script } from './hydration.ts';
 import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
-import { destroy, detached } from '../reactivity/effects.ts';
+import { detached } from '../reactivity/effects.ts';
 import { owner } from '../reactivity/tracking.ts';
-import { begin, capture, end, push, storeOf } from './context.ts';
+import { begin, capture, end, enter, finish, push, storeOf, type Instance } from './context.ts';
 import { attributes } from './attributes.ts';
 import type { StyleDirectives } from '../../shared/attributes.ts';
 
@@ -95,7 +94,7 @@ export class Settlement {
 }
 
 export class Output {
-	readonly #parts: (string | Output | (() => string))[] = [];
+	readonly #parts: (string | Output | (() => string) | Instance)[] = [];
 	readonly #parent: Output | null;
 	readonly #channel: Channel;
 	#pending: Promise<void> | null = null;
@@ -146,7 +145,12 @@ export class Output {
 					inner.#settlement = settlement;
 					container.#parts.length = 0;
 					container.#parts.push(inner);
-					fn(inner);
+					const previous = enter(inner);
+					try {
+						fn(inner);
+					} finally {
+						enter(previous);
+					}
 					if (inner.asynchronous) {
 						return inner.settle().then(() => {
 							restore();
@@ -236,11 +240,10 @@ export class Output {
 	#optionText(): string {
 		let text = '';
 		for (const part of this.#parts) {
-			if (part instanceof Output) {
-				if (part.#channel === this.#channel) text += part.#optionText();
-			} else {
-				text += typeof part === 'function' ? part() : part;
-			}
+			if (typeof part === 'string') text += part;
+			else if (typeof part === 'function') text += part();
+			else if (part instanceof Output && part.#channel === this.#channel)
+				text += part.#optionText();
 		}
 		if (this.#valueTransparent && text.startsWith(open) && text.endsWith(close)) {
 			return text.slice(open.length, -close.length);
@@ -260,8 +263,25 @@ export class Output {
 
 	#run(inner: Output, fn: (out: Output) => void | Promise<void>): void {
 		this.#parts.push(inner);
-		const result = fn(inner);
+		const previous = enter(inner);
+		let result: void | Promise<void>;
+		try {
+			result = fn(inner);
+		} finally {
+			enter(previous);
+		}
 		if (result instanceof Promise) inner.#wait(result);
+	}
+
+	place(instance: Instance): void {
+		this.#parts.push(instance);
+	}
+
+	instances(visit: (instance: Instance) => void): void {
+		for (const part of this.#parts) {
+			if (part instanceof Output) part.instances(visit);
+			else if (typeof part === 'object') visit(part);
+		}
 	}
 
 	#wait(promise: Promise<void>): void {
@@ -310,7 +330,12 @@ export class Output {
 		const render = (value: unknown): void => {
 			recovery.restore();
 			this.push(serialized(value));
-			recovery.failed(this, value, () => {});
+			const previous = enter(this);
+			try {
+				recovery.failed(this, value, () => {});
+			} finally {
+				enter(previous);
+			}
 			this.push(close);
 		};
 		if (transformed !== null && typeof (transformed as PromiseLike<unknown>)?.then === 'function') {
@@ -340,7 +365,7 @@ export class Output {
 		for (const part of this.#parts) {
 			if (part instanceof Output) {
 				if (part.#channel !== 'title' || title) part.collect(content, title);
-			} else {
+			} else if (typeof part !== 'object') {
 				const html = typeof part === 'function' ? part() : part;
 				if (this.#channel === 'body') content.body += html;
 				else content.head += html;
@@ -393,28 +418,34 @@ export function render<P extends Props>(
 	const out = new Output(global);
 	const caller = owner;
 	const scope = detached(null, caller);
-	const data = storeOf(caller) ?? new Data();
-	const saved = begin(scope, data, options.inheritContext !== false);
+	scope.scope = true;
+	const current = begin(
+		scope,
+		storeOf(caller) ?? new Data(),
+		out,
+		options.inheritContext !== false
+	);
+	const store = (): Data => storeOf(scope) ?? new Data();
 	try {
 		push(options.context);
 		out.push(open);
 		component(out, options.props ?? ({} as P));
 		out.push(close);
 	} catch (error) {
-		end(saved);
-		destroy(scope);
+		end(current);
+		finish(current, true);
 		throw error;
 	}
-	end(saved);
+	end(current);
 	const result = (script?: Script): Rendered => {
 		const content = out.collect();
 		let head = (script?.html ?? '') + content.head + global.title();
 		for (const { hash, code } of global.styles) head += `<style id="${hash}">${code}</style>`;
 		return { head, body: content.body, hashes: { script: script?.hash ? [script.hash] : [] } };
 	};
-	if (!out.asynchronous && !data.needsSnapshot) {
+	if (!out.asynchronous && !store().needsSnapshot) {
 		const rendered = result();
-		destroy(scope);
+		finish(current, false);
 		return {
 			...rendered,
 			then(fulfilled, rejected) {
@@ -424,8 +455,17 @@ export function render<P extends Props>(
 	}
 	const settled = out
 		.settle()
-		.then(async () => result(await data.script(options.format ?? nativeFormat, options.csp)))
-		.finally(() => destroy(scope));
+		.then(async () => result(await store().script(options.format ?? nativeFormat, options.csp)))
+		.then(
+			(rendered) => {
+				finish(current, false);
+				return rendered;
+			},
+			(error: unknown) => {
+				finish(current, true);
+				throw error;
+			}
+		);
 	const synchronous = (): never => {
 		throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
 	};
@@ -504,42 +544,6 @@ export function propsId(out: Output): string {
 	const id = out.global.uid();
 	out.push(`<!--$${id}-->`);
 	return id;
-}
-
-export type Derived<T> = (value?: T) => T;
-
-export function derived<T>(fn: () => T): Derived<T> {
-	const memoize = isRendering();
-	let computed = false;
-	let value = undefined as T;
-	let override: T | undefined;
-	return function (next?: T): T {
-		if (arguments.length > 0) {
-			override = next;
-			return next as T;
-		}
-		if (override != null) return override;
-		if (!memoize || !computed) {
-			value = fn();
-			computed = true;
-		}
-		return value;
-	};
-}
-
-export function updateDerived<T extends number | bigint>(
-	target: Derived<T>,
-	delta: 1 | -1 = 1,
-	prefix = false
-): number | bigint {
-	let value = target();
-	const previous = delta === 1 ? value++ : value--;
-	target(value);
-	return prefix ? value : previous;
-}
-
-export function held<T>(value: T): Derived<T> {
-	return derived(() => value);
 }
 
 export function iterate<T>(
