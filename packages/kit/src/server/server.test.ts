@@ -968,6 +968,90 @@ it('uses the action destination boundary and retains its successful layout data'
 	expect(await response.text()).toContain('<destination>destination:action failed</destination>');
 });
 
+it('uses the static fallback for root load failures after their trigger cookie is deleted', async () => {
+	const app = manifest();
+	app.nodes[0] = async () =>
+		node(
+			0,
+			{
+				load: ({ cookies }) => {
+					const type = cookies.get('fail-type');
+					if (type) {
+						cookies.delete('fail-type', { path: '/' });
+						if (type === 'expected') throw new HttpError({ status: 401, message: 'root denied' });
+						throw new Error('root failed');
+					}
+					return { layout: 'reloaded root' };
+				}
+			},
+			undefined,
+			layout
+		);
+	app.nodes[2] = async () => node(2, undefined, undefined, layout);
+	app.routes = [route('/', null, true)];
+	const server = await start(
+		app,
+		options({ handleError: ({ error }) => ({ message: `handled:${(error as Error).message}` }) })
+	);
+	for (const [type, status, message] of [
+		['unexpected', 500, 'root failed'],
+		['expected', 401, 'root denied']
+	] as const) {
+		const response = await server.respond(
+			request('/', { headers: { accept: 'text/html', cookie: `fail-type=${type}` } }),
+			address
+		);
+		expect(response.status).toBe(status);
+		expect(await response.text()).toBe(`${status}:handled:${message}`);
+		expect(response.headers.getSetCookie()).toEqual([
+			expect.stringContaining('fail-type=; Max-Age=0; Path=/')
+		]);
+	}
+});
+
+it('uses an ancestor error component when a nested layout load fails', async () => {
+	const app = manifest();
+	app.nodes[2] = async () =>
+		node(2, {
+			load: () => {
+				throw new HttpError({ status: 409, message: 'nested failed' });
+			}
+		});
+	app.nodes[3] = async () => node(3, undefined, undefined, (out) => out.push('<self-error/>'));
+	app.nodes[4] = async () => node(4, undefined, undefined, layout);
+	const nested = route('/', null, true);
+	nested.page = { layouts: [0, 2], errors: [1, 3], leaf: 4 };
+	app.routes = [nested];
+	const server = await start(app, options());
+	const response = await server.respond(request(), address);
+	const html = await response.text();
+	expect(response.status).toBe(409);
+	expect(html).toContain('<main></main><error>409:nested failed</error>');
+	expect(html).not.toContain('<self-error/>');
+});
+
+it('preserves a redirect thrown by the root load while rendering a missing route', async () => {
+	const app = manifest();
+	app.nodes[0] = async () =>
+		node(0, {
+			load: ({ cookies }) => {
+				cookies.delete('fail-type', { path: '/' });
+				redirect(307, '/load');
+			}
+		});
+	const server = await start(app, options());
+	const response = await server.respond(
+		request('/missing', { headers: { accept: 'text/html', cookie: 'fail-type=redirect' } }),
+		address
+	);
+	expect(response.status).toBe(307);
+	expect(response.headers.get('location')).toBe('/load');
+	expect(response.body).toBeNull();
+	expect(response.headers.getSetCookie()).toEqual([
+		expect.stringContaining('fail-type=; Max-Age=0; Path=/')
+	]);
+});
+
 it('transforms errors once, renders the closest error node and falls back when its component fails', async () => {
 	const app = manifest();
 	app.nodes[2] = async () =>

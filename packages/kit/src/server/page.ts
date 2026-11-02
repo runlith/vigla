@@ -111,7 +111,7 @@ export async function errorResponse(
 	failure: unknown,
 	route?: ServerRoute,
 	branch: LoadedNode[] = [],
-	failed = 0
+	failed?: number
 ): Promise<Response> {
 	if (failure instanceof Redirect)
 		return new Response(null, { status: failure.status, headers: { location: failure.location } });
@@ -135,7 +135,8 @@ export async function errorResponse(
 		state.error = true;
 		try {
 			const candidates = route?.page?.errors ?? [1];
-			for (let depth = Math.min(failed, candidates.length - 1); depth >= 0; depth--) {
+			const boundary = failed === undefined ? 0 : failed - 1;
+			for (let depth = Math.min(boundary, candidates.length - 1); depth >= 0; depth--) {
 				const id = candidates[depth];
 				if (id == null) continue;
 				const node = await server.manifest.nodes[id]!();
@@ -166,6 +167,11 @@ export async function errorResponse(
 				return response;
 			}
 		} catch (error) {
+			if (error instanceof Redirect)
+				return new Response(null, {
+					status: error.status,
+					headers: { location: error.location }
+				});
 			if (!(error instanceof FrameworkError)) console.error(error);
 		}
 	}
