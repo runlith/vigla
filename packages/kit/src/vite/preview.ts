@@ -33,6 +33,7 @@ export async function configurePreview(
 	const { manifest } = (await import(pathToFileURL(path.join(directory, 'manifest.js')).href)) as {
 		manifest: ServerManifest;
 	};
+	const remotePrefix = `/${manifest.app_path}/remote/`;
 	const assetsPrefix = project.config.paths.assets
 		? '/_svelte_kit_assets'
 		: project.config.paths.base;
@@ -172,7 +173,9 @@ export async function configurePreview(
 					const root = path.join(
 						output,
 						'prerendered',
-						pathname.endsWith('/__data.json') ? 'data' : 'dependencies'
+						pathname.endsWith('/__data.json') || pathname.startsWith(remotePrefix)
+							? 'data'
+							: 'dependencies'
 					);
 					const file = pathname.slice(base.length + 1) || 'index.html';
 					if (

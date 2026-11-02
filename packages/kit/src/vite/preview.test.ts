@@ -35,6 +35,7 @@ beforeAll(async () => {
 	write(output + 'prerendered/pages/中文/index.html', '<h1>encoded</h1>');
 	write(output + 'prerendered/pages/destination.html', '<h1>prerendered destination</h1>');
 	write(output + 'prerendered/dependencies/api.json', '{"prerendered":true}');
+	write(output + 'prerendered/data/_app/remote/abc/value', '{"type":"result"}');
 	write(
 		output + 'prerendered.json',
 		JSON.stringify({
@@ -44,7 +45,10 @@ beforeAll(async () => {
 				['/base/中文/', { file: '中文/index.html' }],
 				['/base/destination', { file: 'destination.html' }]
 			],
-			assets: [['/base/api.json', { type: 'application/json' }]],
+			assets: [
+				['/base/api.json', { type: 'application/json' }],
+				['/base/_app/remote/abc/value', { type: 'application/json' }]
+			],
 			redirects: [
 				['/base/always', { status: 308, location: '/base/always/' }],
 				['/base/never/', { status: 308, location: '/base/never' }],
@@ -168,4 +172,10 @@ test('preview retains immutable, version and prerender dependency representation
 	const dependency = await fetch(origin + '/base/api.json');
 	expect(dependency.headers.get('content-type')).toBe('application/json');
 	expect(await dependency.json()).toEqual({ prerendered: true });
+});
+
+test('preview serves prerendered remote function results from the data output', async () => {
+	const response = await fetch(origin + '/base/_app/remote/abc/value');
+	expect(response.status).toBe(200);
+	expect(await response.json()).toEqual({ type: 'result' });
 });

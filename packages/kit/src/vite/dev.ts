@@ -286,7 +286,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 					response.writeHead(file ? 200 : 404, { 'content-type': 'application/javascript' });
 					response.end(
 						file
-							? `import ${JSON.stringify(project.config.paths.base + fileUrl(file))};`
+							? `import '${(project.config.paths.base + fileUrl(file)).replace(/[\\']/g, '\\$&')}';`
 							: 'not found'
 					);
 					return;

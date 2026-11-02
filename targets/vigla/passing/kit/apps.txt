@@ -866,6 +866,7 @@ basics/test/vitest/server.spec.js > reroute > Apply async reroute when directly 
 basics/test/vitest/server.spec.js > reroute > Apply reroute when directly accessing a page (test-dev-2)
 basics/test/vitest/server.spec.js > reroute > Returns a 500 response if reroute throws an error on the server (test-dev-2)
 basics/test/vitest/server.spec.js > setHeaders > allows multiple set-cookie headers with different values (test-dev-2)
+options-2/test/service-worker.test.js > import proxy /basepath/service-worker.js (test-dev-2/chromium-dev)
 options-2/test/test.js > Service worker > does not register /basepath/service-worker.js (test-dev-1/chromium-dev)
 options-2/test/test.js > paths > command remote function from client accounts for base path (test-dev-1/chromium-dev)
 options-2/test/test.js > paths > form remote function from client accounts for base path (test-dev-1/chromium-dev)
