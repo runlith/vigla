@@ -1,3 +1,4 @@
+import type { Attributes, Span } from '@opentelemetry/api';
 import type { Owner } from 'vigla';
 import type { Component, Format } from 'vigla/server';
 import type { CspConfig } from '../csp.ts';
@@ -344,8 +345,13 @@ export interface RequestStore {
 	options: ServerOptions;
 	environment: Environment;
 	hooks: ServerHooks;
+	tracer: SpanRecorder;
 	scope?: AsyncContext;
 	remote: RemoteRequestState;
+}
+
+export interface SpanRecorder {
+	span<T>(name: string, attributes: Attributes, fn: (span: Span) => Promise<T>): Promise<T>;
 }
 
 export interface RenderBranch {

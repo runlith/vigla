@@ -98,28 +98,23 @@ export async function renderDocument(
 		context.set(stateKey, page);
 		state.isRendering = true;
 		try {
-			rendered = await server.tracer.span(
-				'sveltekit.render',
-				{ 'http.route': event.route.id ?? 'unknown' },
-				async () =>
-					runRequest(
-						store,
-						() =>
-							render(root, {
-								props,
-								context,
-								csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },
-								transformError: async (error) => {
-									if (error instanceof Redirect) throw error;
-									const body = await handleError(store, error);
-									document.error = page.error = body;
-									document.status = page.status = body.status;
-									return body;
-								},
-								format: options.format
-							}),
-						server.scope
-					)
+			rendered = await runRequest(
+				store,
+				() =>
+					render(root, {
+						props,
+						context,
+						csp: csp.scriptHash ? { hash: true } : { nonce: csp.nonce },
+						transformError: async (error) => {
+							if (error instanceof Redirect) throw error;
+							const body = await handleError(store, error);
+							document.error = page.error = body;
+							document.status = page.status = body.status;
+							return body;
+						},
+						format: options.format
+					}),
+				server.scope
 			);
 		} finally {
 			state.isRendering = false;
@@ -292,11 +287,15 @@ export async function renderDocument(
 		(transformed.match(/<!--(?!#)/g)?.length ?? 0) < (html.match(/<!--(?!#)/g)?.length ?? 0)
 	)
 		warnings.transform_page_chunk_comments();
-	if (!chunks) headers.set('etag', `"${hash(transformed)}"`);
-	return new Response(chunks ? streamText(`${transformed}\n`, chunks) : transformed, {
-		status: document.status,
-		headers
-	});
+	if (chunks)
+		return new Response(streamText(`${transformed}\n`, chunks), {
+			status: document.status,
+			headers
+		});
+	const bytes = new TextEncoder().encode(transformed);
+	headers.set('etag', `"${hash(transformed)}"`);
+	headers.set('content-length', String(bytes.byteLength));
+	return new Response(bytes, { status: document.status, headers });
 }
 
 import { uneval } from 'devalue';

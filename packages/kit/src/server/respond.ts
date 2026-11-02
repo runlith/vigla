@@ -255,7 +255,7 @@ export async function respond(
 			event.platform = await options.emulator.platform({ config, prerender });
 		}
 		let resolved = false;
-		const resolve = async (
+		const resolveRequest = async (
 			resolvedEvent: RequestEvent<Record<string, ParamValue>>,
 			resolveOptions = {}
 		): Promise<Response> => {
@@ -324,15 +324,36 @@ export async function respond(
 				jar.seal();
 			}
 		};
+		const resolve = (
+			resolvedEvent: RequestEvent<Record<string, ParamValue>>,
+			resolveOptions = {}
+		): Promise<Response> =>
+			server.tracer.span(
+				'sveltekit.resolve',
+				{ 'http.route': resolvedEvent.route.id ?? 'unknown' },
+				async (span) => {
+					const response = await resolveRequest(
+						{ ...resolvedEvent, tracing: { ...resolvedEvent.tracing, current: span } },
+						resolveOptions
+					);
+					span.setAttributes({
+						'http.response.status_code': response.status,
+						'http.response.body.size': response.headers.get('content-length') || 'unknown'
+					});
+					return response;
+				}
+			);
 		const response = await server.tracer.span(
-			'sveltekit.handle',
-			{ 'http.route': event.route.id ?? 'unknown', 'http.method': request.method },
+			'sveltekit.handle.root',
+			{
+				'http.route': event.route.id ?? 'unknown',
+				'http.method': request.method,
+				'http.url': url.href,
+				'sveltekit.is_data_request': data,
+				'sveltekit.is_sub_request': !!parent
+			},
 			async (span) => {
-				event.tracing = {
-					enabled: server.options.tracing.server,
-					root: parent?.event.tracing.root ?? event.tracing.root,
-					current: span
-				};
+				event.tracing = { enabled: server.options.tracing.server, root: span, current: span };
 				return scope.run(() =>
 					server.hooks.handle
 						? server.hooks.handle({ event: appEvent(event), resolve })

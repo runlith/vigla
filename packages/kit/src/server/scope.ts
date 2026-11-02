@@ -96,6 +96,7 @@ export class RequestScope {
 			options: server.options,
 			environment: server.environment,
 			hooks: server.hooks,
+			tracer: server.tracer,
 			scope: context,
 			remote: {
 				cache: new Map(),

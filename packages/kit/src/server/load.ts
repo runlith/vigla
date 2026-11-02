@@ -35,6 +35,11 @@ export function validateLoad(
 	});
 }
 
+function nodeType(id: string | undefined): string {
+	const file = id?.split('/').at(-1);
+	return file ? file.split('.').slice(0, -1).join('.') : 'unknown';
+}
+
 export async function serverLoad(
 	server: Server,
 	store: RequestStore,
@@ -121,7 +126,8 @@ export async function serverLoad(
 	const result: unknown = await server.tracer.span(
 		'sveltekit.load',
 		{
-			'sveltekit.load.node_id': node.server_id ?? 'unknown',
+			'sveltekit.load.node_id': node.server_id || 'unknown',
+			'sveltekit.load.node_type': nodeType(node.server_id),
 			'sveltekit.load.environment': 'server',
 			'http.route': event.route.id ?? 'unknown'
 		},
@@ -157,8 +163,9 @@ export async function universalLoad(
 	const result: unknown = await server.tracer.span(
 		'sveltekit.load',
 		{
-			'sveltekit.load.node_id': node.universal_id ?? 'unknown',
-			'sveltekit.load.environment': 'universal',
+			'sveltekit.load.node_id': node.universal_id || 'unknown',
+			'sveltekit.load.node_type': nodeType(node.universal_id),
+			'sveltekit.load.environment': 'server',
 			'http.route': event.route.id ?? 'unknown'
 		},
 		async (span) =>

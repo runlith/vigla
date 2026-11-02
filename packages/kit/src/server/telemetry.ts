@@ -1,5 +1,6 @@
 import type { Attributes, Span, SpanContext } from '@opentelemetry/api';
 import { HttpError, Redirect } from '../shared/outcomes.ts';
+import type { SpanRecorder } from '../types/internal/server.ts';
 import * as errors from './errors.ts';
 
 const emptyContext: SpanContext = {
@@ -37,7 +38,7 @@ export const noopSpan: Span = {
 
 type Api = typeof import('@opentelemetry/api');
 
-export class Tracer {
+export class Tracer implements SpanRecorder {
 	#api: Api | null = null;
 
 	async init(enabled: boolean): Promise<void> {
@@ -60,9 +61,7 @@ export class Tracer {
 			get: (headers, key) => headers.get(key) ?? undefined,
 			keys: (headers) => [...headers.keys()]
 		});
-		return api.context.with(context, () =>
-			this.span('sveltekit.request', { 'http.method': request.method, 'http.url': request.url }, fn)
-		);
+		return api.context.with(context, fn);
 	}
 
 	async span<T>(name: string, attributes: Attributes, fn: (span: Span) => Promise<T>): Promise<T> {
