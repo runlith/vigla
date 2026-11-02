@@ -235,7 +235,10 @@ export async function respond(
 		const endpoint = route?.endpoint ? await route.endpoint() : null;
 		const useEndpoint =
 			!!endpoint &&
-			(!route?.page || (isEndpoint(request) && handlesPageMethod(endpoint, request.method)));
+			(!route?.page ||
+				(!state.prerendering &&
+					isEndpoint(request) &&
+					handlesPageMethod(endpoint, request.method)));
 		const slash = remote
 			? 'ignore'
 			: route && (url.pathname === base || url.pathname === `${base}/`)

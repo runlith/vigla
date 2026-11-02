@@ -279,7 +279,7 @@ test('fetched route metadata reaches Builder without promoting auto or unidentif
 	runtime.manifest.routes = [
 		route('/page', null, 0),
 		route('/implicit/[value].json', { GET: () => Response.json({ answer: 42 }) }),
-		route('/auto/[value].json', { GET: () => new Response('auto') }, 1),
+		route('/auto/[value].json', { GET: () => new Response('auto'), prerender: 'auto' }),
 		route('/unidentified', { GET: () => new Response('unidentified') })
 	];
 	runtime.manifest.assets.add('asset.txt');
@@ -304,7 +304,7 @@ test('fetched route metadata reaches Builder without promoting auto or unidentif
 			path.join(input.directory, 'prerendered/pages', result.prerendered.pages.get('/page')!.file),
 			'utf8'
 		)
-	).toContain('<output>true:true:true:null:null:null</output>');
+	).toContain('<output>true:auto:true:null:null:null</output>');
 	expect(result.prerenderMap.get('/auto/[value].json')).toBe('auto');
 	expect(result.prerenderMap.get('/unidentified')).toBe(false);
 	expect(result.prerenderMap.has('/asset.txt')).toBe(false);
