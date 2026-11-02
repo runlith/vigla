@@ -17,12 +17,12 @@ import { resolveConfig } from '../config/index.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { ManifestRoute } from '../types/paths.ts';
 import type { Style } from '../types/internal/server.ts';
-import { dependencies } from './dependencies.ts';
+import { dependencies, entry } from './dependencies.ts';
 import { styleExpression } from './styles.ts';
 import { pruneRemotes } from './remote-build.ts';
 import { ids, nodeId } from './ids.ts';
 import { resolveEntry } from '../sync/index.ts';
-import { packageDirectory } from './paths.ts';
+import { packageDirectory, posix } from './paths.ts';
 import type { Project } from './project.ts';
 
 function json(file: string): Manifest {
@@ -230,11 +230,14 @@ export function buildPlugin(
 					fonts: []
 				};
 			});
-			for (const [index, route] of project.tree.routes.entries())
+			for (const route of project.tree.routes)
 				if (route.endpoint) {
-					const name = `entries/endpoints/${index}`;
-					inputs[name] = path.resolve(project.root, route.endpoint.file);
-					context.artifacts.endpoints[route.id] = name + '.js';
+					const file = path.resolve(project.root, route.endpoint.file);
+					const relative = decodeURIComponent(
+						posix(path.relative(project.config.files.routes, file))
+					);
+					const name = `entries/endpoints/${relative.slice(0, -path.extname(relative).length)}`;
+					inputs[name] = file;
 				}
 			if (project.tree.params) {
 				inputs['entries/params'] = path.resolve(project.root, project.tree.params);
@@ -248,6 +251,13 @@ export function buildPlugin(
 			builder.environments.ssr!.config.build.rolldownOptions.input = inputs;
 			await builder.build(builder.environments.ssr!);
 			const serverManifest = json(path.join(server, '.vite/manifest.json'));
+			for (const route of project.tree.routes)
+				if (route.endpoint)
+					context.artifacts.endpoints[route.id] = entry(
+						serverManifest,
+						path.resolve(project.root, route.endpoint.file),
+						project.root
+					).file;
 			for (const chunk of Object.values(serverManifest))
 				context.artifacts.chunks[chunk.file] = {
 					file: chunk.file,
