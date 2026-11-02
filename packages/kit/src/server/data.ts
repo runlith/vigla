@@ -15,6 +15,7 @@ import { Redirect } from '../shared/outcomes.ts';
 import { serverLoad } from './load.ts';
 import { handleError } from './failure.ts';
 import { Chunks, streamText } from './stream.ts';
+import { versionHeader } from './headers.ts';
 import * as errors from './errors.ts';
 
 export function serializedUses(uses: Uses): SerializedUses {
@@ -155,7 +156,7 @@ export async function dataResponse(
 	if (!page)
 		return new Response(null, {
 			status: 404,
-			headers: { 'x-sveltekit-version': server.options.version.name }
+			headers: versionHeader(server.options)
 		});
 	const indexes = [...page.layouts, page.leaf];
 	const loads: Array<() => Promise<ServerDataNode | null>> = [];
@@ -199,7 +200,7 @@ export async function dataResponse(
 			headers: {
 				'content-type': chunks ? 'text/sveltekit-data' : 'application/json',
 				'cache-control': 'private, no-store',
-				'x-sveltekit-version': server.options.version.name
+				...versionHeader(server.options)
 			}
 		});
 	} catch (error) {
@@ -209,7 +210,7 @@ export async function dataResponse(
 				{
 					headers: {
 						'cache-control': 'private, no-store',
-						'x-sveltekit-version': server.options.version.name
+						...versionHeader(server.options)
 					}
 				}
 			);
@@ -218,7 +219,7 @@ export async function dataResponse(
 			status: body.status,
 			headers: {
 				'cache-control': 'private, no-store',
-				'x-sveltekit-version': server.options.version.name
+				...versionHeader(server.options)
 			}
 		});
 	}

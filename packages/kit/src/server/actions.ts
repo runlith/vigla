@@ -5,6 +5,7 @@ import { ActionFailure, HttpError, Redirect } from '../shared/outcomes.ts';
 import type { Server } from './index.ts';
 import { FrameworkError, handleError } from './failure.ts';
 import { runRequest } from './scope.ts';
+import { versionHeader } from './headers.ts';
 import * as errors from './errors.ts';
 import { handleFormPost } from './remote/handler.ts';
 
@@ -132,6 +133,6 @@ export async function actionResponse(
 	}
 	return Response.json(payload, {
 		status,
-		headers: { 'x-sveltekit-version': server.options.version.name }
+		headers: versionHeader(server.options)
 	});
 }

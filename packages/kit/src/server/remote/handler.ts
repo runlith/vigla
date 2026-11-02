@@ -16,6 +16,7 @@ import { serialize } from '../../shared/serialization.ts';
 import { actionLocation } from '../actions.ts';
 import { FrameworkError, handleError } from '../failure.ts';
 import { runRequest } from '../scope.ts';
+import { versionHeader } from '../headers.ts';
 import { collect } from './collect.ts';
 import { liveResponse } from './stream.ts';
 import * as errors from './errors.ts';
@@ -71,7 +72,7 @@ function response(store: RequestStore, body: RemoteResponse, status = 200): Resp
 			...(!store.state.prerendering || body.type === 'error'
 				? { 'cache-control': 'private, no-store' }
 				: {}),
-			'x-sveltekit-version': store.options.version.name
+			...versionHeader(store.options)
 		}
 	});
 }
@@ -94,7 +95,8 @@ export async function handleRemote(call: RemoteCall): Promise<Response> {
 					internals,
 					decodeArgument(payload, store.hooks.transport)
 				);
-				result.headers.set('x-sveltekit-version', store.options.version.name);
+				for (const [name, value] of Object.entries(versionHeader(store.options)))
+					result.headers.set(name, value);
 				return result;
 			}
 			case 'query_batch': {

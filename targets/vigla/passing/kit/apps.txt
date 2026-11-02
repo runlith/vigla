@@ -933,6 +933,7 @@ options-2/test/test.js > paths > uses correct relative paths when rendering an e
 options-2/test/test.js > paths > uses relative paths during SSR (test-dev-1/chromium-dev)
 options-2/test/test.js > paths > uses relative paths during SSR (test-dev-1/chromium-dev-no-js)
 options-3/test/test.js > bundleStrategy: 'inline' > does not emit the inlined bundle and stylesheet files (test-build-1/chromium-build)
+options-3/test/test.js > bundleStrategy: 'inline' > does not send x-sveltekit-version header when checks are disabled (test-build-1/chromium-build)
 options-3/test/test.js > bundleStrategy: 'inline' > omits inlined files from the page manifest (test-build-1/chromium-build)
 options-3/test/test.js > bundleStrategy: 'inline' > omits inlined files from the service worker build list (test-build-1/chromium-build)
 options-3/test/test.js > bundleStrategy: 'inline' > serialization works with streaming (test-build-1/chromium-build)
