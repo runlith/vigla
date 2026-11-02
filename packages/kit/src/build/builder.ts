@@ -120,7 +120,7 @@ export function createBuilder(context: BuildContext): Builder {
 				: tree.routes.filter((route) => context.prerenderMap.get(route.id) !== true);
 			write(
 				destination,
-				`import { Server } from ${JSON.stringify(relative + '/index.js')};\nconst manifest = ${manifestSource({ context, routes: selected, relativePath: relative })};\nexport const server = new Server(manifest);\n`
+				`import { create_server } from ${JSON.stringify(relative + '/index.js')};\nconst manifest = ${manifestSource({ context, routes: selected, relativePath: relative })};\nexport const server = create_server(manifest);\n`
 			);
 		},
 		getBuildDirectory(name) {

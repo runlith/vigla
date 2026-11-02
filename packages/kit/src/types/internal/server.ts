@@ -17,6 +17,7 @@ import type {
 	Load,
 	RequestEvent,
 	RequestHandler,
+	Server,
 	ServerInitOptions,
 	ServerLoad
 } from '../request.ts';
@@ -293,8 +294,31 @@ export interface ServerInstance {
 	respond(request: Request, options: RespondOptions): Promise<Response>;
 }
 
+export interface ServerConfigureOptions {
+	manifest?: ServerManifest;
+	env?: Record<string, string | undefined>;
+	read?: Read;
+	scope?: AsyncContext;
+	assets?: string;
+	building?: boolean;
+	prerendering?: boolean;
+	fix_stack_trace?(error: Error): void;
+}
+
+export interface ConfiguredServer {
+	init(): Promise<void>;
+	respond(request: Request, options: RespondOptions): Promise<Response>;
+	set_env(env: Record<string, string | undefined>): void;
+}
+
 export interface ServerModule {
-	Server: new (manifest: ServerManifest) => ServerInstance;
+	configure(options: ServerConfigureOptions): Promise<ConfiguredServer>;
+	create_server(manifest: ServerManifest): Server;
+	Server: new (manifest: ServerManifest) => Server;
+	format_response(status: number, request: Request): string;
+}
+
+export interface ServerInternalModule {
 	options: ServerOptions;
 }
 

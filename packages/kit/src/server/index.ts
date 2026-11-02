@@ -26,6 +26,7 @@ export class Server implements ServerInstance {
 	hooks: ServerHooks = {};
 	scope?: AsyncContext;
 	read?: Read;
+	#configuration: Promise<void> | null = null;
 	#initialization: Promise<void> | null = null;
 
 	constructor(manifest: ServerManifest, options: ServerOptions) {
@@ -33,16 +34,26 @@ export class Server implements ServerInstance {
 		this.options = options;
 	}
 
-	init({ env, read, scope }: ServerInitOptions): Promise<void> {
-		return (this.#initialization ??= (async () => {
+	configure({ env, read, scope }: ServerInitOptions): Promise<void> {
+		return (this.#configuration ??= (async () => {
 			this.read = read;
 			this.scope = scope;
 			if (scope) registerContext(scope);
 			configureEnvironment(this.options, this.environment);
 			configurePaths(this.options.paths, this.manifest.app_dir);
 			configureRead(this.manifest, this.options.paths, read);
-			this.environment = await this.options.env.set(env);
-			configureEnvironment(this.options, this.environment);
+			await this.setEnv(env);
+		})());
+	}
+
+	async setEnv(env: Record<string, string | undefined>): Promise<void> {
+		this.environment = await this.options.env.set(env);
+		configureEnvironment(this.options, this.environment);
+	}
+
+	init(options: ServerInitOptions): Promise<void> {
+		return (this.#initialization ??= (async () => {
+			await this.configure(options);
 			await this.tracer.init(this.options.tracing.server);
 			this.hooks = await this.options.getHooks();
 			await this.hooks.init?.();

@@ -6,9 +6,9 @@ import { createReadableStream, getRequest, setResponse } from '../node/index.ts'
 import type { RouteTree } from '../types/internal/routes.ts';
 import type {
 	AsyncContext,
+	ConfiguredServer,
 	RequestStore,
 	ServerManifest,
-	ServerInstance,
 	ServerModule
 } from '../types/internal/server.ts';
 import { outsideBase, serveAsset } from './assets.ts';
@@ -30,7 +30,7 @@ interface DevelopmentModule extends ServerModule {
 
 interface RunningServer {
 	module: DevelopmentModule;
-	instance: ServerInstance;
+	instance: ConfiguredServer;
 	ready: Promise<void>;
 }
 
@@ -297,7 +297,6 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 				const loaded = (await environment.runner.import(ids.server)) as DevelopmentModule;
 				if (loaded !== current?.module) {
 					const tree = project.tree;
-					loaded.options.fixStack = fixStack;
 					loaded.manifest.server_assets = serverAssets;
 					Object.defineProperty(loaded.manifest, 'remotes', {
 						get: () =>
@@ -321,9 +320,15 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 							return node;
 						};
 					});
-					const instance = new loaded.Server(loaded.manifest);
+					const instance = await loaded.configure({
+						manifest: loaded.manifest,
+						env: project.environment.values,
+						read,
+						scope,
+						fix_stack_trace: fixStack
+					});
 					const ready = instance
-						.init({ env: project.environment.values, read, scope })
+						.init()
 						.then(() => validateMatchers(tree, project.root, environment));
 					current = { module: loaded, instance, ready };
 				}

@@ -14,7 +14,7 @@ import { afterAll, beforeAll, expect, test } from 'vitest';
 import type { PreviewServer } from 'vite';
 import type { Builder } from '../types/builder.ts';
 import type { Config } from '../types/config.ts';
-import type { ServerManifest } from '../types/internal/server.ts';
+import type { ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { namespace } from './ids.ts';
 import { walk } from '../build/index.ts';
 import { sveltekit } from './index.ts';
@@ -44,6 +44,16 @@ function config(strategy: 'split' | 'single' | 'inline' = 'split'): Config {
 			name: 'fixture',
 			adapt(builder) {
 				adapted = builder;
+				builder.instrument({
+					entrypoint: path.join(builder.getServerDirectory(), 'index.js'),
+					instrumentation: path.join(builder.getServerDirectory(), 'instrumentation.server.js'),
+					initializer: builder.createInstrumentationInitializer({
+						outputDirectory: builder.getServerDirectory(),
+						environment:
+							'export default { PUBLIC_BUILD: "rendered-public-value", PRIVATE_BUILD: "server-only-value" };'
+					}),
+					module: { exports: ['configure', 'create_server', 'Server', 'format_response'] }
+				});
 			}
 		}
 	};
@@ -116,6 +126,10 @@ beforeAll(async () => {
 	write(
 		'src/service-worker.js',
 		`import { immutable, prerendered } from '$app/manifest'; globalThis.fixtureCache = { immutable, prerendered };`
+	);
+	write(
+		'src/instrumentation.server.js',
+		`import { PRIVATE_BUILD } from '$app/env/private'; if (PRIVATE_BUILD !== 'server-only-value') throw new Error('Instrumentation ran before environment initialization');`
 	);
 	write('static/asset.txt', 'built asset');
 	const vite = await importVite(root);
@@ -197,6 +211,17 @@ test('preview serves prerendered output and the remaining built Server without e
 		private: 'server-only-value'
 	});
 	expect(await (await fetch(origin + '/asset.txt')).text()).toBe('built asset');
+	const directory = path.join(root, '.svelte-kit/output/server');
+	const module = (await import(
+		pathToFileURL(path.join(directory, 'index.js')).href
+	)) as ServerModule;
+	const server = await module.configure({});
+	server.set_env({ PUBLIC_BUILD: 'updated-public', PRIVATE_BUILD: 'updated-private' });
+	expect(await (await fetch(origin + '/live')).json()).toEqual({
+		live: true,
+		private: 'updated-private'
+	});
+	server.set_env({ PUBLIC_BUILD: 'rendered-public-value', PRIVATE_BUILD: 'server-only-value' });
 	const client = path.join(root, '.svelte-kit/output/client');
 	for (const file of walk(client).filter((file) => file.endsWith('.js')))
 		expect(readFileSync(path.join(client, file), 'utf8')).not.toContain('server-only-value');

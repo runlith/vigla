@@ -36,22 +36,22 @@ export async function configurePreview(
 	const assetsPrefix = project.config.paths.assets
 		? '/_svelte_kit_assets'
 		: project.config.paths.base;
-	module.options.paths.assets = assetsPrefix;
 	const read = (file: string) => {
 		const absolute = path.resolve(directory, file);
 		return absolute.startsWith(directory + path.sep) && existsSync(absolute)
 			? createReadableStream(absolute)
 			: null;
 	};
-	await module.options.env.set(project.environment.values);
 	const instrumentation = path.join(directory, 'instrumentation.server.js');
 	if (existsSync(instrumentation)) await import(pathToFileURL(instrumentation).href);
-	const server = new module.Server(manifest);
-	await server.init({
+	const server = await module.configure({
+		manifest,
 		env: project.environment.values,
 		read,
+		assets: assetsPrefix,
 		scope: new AsyncLocalStorage<RequestStore>()
 	});
+	await server.init();
 	const stored = JSON.parse(
 		readFileSync(path.join(output, 'prerendered.json'), 'utf8')
 	) as StoredPrerender;

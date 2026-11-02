@@ -7,7 +7,7 @@ import { posix } from './paths.ts';
 export function environmentConfig(environment: Environment, name: string, dev: boolean): string {
 	const lines = [
 		`import { validate, handleIssues } from ${JSON.stringify(`${name}/internal/env`)};`,
-		'const publicEnv = {}, privateEnv = {}, rendered = {}; export const environment = { public: publicEnv, private: privateEnv, rendered };'
+		'const publicEnv = {}, privateEnv = {}, rendered = {}; export const environment = { public: publicEnv, private: privateEnv, rendered }; let variables = {}; export let values = {};'
 	];
 	const setters: string[] = [];
 	Object.entries(environment.variables).forEach(([key, config], index) => {
@@ -31,7 +31,8 @@ export function environmentConfig(environment: Environment, name: string, dev: b
 		? `(await import(${JSON.stringify(posix(environment.file))})).variables`
 		: '{}';
 	lines.push(
-		`export async function setEnv(values) { const variables = ${variables}; const issues = {}; ${setters.join('\n')} handleIssues(issues); return environment; }`,
+		`export function updateEnv(next) { values = next; const issues = {}; ${setters.join('\n')} handleIssues(issues); return environment; }`,
+		`export async function setEnv(next) { variables = ${variables}; return updateEnv(next); }`,
 		'export { setEnv as set_env };'
 	);
 	return lines.join('\n');

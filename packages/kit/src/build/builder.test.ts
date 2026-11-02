@@ -115,7 +115,7 @@ test('generated deployment manifests retain root nodes and reindex selected rout
 	write(path.join(input.root, 'package.json'), '{"type":"module"}');
 	write(
 		path.join(builder.getServerDirectory(), 'index.js'),
-		'export class Server { constructor(manifest) { this.manifest = manifest; } }'
+		'export function create_server(manifest) { return { manifest }; }'
 	);
 	const destination = path.join(input.root, 'entry.js');
 	builder.generateServerInstance(destination, { routes: [builder.routes[1]!] });

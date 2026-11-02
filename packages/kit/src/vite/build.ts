@@ -124,7 +124,7 @@ export function buildPlugin(
 							copyPublicDir: false,
 							emitAssets: true,
 							rolldownOptions: {
-								input: { index: ids.server, env: ids.env },
+								input: { index: ids.server, internal: ids.options, env: ids.env },
 								preserveEntrySignatures: 'strict',
 								output: {
 									format: 'es',
@@ -205,7 +205,11 @@ export function buildPlugin(
 			rmSync(output, { recursive: true, force: true });
 			mkdirSync(output, { recursive: true });
 			write(path.join(output, 'package.json'), '{"type":"module"}');
-			const inputs: Record<string, string> = { index: ids.server, env: ids.env };
+			const inputs: Record<string, string> = {
+				index: ids.server,
+				internal: ids.options,
+				env: ids.env
+			};
 			context.artifacts.nodes = project.tree.nodes.map((node, index) => {
 				const component = `entries/pages/component-${index}`;
 				inputs[component] = node.component
@@ -431,7 +435,6 @@ export function buildPlugin(
 					}) +
 					';'
 			);
-			write(path.join(server, 'internal.js'), `export { options } from './index.js';\n`);
 			write(
 				path.join(output, 'prerendered.json'),
 				JSON.stringify({

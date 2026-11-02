@@ -10,10 +10,44 @@ import { fileUrl, moduleUrl, packageDirectory, posix } from './paths.ts';
 
 export function serverEntry(name: string, dev: boolean): string {
 	return `import { Server as Runtime } from ${JSON.stringify(`${name}/internal/server`)};
-import { options } from ${JSON.stringify(ids.options)};
-export { options };
-${dev ? `export { manifest } from ${JSON.stringify(ids.manifest)};` : ''}
-export class Server extends Runtime { constructor(manifest) { super(manifest, { ...options, remote: async (call) => { await manifest.remotes[call.id]?.(); const { handleRemote } = await import(${JSON.stringify(name + '/internal/server')}); return handleRemote(call); } }); } }`;
+${dev ? `import { manifest as developmentManifest } from ${JSON.stringify(ids.manifest)}; export { developmentManifest as manifest };` : ''}
+let active, configured, ready;
+export async function configure(input) {
+const { options } = await import(${JSON.stringify(ids.options)});
+const { updateEnv, values } = await import(${JSON.stringify(ids.env)});
+const manifest = input.manifest ?? active?.manifest${dev ? ' ?? developmentManifest' : ''};
+if (!manifest) throw new Error('A server manifest is required before application initialization');
+if (!active || active.manifest !== manifest) {
+const state = { ...options, paths: { ...options.paths }, building: !!input.building, prerendering: !!input.prerendering };
+if (input.assets !== undefined) state.paths.assets = input.assets;
+if (input.fix_stack_trace) state.fixStack = error => { input.fix_stack_trace(error); return error; };
+const server = new Runtime(manifest, { ...state, remote: async call => { await manifest.remotes[call.id]?.(); const { handleRemote } = await import(${JSON.stringify(name + '/internal/server')}); return handleRemote(call); } });
+const initialization = { env: input.env ?? values, read: input.read, scope: input.scope };
+active = server;
+configured = { init: () => server.init(initialization), respond: (request, options) => server.respond(request, options), set_env: env => { updateEnv(env); } };
+ready = server.configure(initialization);
+} else {
+if (input.building) active.options.building = true;
+if (input.prerendering) active.options.prerendering = true;
+if (input.assets !== undefined) active.options.paths.assets = input.assets;
+if (input.fix_stack_trace) active.options.fixStack = error => { input.fix_stack_trace(error); return error; };
+await ready;
+if (input.env) await active.setEnv(input.env);
+}
+const result = configured;
+await ready;
+return result;
+}
+export function create_server(manifest) {
+let server;
+return { async init(options) { server = await configure({ ...options, manifest }); await server.init(); }, respond(request, options) { return server.respond(request, options); } };
+}
+export class Server {
+constructor(manifest) { this.server = create_server(manifest); }
+init(options) { return this.server.init(options); }
+respond(request, options) { return this.server.respond(request, options); }
+}
+export function format_response(status, request) { const url = new URL(request.url); return status + ' ' + request.method + ' ' + url.href.slice(url.origin.length); }`;
 }
 
 function templateExpression(template: string, expressions: Record<string, string>): string {
