@@ -1,7 +1,7 @@
 import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import { proxy } from '../reactivity/proxy.ts';
+import { original, proxy } from '../reactivity/proxy.ts';
 import { derived, set } from '../reactivity/sources.ts';
 import { get, owner, untrack } from '../reactivity/tracking.ts';
 import { advance, COMMENT, cursor, hydrating } from './hydration.ts';
@@ -67,6 +67,14 @@ function marked<T>(accessor: Accessor<T>, mutable: boolean): Accessor<T> {
 
 export function entry(props: object): void {
 	entries.add(props);
+}
+
+export function boundProp(props: Props, key: PropertyKey): boolean {
+	return (
+		Object.getOwnPropertyDescriptor(props, key)?.set !== undefined ||
+		!(key in props) ||
+		((entries.has(props) || original(props) !== props) && key in props)
+	);
 }
 
 export type Accessor<T> = (value?: T, mutation?: boolean) => T;

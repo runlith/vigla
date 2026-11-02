@@ -309,6 +309,44 @@ export function styledComponent(
 	};
 }
 
+function ownershipBindings(
+	context: TemplateContext,
+	node: Component,
+	reference: ES.Expression
+): ES.Statement[] {
+	if (
+		!context.dev ||
+		context.ownership === undefined ||
+		context.component.ignored.get(node)?.has('ownership_invalid_binding')
+	)
+		return [];
+	const result: ES.Statement[] = [];
+	for (const attribute of node.attributes) {
+		if (
+			attribute.kind !== 'binding' ||
+			attribute.name === 'this' ||
+			attribute.expression.type === 'SequenceExpression'
+		)
+			continue;
+		let base: ES.Node = attribute.expression;
+		while (base.type === 'MemberExpression') base = base.object;
+		if (base.type !== 'Identifier') continue;
+		const binding = context.analysis.references.get(base);
+		if (binding?.kind !== 'prop') continue;
+		result.push(
+			b.statement(
+				b.call(
+					b.member(context.ownership.validator, 'binding'),
+					b.literal(base.name),
+					reference,
+					b.arrow([], rewrite(context, attribute.expression))
+				)
+			)
+		);
+	}
+	return result;
+}
+
 export function componentCall(
 	context: TemplateContext,
 	node: Component,
@@ -333,11 +371,14 @@ export function componentCall(
 	if (!isDynamicComponent(context, node)) {
 		return within([
 			...declarations,
+			...ownershipBindings(context, node, rewrite(context, node.reference)),
 			b.statement(bound(b.call(rewrite(context, node.reference), anchor, props)))
 		]);
 	}
 	const inner = b.id(context.names.unique('$$anchor'));
 	const reference = b.id(context.names.unique('$$component'));
+	const checks = ownershipBindings(context, node, reference);
+	const call = bound(b.call(reference, inner, props));
 	return within([
 		...declarations,
 		b.statement(
@@ -346,7 +387,7 @@ export function componentCall(
 				'component',
 				anchor,
 				b.arrow([], rewrite(context, node.reference)),
-				b.arrow([inner, reference], bound(b.call(reference, inner, props)))
+				b.arrow([inner, reference], checks.length === 0 ? call : [...checks, b.statement(call)])
 			)
 		)
 	]);

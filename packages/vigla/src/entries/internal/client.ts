@@ -63,7 +63,8 @@ export { inspect } from '../../runtime/dom/inspect.ts';
 export { slots, slotProps } from '../../shared/slots.ts';
 export { customElement, host, slot } from '../../runtime/dom/custom-element.ts';
 export { flushSync } from '../../runtime/reactivity/batch.ts';
-export { disclose, frame, locate } from '../../runtime/dom/meta.ts';
+export { componentSource, disclose, frame, locate } from '../../runtime/dom/meta.ts';
+export { ownership } from '../../runtime/dom/ownership.ts';
 export { exclude, fallback, toArray } from '../../runtime/dom/values.ts';
 export {
 	bindActiveElement,

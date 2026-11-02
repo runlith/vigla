@@ -16,6 +16,7 @@ import { prepare } from './external.ts';
 import { deferExports } from './exports.ts';
 import { traceStacks } from './inspect.ts';
 import { Positions } from './meta.ts';
+import { ownership } from './ownership.ts';
 import { read, rewrite, runtime, type Context } from './script.ts';
 import { separateCode } from './special.ts';
 import { render, type TemplateContext } from './template.ts';
@@ -121,6 +122,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		plain: new Set(),
 		hoisted: [],
 		props,
+		ownership: options.dev ? ownership(analysis, names) : undefined,
 		events: new Set(),
 		groups: new Map(),
 		instance: [],
@@ -164,6 +166,14 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		body.push(b.statement(runtime(context, 'appendStyles', anchor, b.id(css))));
 	}
 	body.push(b.statement(runtime(context, 'push')));
+	if (context.ownership !== undefined) {
+		body.push(
+			b.constant(
+				context.ownership.validator.name,
+				runtime(context, 'ownership', props, b.literal(options.filename))
+			)
+		);
+	}
 	const script = prepare(context, [...new Set(analysis.externals.values())]);
 	const exported: ES.Property[] = [];
 	const saving: Context = analysis.asynchronous
@@ -229,7 +239,13 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 				: [])
 		)
 	});
-	const trailer: ES.Statement[] = [];
+	const trailer: ES.Statement[] = options.dev
+		? [
+				b.statement(
+					runtime(context, 'componentSource', b.id(options.name), b.literal(options.filename))
+				)
+			]
+		: [];
 	if (context.events.size > 0) {
 		trailer.push(
 			b.statement(

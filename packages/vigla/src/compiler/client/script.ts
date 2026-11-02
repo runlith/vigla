@@ -18,6 +18,7 @@ import type { RuntimeNames } from '../ir/runtime.ts';
 import { classBody, fieldValue, privateField } from './classes.ts';
 import { destructured } from './patterns.ts';
 import { inspectCall, tagged, tracedFunction } from './inspect.ts';
+import { validateMutation, type Ownership } from './ownership.ts';
 
 export interface Context {
 	readonly analysis: ScriptAnalysis;
@@ -27,6 +28,7 @@ export interface Context {
 	readonly plain: ReadonlySet<Binding>;
 	readonly hoisted: ES.Statement[];
 	readonly props: ES.Identifier | null;
+	readonly ownership?: Ownership;
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly className?: string;
 	readonly filename?: string;
@@ -450,7 +452,12 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			}
 			case 'AssignmentExpression': {
 				if (current.left.type === 'MemberExpression') {
-					return assignField(context, current, next);
+					const value = assignField(context, current, next) ?? {
+						...current,
+						left: next(current.left),
+						right: next(current.right)
+					};
+					return validateMutation(context, current, value);
 				}
 				if (current.left.type !== 'Identifier') return undefined;
 				const binding = references.get(current.left);
@@ -468,9 +475,10 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 			case 'UpdateExpression': {
 				if (current.argument.type === 'MemberExpression') {
 					const mutated = mutateProp(context, current, next);
-					if (mutated !== undefined) return mutated;
+					if (mutated !== undefined) return validateMutation(context, current, mutated);
 					const target = current.argument;
-					if (privateField(context, target) === undefined) return undefined;
+					if (privateField(context, target) === undefined)
+						return validateMutation(context, current, { ...current, argument: next(target) });
 					const source = { ...target, object: next(target.object) };
 					const delta = b.literal(current.operator === '++' ? 1 : -1);
 					return runtime(context, current.prefix ? 'updatePre' : 'update', source, delta);

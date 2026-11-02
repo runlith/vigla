@@ -18,6 +18,22 @@ interface Frame extends FrameInput {
 }
 
 const frames = new WeakMap<Effect, Frame>();
+const components = new WeakMap<object, string>();
+
+export function componentSource(component: object, file: string): void {
+	components.set(component, file);
+}
+
+export function componentFile(component: object): string {
+	return components.get(component) ?? '(unknown)';
+}
+
+export function callerFile(): string | null {
+	for (let frame = current(); frame !== null; frame = frame.parent) {
+		if (frame.type === 'component') return frame.file;
+	}
+	return null;
+}
 
 function current(): Frame | null {
 	for (let at = owner; at !== null; at = at.parent) {
