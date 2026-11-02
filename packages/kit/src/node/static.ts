@@ -98,7 +98,7 @@ export function serveFile({
 	if (representation?.vary) response.setHeader('vary', representation.vary);
 	const type = representation?.type ?? lookup(file);
 	if (type && !response.hasHeader('content-type'))
-		response.setHeader('content-type', type === 'text/html' ? type + '; charset=utf-8' : type);
+		response.setHeader('content-type', type === 'text/html' ? type + ';charset=utf-8' : type);
 	const match = request.headers['if-match'];
 	const unmodified = request.headers['if-unmodified-since'];
 	if (

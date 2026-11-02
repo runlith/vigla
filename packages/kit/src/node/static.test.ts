@@ -14,6 +14,7 @@ beforeAll(async () => {
 	const root = path.join(directory, 'public');
 	mkdirSync(root);
 	writeFileSync(path.join(root, 'data.txt'), '0123456789');
+	writeFileSync(path.join(root, 'page.html'), '<h1>page</h1>');
 	writeFileSync(path.join(directory, 'private.txt'), 'private');
 	utimesSync(path.join(root, 'data.txt'), new Date('2020-01-01'), new Date('2020-01-01'));
 	server = createServer((request, response) => {
@@ -23,16 +24,19 @@ beforeAll(async () => {
 				pathname: new URL(request.url!, 'http://static.local').pathname,
 				request,
 				response,
-				representation: request.url?.startsWith('/encoded')
-					? {
-							file: 'data.txt',
-							etag: '"content-hash.br"',
-							type: 'text/custom',
-							cacheControl: 'public,max-age=31536000,immutable',
-							encoding: 'br',
-							vary: 'Accept-Encoding'
-						}
-					: undefined
+				representation:
+					request.url === '/page'
+						? { file: 'page.html', etag: '"page-hash"', type: 'text/html' }
+						: request.url?.startsWith('/encoded')
+							? {
+									file: 'data.txt',
+									etag: '"content-hash.br"',
+									type: 'text/custom',
+									cacheControl: 'public,max-age=31536000,immutable',
+									encoding: 'br',
+									vary: 'Accept-Encoding'
+								}
+							: undefined
 			})
 		) {
 			response.writeHead(404);
@@ -66,6 +70,16 @@ test('static GET and HEAD share representation metadata without a HEAD body', as
 	expect(head.headers.get('etag')).toBe(response.headers.get('etag'));
 	expect(await head.text()).toBe('');
 });
+
+test.each(['/page', '/page.html'])(
+	'HTML response at %s exposes the UTF-8 media type',
+	async (pathname) => {
+		const response = await fetch(origin + pathname);
+		expect(response.status).toBe(200);
+		expect(response.headers.get('content-type')).toBe('text/html;charset=utf-8');
+		expect(await response.text()).toBe('<h1>page</h1>');
+	}
+);
 
 test.each([
 	['bytes=0-0', 206, '0', 'bytes 0-0/10'],
