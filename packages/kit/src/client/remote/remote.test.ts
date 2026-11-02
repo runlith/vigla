@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { stringify } from 'devalue';
-import { cell, effect, getOwner, mount, root, tick, unmount, type Owner } from 'vigla';
+import { cell, effect, getOwner, hydratable, mount, root, tick, unmount, type Owner } from 'vigla';
 import { render } from 'vigla/server';
 import {
 	hydrated as serverHydrated,
@@ -179,6 +179,39 @@ test('server-load and fallback-form snapshots hydrate through the tab owner whil
 	expect(seen[0]).toBeInstanceOf(Value);
 	expect(requests).toBe(1);
 	delete (window as unknown as Record<string, unknown>)[format.global];
+});
+
+test('a query first read after startup consumes its server hydration seed only once', async () => {
+	const read = query<void, string>('hash/late');
+	const request = owner();
+	request.run(() => {
+		openServerInput();
+		serverHydrated(getRemoteKey('hash/late', ''), () => serialize({ v: 'server' }));
+	});
+	const format = { global: '__remote_late', meta: '__remote_late_meta', cssWrapper: 'remote' };
+	const output = await request.run(() => render(() => {}, { format }));
+	request.dispose();
+	const scripts = document.createElement('div');
+	scripts.innerHTML = output.head;
+	for (const script of scripts.querySelectorAll('script')) window.eval(script.textContent!);
+	let requests = 0;
+	vi.stubGlobal('fetch', async () => {
+		requests++;
+		return response({ _: 'client' });
+	});
+	runtime.dispose();
+	const application = app();
+	application.format = format;
+	runtime = new Client(application, document.querySelector('main')!);
+	await runtime.start();
+	expect(runtime.owner.run(() => hydratable('client-only', () => 'fresh'))).toBe('fresh');
+	const reader = owner();
+	expect(await reader.run(() => read())).toBe('server');
+	expect(requests).toBe(0);
+	reader.dispose();
+	await tick();
+	expect(await owner().run(() => read())).toBe('client');
+	expect(requests).toBe(1);
 });
 
 test('batch queries deduplicate equal payloads into one microtask request', async () => {

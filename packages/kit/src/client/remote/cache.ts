@@ -1,4 +1,4 @@
-import { getOwner, hydrated, onDestroy, type Owner } from 'vigla';
+import { getOwner, hydrated, onDestroy, openHydration, root, type Owner } from 'vigla';
 import { createSubscriber } from 'vigla/reactivity';
 import { tracking } from 'vigla/internal/client';
 import { DEV } from 'esm-env';
@@ -35,16 +35,20 @@ interface Batch {
 export class Remotes {
 	readonly client: Client;
 	readonly channel: Channel;
+	readonly #input: Owner;
 	readonly #entries = new Map<string, Entry>();
 	readonly #seeds = new Map<string, RemoteNode>();
+	readonly #claimed = new Set<string>();
 	readonly #batches = new Map<string, Batch>();
 	readonly #forms = new Map<string, Forms>();
 	readonly #commands = new Map<string, Command>();
 	#persistent?: Promise<Cache | undefined>;
 
-	constructor(client: Client) {
+	constructor(client: Client, target: HTMLElement) {
 		this.client = client;
 		this.channel = new Channel(client);
+		this.#input = client.owner.run(() => root());
+		this.#input.run(() => onDestroy(openHydration({ format: client.app.format, target })));
 		client.owner.run(() => onDestroy(() => this.dispose()));
 	}
 
@@ -53,14 +57,15 @@ export class Remotes {
 	}
 
 	seed(key: string): RemoteNode | Promise<RemoteNode> | undefined {
+		const encoded = this.#claimed.has(key)
+			? undefined
+			: this.#input.run(() => hydrated<string | Promise<string> | undefined>(key, () => undefined));
+		if (encoded !== undefined) this.#claimed.add(key);
 		const seeded = this.#seeds.get(key);
 		if (seeded) {
 			this.#seeds.delete(key);
 			return seeded;
 		}
-		const encoded = this.owner.run(() =>
-			hydrated<string | Promise<string> | undefined>(key, () => undefined)
-		);
 		if (encoded === undefined) return;
 		return typeof encoded === 'string'
 			? (this.client.transport.parse(encoded) as RemoteNode)
@@ -362,11 +367,13 @@ export class Remotes {
 	}
 
 	dispose(): void {
+		this.#input.dispose();
 		this.channel.abort();
 		for (const entry of this.#entries.values())
 			if (entry.resource instanceof LiveQuery) entry.resource.destroy();
 		this.#entries.clear();
 		this.#seeds.clear();
+		this.#claimed.clear();
 		this.#forms.clear();
 		this.#commands.clear();
 	}

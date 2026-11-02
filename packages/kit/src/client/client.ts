@@ -83,7 +83,7 @@ export class Client {
 		this.transport = new Transport(app, this.owner);
 		this.routes = new Routes(app);
 		this.state = this.owner.run(() => new State(payload, app));
-		this.remote = new Remotes(this);
+		this.remote = new Remotes(this, target);
 		this.owner.run(() => {
 			context[1](this);
 			bindState(this.state);
