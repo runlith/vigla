@@ -2,6 +2,7 @@ import { failure, isFailure, warn } from '../../shared/diagnostics.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
 import { destroy, detach, detached } from '../reactivity/effects.ts';
+import { setFront } from '../reactivity/front.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { introducing } from '../transitions/manager.ts';
@@ -59,6 +60,7 @@ function start<P extends Props, E extends Exports>(
 	const create = (fn: () => void): Effect =>
 		detached(() => {
 			mountRoot(owner as Effect);
+			setFront(owner as Effect, options.format ?? nativeFormat);
 			fn();
 		}, parent);
 	const built = introducing(options.intro ?? true, () =>

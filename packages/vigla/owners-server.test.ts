@@ -120,6 +120,7 @@ test('server deep state keeps plain values and nothing tracks', () => {
 
 test('server owner work and holds count toward owner and global settlement', async () => {
 	const owner = core.root();
+	const other = core.root();
 	const [started, finish] = gate();
 	const [holding, release] = gate();
 	const quiet: string[] = [];
@@ -128,16 +129,18 @@ test('server owner work and holds count toward owner and global settlement', asy
 		const held = owner.run(() => core.hold(() => holding));
 		void owner.settled().then(() => quiet.push('owner'));
 		void core.settled().then(() => quiet.push('all'));
-		await Promise.resolve();
+		void other.run(core.settled).then(() => quiet.push('other'));
+		await new Promise((resolve) => setTimeout(resolve));
 		finish();
 		await work;
-		assert.deepEqual(quiet, []);
+		assert.deepEqual(quiet, ['other']);
 		release();
 		await held;
 		await new Promise((resolve) => setTimeout(resolve));
-		assert.deepEqual(quiet.sort(), ['all', 'owner']);
+		assert.deepEqual(quiet.sort(), ['all', 'other', 'owner']);
 	} finally {
 		owner.dispose();
+		other.dispose();
 	}
 });
 

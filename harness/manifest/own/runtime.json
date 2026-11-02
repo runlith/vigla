@@ -157,6 +157,10 @@
 			"status": "difference",
 			"reason": "Application primitives (spec 8191e72f): context set on an owner at any time, read in a detached root under it and after an `await`, with `createContext`; upstream 5.57.3 has no `vigla` entry, so the sample cannot run there"
 		},
+		"owner-front-end": {
+			"status": "difference",
+			"reason": "Realm isolation (spec 37f29ce1): a tree mounted or rendered through public `vigla` reports its diagnostics in its own front end's form while Svelte's reporter is installed in the same realm; upstream 5.57.3 has no `vigla` entry"
+		},
 		"owner-mount-dispose": {
 			"status": "difference",
 			"reason": "Public owner lifetimes (spec 37f29ce1): disposing an owner that holds a mount removes the mounted DOM and its delegated listeners as unmount does; upstream 5.57.3 has no `vigla` entry"

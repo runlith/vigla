@@ -1,5 +1,5 @@
 import { excluded, type Batch } from './batch.ts';
-import { offscreen, run } from './effects.ts';
+import { escape, offscreen, run } from './effects.ts';
 import { CLEAN, DIRTY, type Effect } from './graph.ts';
 import { stale } from './tracking.ts';
 
@@ -14,7 +14,8 @@ export function due(effect: Effect, recheck = false, batch: Batch | null = null)
 		return dirty;
 	} catch (error) {
 		effect.status = CLEAN;
-		throw error;
+		escape(effect, error);
+		return false;
 	}
 }
 

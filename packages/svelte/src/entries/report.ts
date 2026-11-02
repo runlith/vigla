@@ -74,5 +74,8 @@ export const reporter: Reporter = {
 	formatFrame(frame) {
 		if (entries.test(frame.replaceAll('\\', '/'))) return null;
 		return frame.replace(/\bReactive(Map|Set|Date|URLSearchParams|URL)\./g, 'Svelte$1.');
+	},
+	unhandled(error) {
+		throw error;
 	}
 };

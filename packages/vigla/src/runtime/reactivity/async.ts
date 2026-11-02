@@ -13,7 +13,8 @@ import {
 	type Batch
 } from './batch.ts';
 import { staleReaction } from '../../shared/abort.ts';
-import { block, fail } from './effects.ts';
+import { ambient } from './carried.ts';
+import { application, block, fail } from './effects.ts';
 import { sequence } from './history.ts';
 import { changed } from './reads.ts';
 import { waitFor } from './held.ts';
@@ -130,6 +131,8 @@ export function unit(holder: Effect | null): () => void {
 }
 
 export function drained(): Promise<void> {
+	const effect = ambient();
+	if (effect !== null) return settledUnder(application(effect));
 	return new Promise((done) => {
 		if (outstanding === 0) queueMicrotask(done);
 		else drains.push(done);
@@ -184,18 +187,19 @@ export function work(): () => void {
 		unsettled = false;
 		holder?.units?.delete(settle);
 		count(boundary, -1);
+		if (blocking) {
+			const target = alias(batch);
+			target.work -= 1;
+			const owners = target.owners;
+			if (holder !== null && owners !== null) {
+				const left = (owners.get(holder) ?? 1) - 1;
+				if (left > 0) owners.set(holder, left);
+				else owners.delete(holder);
+			}
+			if (!target.done && !holds(target)) request();
+		}
 		if (counted) released();
 		else recheck();
-		if (!blocking) return;
-		const target = alias(batch);
-		target.work -= 1;
-		const owners = target.owners;
-		if (holder !== null && owners !== null) {
-			const left = (owners.get(holder) ?? 1) - 1;
-			if (left > 0) owners.set(holder, left);
-			else owners.delete(holder);
-		}
-		if (!target.done && !holds(target)) request();
 	};
 	if (!counted) speculative.add(settle);
 	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);

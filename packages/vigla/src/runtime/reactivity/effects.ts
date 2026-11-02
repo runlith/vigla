@@ -12,9 +12,11 @@ import {
 	type Effect,
 	type Kind
 } from './graph.ts';
+import { unhandled } from '../../shared/diagnostics.ts';
 import { abort, abortLifetime } from './abort.ts';
 import { collect, orphaned, pending, processed, retire, revisit, schedule } from './batch.ts';
 import { disconnect } from './deriveds.ts';
+import { frontOf, setFront } from './front.ts';
 import { handlerOf } from './owners.ts';
 import { orphan, teardownOrphan } from './errors.ts';
 import { presently } from './past.ts';
@@ -106,7 +108,42 @@ export function fail(effect: Effect | null, error: unknown): void {
 			return;
 		}
 	}
-	throw error;
+	escape(effect, error);
+}
+
+export function application(effect: Effect): Effect {
+	let top = effect;
+	while (top.parent !== null) top = top.parent;
+	return top;
+}
+
+let creating = 0;
+let scheduling = 0;
+
+export function enterScheduler(): number {
+	scheduling++;
+	const outer = creating;
+	creating = 0;
+	return outer;
+}
+
+export function leaveScheduler(outer: number): void {
+	scheduling--;
+	creating = outer;
+}
+
+export function escape(effect: Effect | null, error: unknown): void {
+	if (effect === null || creating > 0 || scheduling === 0) throw error;
+	unhandled(frontOf(effect), error);
+}
+
+export function overflow(effect: Effect, error: unknown): void {
+	const outer = enterScheduler();
+	try {
+		fail(effect, error);
+	} finally {
+		leaveScheduler(outer);
+	}
 }
 
 function dispose(effect: Effect, teardown: () => void): void {
@@ -162,12 +199,15 @@ export function run(effect: Effect): void {
 	if (effect.status === DIRTY && !effect.destroyed) schedule(effect);
 }
 
-function start(effect: Effect): Effect {
+export function start(effect: Effect): Effect {
+	creating++;
 	try {
 		run(effect);
 	} catch (error) {
 		destroy(effect);
 		throw error;
+	} finally {
+		creating--;
 	}
 	return effect;
 }
@@ -210,6 +250,8 @@ export function effectRoot(fn: () => void | (() => void)): () => void {
 	if (owner !== null) {
 		effect.context = owner.context;
 		effect.boundary = owner.boundary;
+		const front = frontOf(owner);
+		if (front !== null) setFront(effect, front);
 	}
 	start(effect);
 	return () => destroy(effect);

@@ -1,14 +1,26 @@
-import { Batch, apply, flushSync, inside, process, quiet, within } from './batch.ts';
+import { Batch, apply, flushSync, inside, open, process, processing, within } from './batch.ts';
+import { application } from './effects.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
+import type { Effect } from './graph.ts';
 import { adopt, discard, untouched, waitFor } from './held.ts';
+import { owner } from './tracking.ts';
 
 export interface Fork {
 	commit(): Promise<void>;
 	discard(): void;
 }
 
+function admits(caller: Effect | null): boolean {
+	if (processing !== null) return false;
+	if (open === null) return true;
+	if (caller === null) return false;
+	const mine = application(caller);
+	for (const effect of open.queued) if (application(effect) === mine) return false;
+	return true;
+}
+
 export function fork(fn: () => void): Fork {
-	if (!quiet()) forkTiming();
+	if (!admits(owner)) forkTiming();
 	flushSync();
 	const batch = new Batch();
 	batch.fork = true;

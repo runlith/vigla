@@ -1,5 +1,7 @@
 import type { Layer } from '../../shared/context.ts';
-import { destroy, destroyed, detached, run } from './effects.ts';
+import { format } from '../../shared/format.ts';
+import { destroy, destroyed, detached, start } from './effects.ts';
+import { setFront } from './front.ts';
 import { lifetime } from './abort.ts';
 import { settledUnder, unit } from './async.ts';
 import { presently } from './past.ts';
@@ -181,15 +183,11 @@ export function root(fn?: () => void | (() => void), parent: Owner | null = null
 		throw new Error('Cannot create a root under a disposed owner');
 	const effect = detached(null, parent === null ? null : effectOf(parent));
 	effect.scope = true;
+	if (parent === null) setFront(effect, format);
 	const owner = ownerOf(effect);
 	if (fn !== undefined) {
 		effect.fn = fn;
-		try {
-			run(effect);
-		} catch (error) {
-			destroy(effect);
-			throw error;
-		}
+		start(effect);
 	}
 	return owner;
 }

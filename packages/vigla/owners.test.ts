@@ -294,24 +294,116 @@ test('a lazily obtained owner handles effects created before its handle', () => 
 	}
 });
 
-test('an unhandled owner failure still propagates and a removed handler stays removed', () => {
+function hostReports(): [unknown[], () => void] {
+	const reported: unknown[] = [];
+	const host = globalThis as { reportError?: (error: unknown) => void };
+	const previous = host.reportError;
+	host.reportError = (error) => void reported.push(error);
+	return [
+		reported,
+		() => {
+			if (previous === undefined) delete host.reportError;
+			else host.reportError = previous;
+		}
+	];
+}
+
+test('an unhandled failure leaves through the host, outside another application flush', () => {
 	const owner = root();
+	const other = root();
+	const input = cell(0);
 	const error = new Error('unhandled');
+	const [reported, restore] = hostReports();
+	let seen = -1;
 	try {
 		const remove = owner.onError(() => {});
 		remove();
 		owner.run(() =>
 			effect(() => {
-				throw error;
+				if (input.current % 2 === 1) throw error;
 			})
 		);
+		other.run(() => effect(() => void (seen = input.current)));
+		flushSync();
+		input.current = 1;
+		other.run(() => flushSync());
+		assert.deepEqual(reported, [error]);
+		assert.equal(seen, 1);
+		input.current = 3;
+		root(() => flushSync()).dispose();
+		assert.deepEqual(reported, [error, error]);
+		const looping = cell(0);
+		owner.run(() => effect(() => void (looping.current = looping.current + 1)));
+		other.run(() => flushSync());
+		assert.match(String(reported[2]), /effect_update_depth_exceeded/);
 		assert.throws(
-			() => flushSync(),
+			() =>
+				root(() => {
+					throw error;
+				}),
 			(caught) => caught === error
 		);
 	} finally {
+		restore();
 		owner.dispose();
+		other.dispose();
+	}
+});
+
+test('one application settles and forks while another has pending work and writes', async () => {
+	const first = root();
+	const second = root();
+	const busy = cell(0);
+	const idle = cell(0);
+	let quiet = false;
+	try {
+		first.run(() => effect(() => void busy.current));
+		second.run(() => effect(() => void idle.current));
 		flushSync();
+		void first.start(() => new Promise<void>(() => {}));
+		void second.run(settled).then(() => (quiet = true));
+		await tick();
+		assert.equal(quiet, true);
+		busy.current = 1;
+		second.run(() => core.fork(() => void (idle.current = 1))).discard();
+		busy.current = 2;
+		assert.throws(() => first.run(() => core.fork(() => {})), /fork_timing/);
+	} finally {
+		first.dispose();
+		second.dispose();
+		flushSync();
+	}
+});
+
+test('settlement under an owner waits for the work a released hold resumes', async () => {
+	const app = root();
+	const go = cell(0);
+	const gate = Promise.withResolvers<void>();
+	const loaded = Promise.withResolvers<void>();
+	let quiet = false;
+	try {
+		app.run(() =>
+			effect(() => {
+				if (go.current === 1) void app.start(() => loaded.promise);
+			})
+		);
+		flushSync();
+		const held = app.run(() =>
+			core.hold(() => {
+				go.current = 1;
+				return gate.promise;
+			})
+		);
+		const waiting = app.run(settled).then(() => (quiet = true));
+		await tick();
+		gate.resolve();
+		await held;
+		await tick();
+		assert.equal(quiet, false);
+		loaded.resolve();
+		await waiting;
+	} finally {
+		app.dispose();
 	}
 });
 

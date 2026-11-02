@@ -8,7 +8,7 @@ import {
 	resetLoop,
 	updated
 } from './trace.ts';
-import { asynchronous, parked, showing, unsettled, type AsyncRun } from './async.ts';
+import { asynchronous, parked, settledUnder, showing, unsettled, type AsyncRun } from './async.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -25,7 +25,14 @@ import {
 	type Source
 } from './graph.ts';
 import { forget, refresh } from './deriveds.ts';
-import { fail, offscreen, run } from './effects.ts';
+import {
+	application,
+	enterScheduler,
+	leaveScheduler,
+	offscreen,
+	overflow,
+	run
+} from './effects.ts';
 import { queueEager, runEager } from './eager.ts';
 import { depthExceeded } from './errors.ts';
 import { drain } from './tasks.ts';
@@ -194,10 +201,6 @@ export function within<T>(batch: Batch, fn: () => T): T {
 	} finally {
 		active = previous;
 	}
-}
-
-export function quiet(): boolean {
-	return processing === null && open === null;
 }
 
 export function inside<T>(batch: Batch, fn: () => T): T {
@@ -527,6 +530,7 @@ function commit(batch: Batch): void {
 
 export function process(batch: Batch): void {
 	const outerBatch = processing;
+	const outerCreation = enterScheduler();
 	const outerView = setView(others(batch) ? viewOf(batch) : null);
 	processing = batch;
 	batch.started = true;
@@ -587,6 +591,7 @@ export function process(batch: Batch): void {
 	} finally {
 		batch.phase = null;
 		processing = outerBatch;
+		leaveScheduler(outerCreation);
 		setView(outerView);
 	}
 }
@@ -621,7 +626,7 @@ function exceeded(batch: Batch, content: readonly Effect[]): void {
 	if (DEV) reportLoop();
 	const error = depthExceeded();
 	if (latest === undefined) throw error;
-	fail(latest, error);
+	overflow(latest, error);
 }
 
 function flush(tasks: boolean): void {
@@ -650,6 +655,7 @@ export function quieted(): void {
 
 export function settled(): Promise<void> {
 	receiving();
+	if (owner !== null) return settledUnder(application(owner));
 	return new Promise((done) => waiting.push(done));
 }
 
