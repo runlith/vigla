@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/kit/src/sync/app-types.ts
 ---
-The same `$app/paths.resolve` declaration serves browser callers and SSR, where the default relative-path policy can return document-relative URLs. Its generated return type must cover both forms without admitting another application's base. The root contributes no extra path segment: its leading slash already comes from the resolved prefix, irrespective of the route's trailing-slash option.
+The same `$app/paths.resolve` declaration serves browser callers and SSR, where the default relative-path policy can return document-relative URLs. Its generated return type must cover both forms; absolute forms retain the application's configured base rather than an arbitrary path prefix. The root contributes no extra path segment: its leading slash already comes from the resolved prefix, irrespective of the route's trailing-slash option.
