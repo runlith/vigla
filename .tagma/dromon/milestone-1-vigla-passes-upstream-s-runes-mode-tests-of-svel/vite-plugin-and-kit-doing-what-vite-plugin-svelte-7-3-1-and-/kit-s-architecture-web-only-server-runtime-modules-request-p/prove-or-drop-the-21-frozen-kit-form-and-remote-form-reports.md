@@ -1,0 +1,38 @@
+---
+id: 01a1a144-185e-7413-9b14-4abd78493898
+title: Prove or drop the 21 frozen Kit form and remote-form reports
+ord: 5
+tags: ["task"]
+fields:
+  {
+    "status": "open"
+  }
+edges:
+  - kind: discovered-from
+    to: 01a1863d-db39-787b-8f72-b03a2e546434
+  - kind: implements
+    to: 01a185b6-09f2-796e-90b2-9fa9658ccea4
+---
+Frozen Kit reports of [[2e546434]] in this area with no test and no recorded non-reproduction (21). M1 ([[658ccea4]]) needs each one either reproduced on Kit 3.1.0 / Svelte 5.57.3 and fixed with a public regression red upstream and green on Vigla (an `own/kit` difference sample, as `layout-data` does for #17383), or removed from the list with a non-failing fork-base reproduction recorded in [[2e546434]]. The research executed no Kit reproductions; each row's evidence is upstream's report as read on 2026-10-29.
+
+- [#9478 `use:enhance` with input `type="hidden"` causes significant data loss for base64-encoded images](https://github.com/sveltejs/kit/issues/9478) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-ezby2t?file=src/routes/+page.svelte) · No maintainer reply. Reporter: string FormData is truncated to 1 MB without an error (2024-07).
+- [#10464 CSRF failure doesn't pass ActionData to enhanced form callback nor supplies form.error.](https://github.com/sveltejs/kit/issues/10464) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-f1rj2m?file=src%2Froutes%2F%2Bpage.svelte) · Maintainer (2023-08) agreed the failure shape should align with ActionResult. Not fixed.
+- [#11123 `enhance` submit function `formData` re-assignable does nothing / no type error](https://github.com/sveltejs/kit/issues/11123) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-vylhwt?file=src%2Froutes%2F%2Bpage.svelte) · Maintainer (2025-05) gave a mutation workaround; no statement that reassignment should take effect.
+- [#13825 `invalidateAll` incorrectly resets `page.form`](https://github.com/sveltejs/kit/issues/13825) · runes · [repo](https://github.com/KTibow/sveltekit-invalidateall-issue) · No maintainer reply. The source comment says reset on navigation, not invalidation.
+- [#14698 Remote form: Coercing checkbox values to number doesn't work](https://github.com/sveltejs/kit/issues/14698) · runes · [repo](https://github.com/Blackwidow-sudo/kit-sandbox) · No maintainer reply. A schema from a component module breaks in dev; same circular-import family as #14806.
+- [#14729 Remote Functions: form update clears inputs on second submit](https://github.com/sveltejs/kit/issues/14729) · runes · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-qmclzo4f?file=src%2Froutes%2F%2Bpage.svelte) · The documented reset is being made configurable (PR #14815, unverified). No maintainer ruling.
+- [#14802 Remote form() result persists after navigation](https://github.com/sveltejs/kit/issues/14802) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltekit-form-ephemeral-state-bug) · No maintainer reply on this issue. A contributor says a programmatic-reset PR (#14779) awaits approval.
+- [#14990 Missing field for form doesn't report error](https://github.com/sveltejs/kit/issues/14990) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-cb8vsuzs?file=src%2Froutes%2F%2Bpage.svelte) · No maintainer reply. Submit silently does nothing when a field is missing.
+- [#15104 Experimental async changes remote form validation](https://github.com/sveltejs/kit/issues/15104) · async (`experimental.async`) · [repo](https://github.com/hyunbinseo/svelte-kit-15104) · No maintainer reply. Contributor analysis: `tick()` waits one cycle only in async mode.
+- [#15230 Remote Function: Multiple selects in for loop lead to unused selects being set to nothing on first toggle](https://github.com/sveltejs/kit/issues/15230) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-wexxfwxy?file=src%2Froutes%2F%2Bpage.svelte) · Zero comments.
+- [#15270 Remote form should respect HTML constraints](https://github.com/sveltejs/kit/issues/15270) · mode-independent · [repo branch](https://github.com/hyunbinseo/svelte-kit-template/tree/mre-kit-15270) · No maintainer reply. `required` is respected; `minlength` and `maxlength` are not.
+- [#15462 Remote Functions: `error()` in queries refreshed after form submission](https://github.com/sveltejs/kit/issues/15462) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-rpoteiuh?file=src%2Froutes%2F%2Bpage.svelte) · No maintainer reply. The reporter calls it a regression.
+- [#15547 Undocumented edge case - early return of non-trailing `validate` calls on complex remote form](https://github.com/sveltejs/kit/issues/15547) · mode-independent · [repo](https://github.com/vnphanquang/remote-form-repeat-validate) · Zero comments; no intended ruling on the early return.
+- [#15815 Remote form field.as('text', defaultValue) uses stale field value across dynamic route records](https://github.com/sveltejs/kit/issues/15815) · mode-independent · INLINE [body](https://github.com/sveltejs/kit/issues/15815#issue-4403911636) · Zero comments.
+- [#15908 instance.fields.value() not getting value from submitter](https://github.com/sveltejs/kit/issues/15908) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltejs-kit-template-default-wd3pxphe?file=src%2Froutes%2Fform.remote.ts) · No maintainer reply. A contributor (2026-06) says submit buttons do not trigger the input handling that `fields.value` depends on.
+- [#16093 `select` elements change to first option on submit](https://github.com/sveltejs/kit/issues/16093) · mode-independent · [stackblitz](https://stackblitz.com/edit/form-select-resetting?file=src%2Froutes%2F%2Bpage.svelte) · Maintainer (2026-07) reproduced it: native form reset restores the first option, and Kit does not pin select defaults. A one-line fix for svelte 5.57 is reported (2026-10); not merged.
+- [#16270 Incorrect handling of decimal delimeters inside remote form number inputs](https://github.com/sveltejs/kit/issues/16270) · mode-independent · [repo](https://github.com/dimitarnikolovv/remote-form-decimals-bug) · Zero comments. "20." is coerced to undefined.
+- [#16359 Invalid field values in client-side enhanced form callback](https://github.com/sveltejs/kit/issues/16359) · mode-independent · [stackblitz](https://stackblitz.com/edit/sveltekit-enhanced-form-missing-client-values?file=md!README.md) · Zero comments. Values are undefined in the callback while FormData is correct.
+- [#16444 Remote form redirect sometimes does not refresh queries in Firefox](https://github.com/sveltejs/kit/issues/16444) · mode-independent · [repo](https://github.com/davekaro/kit-refresh-issue) · Maintainer (2026-07) reproduced it: Firefox stale, Chromium fresh; traced to cache eviction.
+- [#16818 Remote functions: `form.action` throws `Cannot access event.url in a query` after `await query()` in WebContainer / StackBlitz](https://github.com/sveltejs/kit/issues/16818) · kit3 (kit 3.0.0-next.23) · [repo](https://github.com/janekprange/sveltekit-remote-form-post-success-rehydrate) · No maintainer reply. Reproduces only in WebContainer; Kit skips the store reset there by design.
+- [#17131 Untouched remote form `<select>` renders blank when `validate()` runs on `onchange`](https://github.com/sveltejs/kit/issues/17131) · runes · INLINE [body](https://github.com/sveltejs/kit/issues/17131#issue-5495079289) · A contributor (2026-09) asks whether it belongs to the Svelte repo. No maintainer reply.
