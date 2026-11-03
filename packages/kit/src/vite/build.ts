@@ -11,12 +11,13 @@ import {
 	walk,
 	write,
 	writeNodes,
-	type BuildContext
+	type BuildContext,
+	type BuiltNode
 } from '../build/index.ts';
 import { resolveConfig } from '../config/index.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { ManifestRoute } from '../types/paths.ts';
-import type { Style } from '../types/internal/server.ts';
+import type { ClientBuild, Style } from '../types/internal/server.ts';
 import { dependencies, entry } from './dependencies.ts';
 import { styleExpression } from './styles.ts';
 import { pruneRemotes } from './remote-build.ts';
@@ -48,6 +49,210 @@ function refuseClientModules(output: Awaited<ReturnType<ViteBuilder['build']>>):
 				.map((module) => module.name)
 				.join(', ')
 		});
+}
+function immutableFiles(
+	manifest: Manifest,
+	appDir: string,
+	inlined: Set<string>
+): { path: string }[] {
+	const files = new Set<string>();
+	for (const chunk of Object.values(manifest))
+		for (const file of [chunk.file, ...(chunk.css ?? []), ...(chunk.assets ?? [])])
+			if (file.startsWith(appDir + '/immutable/') && !inlined.has(file)) files.add(file);
+	return Array.from(files, (path) => ({ path }));
+}
+interface ClientOutput {
+	sources: Map<string, string>;
+	inlineScript: string;
+	inlined: Set<string>;
+}
+function inlineNodeStyles(
+	node: BuiltNode,
+	client: string,
+	project: Project,
+	clientFiles: Set<string>
+): void {
+	const styles = node.stylesheets.filter(
+		(file) =>
+			readFileSync(path.join(client, file)).byteLength <= project.config.inlineStyleThreshold
+	);
+	if (!styles.length) return;
+	const staticFiles = new Set(project.tree.assets.map((asset) => asset.file));
+	node.inlineStyles = Object.fromEntries(
+		styles.map((file) => [
+			file,
+			styleExpression(readFileSync(path.join(client, file), 'utf8'), file, clientFiles, staticFiles)
+		])
+	);
+}
+function skipClient(
+	project: Project,
+	context: BuildContext,
+	serverManifest: Manifest,
+	component: (index: number) => string
+): ClientOutput {
+	const output = path.join(project.config.outDir, 'output');
+	const client = path.join(output, 'client');
+	const immutable = path.join(project.config.appDir, 'immutable');
+	copy(path.join(output, 'server', immutable), path.join(client, immutable));
+	copy(project.config.files.assets, client);
+	if (project.config.output.bundleStrategy === 'split') {
+		const clientFiles = new Set(walk(client));
+		for (const [index, node] of context.artifacts.nodes.entries()) {
+			const source = project.tree.nodes[index]!;
+			const files = [
+				component(index),
+				...(source.universal ? [path.resolve(project.root, source.universal)] : [])
+			];
+			for (const file of files) {
+				const deps = dependencies(serverManifest, file, project.root, true);
+				node.stylesheets.push(...deps.stylesheets);
+				node.fonts.push(...deps.fonts);
+			}
+			inlineNodeStyles(node, client, project, clientFiles);
+		}
+	}
+	return { sources: new Map(), inlineScript: '', inlined: new Set() };
+}
+async function buildClient(
+	builder: ViteBuilder,
+	project: Project,
+	context: BuildContext,
+	serverManifest: Manifest,
+	component: (index: number) => string
+): Promise<ClientOutput> {
+	const output = path.join(project.config.outDir, 'output');
+	const server = path.join(output, 'server');
+	const client = path.join(output, 'client');
+	const start = path.join(packageDirectory, 'src/entries/internal/client.ts');
+	const clientInputs: Record<string, string> = {
+		'entry/start': start,
+		'entry/app': ids.client
+	};
+	project.tree.nodes.forEach((_, index) => {
+		clientInputs[`nodes/${index}`] = nodeId(project, index);
+	});
+	const split = project.config.output.bundleStrategy === 'split';
+	builder.environments.client!.config.build.rolldownOptions.input = split
+		? clientInputs
+		: ids.bundle;
+	await builder.build(builder.environments.client!);
+	const serverStyles = new Set(
+		Object.values(serverManifest)
+			.flatMap((chunk) => chunk.css ?? [])
+			.map((file) => path.basename(file))
+	);
+	copy(
+		path.join(server, project.config.appDir, 'immutable'),
+		path.join(client, project.config.appDir, 'immutable'),
+		{ filter: (name) => !serverStyles.has(name) }
+	);
+	const clientManifest = json(path.join(client, '.vite/manifest.json'));
+	const initial = dependencies(clientManifest, split ? start : ids.bundle, project.root, false);
+	const app = split ? dependencies(clientManifest, ids.client, project.root, false) : undefined;
+	const built: ClientBuild = {
+		start: initial.file,
+		app: app?.file,
+		imports: [...new Set([...initial.imports, ...(app?.imports ?? [])])],
+		stylesheets: [...new Set([...initial.stylesheets, ...(app?.stylesheets ?? [])])],
+		fonts: [...initial.fonts, ...(app?.fonts ?? [])],
+		uses_env_dynamic_public: Object.values(project.environment.variables).some(
+			(variable) => variable.public && !variable.static
+		)
+	};
+	context.artifacts.client = built;
+	if (project.config.router.resolution === 'server') {
+		built.nodes = project.tree.nodes.map(
+			(_, index) => dependencies(clientManifest, nodeId(project, index), project.root, true).file
+		);
+		built.routes = project.tree.routes
+			.filter((route) => route.page)
+			.map((route) => ({
+				id: route.id,
+				pattern: route.pattern,
+				params: route.params,
+				errors: route.page!.errors,
+				layouts: route.page!.layouts.map((index) =>
+					index === undefined ? undefined : [context.analysis.nodes[index]!.hasServerLoad, index]
+				),
+				leaf: [context.analysis.nodes[route.page!.leaf]!.hasServerLoad, route.page!.leaf]
+			}));
+	}
+	const clientFiles = new Set(walk(client));
+	const staticFiles = new Set(project.tree.assets.map((asset) => asset.file));
+	for (const [index, node] of context.artifacts.nodes.entries()) {
+		const deps = split
+			? dependencies(clientManifest, nodeId(project, index), project.root, true)
+			: initial;
+		node.imports = deps.imports;
+		node.stylesheets = deps.stylesheets;
+		node.fonts = deps.fonts;
+		if (split) {
+			const source = project.tree.nodes[index]!;
+			const rendering = dependencies(serverManifest, component(index), project.root, true);
+			const rendered = new Set(rendering.bySource.keys());
+			if (source.universal) {
+				const universal = dependencies(
+					serverManifest,
+					path.resolve(project.root, source.universal),
+					project.root,
+					true
+				);
+				for (const id of universal.bySource.keys()) rendered.add(id);
+			}
+			const stylesheets = new Set<string>();
+			const fonts = new Set<string>();
+			for (const [id, resources] of deps.bySource)
+				if (rendered.has(id === deps.source ? rendering.source : id)) {
+					for (const file of resources.stylesheets) stylesheets.add(file);
+					for (const file of resources.fonts) fonts.add(file);
+				}
+			node.stylesheets = [...stylesheets];
+			node.fonts = deps.fonts.filter((font) => fonts.has(font.file));
+		}
+		inlineNodeStyles(node, client, project, clientFiles);
+	}
+	const clientSources = sources(client);
+	const inline = project.config.output.bundleStrategy === 'inline';
+	const inlineStyles = inline
+		? Object.values(clientManifest)
+				.filter((file) => file.file.endsWith('.css'))
+				.map((file) => file.file)
+		: [];
+	const inlined = new Set(inline ? [initial.file, `${initial.file}.map`, ...inlineStyles] : []);
+	const inlineScript = inline
+		? clientSources.get(initial.file)!.replace(/\n\/\/# sourceMappingURL=\S+\s*$/, '\n') +
+			`;globalThis.${project.global}.app=__sveltekit_bundle;`
+		: '';
+	context.manifest.immutable.push(
+		...immutableFiles(clientManifest, project.config.appDir, inlined)
+	);
+	replaceManifest(client, clientSources, context);
+	if (inline) {
+		const styles = inlineStyles.map(
+			(file) =>
+				`(${styleExpression(readFileSync(path.join(client, file), 'utf8'), file, clientFiles, staticFiles)})(assets,base)`
+		);
+		if (styles.length) {
+			const source = `(assets,base) => [${styles.join(',')}].join('\\n')`;
+			context.artifacts.inlineStyle = {
+				source,
+				render: new Function('return ' + source)() as Style
+			};
+		}
+		built.inline = {
+			script: manifestCode(inlineScript, context),
+			style: context.artifacts.inlineStyle?.render
+		};
+		built.imports = [];
+		built.stylesheets = [];
+		for (const node of context.artifacts.nodes) {
+			node.imports = [];
+			node.stylesheets = [];
+			node.inlineStyles = undefined;
+		}
+	}
+	return { sources: clientSources, inlineScript, inlined };
 }
 function sources(directory: string): Map<string, string> {
 	return new Map(
@@ -323,158 +528,13 @@ export function buildPlugin(
 				);
 			full();
 			context.analysis = await analyseBuild(context);
-			const start = path.join(packageDirectory, 'src/entries/internal/client.ts');
-			const clientInputs: Record<string, string> = {
-				'entry/start': start,
-				'entry/app': ids.client
-			};
-			project.tree.nodes.forEach((_, index) => {
-				clientInputs[`nodes/${index}`] = nodeId(project, index);
-			});
-			const split = project.config.output.bundleStrategy === 'split';
-			builder.environments.client!.config.build.rolldownOptions.input = split
-				? clientInputs
-				: ids.bundle;
-			await builder.build(builder.environments.client!);
-			const serverStyles = new Set(
-				Object.values(serverManifest)
-					.flatMap((chunk) => chunk.css ?? [])
-					.map((file) => path.basename(file))
-			);
-			copy(
-				path.join(server, project.config.appDir, 'immutable'),
-				path.join(client, project.config.appDir, 'immutable'),
-				{ filter: (name) => !serverStyles.has(name) }
-			);
-			const clientManifest = json(path.join(client, '.vite/manifest.json'));
-			const initial = dependencies(clientManifest, split ? start : ids.bundle, project.root, false);
-			const app = split ? dependencies(clientManifest, ids.client, project.root, false) : undefined;
-			context.artifacts.client = {
-				start: initial.file,
-				app: app?.file,
-				imports: [...new Set([...initial.imports, ...(app?.imports ?? [])])],
-				stylesheets: [...new Set([...initial.stylesheets, ...(app?.stylesheets ?? [])])],
-				fonts: [...initial.fonts, ...(app?.fonts ?? [])],
-				uses_env_dynamic_public: Object.values(project.environment.variables).some(
-					(variable) => variable.public && !variable.static
-				)
-			};
-			if (project.config.router.resolution === 'server') {
-				context.artifacts.client.nodes = project.tree.nodes.map(
-					(_, index) =>
-						dependencies(clientManifest, nodeId(project, index), project.root, true).file
-				);
-				context.artifacts.client.routes = project.tree.routes
-					.filter((route) => route.page)
-					.map((route) => ({
-						id: route.id,
-						pattern: route.pattern,
-						params: route.params,
-						errors: route.page!.errors,
-						layouts: route.page!.layouts.map((index) =>
-							index === undefined
-								? undefined
-								: [context.analysis.nodes[index]!.hasServerLoad, index]
-						),
-						leaf: [context.analysis.nodes[route.page!.leaf]!.hasServerLoad, route.page!.leaf]
-					}));
-			}
-			const clientFiles = new Set(walk(client));
-			const staticFiles = new Set(project.tree.assets.map((asset) => asset.file));
-			for (const [index, node] of context.artifacts.nodes.entries()) {
-				const deps = split
-					? dependencies(clientManifest, nodeId(project, index), project.root, true)
-					: initial;
-				node.imports = deps.imports;
-				node.stylesheets = deps.stylesheets;
-				node.fonts = deps.fonts;
-				if (split) {
-					const source = project.tree.nodes[index]!;
-					const rendering = dependencies(serverManifest, component(index), project.root, true);
-					const rendered = new Set(rendering.bySource.keys());
-					if (source.universal) {
-						const universal = dependencies(
-							serverManifest,
-							path.resolve(project.root, source.universal),
-							project.root,
-							true
-						);
-						for (const id of universal.bySource.keys()) rendered.add(id);
-					}
-					const stylesheets = new Set<string>();
-					const fonts = new Set<string>();
-					for (const [id, resources] of deps.bySource)
-						if (rendered.has(id === deps.source ? rendering.source : id)) {
-							for (const file of resources.stylesheets) stylesheets.add(file);
-							for (const file of resources.fonts) fonts.add(file);
-						}
-					node.stylesheets = [...stylesheets];
-					node.fonts = deps.fonts.filter((font) => fonts.has(font.file));
-				}
-				const styles = node.stylesheets.filter(
-					(file) =>
-						readFileSync(path.join(client, file)).byteLength <= project.config.inlineStyleThreshold
-				);
-				if (styles.length)
-					node.inlineStyles = Object.fromEntries(
-						styles.map((file) => [
-							file,
-							styleExpression(
-								readFileSync(path.join(client, file), 'utf8'),
-								file,
-								clientFiles,
-								staticFiles
-							)
-						])
-					);
-			}
-			const clientSources = sources(client);
-			const inline = project.config.output.bundleStrategy === 'inline';
-			const inlineStyles = inline
-				? Object.values(clientManifest)
-						.filter((file) => file.file.endsWith('.css'))
-						.map((file) => file.file)
-				: [];
-			const inlined = new Set(inline ? [initial.file, `${initial.file}.map`, ...inlineStyles] : []);
-			const inlineScript = inline
-				? clientSources.get(initial.file)!.replace(/\n\/\/# sourceMappingURL=\S+\s*$/, '\n') +
-					`;globalThis.${project.global}.app=__sveltekit_bundle;`
-				: '';
-			context.manifest.immutable.push(
-				...walk(client)
-					.filter(
-						(file) =>
-							file.startsWith(project.config.appDir + '/immutable/') &&
-							!file.endsWith('.map') &&
-							!inlined.has(file)
-					)
-					.map((path) => ({ path }))
-			);
-			replaceManifest(client, clientSources, context);
-			if (inline) {
-				const styles = inlineStyles.map(
-					(file) =>
-						`(${styleExpression(readFileSync(path.join(client, file), 'utf8'), file, clientFiles, staticFiles)})(assets,base)`
-				);
-				if (styles.length) {
-					const source = `(assets,base) => [${styles.join(',')}].join('\\n')`;
-					context.artifacts.inlineStyle = {
-						source,
-						render: new Function('return ' + source)() as Style
-					};
-				}
-				context.artifacts.client.inline = {
-					script: manifestCode(inlineScript, context),
-					style: context.artifacts.inlineStyle?.render
-				};
-				context.artifacts.client.imports = [];
-				context.artifacts.client.stylesheets = [];
-				for (const node of context.artifacts.nodes) {
-					node.imports = [];
-					node.stylesheets = [];
-					node.inlineStyles = undefined;
-				}
-			}
+			const {
+				sources: clientSources,
+				inlineScript,
+				inlined
+			} = project.tree.nodes.every((node) => node.options?.csr === false)
+				? skipClient(project, context, serverManifest, component)
+				: await buildClient(builder, project, context, serverManifest, component);
 			writeNodes(context);
 			full();
 			replaceManifest(server, serverSources, context);
@@ -487,7 +547,7 @@ export function buildPlugin(
 				}))
 			);
 			replaceManifest(client, clientSources, context);
-			if (context.artifacts.client.inline)
+			if (context.artifacts.client?.inline)
 				context.artifacts.client.inline.script = manifestCode(inlineScript, context);
 			for (const file of inlined) rmSync(path.join(client, file), { force: true });
 			replaceManifest(server, serverSources, context);
