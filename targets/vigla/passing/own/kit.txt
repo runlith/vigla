@@ -10,6 +10,8 @@ load-dependencies/test/load.test.js > awaiting parent sends its fresh data into 
 load-dependencies/test/load.test.js > enumerating params tracks optional keys before they exist (test-dev-1/chromium-dev)
 monorepo-assets/test/assets.test.js > linked workspace stylesheet assets are served in development (test-dev-1)
 navigation-attachment/test/download.test.js > navigation callbacks continue after an attachment download (test-dev-1/chromium-dev)
+navigation-boot/test/boot.test.js > a link clicked while mounting starts a client navigation (test-dev-1/chromium-dev)
+navigation-boot/test/boot.test.js > a second back during startup renders the URL in history (test-dev-1/chromium-dev)
 read-asset-query/test/read.test.js > read serves assets whose URL keeps a query (test-build-1/chromium-dev)
 read-asset-query/test/read.test.js > read serves assets whose URL keeps a query (test-dev-1/chromium-dev)
 remote-queries/test/remote.test.js > a command called from an endpoint may request refreshes (test-dev-1/chromium-dev)

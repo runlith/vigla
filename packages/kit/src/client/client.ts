@@ -62,6 +62,7 @@ export class Client {
 	updating = false;
 	current: Loaded | null = null;
 	readonly #target: HTMLElement;
+	readonly #consumeHydration: boolean;
 	#token = 0;
 	#warnedReplace = false;
 	#invalidation = 0;
@@ -75,16 +76,17 @@ export class Client {
 		  }
 		| undefined;
 
-	constructor(app: ClientApp, target: HTMLElement) {
+	constructor(app: ClientApp, target: HTMLElement, consumeHydration = true) {
 		this.app = app;
 		this.#target = target;
+		this.#consumeHydration = consumeHydration;
 		this.container = payload.embedded ? target : document.documentElement;
 		this.chunks = chunks;
 		this.owner = root();
 		this.transport = new Transport(app, this.owner);
 		this.routes = new Routes(app);
 		this.state = this.owner.run(() => new State(payload, app));
-		this.remote = new Remotes(this, target);
+		this.remote = new Remotes(this, target, consumeHydration);
 		this.owner.run(() => {
 			context[1](this);
 			bindState(this.state);
@@ -103,6 +105,7 @@ export class Client {
 			new FetchCache(),
 			this.transport
 		);
+		if (!consumeHydration) this.pages.fetches.initial = false;
 		this.owner.run(() => onDestroy(this.pages.fetches.observe()));
 		this.view = new View(app, this.owner, target, this.state, this.routes, async (error) => {
 			const token = this.#token;
@@ -155,14 +158,17 @@ export class Client {
 	}
 
 	async start(input?: Hydration): Promise<void> {
-		const closeInput = this.#openInput();
+		const url = new URL(location.href);
+		if (this.routes.hash) url.hash = decodeURIComponent(url.hash);
+		const closeInput = this.#consumeHydration ? this.#openInput() : () => {};
 		this.owner.run(() => onDestroy(closeInput));
 		try {
+			const listeners = this.owner.run(() => listen(this));
+			this.owner.run(() => onDestroy(listeners.dispose));
 			await this.owner.run(() => this.app.hooks.init?.());
+			listeners.startPreloads();
 			this.chunks.bind(this.app, this.owner);
 			const hydration = input ? this.owner.run(input) : undefined;
-			const url = new URL(location.href);
-			if (this.routes.hash) url.hash = decodeURIComponent(url.hash);
 			let result: Loaded | { type: 'redirect'; status: number; location: string };
 			if (hydration) result = await this.pages.hydrate(hydration, url);
 			else {
@@ -204,10 +210,7 @@ export class Client {
 			this.restoration.restore(this.history.index, this.view.components);
 			this.started = true;
 			this.updating = false;
-			this.owner.run(() => {
-				onDestroy(listen(this));
-				this.state.poll();
-			});
+			this.owner.run(() => this.state.poll());
 			this.ready.resolve();
 		} catch (error) {
 			closeInput();
@@ -317,6 +320,7 @@ export class Client {
 	}
 
 	async navigate(url: URL, options: Transition = {}, redirects = 0): Promise<void> {
+		if (!this.started) await this.ready.promise;
 		const token = ++this.#token;
 		const previous = this.current;
 		const intent = await this.intent(url);
@@ -599,6 +603,13 @@ export async function start(
 	target: HTMLElement,
 	hydration?: Hydration
 ): Promise<void> {
-	const runtime = new Client(app, target);
-	await runtime.start(hydration);
+	const rendered = payload.rendered;
+	const stale =
+		!!hydration &&
+		!!rendered &&
+		(rendered.pathname !== location.pathname ||
+			(rendered.search !== undefined && rendered.search !== location.search));
+	if (stale) target.replaceChildren();
+	const runtime = new Client(app, target, !stale);
+	await runtime.start(stale ? undefined : hydration);
 }

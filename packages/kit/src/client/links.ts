@@ -10,6 +10,12 @@ interface Options {
 	replace: boolean;
 	reset: boolean;
 }
+
+interface Listeners {
+	startPreloads(): void;
+	dispose(): void;
+}
+
 const priorities: Record<string, number> = {
 	tap: 1,
 	hover: 2,
@@ -75,9 +81,10 @@ function options(element: Element): Options {
 	};
 }
 
-export function listen(client: Client): () => void {
+export function listen(client: Client): Listeners {
 	const abort = new AbortController();
 	const container = client.container;
+	let preloading = false;
 	let hover: ReturnType<typeof setTimeout> | undefined;
 	let fragment: { source: Metadata; reset: boolean } | undefined;
 	const listener = <K extends keyof WindowEventMap>(
@@ -106,6 +113,7 @@ export function listen(client: Client): () => void {
 		return { url, options: options(element), external, ignore };
 	}
 	function preload(element: Element, priority: number): void {
+		if (!preloading) return;
 		if ('connection' in navigator && (navigator.connection as { saveData?: boolean }).saveData)
 			return;
 		const link = info(element);
@@ -135,6 +143,22 @@ export function listen(client: Client): () => void {
 		if (!element) return;
 		const link = info(element);
 		if (!link || link.ignore) return;
+		const follow = () => {
+			event.preventDefault();
+			void client
+				.navigate(link.url, {
+					type: 'link',
+					event,
+					replace: link.options.replace || link.url.href === location.href,
+					refreshAll: link.url.href === location.href,
+					reset: link.options.reset
+				})
+				.catch(console.error);
+		};
+		if (!client.started && !link.external && !link.options.reload) {
+			follow();
+			return;
+		}
 		const same = client.routes.key(link.url) === client.routes.key(new URL(location.href));
 		if (
 			!client.routes.hash &&
@@ -158,16 +182,7 @@ export function listen(client: Client): () => void {
 			if (!client.leave(link.url, event)) event.preventDefault();
 			return;
 		}
-		event.preventDefault();
-		void client
-			.navigate(link.url, {
-				type: 'link',
-				event,
-				replace: link.options.replace || link.url.href === location.href,
-				refreshAll: link.url.href === location.href,
-				reset: link.options.reset
-			})
-			.catch(console.error);
+		follow();
 	});
 	listener(window, 'pointermove', (event) => {
 		clearTimeout(hover);
@@ -313,24 +328,30 @@ export function listen(client: Client): () => void {
 					for (const element of anchors(node)) observer?.unobserve(element);
 		}
 	});
-	mutations.observe(container, {
-		childList: true,
-		subtree: true,
-		attributes: true,
-		attributeFilter: [
-			'href',
-			'data-sveltekit-preload-code',
-			'data-sveltekit-preload-data',
-			'data-sveltekit-reload'
-		]
-	});
-	scan(container);
 	for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]'))
 		link.href = link.href;
-	return () => {
-		clearTimeout(hover);
-		abort.abort();
-		observer?.disconnect();
-		mutations.disconnect();
+	return {
+		startPreloads() {
+			if (preloading || abort.signal.aborted) return;
+			preloading = true;
+			mutations.observe(container, {
+				childList: true,
+				subtree: true,
+				attributes: true,
+				attributeFilter: [
+					'href',
+					'data-sveltekit-preload-code',
+					'data-sveltekit-preload-data',
+					'data-sveltekit-reload'
+				]
+			});
+			scan(container);
+		},
+		dispose() {
+			clearTimeout(hover);
+			abort.abort();
+			observer?.disconnect();
+			mutations.disconnect();
+		}
 	};
 }

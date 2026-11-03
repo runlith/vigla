@@ -213,6 +213,11 @@ export async function renderDocument(
 					? `new URL('.',location).pathname.slice(0,-1)`
 					: escapeJson(paths.base);
 		const properties = [
+			...(document.ssr
+				? [
+						`rendered:${escapeJson({ pathname: event.url.pathname, ...(prerender ? {} : { search: event.url.search }) })}`
+					]
+				: []),
 			`base:${base}`,
 			...(options.paths.assets ? [`assets:${escapeJson(options.paths.assets)}`] : []),
 			`version:${escapeJson(options.version.name)}`,

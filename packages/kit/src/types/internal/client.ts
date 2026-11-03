@@ -65,7 +65,13 @@ export interface RootProps extends Record<string, unknown> {
 	error: App.Error | null;
 }
 
+export interface RenderedLocation {
+	pathname: string;
+	search?: string;
+}
+
 export interface ClientPayload {
+	rendered?: RenderedLocation;
 	hash?: boolean;
 	base?: string;
 	assets?: string;

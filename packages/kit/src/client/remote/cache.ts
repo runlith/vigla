@@ -35,6 +35,7 @@ export class Remotes {
 	readonly client: Client;
 	readonly channel: Channel;
 	readonly #input: Owner;
+	readonly #consumeHydration: boolean;
 	readonly #entries = new Map<string, Entry>();
 	readonly #flights = new Map<string, QueryFlight>();
 	readonly #seeds = new Map<string, RemoteNode>();
@@ -44,8 +45,9 @@ export class Remotes {
 	readonly #commands = new Map<string, Command>();
 	#persistent?: Promise<Cache | undefined>;
 
-	constructor(client: Client, target: HTMLElement) {
+	constructor(client: Client, target: HTMLElement, consumeHydration = true) {
 		this.client = client;
+		this.#consumeHydration = consumeHydration;
 		this.channel = new Channel(client);
 		this.#input = client.owner.run(() => root());
 		this.#input.run(() => onDestroy(openHydration({ format: client.app.format, target })));
@@ -57,9 +59,12 @@ export class Remotes {
 	}
 
 	seed(key: string): RemoteNode | Promise<RemoteNode> | undefined {
-		const encoded = this.#claimed.has(key)
-			? undefined
-			: this.#input.run(() => hydrated<string | Promise<string> | undefined>(key, () => undefined));
+		const encoded =
+			!this.#consumeHydration || this.#claimed.has(key)
+				? undefined
+				: this.#input.run(() =>
+						hydrated<string | Promise<string> | undefined>(key, () => undefined)
+					);
 		if (encoded !== undefined) this.#claimed.add(key);
 		const seeded = this.#seeds.get(key);
 		if (seeded) {

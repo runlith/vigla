@@ -1,0 +1,10 @@
+{
+	"a second back during startup renders the URL in history": {
+		"status": "difference",
+		"reason": "Kit #10876: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 reaches the root URL and root route state after two back traversals during a gated client boot, but retains the slug page; home content is absent after hydration on all three attempts."
+	},
+	"a link clicked while mounting starts a client navigation": {
+		"status": "difference",
+		"reason": "Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 reaches the slug page when onMount clicks its link during startup, but the registered beforeNavigate callback never fires on any of three attempts."
+	}
+}
