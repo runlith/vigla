@@ -1,4 +1,5 @@
-import { cell, fastest } from './util.svelte.js';
+import { fastest } from '../shared/time.js';
+import { cell } from './util.svelte.js';
 
 const COUNT = 1e5;
 

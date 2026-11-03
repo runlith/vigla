@@ -16,6 +16,7 @@ export interface Target {
 }
 
 export interface Prepared extends Target {
+	readonly work: string;
 	readonly indexes: Readonly<Record<string, string>>;
 }
 
@@ -52,9 +53,24 @@ export async function prepare(
 	suites: readonly string[],
 	shared: readonly string[]
 ): Promise<Prepared> {
-	const work = join(target.root, '.work', 'bench');
+	const work = join(target.root, '.work', `bench-${process.pid}`);
 	rmSync(work, { recursive: true, force: true });
 	mkdirSync(work, { recursive: true });
+	try {
+		return { ...target, work, indexes: await build(target, work, base, suites, shared) };
+	} catch (error) {
+		rmSync(work, { recursive: true, force: true });
+		throw error;
+	}
+}
+
+async function build(
+	target: Target,
+	work: string,
+	base: string,
+	suites: readonly string[],
+	shared: readonly string[]
+): Promise<Record<string, string>> {
 	const entry = join(work, 'compiler.js');
 	writeFileSync(entry, "export * from 'svelte/compiler';\n");
 	const compiler = (await import(pathToFileURL(entry).href)) as Compiler;
@@ -86,5 +102,5 @@ export async function prepare(
 		writeFileSync(index, `${lines.join('\n')}\n`);
 		indexes[dir] = index;
 	}
-	return { ...target, indexes };
+	return indexes;
 }

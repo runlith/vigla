@@ -1,4 +1,5 @@
-import { cell, fastestFresh } from '../reactivity/util.svelte.js';
+import { cell } from '../reactivity/util.svelte.js';
+import { fastestFresh } from '../shared/time.js';
 
 function rows(count) {
 	const selected = cell(0);

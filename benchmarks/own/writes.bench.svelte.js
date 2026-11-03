@@ -1,5 +1,6 @@
 import { flushSync } from 'svelte';
-import { cell, fastest } from '../reactivity/util.svelte.js';
+import { cell } from '../reactivity/util.svelte.js';
+import { fastest } from '../shared/time.js';
 
 function measure(label, setup) {
 	return {

@@ -1,5 +1,5 @@
 import { execFileSync, fork } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { cpus, loadavg } from 'node:os';
 import { join, resolve } from 'node:path';
 import { prepare, type Prepared, type Target } from './prepare.ts';
@@ -95,6 +95,9 @@ function revision(): string {
 
 const names = suites.map((suite) => suite.name);
 const prepared: Prepared[] = [];
+process.on('exit', () => {
+	for (const target of prepared) rmSync(target.work, { recursive: true, force: true });
+});
 for (const target of targets) prepared.push(await prepare(target, base, names, shared));
 
 const listed: Benchmark[] = [];
