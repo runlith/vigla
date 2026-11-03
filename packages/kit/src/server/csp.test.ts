@@ -42,7 +42,11 @@ it('includes the core hydration hash and its own boot hash for prerendered docum
 it('keeps unsafe-inline usable for dev styles while strict-dynamic still protects scripts', async () => {
 	const csp = new Csp(
 		{
-			directives: { 'script-src': ['unsafe-inline', 'strict-dynamic'], 'style-src': ['sha256-old'] }
+			directives: {
+				'script-src': ['unsafe-inline', 'strict-dynamic'],
+				'style-src': ['sha256-old'],
+				'style-src-attr': ['unsafe-inline']
+			}
 		},
 		false,
 		true
@@ -52,6 +56,7 @@ it('keeps unsafe-inline usable for dev styles while strict-dynamic still protect
 	const headers = new Headers();
 	csp.apply(headers);
 	expect(headers.get('content-security-policy')).toContain("style-src 'unsafe-inline'");
+	expect(headers.get('content-security-policy')).toMatch(/style-src-attr 'unsafe-inline'(;|$)/);
 	expect(headers.get('content-security-policy')).toContain(`'nonce-${csp.nonce}'`);
 	expect(csp.styleNonce).toBe(false);
 });

@@ -35,7 +35,7 @@ class Policy {
 				const value =
 					this.#directives[key] ??
 					(key === 'style-src' ? this.#directives['default-src'] : undefined);
-				if (Array.isArray(value))
+				if (Array.isArray(value) && !value.includes('unsafe-inline'))
 					this.#directives[key] = [
 						...value.filter((source) => !/^(nonce|sha\d+)-/.test(source)),
 						'unsafe-inline'
