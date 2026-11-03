@@ -1,5 +1,6 @@
 import { statSync, unlinkSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
+import { connect } from 'node:net';
 import { format } from 'node:url';
 import type { Handler } from './handler.ts';
 import { Environment } from './env.ts';
@@ -66,15 +67,7 @@ export function listen(handler: Handler, env: Environment): Server {
 		process.off('SIGTERM', terminate);
 		process.off('SIGINT', interrupt);
 	});
-	if (activation) server.listen({ fd: 3 }, () => console.log('Listening on file descriptor 3'));
-	else {
-		if (socket) {
-			try {
-				if (statSync(socket).isSocket()) unlinkSync(socket);
-			} catch (error) {
-				if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-			}
-		}
+	const bind = () =>
 		server.listen(socket ? { path: socket } : { host, port: Number(port) }, () => {
 			const address = server.address();
 			const url =
@@ -84,6 +77,37 @@ export function listen(handler: Handler, env: Environment): Server {
 					: format({ protocol: 'http:', hostname: host, port }));
 			console.log(`Listening on ${url}`);
 		});
-	}
+	if (activation) server.listen({ fd: 3 }, () => console.log('Listening on file descriptor 3'));
+	else if (socket) clearStaleSocket(socket, bind);
+	else bind();
 	return server;
+}
+
+function socketInode(path: string): number | null {
+	try {
+		const stats = statSync(path);
+		return stats.isSocket() ? stats.ino : null;
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+		return null;
+	}
+}
+
+function clearStaleSocket(path: string, then: () => void): void {
+	const stale = socketInode(path);
+	if (stale === null) return then();
+	const probe = connect({ path });
+	probe.once('connect', () => {
+		probe.destroy();
+		then();
+	});
+	probe.once('error', (error: NodeJS.ErrnoException) => {
+		if (error.code === 'ECONNREFUSED' && socketInode(path) === stale)
+			try {
+				unlinkSync(path);
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+			}
+		then();
+	});
 }

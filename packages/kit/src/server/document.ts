@@ -281,11 +281,17 @@ export async function renderDocument(
 		nonce: csp.nonce,
 		env: server.environment.public
 	});
-	const transformed = state.resolveOptions.transformPageChunk
-		? ((await runRequest(store, () =>
-				state.resolveOptions.transformPageChunk!({ html, done: true })
-			)) ?? '')
-		: html;
+	let transformed = html;
+	if (state.resolveOptions.transformPageChunk)
+		try {
+			transformed =
+				(await runRequest(store, () =>
+					state.resolveOptions.transformPageChunk!({ html, done: true })
+				)) ?? '';
+		} catch (error) {
+			state.error = true;
+			throw error;
+		}
 	if (
 		options.dev &&
 		document.csr &&

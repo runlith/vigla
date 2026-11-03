@@ -235,14 +235,12 @@ export function loadBranch(
 			: Promise.resolve(null);
 		universalData[index]!.catch(() => {});
 	}
-	return nodes.map((node, index) =>
-		node
-			? Promise.all([serverData[index]!, universalData[index]!]).then(([server, data]) => ({
-					depth: index,
-					node,
-					server,
-					data
-				}))
-			: Promise.resolve(null)
-	);
+	return nodes.map((node, index) => {
+		if (!node) return Promise.resolve(null);
+		const loaded = Promise.all([serverData[index]!, universalData[index]!]).then(
+			([server, data]) => ({ depth: index, node, server, data })
+		);
+		loaded.catch(() => {});
+		return loaded;
+	});
 }

@@ -51,6 +51,73 @@
 			"status": "difference",
 			"reason": "pending"
 		},
+		"remote-queries/test/client.test.js > a query derived inside a class takes part in single-flight refreshes": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > a command called in an effect runs once": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > a loading flag derived from a fresh query call settles": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > hovering a link does not redirect through a preloaded query": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > a redirect from a query keeps page state and links on the target": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > a refreshed query that redirects inside a form navigates": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > refreshing an unchanged query raises no await waterfall warning": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > overlapping refreshes of a list with per-row queries settle": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > a form that refreshes a query and redirects does not refetch it": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > hovering a link preloads its query once": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/client.test.js > batched queries rendered on the server are reused during hydration": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"server-runtime/test/server.test.js > server fetch applies init over a Request input": {
+			"status": "difference",
+			"reason": "Kit #15196: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 drops the init headers of fetch(new Request(url), init) in a server load: the endpoint sees no x-token and the page renders 'none' in dev and build on every attempt."
+		},
+		"server-runtime/test/server.test.js > a throwing transformPageChunk is called once": {
+			"status": "difference",
+			"reason": "Kit #14063: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 calls a throwing transformPageChunk a second time with done: true for the error page it renders after the first failure: the counter reads 2 instead of 1 in dev and build on every attempt."
+		},
+		"server-runtime/test/server.test.js > a leaf redirect while its layout load is pending answers the redirect": {
+			"status": "contract"
+		},
+		"server-runtime/test/server.test.js > a redirect thrown by handle for an undecodable path leaves the server answering": {
+			"status": "difference",
+			"reason": "Kit #17193: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03, built with adapter-node 6.0.0 and served by vite preview, hangs up GET /%E0%A4%A when handle throws redirect() and the server process exits: the next requests get ECONNREFUSED. Vigla answers 400 Malformed URI and keeps serving."
+		},
+		"server-runtime/test/server.test.js > a cluster worker keeps the live SOCKET_PATH of its siblings": {
+			"status": "difference",
+			"reason": "Kit #16230: adapter-node 6.0.0 with Kit 3.1.0 on 2026-11-03, run as three Node cluster workers forked one after another on one SOCKET_PATH, deletes the socket the first worker's primary bound: the path is missing once all workers listen, on every attempt."
+		},
+		"server-runtime/unit/sequence.test.js > sequence runs its handlers outside a request": {
+			"status": "difference",
+			"reason": "Kit #14249: Kit 3.1.0 on 2026-11-03 throws 'Could not get the request store. This is an internal error.' when a handle built by sequence() is called directly, outside a request, as a unit test does."
+		},
 		"layout-data/test/hydration.test.js > grouped server data survives initial hydration": {
 			"status": "difference",
 			"reason": "Upstream Kit 3.1.0/Svelte 5.57.3 on 2026-11-02 shows child content on direct /path loading but reports no root/child effect output within 5 seconds on attempt 0 or either retry; refresh is not reached. The page-error text was not retained. Vigla passes initial hydration and refresh on attempt 0."
