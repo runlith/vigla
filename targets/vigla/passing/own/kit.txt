@@ -1,1 +1,2 @@
 layout-data/test/hydration.test.js > grouped server data survives initial hydration (test-dev-1/chromium-dev)
+sync-generated/test/sync.test.js > unchanged sync preserves root and nested route declarations (test-dev-1)

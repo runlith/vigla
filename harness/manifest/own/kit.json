@@ -1,5 +1,34 @@
 {
 	"samples": {
+		"load-dependencies/test/load.test.js > enumerating params tracks optional keys before they exist": {
+			"status": "contract"
+		},
+		"load-dependencies/test/load.test.js > awaiting parent sends its fresh data into the merged page": {
+			"status": "contract"
+		},
+		"load-dependencies/test/load.test.js > an actions-only server module needs no navigation data request": {
+			"status": "contract"
+		},
+		"monorepo-assets/test/assets.test.js > linked workspace stylesheet assets are served in development": {
+			"status": "difference",
+			"reason": "Kit #14319: Kit 3.1.0 with Svelte 5.57.3 and vite-plugin-svelte 7.3.1 on 2026-11-03 resolves a linked workspace stylesheet but returns 403 for its font; Vigla serves the asset."
+		},
+		"sync-generated/test/sync.test.js > unchanged sync preserves root and nested route declarations": {
+			"status": "difference",
+			"reason": "Kit #17464 and #17465: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 rewrites both root and nested $types.d.ts on a second unchanged public CLI sync; the test fails because both modification times advance. Vigla preserves both declarations."
+		},
+		"remote-queries/test/server.test.js > a command called from an endpoint may request refreshes": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/server.test.js > a command sees the rerouted route": {
+			"status": "difference",
+			"reason": "pending"
+		},
+		"remote-queries/test/server.test.js > a prerender function kept private to a query serves the full page": {
+			"status": "difference",
+			"reason": "pending"
+		},
 		"layout-data/test/hydration.test.js > grouped server data survives initial hydration": {
 			"status": "difference",
 			"reason": "Upstream Kit 3.1.0/Svelte 5.57.3 on 2026-11-02 shows child content on direct /path loading but reports no root/child effect output within 5 seconds on attempt 0 or either retry; refresh is not reached. The page-error text was not retained. Vigla passes initial hydration and refresh on attempt 0."
