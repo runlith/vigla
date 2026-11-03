@@ -34,6 +34,7 @@ interface Frame {
 	local: Set<Source> | null;
 	keep: boolean;
 	run: Resumption | null;
+	captured: Map<Source, unknown> | null;
 }
 
 export interface Resumption {
@@ -61,10 +62,6 @@ let versions = 0;
 let depth = 0;
 let floor = 0;
 let marks = 0;
-
-const collecting = new WeakMap<object, Map<Source, unknown>>();
-const observed = new WeakMap<Reaction, Map<Source, unknown>>();
-const viewed = new WeakSet<Reaction>();
 
 let frame: Frame | null = null;
 let late: Frame | null = null;
@@ -120,7 +117,8 @@ function opened(target: Reaction): Frame {
 			hidden: null,
 			local: null,
 			keep: false,
-			run: null
+			run: null,
+			captured: null
 		};
 		frames.push(current);
 	}
@@ -147,7 +145,7 @@ function closed(previous: Frame | null): void {
 }
 
 function finished(current: Frame): void {
-	collecting.delete(current);
+	current.captured = null;
 	current.old = current.extra = null;
 	current.hidden = null;
 	current.local = null;
@@ -210,40 +208,33 @@ export function depend(source: Source): void {
 
 export function capture(source: Source, value: unknown): void {
 	const at = frame;
-	if (view !== null && at !== null) {
-		let reads = collecting.get(at);
-		if (reads === undefined) collecting.set(at, (reads = new Map()));
-		reads.set(source, value);
-	}
+	if (view !== null && at !== null) (at.captured ??= new Map()).set(source, value);
 	const run = at === late ? late?.run : awaited;
 	if (run !== null && run !== undefined && at?.target === run.reaction)
 		run.values.set(source, value);
 }
 
-function retain(target: Reaction, frame: object): void {
-	const reads = collecting.get(frame);
-	if (reads === undefined) observed.delete(target);
-	else observed.set(target, reads);
-	if (view !== null && reads !== undefined) viewed.add(target);
-	else viewed.delete(target);
+function retain(target: Reaction, current: Frame): void {
+	const reads = current.captured;
+	if (reads === null) {
+		target.captured = null;
+		return;
+	}
+	target.captured = { values: reads, viewed: view !== null };
 	const effect = target as Effect;
+	if (effect.kind !== BLOCK || asynchronous.has(effect)) return;
 	const batch = view?.batch ?? processed();
-	if (
-		effect.kind === BLOCK &&
-		!asynchronous.has(effect) &&
-		reads !== undefined &&
-		batch !== null &&
-		(batch.after !== null || batch.work > 0 || batch.fork)
-	)
+	if (batch !== null && (batch.after !== null || batch.work > 0 || batch.fork))
 		(batch.reads ??= new Map()).set(effect, reads);
 }
 
 export function observedReads(target: Reaction): ReadonlyMap<Source, unknown> | undefined {
-	return observed.get(target);
+	return target.captured?.values;
 }
 
 export function viewedReads(target: Reaction): ReadonlyMap<Source, unknown> | undefined {
-	return viewed.has(target) ? observed.get(target) : undefined;
+	const captured = target.captured;
+	return captured !== null && captured.viewed ? captured.values : undefined;
 }
 
 export function settleReads(run: Resumption): void {
@@ -344,7 +335,8 @@ export function resumeReading(run: Resumption | null): void {
 		hidden: null,
 		local: null,
 		keep: false,
-		run
+		run,
+		captured: null
 	};
 	frame = late;
 }

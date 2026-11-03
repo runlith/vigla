@@ -128,7 +128,8 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 		slot: 0,
 		read: 0,
 		slots: null,
-		links: null
+		links: null,
+		captured: null
 	};
 	if (equals !== undefined) created.equals = equals;
 	if (owner !== null) ownDerived(created);

@@ -239,7 +239,8 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		inert: false,
 		pending: false,
 		scope: false,
-		slots: null
+		slots: null,
+		captured: null
 	};
 	if (parent !== null) {
 		effect.prev = parent.last;

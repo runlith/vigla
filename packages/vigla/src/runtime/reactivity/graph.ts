@@ -34,11 +34,17 @@ export interface Source<T = unknown> {
 	links: number[] | null;
 }
 
+export interface Captured {
+	readonly values: ReadonlyMap<Source, unknown>;
+	readonly viewed: boolean;
+}
+
 export interface Reaction {
 	status: Status;
 	deps: Source[] | null;
 	rv: number;
 	slots: number[] | null;
+	captured: Captured | null;
 }
 
 export interface Failure {
