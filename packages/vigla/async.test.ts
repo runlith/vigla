@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import { setImmediate } from 'node:timers/promises';
 import { test } from 'node:test';
-import { cell, effect, external, fork, root, tick } from './src/entries/index.ts';
+import {
+	cell,
+	effect,
+	external,
+	fork,
+	resource,
+	root,
+	tick,
+	untrack
+} from './src/entries/index.ts';
 import {
 	asyncDerived,
 	derived,
@@ -481,6 +490,42 @@ test('a resumed external emission supersedes an older fork value', async () => {
 		await forkWork;
 		await completed;
 		assert.deepEqual([value.current, shown, other.current], [3, 3, 1]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test("a write while content settles leaves an outstanding fork's block to the fork", async () => {
+	const scope = root();
+	const path = cell('a');
+	const pulse = cell(0);
+	const trigger = cell(0);
+	const log: string[] = [];
+	try {
+		const value = await scope.run(() =>
+			resource(() => {
+				const key = path.current;
+				block(() => void log.push(`${key}:${untrack(() => path.current)}${pulse.current}`));
+				return key;
+			})
+		);
+		scope.run(() => effect(() => void value.current));
+		scope.run(() =>
+			effect.pre(() => {
+				const next = trigger.current;
+				untrack(() => (pulse.current = next));
+			})
+		);
+		flushSync();
+		const staged = fork(() => (path.current = 'b'));
+		trigger.current = 1;
+		flushSync();
+		staged.discard();
+		assert.deepEqual(
+			log.filter((entry) => entry.startsWith('b:')),
+			['b:b0', 'b:b1']
+		);
 	} finally {
 		scope.dispose();
 		flushSync();
