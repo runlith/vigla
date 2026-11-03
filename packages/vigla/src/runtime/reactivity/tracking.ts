@@ -41,6 +41,7 @@ export interface Resumption {
 	readonly reaction: Reaction;
 	readonly reads: Set<Source>;
 	readonly values: Map<Source, unknown>;
+	ended: boolean;
 }
 
 export interface View {
@@ -65,6 +66,7 @@ let marks = 0;
 
 let frame: Frame | null = null;
 let late: Frame | null = null;
+let resumption: Resumption | null = null;
 let awaited: Resumption | null = null;
 let executing: Reaction | null = null;
 let evaluating: object | null = null;
@@ -264,20 +266,29 @@ export function running(): Reaction | null {
 	return executing;
 }
 
+export function resuming(): Resumption | null {
+	return executing === null ? resumption : null;
+}
+
 export function evaluation(): object | null {
-	return executing === null ? null : (evaluating ?? executing);
+	if (executing === null) return resumption;
+	if (evaluating !== null) return evaluating;
+	return awaited !== null && executing === awaited.reaction ? awaited : executing;
 }
 
 export function withoutReaction<T>(fn: () => T): T {
 	const previous = executing;
 	const previousFloor = floor;
+	const previousResumption = resumption;
 	executing = null;
 	floor = depth;
+	resumption = null;
 	try {
 		return untrack(fn);
 	} finally {
 		executing = previous;
 		floor = previousFloor;
+		resumption = previousResumption;
 	}
 }
 
@@ -317,12 +328,16 @@ export function awaiting<T>(run: Resumption, fn: () => T): T {
 
 export function suspendReading(): Resumption | null {
 	if (late !== null && frame === late) return late.run;
+	if (late === null && executing === null) return resumption;
 	return awaited !== null && executing === awaited.reaction ? awaited : null;
 }
 
-export function resumeReading(run: Resumption | null): void {
+export function resumeReading(run: Resumption | null, discarded: boolean): void {
 	endReading();
-	if (run === null || frame !== null || (run.reaction as Effect).destroyed === true) return;
+	if (run === null) return;
+	if (discarded) run.ended = true;
+	resumption = run;
+	if (frame !== null || (run.reaction as Effect).destroyed === true) return;
 	late = {
 		target: run.reaction,
 		started: 0,
@@ -342,6 +357,7 @@ export function resumeReading(run: Resumption | null): void {
 }
 
 export function endReading(): void {
+	resumption = null;
 	if (late === null) return;
 	if (frame === late) frame = null;
 	late = null;

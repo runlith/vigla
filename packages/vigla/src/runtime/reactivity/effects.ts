@@ -60,6 +60,8 @@ import {
 	owner,
 	present,
 	reading,
+	resuming,
+	running,
 	setOwner,
 	takeHidden,
 	track,
@@ -505,7 +507,14 @@ export function getReactionSignal(): AbortSignal {
 			'`getAbortSignal()` can only be called inside an effect or derived'
 		);
 	}
-	return evaluationSignal(reaction, teardown);
+	const run = resuming();
+	const ended = run !== null && (run.ended || (run.reaction as Effect).destroyed);
+	const release = ended ? immediately : teardown;
+	return evaluationSignal(reaction, release, reaction === running());
+}
+
+function immediately(stop: () => void): void {
+	stop();
 }
 
 function unlink(effect: Effect): void {

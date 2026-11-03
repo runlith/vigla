@@ -1,4 +1,14 @@
-import { active, live, open, pending, processing, setActive, within, type Batch } from './batch.ts';
+import {
+	active,
+	alias,
+	live,
+	open,
+	pending,
+	processing,
+	setActive,
+	within,
+	type Batch
+} from './batch.ts';
 import { equal, isDerived, type Source } from './graph.ts';
 import {
 	endReading,
@@ -88,7 +98,7 @@ export function suspend(): () => void {
 		const next = live(batch);
 		setActive(next);
 		if (processing === null) setView(next !== null && others(next) ? viewOf(next) : null);
-		resumeReading(reaction);
+		resumeReading(reaction, batch !== null && alias(batch).discarded);
 	};
 }
 

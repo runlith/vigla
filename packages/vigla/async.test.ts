@@ -6,6 +6,7 @@ import {
 	effect,
 	external,
 	fork,
+	getAbortSignal,
 	resource,
 	root,
 	tick,
@@ -528,6 +529,84 @@ test("a write while content settles leaves an outstanding fork's block to the fo
 		);
 	} finally {
 		scope.dispose();
+		flushSync();
+	}
+});
+
+test("an async run's abort signal follows its continuation after an await", async () => {
+	const scope = root();
+	const path = state('a');
+	const gates = new Map<string, PromiseWithResolvers<void>>();
+	const signals = new Map<string, AbortSignal>();
+	try {
+		const loading = scope.run(() =>
+			asyncDerived(async () => {
+				const key = get(path);
+				const gate = Promise.withResolvers<void>();
+				gates.set(key, gate);
+				(await save(gate.promise))();
+				try {
+					signals.set(key, getAbortSignal());
+				} finally {
+					unsave();
+				}
+				return key;
+			})
+		);
+		gates.get('a')!.resolve();
+		const value = await loading;
+		scope.run(() => effect(() => void get(value)));
+		await tick();
+		const resumed = fork(() => set(path, 'b'));
+		gates.get('b')!.resolve();
+		await tick();
+		resumed.discard();
+		const early = fork(() => set(path, 'c'));
+		early.discard();
+		gates.get('c')!.resolve();
+		await tick();
+		const discarded = ['a', 'b', 'c'].map((key) => signals.get(key)!.aborted);
+		set(path, 'd');
+		await tick();
+		assert.deepEqual([discarded, signals.get('a')!.aborted], [[false, true, true], true]);
+	} finally {
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test("a resumed run keeps its signal once destroyed and leaves an owner's callback the owner's", async () => {
+	const scope = root();
+	const service = root();
+	const first = Promise.withResolvers<void>();
+	const second = Promise.withResolvers<void>();
+	const signals: AbortSignal[] = [];
+	try {
+		void scope.run(() =>
+			asyncDerived(async () => {
+				signals.push(getAbortSignal());
+				(await save(first.promise))();
+				signals.push(service.run(() => getAbortSignal()));
+				(await save(second.promise))();
+				try {
+					signals.push(getAbortSignal());
+				} finally {
+					unsave();
+				}
+				return 0;
+			})
+		);
+		first.resolve();
+		await tick();
+		scope.dispose();
+		second.resolve();
+		await tick();
+		assert.deepEqual(
+			[signals[1] === service.signal, signals[2] === signals[0], signals[0]!.aborted],
+			[true, true, true]
+		);
+	} finally {
+		service.dispose();
 		flushSync();
 	}
 });

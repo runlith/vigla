@@ -214,7 +214,8 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		const run: Resumption = {
 			reaction: running() as Effect,
 			reads: new Set(),
-			values: new Map()
+			values: new Map(),
+			ended: false
 		};
 		let promise: Promise<T>;
 		try {

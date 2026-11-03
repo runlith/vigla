@@ -20,7 +20,8 @@ export function abortLifetime(effect: Effect): void {
 
 export function evaluationSignal(
 	evaluation: object,
-	release: (stop: () => void) => unknown
+	release: (stop: () => void) => unknown,
+	reused: boolean
 ): AbortSignal {
 	let controller = controllers.get(evaluation);
 	if (controller === undefined) {
@@ -28,7 +29,7 @@ export function evaluationSignal(
 		controllers.set(evaluation, controller);
 		const current = controller;
 		release(() => {
-			if (controllers.get(evaluation) === current) controllers.delete(evaluation);
+			if (reused && controllers.get(evaluation) === current) controllers.delete(evaluation);
 			current.abort(staleReaction);
 		});
 	}
