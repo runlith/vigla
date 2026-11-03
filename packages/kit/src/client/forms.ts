@@ -59,28 +59,28 @@ export function enhance<
 			submitter?.hasAttribute('formaction') ? submitter.formAction : copy.action
 		);
 		const enctype = submitter?.hasAttribute('formenctype') ? submitter.formEnctype : copy.enctype;
-		const formData = new FormData(form, submitter);
+		const initial = new FormData(form, submitter);
 		if (
 			DEV &&
 			enctype !== 'multipart/form-data' &&
-			[...formData.values()].some((value) => value instanceof File)
+			[...initial.values()].some((value) => value instanceof File)
 		)
 			enhance_file_without_enctype();
 		const controller = new AbortController();
 		let cancelled = false;
-		const callback = await runtime.owner.run(() =>
-			submit({
-				action,
-				formData,
-				formElement: form,
-				controller,
-				submitter,
-				cancel() {
-					cancelled = true;
-				}
-			})
-		);
+		const input = {
+			action,
+			formData: initial,
+			formElement: form,
+			controller,
+			submitter,
+			cancel() {
+				cancelled = true;
+			}
+		};
+		const callback = await runtime.owner.run(() => submit(input));
 		if (cancelled) return;
+		const formData = input.formData;
 		let result: ActionResult;
 		try {
 			const headers = new Headers({ accept: 'application/json', 'x-sveltekit-action': 'true' });

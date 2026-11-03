@@ -22,8 +22,10 @@ import {
 	createFields,
 	deepGet,
 	deepSet,
+	fillMissing,
 	flattenIssues,
 	normalizeIssue,
+	parseFormKey,
 	splitPath
 } from '../../shared/form-fields.ts';
 import { warnDiagnostic } from '../../shared/diagnostics.ts';
@@ -217,6 +219,27 @@ export class Form {
 		this.#touched.current = { ...this.#touched.current, [name]: true };
 		if (Object.hasOwn(this.#dirty.current, name)) this.#canValidate[name] = true;
 	}
+	seed(element: HTMLFormElement, data: FormData): void {
+		const suffix = `/${this.forms.id}`;
+		const bound = new FormData();
+		for (const [name, value] of data)
+			if (name.endsWith(suffix) || (/\.[xy]$/.test(name) && name.slice(0, -2).endsWith(suffix)))
+				bound.append(name, value);
+		const snapshot = convertFormData(this.forms.id, bound);
+		for (const control of element.elements) {
+			const name = (control as HTMLInputElement).name;
+			if (!name || !name.endsWith(suffix)) continue;
+			const field = parseFormKey(this.forms.id, name);
+			const path = splitPath(field.name);
+			if (field.isArray && deepGet(snapshot, path) === undefined) deepSet(snapshot, path, []);
+		}
+		fillMissing(this.#input.current, snapshot);
+	}
+	clear(): void {
+		this.#input.current = {};
+		this.#result.current = undefined;
+		this.reset();
+	}
 	reset(data?: FormData): void {
 		if (data) this.#input.current = convertFormData(this.forms.id, data);
 		this.#issues.current = [];
@@ -309,6 +332,7 @@ export class Form {
 		if (!this.element) remote_form_not_attached();
 		const data = formData(this.element);
 		validateFormData(this.element, data);
+		this.seed(this.element, data);
 		this.#submitted.current = true;
 		this.#pending.current++;
 		const promise = this.#send(data, true);
@@ -321,6 +345,7 @@ export class Form {
 	}
 
 	async enhance(element: HTMLFormElement, data: FormData): Promise<void> {
+		this.seed(element, data);
 		this.#submitted.current = true;
 		this.#pending.current++;
 		try {
@@ -390,6 +415,9 @@ export class Form {
 			detach();
 			this.element = null;
 			release();
+			void tick().then(() => {
+				if (!this.element && !this.#pending.current) this.clear();
+			});
 		};
 	}
 }

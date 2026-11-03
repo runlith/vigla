@@ -1,0 +1,10 @@
+{
+	"enhance submits a formData reassigned by the submit function": {
+		"status": "difference",
+		"reason": "Kit #11123: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 ignores a FormData assigned to the submit function's input: the action receives no greeting and the page renders {\"greeting\":null} on all three attempts. Vigla submits the assigned FormData on attempt 0."
+	},
+	"page.form survives invalidateAll like the form prop": {
+		"status": "difference",
+		"reason": "Kit #13825: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 resets page.form from $app/state to null after invalidateAll while the form prop keeps {\"added\":1}, on all three attempts. Vigla keeps both on attempt 0."
+	}
+}

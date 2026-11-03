@@ -91,6 +91,23 @@ export function deepGet(object: Record<string, any>, path: Array<string | number
 	return current;
 }
 
+export function fillMissing(target: Record<string, any>, source: Record<string, any>): void {
+	for (const key of Object.keys(source)) {
+		const value = source[key];
+		if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+		const current = Object.hasOwn(target, key) ? target[key] : undefined;
+		if (current === undefined) target[key] = value;
+		else if (
+			value !== null &&
+			typeof value === 'object' &&
+			current !== null &&
+			typeof current === 'object' &&
+			!(typeof File !== 'undefined' && value instanceof File)
+		)
+			fillMissing(current, value);
+	}
+}
+
 export function buildPath(path: Array<string | number>): string {
 	return path.reduce<string>(
 		(name, key) =>

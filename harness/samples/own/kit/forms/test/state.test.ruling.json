@@ -1,0 +1,14 @@
+{
+	"a remote form result vanishes after navigating away": {
+		"status": "difference",
+		"reason": "Kit #14802: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 still renders the remote form's result (\"hi\") after navigating to another page and back, although the documentation calls it ephemeral; all three attempts. Vigla clears it on attempt 0."
+	},
+	"a remote form field default follows the route data after a dynamic route change": {
+		"status": "difference",
+		"reason": "Kit #15815: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 renders the previous record's edited input value (\"edited\") on /task/2 instead of the route data's \"Hello World 2\" after leaving /task/1 through a list page; all three attempts. Vigla renders the route data on attempt 0."
+	},
+	"the enhance callback reads every submitted field value": {
+		"status": "difference",
+		"reason": "Kit #16359: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 reports fields.value() inside an enhance callback without the untouched checkbox group (`ids` is undefined instead of []): the log reads {\"intent\":\"plain\"}; all three attempts. Vigla reports {\"intent\":\"plain\",\"ids\":[]} on attempt 0."
+	}
+}
