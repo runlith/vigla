@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/kit/src/vite/index.ts
 ---
-A linked workspace package can put a stylesheet's assets outside the application directory. The default filesystem allowance includes the application's Vite workspace so those assets remain reachable; an explicit `server.fs.allow` suppresses that default so it cannot widen the application's chosen boundary.
+A linked workspace package can put a stylesheet's assets outside the application directory. The default filesystem allowance includes the application's Vite workspace so those assets remain reachable; an explicit `server.fs.allow` suppresses that default so the workspace is not implicitly exposed.
