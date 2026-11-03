@@ -18,7 +18,7 @@ edges:
 **Outcome.** A monorepo publishing the core `vigla` (compiler core, client and server runtime), the Svelte compatibility adapter `@vigla/svelte`, `@vigla/vite-plugin`, `@vigla/kit` and its adapters, written anew in TypeScript, on which:
 - every upstream test in scope has a manifest status, and every entry not dropped passes on Vigla;
 - each upstream defect of the frozen list that this milestone fixed carries a test red on upstream and green on Vigla; the reports it did not reach move to the next milestone, by the operator's decision;
-- an app on Svelte 5 runes and SvelteKit 3.1 switches by aliasing `svelte` to `@vigla/svelte`, `@sveltejs/kit` to `@vigla/kit` and `@sveltejs/vite-plugin-svelte` to `@vigla/vite-plugin` in its package manager, and upstream `svelte-check` 4.7.7 keeps checking it.
+- an app on Svelte 5 runes and SvelteKit 3.1 switches by aliasing `svelte` to `@vigla/svelte`, `@sveltejs/kit` to `@vigla/sveltekit` and `@sveltejs/vite-plugin-svelte` to `@vigla/vite-plugin-svelte` in its package manager — the compatibility packages of [[ee890210]] —, and upstream `svelte-check` 4.7.7 keeps checking it.
 
 Moving Tagma onto Vigla is stage 2 and outside this spec.
 
