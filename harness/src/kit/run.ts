@@ -7,7 +7,8 @@ import {
 	rmSync,
 	writeFileSync
 } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { load, root, ruling, runs as running } from '../manifest.ts';
 import { resultsDir, writeRuns, type Run } from '../reports.ts';
 import { covers, selectors, selects } from '../scope.ts';
@@ -87,6 +88,47 @@ function specs(tree: Tree): Step {
 		command: 'vitest',
 		args: ['run', '-c', config, '--root', join(work, tree.source, '..'), '--passWithNoTests']
 	};
+}
+
+const configs = ['vitest', 'vite'].flatMap((name) =>
+	['ts', 'mts', 'cts', 'js', 'mjs', 'cjs'].map((extension) => `${name}.config.${extension}`)
+);
+
+function gated(dir: string, step: Step): Step {
+	const args: string[] = [];
+	let base: string | undefined;
+	let root = dir;
+	for (let at = 0; at < step.args.length; at++) {
+		const arg = step.args[at] ?? '';
+		if (arg === '-c' || arg === '--config') base = step.args[++at];
+		else if (arg.startsWith('--config=')) base = arg.slice('--config='.length);
+		else {
+			args.push(arg);
+			if (arg === '-r' || arg === '--root') root = resolve(dir, step.args[at + 1] ?? '');
+			else if (arg.startsWith('--root=')) root = resolve(dir, arg.slice('--root='.length));
+		}
+	}
+	base = base === undefined ? configs.find((file) => existsSync(join(root, file))) : base;
+	const setup = join(dir, 'harness.gate.js');
+	writeFileSync(
+		setup,
+		"import { beforeEach } from 'vitest';\nimport { gateTask } from '@vigla/harness/kit/gate';\n\nbeforeEach((context) => gateTask(context));\n"
+	);
+	const extra = JSON.stringify({ test: { setupFiles: [setup] } });
+	const config = join(dir, 'harness.vitest.config.js');
+	writeFileSync(
+		config,
+		base === undefined
+			? `export default ${extra};\n`
+			: [
+					"import { defineConfig, mergeConfig } from 'vitest/config';",
+					`import base from ${JSON.stringify(pathToFileURL(resolve(root, base)).href)};`,
+					'',
+					`export default defineConfig(async (env) => mergeConfig(typeof base === 'function' ? await base(env) : await base, ${extra}));`,
+					''
+				].join('\n')
+	);
+	return { ...step, args: [...args, '--config', config] };
 }
 
 function types(dir: string, report: string): void {
@@ -169,7 +211,7 @@ for (const unit of selected(all, process.argv.slice(2)).filter(chosen)) {
 	const steps = tree.name.endsWith('units') ? [specs(tree)] : planned(dir, unit);
 	for (const step of steps) {
 		console.log(`\n${tree.project}/${tree.name}/${unit.app} ${step.label ?? step.command}`);
-		execute(step, {
+		execute(step.kind === 'vitest' ? gated(dir, step) : step, {
 			cwd: dir,
 			path: [join(dir, 'node_modules', '.bin'), bin],
 			env: {
