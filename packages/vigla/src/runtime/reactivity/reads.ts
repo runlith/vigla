@@ -184,6 +184,10 @@ function recall(source: Source, given: Past): unknown {
 export function refresh(derived: Derived): void {
 	if (derived.deps !== null && !stale(derived)) return;
 	if (view !== null && affected(derived, view)) return;
+	recompute(derived);
+}
+
+function recompute(derived: Derived): void {
 	const given = view;
 	let aside: Aside | null = null;
 	if (given === null) destroyEffects(derived);
@@ -329,7 +333,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 						if (affected(dep, view)) return true;
 						refresh(dep);
 						if (view.values.has(dep)) return true;
-					} else if (dep.status !== CLEAN) refresh(dep);
+					} else if (dep.status !== CLEAN && (dep.deps === null || stale(dep))) recompute(dep);
 				}
 				if (dep.wv > target.rv) return true;
 			}

@@ -472,31 +472,31 @@ export function track<T>(target: Reaction, fn: () => T, isolated = false): T {
 		if (!isolated) {
 			hiddenByLast = current.hidden;
 			if ((target as Effect).destroyed === true) unsubscribe(target);
-			else settleRun(target, current);
+			else {
+				const invalidated =
+					current.invalidated || ((view !== null || marks !== current.marks) && readDirty(current));
+				reconcile(
+					target,
+					current,
+					current.keep || (view !== null && (view.batch.fork || current.hidden !== null))
+				);
+				retain(target, current);
+				target.rv = now();
+				target.status = invalidated ? DIRTY : CLEAN;
+			}
 			if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
 		}
 		finished(current);
 	}
 }
 
-function settleRun(target: Reaction, current: Frame): void {
-	let invalidated = current.invalidated;
-	if (!invalidated && (view !== null || marks !== current.marks)) {
-		const old = current.old;
-		if (old !== null)
-			for (let index = 0; !invalidated && index < current.matched; index++)
-				if (dirtyRead(old[index] as Source)) invalidated = true;
-		if (!invalidated && current.extra !== null)
-			for (const dep of current.extra) if (dirtyRead(dep)) invalidated = true;
-	}
-	reconcile(
-		target,
-		current,
-		current.keep || (view !== null && (view.batch.fork || current.hidden !== null))
-	);
-	retain(target, current);
-	target.rv = now();
-	target.status = invalidated ? DIRTY : CLEAN;
+function readDirty(current: Frame): boolean {
+	const old = current.old;
+	if (old !== null)
+		for (let index = 0; index < current.matched; index++)
+			if (dirtyRead(old[index] as Source)) return true;
+	if (current.extra !== null) for (const dep of current.extra) if (dirtyRead(dep)) return true;
+	return false;
 }
 
 export function validate<T>(target: Reaction, fn: () => T): T {
