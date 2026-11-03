@@ -1059,3 +1059,116 @@ test('a fork that only evaluated a derived still reruns the effects its evaluati
 		app.dispose();
 	}
 });
+
+test('a held batch publishes its async result after a newer batch commits one computed without it', async () => {
+	const app = root();
+	const path = cell<'a' | 'b'>('a');
+	const inputs = { a: cell(1), b: cell(1) };
+	const load = Promise.withResolvers<void>();
+	let shown = '';
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				const at = inputs[key].current;
+				return key === 'a' ? `${key}${at}` : load.promise.then(() => `${key}${at}`);
+			})
+		);
+		app.run(() => effect(() => void (shown = value.current)));
+		flushSync();
+		path.current = 'b';
+		await tick();
+		inputs.a.current = 2;
+		await tick();
+		load.resolve();
+		await app.settled();
+		assert.equal(shown, 'b1');
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a held batch's rerun keeps the shown run's subscription live until the batch commits", async () => {
+	const app = root();
+	const path = cell<'a' | 'b'>('a');
+	const raw = { a: 1, b: 10 };
+	const live = new Set<string>();
+	const emits = { a: (): void => {}, b: (): void => {} };
+	const watch = (key: 'a' | 'b') =>
+		createSubscriber((update) => {
+			live.add(key);
+			emits[key] = update;
+			return () => {
+				live.delete(key);
+				emits[key] = () => {};
+			};
+		});
+	const subscribers = { a: watch('a'), b: watch('b') };
+	const load = Promise.withResolvers<void>();
+	let shown = 0;
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				subscribers[key]();
+				return key === 'a' ? raw.a : load.promise.then(() => raw[key]);
+			})
+		);
+		app.run(() => effect(() => void (shown = value.current)));
+		flushSync();
+		path.current = 'b';
+		await tick();
+		raw.a = 2;
+		emits.a();
+		await tick();
+		const held = [[...live].sort(), shown];
+		load.resolve();
+		await app.settled();
+		assert.deepEqual(
+			[held, [[...live], shown]],
+			[
+				[['a', 'b'], 2],
+				[['b'], 10]
+			]
+		);
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a held batch's commit keeps the run it publishes while a newer fork is outstanding", async () => {
+	const app = root();
+	const path = cell<'a' | 'b' | 'c'>('a');
+	const raw = { a: 1, b: 10, c: 100 };
+	const live = new Set<string>();
+	const watch = (key: string) =>
+		createSubscriber(() => {
+			live.add(key);
+			return () => live.delete(key);
+		});
+	const subscribers = { a: watch('a'), b: watch('b'), c: watch('c') };
+	const load = Promise.withResolvers<void>();
+	let shown = 0;
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				subscribers[key]();
+				return key === 'a' ? raw.a : load.promise.then(() => raw[key]);
+			})
+		);
+		app.run(() => effect(() => void (shown = value.current)));
+		flushSync();
+		path.current = 'b';
+		await tick();
+		const staged = core.fork(() => (path.current = 'c'));
+		await tick();
+		load.resolve();
+		await app.settled();
+		staged.discard();
+		await tick();
+		assert.deepEqual([[...live], shown], [['b'], 10]);
+	} finally {
+		app.dispose();
+	}
+});

@@ -303,13 +303,13 @@ export function overlook(branch: Effect, from: Batch): void {
 	pass(open);
 }
 
-export function handOver(effect: Effect, fork: Batch): void {
+export function handOver(effect: Effect, holder: Batch): void {
 	const found: Effect[] = [];
 	if (effect.status !== CLEAN && effect.kind !== BRANCH && effect.kind !== ROOT) found.push(effect);
 	gather(effect, found, true);
 	if (found.length === 0) return;
-	if (!pending.includes(fork)) pending.push(fork);
-	for (const each of found) force(fork, each);
+	if (!pending.includes(holder)) pending.push(holder);
+	for (const each of found) force(holder, each);
 	request();
 }
 

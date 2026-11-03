@@ -26,7 +26,9 @@ import { hold, work } from './src/runtime/reactivity/async.ts';
 import { flushSync } from './src/runtime/reactivity/scheduler.ts';
 import { resumed, suspend } from './src/runtime/reactivity/views.ts';
 import { settled } from './src/runtime/reactivity/units.ts';
-import { block } from './src/runtime/reactivity/effects.ts';
+import { block, destroy, root as top } from './src/runtime/reactivity/effects.ts';
+import { setFront } from './src/runtime/reactivity/front.ts';
+import { setReporter } from './src/shared/diagnostics.ts';
 
 test('an earlier async commit becomes the visible base of a later pending result', async () => {
 	const scope = root();
@@ -568,9 +570,67 @@ test("an async run's abort signal follows its continuation after an await", asyn
 		const discarded = ['a', 'b', 'c'].map((key) => signals.get(key)!.aborted);
 		set(path, 'd');
 		await tick();
+		gates.get('d')!.resolve();
+		await tick();
 		assert.deepEqual([discarded, signals.get('a')!.aborted], [[false, true, true], true]);
 	} finally {
 		scope.dispose();
+		flushSync();
+	}
+});
+
+test("a rescued batch's pending async run keeps what it creates after an await", async () => {
+	const path = state('a');
+	const fail = state(false);
+	const failure = new Error('rescue');
+	const gate = Promise.withResolvers<void>();
+	const signals = new Map<string, AbortSignal>();
+	let thrown = false;
+	const front = { global: '__rescue', meta: '__rescue_meta', cssWrapper: 'rescue-css' };
+	setReporter(
+		{
+			warn() {},
+			error: ({ code }) => new Error(code),
+			unhandled(error) {
+				throw error;
+			}
+		},
+		front
+	);
+	const tree = top(() => {
+		void asyncDerived(async () => {
+			const key = get(path);
+			if (key === 'a') return key;
+			(await save(gate.promise))();
+			try {
+				signals.set(key, getAbortSignal());
+			} finally {
+				unsave();
+			}
+			return key;
+		});
+		block(() => {
+			if (!get(fail) || thrown) return;
+			thrown = true;
+			throw failure;
+		});
+	});
+	setFront(tree, front);
+	try {
+		flushSync();
+		assert.throws(
+			() =>
+				flushSync(() => {
+					set(path, 'b');
+					set(fail, true);
+				}),
+			(error) => error === failure
+		);
+		gate.resolve();
+		await tick();
+		assert.equal(signals.get('b')?.aborted, false);
+	} finally {
+		destroy(tree);
 		flushSync();
 	}
 });

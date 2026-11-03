@@ -20,7 +20,7 @@ import {
 	type Batch,
 	type Change
 } from './batch.ts';
-import { drafting, forkOf } from './drafts.ts';
+import { drafting, heldBy } from './drafts.ts';
 import { forget, refresh } from './reads.ts';
 import { queueEager, runEager } from './eager.ts';
 import { enterScheduler, leaveScheduler, overflow, run } from './effects.ts';
@@ -225,9 +225,9 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 	for (let child = effect.first; child !== null; child = child.next) {
 		if (child.destroyed) continue;
 		if (drafting !== 0) {
-			const fork = forkOf(child);
-			if (fork !== null && fork !== batch) {
-				handOver(child, fork);
+			const holder = heldBy(child);
+			if (holder !== null && holder !== batch) {
+				handOver(child, holder);
 				continue;
 			}
 		}

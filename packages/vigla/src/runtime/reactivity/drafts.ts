@@ -1,9 +1,10 @@
-import { active, processed, type Batch } from './batch.ts';
+import { active, alias, processed, type Batch } from './batch.ts';
 import { BLOCK, BRANCH, type Derived, type Effect, type Reaction } from './graph.ts';
 import { deriving, view } from './tracking.ts';
 
 export interface Draft {
 	readonly batch: Batch;
+	readonly speculative: boolean;
 	readonly children: Set<Effect>;
 	created: Set<Derived> | null;
 	teardown: (() => void) | null;
@@ -22,14 +23,16 @@ export function admit(draft: Draft, effect: Effect): void {
 	homes.set(effect, draft);
 }
 
-export function forkOf(effect: Effect): Batch | null {
+export function heldBy(effect: Effect): Batch | null {
 	const draft = homes.get(effect);
-	return draft !== undefined && draft.batch.fork && !draft.batch.done ? draft.batch : null;
+	if (draft === undefined) return null;
+	const batch = alias(draft.batch);
+	return batch.done ? null : batch;
 }
 
-export function speculation(effect: Effect): Batch | null {
+export function heldAbove(effect: Effect): Batch | null {
 	for (let at: Effect | null = effect; at !== null; at = at.parent) {
-		const found = forkOf(at);
+		const found = heldBy(at);
 		if (found !== null) return found;
 	}
 	return null;
@@ -93,6 +96,14 @@ function runningFor(): Batch | null {
 	return view?.batch ?? active ?? processed();
 }
 
+function runningDraft(reaction: Reaction): Draft | undefined {
+	const batch = runningFor();
+	if (batch === null) return undefined;
+	const cohort = alias(batch);
+	for (const draft of drafts.get(reaction) ?? none) if (alias(draft.batch) === cohort) return draft;
+	return undefined;
+}
+
 export function capture(parent: Effect, effect: Effect, claimer: Derived | null): void {
 	if (claimer !== null) {
 		const origin = origins.get(claimer);
@@ -100,8 +111,7 @@ export function capture(parent: Effect, effect: Effect, claimer: Derived | null)
 		return;
 	}
 	if (parent.kind === BLOCK && effect.kind === BRANCH) return;
-	const batch = runningFor();
-	const draft = batch === null ? undefined : draftOf(parent, batch);
+	const draft = runningDraft(parent);
 	if (draft !== undefined) admit(draft, effect);
 }
 
@@ -109,13 +119,7 @@ export function ownDerived(derived: Derived): void {
 	const holder = derived.owner;
 	if (drafting === 0 || holder === null) return;
 	const evaluating = deriving();
-	const batch = runningFor();
-	const draft =
-		evaluating !== null
-			? origins.get(evaluating)
-			: batch === null
-				? undefined
-				: draftOf(holder, batch);
+	const draft = evaluating !== null ? origins.get(evaluating) : runningDraft(holder);
 	if (draft === undefined) return;
 	(draft.created ??= new Set()).add(derived);
 	origins.set(derived, draft);

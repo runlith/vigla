@@ -191,6 +191,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 		let owned = true;
 		const token: AsyncRun = {
 			stale() {
+				if (owned && !alias(target).fork && order < realOrder(true)) return true;
 				return changed(run.values, run.reaction);
 			},
 			supersede() {

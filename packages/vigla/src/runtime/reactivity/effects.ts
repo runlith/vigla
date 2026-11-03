@@ -7,6 +7,7 @@ import {
 	EFFECT,
 	ROOT,
 	TEMPLATE,
+	asynchronous,
 	isDerived,
 	type Boundary,
 	type Derived,
@@ -82,7 +83,7 @@ function register(reaction: Reaction, draft: Draft): void {
 	const batch = draft.batch;
 	if (!enlist(reaction, draft)) return;
 	(batch.settles ??= []).push(() => close(batch));
-	if (batch.fork) batch.commits.push({ apply: () => adopt(batch) });
+	batch.commits.push({ apply: () => adopt(batch) });
 }
 
 function drop(reaction: Reaction, draft: Draft): void {
@@ -137,7 +138,7 @@ function adopt(batch: Batch): void {
 		const effect = reaction as Effect;
 		const draft = draftOf(effect, batch);
 		if (draft === undefined || effect.destroyed) continue;
-		if (effect.forked && effect.batch === batch.order) promote(effect, draft);
+		if (!draft.speculative || effect.batch === batch.order) promote(effect, draft);
 	}
 }
 
@@ -178,7 +179,14 @@ export function restoreAside(derived: Derived, aside: Aside, batch: Batch): void
 	const previous = draftOf(derived, batch);
 	if (batch.done) for (const child of children) destroy(child);
 	else if (children.length > 0) {
-		const draft = { batch, children: new Set<Effect>(), created: null, teardown: null, signal };
+		const draft: Draft = {
+			batch,
+			speculative: batch.fork,
+			children: new Set(),
+			created: null,
+			teardown: null,
+			signal
+		};
 		for (const child of children) admit(draft, child);
 		register(derived, draft);
 	}
@@ -320,10 +328,14 @@ function dispose(effect: Effect, teardown: () => void): void {
 }
 
 function begin(effect: Effect, batch: Batch): Draft {
-	const previous = draftOf(effect, batch);
-	if (previous !== undefined) drop(effect, previous);
+	if (!batch.fork) dropAll(effect);
+	else {
+		const previous = draftOf(effect, batch);
+		if (previous !== undefined) drop(effect, previous);
+	}
 	const draft: Draft = {
 		batch,
+		speculative: batch.fork,
 		children: new Set(),
 		created: null,
 		teardown: null,
@@ -338,7 +350,10 @@ export function run(effect: Effect, first = false): void {
 	if (fn === null) return;
 	const tracked = effect.kind !== ROOT && effect.kind !== BRANCH;
 	const batch = view?.batch ?? processed();
-	const draft = !first && tracked && batch !== null && batch.fork ? begin(effect, batch) : null;
+	const draft =
+		!first && tracked && batch !== null && (batch.fork || asynchronous.has(effect))
+			? begin(effect, batch)
+			: null;
 	let signal: AbortController | undefined;
 	if (draft === null) {
 		destroyChildren(effect, effect.kind === BLOCK);
