@@ -162,7 +162,7 @@ The frozen work also includes the **nine named trap cases in eight test-source p
 | Rebase, hunk 8 | `async-rebase-twice` | The second rebase reports the unhandled invariant violation Batch has scheduled effects. |
 | Branch removal, hunk 9 | `async-branch-removal` | Throws reading `active` of null while running a row from the removed branch. |
 
-These are retained measured outcomes, not new runs made by the original inventory reading. Hunk 2 remains outside the reproduced traps until [[c8cabb25]] supplies its unit reproduction.
+These are retained measured outcomes, not new runs made by the original inventory reading. Hunk 2's trap, found later by [[c8cabb25]], is Vigla's own sample `detached-root-marked` rather than one of these named cases; [[9d5e3831]] records its trigger and upstream result.
 
 ## SvelteKit
 
