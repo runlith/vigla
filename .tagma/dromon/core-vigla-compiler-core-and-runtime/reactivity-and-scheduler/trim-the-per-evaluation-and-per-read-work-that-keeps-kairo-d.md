@@ -27,3 +27,17 @@ With inlining on, 17% of `kairo_broad` lands on `settleRun`'s closing position a
 - `capture`: checks `view`, `late` and `awaited`.
 
 Work on this is measured against a HEAD copy with the redirect harness in the core-perf thread's scratch. A change counts only if it moves these benchmarks beyond the 2–3% run-to-run noise.
+
+**Found and fixed (3084d695).** The mutual `stale` → `refresh` calls doubled the recursion through a chain. In `kairo_deep`, the lines where they call each other carried 30–40% of their self time. `stale` now recurses into itself and calls `recompute` on the way back ([[cc8e6c62]]). About 70% of `settleRun`'s ticks sat on its exit, although TurboFan had inlined it. Settling inline in `track`, with the dirty-read scan in `readDirty`, removed that cost.
+
+Measured on 3c6e2ff6 against a copy with this change and c342720e, 6 alternating runs, medians:
+
+| Benchmark | Before | After |
+|---|---|---|
+| kairo_deep_owned | 261.3 ms | 221.8 ms |
+| kairo_broad_owned | 601.0 ms | 525.2 ms |
+| kairo_diamond_owned | 420.9 ms | 387.6 ms |
+| kairo_avoidable_owned | 442.1 ms | 414.1 ms |
+| writes_1000_effects_1000 | 8.02 ms | 7.52 ms |
+
+kairo_mux and kairo_triangle gained 3%. mol, repeated_deps, clean_effects, effect_writes_1000, effect_reads_1000_writes_1000 and create_kept stayed within noise. effect_reads_1000 went 2.96 → 2.90 ms.
