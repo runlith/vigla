@@ -48,7 +48,15 @@ import { written } from './past.ts';
 import { applied, computed, loopWrite, reportLoop, resetLoop, updated } from './provenance.ts';
 import { due, eager, settle } from './settle.ts';
 import { drain } from './tasks.ts';
-import { conceal, marked, present, readDuringRun, setView, view } from './tracking.ts';
+import {
+	conceal,
+	marked,
+	present,
+	readDuringRun,
+	setView,
+	view,
+	writtenDuringRun
+} from './tracking.ts';
 import { quieted } from './units.ts';
 import { others, viewOf } from './views.ts';
 
@@ -151,6 +159,7 @@ export function write<T>(source: Source<T>, value: T, origin?: number): T {
 	}
 	written(source);
 	readDuringRun(source);
+	writtenDuringRun(source);
 	if (view !== null) {
 		if (view.batch === batch) forget(source);
 		else conceal(source, previous, batch);

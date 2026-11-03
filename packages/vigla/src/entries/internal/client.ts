@@ -121,6 +121,13 @@ export { tag, tagProxy, traceStacks } from '../../runtime/reactivity/provenance.
 export { trace } from '../../runtime/reactivity/trace.ts';
 export { original, proxy } from '../../runtime/reactivity/proxy.ts';
 export { snapshot } from '../../shared/clone.ts';
-export { derived, set, state, update, updatePre } from '../../runtime/reactivity/sources.ts';
+export {
+	derived,
+	lapsingDerived,
+	set,
+	state,
+	update,
+	updatePre
+} from '../../runtime/reactivity/sources.ts';
 export { endReading as unsave } from '../../runtime/reactivity/tracking.ts';
 export { get } from '../../runtime/reactivity/reads.ts';

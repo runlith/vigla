@@ -12,7 +12,8 @@ import {
 	type Derived,
 	type Effect,
 	type Kind,
-	type Reaction
+	type Reaction,
+	type Source
 } from './graph.ts';
 import { failure, unhandled } from '../../shared/diagnostics.ts';
 import {
@@ -207,9 +208,18 @@ export function destroyEffects(derived: Derived): void {
 	for (const effect of effects) destroy(effect);
 }
 
+const ended = new WeakMap<Derived, readonly Source[]>();
+
+export function endedInputs(derived: Derived): readonly Source[] | undefined {
+	return ended.get(derived);
+}
+
 function disconnect(derived: Derived): void {
+	const deps = derived.deps;
 	destroyEffects(derived);
 	unsubscribe(derived);
+	if (derived.lapses && deps !== null && derived.owner?.destroyed === true)
+		ended.set(derived, deps);
 	derived.status = DIRTY;
 	marked();
 }
@@ -251,6 +261,7 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		inert: false,
 		pending: false,
 		scope: false,
+		preserved: false,
 		slots: null,
 		captured: null
 	};
@@ -402,7 +413,7 @@ export function run(effect: Effect, first = false): void {
 		else draft.teardown = result as () => void;
 	}
 	if (hidden !== null || pending.length > 0) revisit(effect, hidden);
-	if (effect.status === DIRTY && !effect.destroyed) schedule(effect);
+	if (effect.status !== CLEAN && !effect.destroyed) schedule(effect);
 }
 
 export function start(effect: Effect): Effect {
@@ -423,6 +434,7 @@ function spent(effect: Effect): boolean {
 	return (
 		effect.status === CLEAN &&
 		!effect.destroyed &&
+		!effect.preserved &&
 		(deps === null || deps.length === 0) &&
 		effect.first === null &&
 		effect.teardown === null &&

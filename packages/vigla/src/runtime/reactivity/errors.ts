@@ -1,4 +1,4 @@
-import { failure } from '../../shared/diagnostics.ts';
+import { failure, warn } from '../../shared/diagnostics.ts';
 
 function fail(code: string, message: string): never {
 	throw failure(code, message);
@@ -62,5 +62,12 @@ export function depthExceeded(): Error {
 	return failure(
 		'effect_update_depth_exceeded',
 		'Maximum update depth exceeded. This typically indicates that an effect reads and writes the same piece of state'
+	);
+}
+
+export function inertDerived(): void {
+	warn(
+		'derived_inert',
+		'Reading a derived belonging to a now-destroyed effect may result in stale values'
 	);
 }

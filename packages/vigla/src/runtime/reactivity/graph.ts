@@ -69,6 +69,7 @@ export interface Derived<T = unknown> extends Source<T>, Reaction {
 	frozen: Effect[] | null;
 	failure: Failure | null;
 	computed: boolean;
+	lapses: boolean;
 }
 
 export interface Boundary {
@@ -100,6 +101,7 @@ export interface Effect extends Reaction {
 	inert: boolean;
 	pending: boolean;
 	scope: boolean;
+	preserved: boolean;
 }
 
 let clock = 0;

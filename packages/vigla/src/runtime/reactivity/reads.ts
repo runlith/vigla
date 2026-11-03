@@ -3,12 +3,13 @@ import { processed } from './batch.ts';
 import {
 	destroyEffects,
 	discardAside,
+	endedInputs,
 	fail,
 	restoreAside,
 	setAside,
 	type Aside
 } from './effects.ts';
-import { referencesSelf } from './errors.ts';
+import { inertDerived, referencesSelf } from './errors.ts';
 import {
 	BLOCK,
 	CLEAN,
@@ -28,6 +29,7 @@ import { NONE } from './history.ts';
 import { leavingView, readLeaving } from './leaving.ts';
 import { lose } from './loss.ts';
 import { leavingCount, outgoing, selecting, withoutLeaving } from './outgoing.ts';
+import { tearingDown } from './past.ts';
 import { updated } from './provenance.ts';
 import {
 	capture,
@@ -114,6 +116,7 @@ function through(source: Source, given: View): unknown {
 		return given.values.get(source);
 	}
 	if (!isDerived(source)) return source.v;
+	if (inert(source)) return source.v;
 	if (!affected(source, given)) {
 		refresh(source);
 		if (!given.values.has(source)) {
@@ -187,7 +190,36 @@ export function refresh(derived: Derived): void {
 	recompute(derived);
 }
 
+let lapsed: Set<Derived> | null = null;
+
+function inert(derived: Derived): boolean {
+	if (!derived.lapses) return false;
+	const holder = derived.owner;
+	if (holder === null || !holder.destroyed || !derived.computed || tearingDown()) return false;
+	const outer = lapsed;
+	if (outer?.has(derived)) return true;
+	const checked = (lapsed = outer ?? new Set());
+	checked.add(derived);
+	try {
+		if (moved(derived)) inertDerived();
+	} finally {
+		lapsed = outer;
+	}
+	return true;
+}
+
+function moved(derived: Derived): boolean {
+	const inputs = endedInputs(derived);
+	if (inputs === undefined) return true;
+	for (const input of inputs) {
+		if (isDerived(input) && input.status !== CLEAN) refresh(input);
+		if (input.wv > derived.rv) return true;
+	}
+	return false;
+}
+
 function recompute(derived: Derived): void {
+	if (inert(derived)) return;
 	const given = view;
 	let aside: Aside | null = null;
 	if (given === null) destroyEffects(derived);

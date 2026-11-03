@@ -7,4 +7,8 @@ setReporter(reporter, format);
 
 export * from 'vigla/internal/client';
 export { assignmentTarget, search } from '../proxy.ts';
-export { pre as user_pre_effect, userEffect as user_effect } from 'vigla/internal/client';
+export {
+	lapsingDerived as derived,
+	pre as user_pre_effect,
+	userEffect as user_effect
+} from 'vigla/internal/client';

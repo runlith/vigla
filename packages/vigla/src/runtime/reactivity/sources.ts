@@ -109,6 +109,15 @@ function valueCell<T>(held: Source<T>): Cell<T> {
 	};
 }
 
+export function lapsingDerived<T>(
+	fn: () => T,
+	equals?: (before: T, after: T) => boolean
+): Derived<T> {
+	const created = derived(fn, equals);
+	created.lapses = true;
+	return created;
+}
+
 export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolean): Derived<T> {
 	const created: Derived<T> = {
 		kind: DERIVED,
@@ -124,6 +133,7 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 		frozen: null,
 		failure: null,
 		computed: false,
+		lapses: false,
 		logged: 0,
 		slot: 0,
 		read: 0,
@@ -132,6 +142,9 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 		captured: null
 	};
 	if (equals !== undefined) created.equals = equals;
-	if (owner !== null) ownDerived(created);
+	if (owner !== null) {
+		owner.preserved = true;
+		ownDerived(created);
+	}
 	return created;
 }

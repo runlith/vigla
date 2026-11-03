@@ -9,12 +9,14 @@ import {
 	DERIVED,
 	DIRTY,
 	EAGER,
+	MAYBE,
 	isDerived,
 	now,
 	type Derived,
 	type Effect,
 	type Reaction,
-	type Source
+	type Source,
+	type Status
 } from './graph.ts';
 import type { Prior } from './history.ts';
 import { localLeaving, withoutLeaving } from './outgoing.ts';
@@ -34,6 +36,7 @@ interface Frame {
 	keep: boolean;
 	run: Resumption | null;
 	captured: Map<Source, unknown> | null;
+	writes: Source[] | null;
 }
 
 export interface Resumption {
@@ -119,7 +122,8 @@ function opened(target: Reaction): Frame {
 			local: null,
 			keep: false,
 			run: null,
-			captured: null
+			captured: null,
+			writes: null
 		};
 		frames.push(current);
 	}
@@ -134,6 +138,7 @@ function opened(target: Reaction): Frame {
 	current.hidden = null;
 	current.local = null;
 	current.keep = false;
+	current.writes = null;
 	depth++;
 	frame = current;
 	return current;
@@ -150,6 +155,7 @@ function finished(current: Frame): void {
 	current.old = current.extra = null;
 	current.hidden = null;
 	current.local = null;
+	current.writes = null;
 }
 
 function top(): Frame | null {
@@ -351,7 +357,8 @@ export function resumeReading(run: Resumption | null, discarded: boolean): void 
 		local: null,
 		keep: false,
 		run,
-		captured: null
+		captured: null,
+		writes: null
 	};
 	frame = late;
 }
@@ -425,6 +432,36 @@ export function readDuringRun(source: Source): void {
 	}
 }
 
+export function writtenDuringRun(source: Source): void {
+	const at = frame ?? top();
+	if (at === null || at === late || kindOf(at) === DERIVED) return;
+	(at.writes ??= []).push(source);
+}
+
+function feeds(derived: Derived, written: Set<Source>, seen: Set<Derived>): boolean {
+	if (seen.has(derived)) return false;
+	seen.add(derived);
+	const deps = derived.deps;
+	if (deps === null) return false;
+	for (let index = 0; index < deps.length; index++) {
+		const dep = deps[index] as Source;
+		if (written.has(dep)) return true;
+		if (dep.kind === DERIVED && feeds(dep as Derived, written, seen)) return true;
+	}
+	return false;
+}
+
+function rereads(current: Frame, writes: readonly Source[]): Status {
+	for (const source of writes) if (readBy(current, source)) return DIRTY;
+	let written: Set<Source> | null = null;
+	let seen: Set<Derived> | null = null;
+	for (const dep of reads(current)) {
+		if (dep.kind !== DERIVED) continue;
+		if (feeds(dep as Derived, (written ??= new Set(writes)), (seen ??= new Set()))) return MAYBE;
+	}
+	return CLEAN;
+}
+
 function own(derived: Derived): void {
 	const holder = derived.owner;
 	if (holder !== null) (holder.owned ??= []).push(derived);
@@ -475,6 +512,11 @@ export function track<T>(target: Reaction, fn: () => T, isolated = false): T {
 			else {
 				const invalidated =
 					current.invalidated || ((view !== null || marks !== current.marks) && readDirty(current));
+				const status = invalidated
+					? DIRTY
+					: current.writes === null
+						? CLEAN
+						: rereads(current, current.writes);
 				reconcile(
 					target,
 					current,
@@ -482,7 +524,7 @@ export function track<T>(target: Reaction, fn: () => T, isolated = false): T {
 				);
 				retain(target, current);
 				target.rv = now();
-				target.status = invalidated ? DIRTY : CLEAN;
+				target.status = status;
 			}
 			if (DEV) tracedRun(target, target.status === DIRTY ? current.started : now());
 		}
