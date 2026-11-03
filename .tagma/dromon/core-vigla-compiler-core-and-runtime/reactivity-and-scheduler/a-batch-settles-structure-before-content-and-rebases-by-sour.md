@@ -22,6 +22,8 @@ sources:
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/tracking.ts
     symbol: validate
+  - kind: file
+    ref: packages/vigla/src/runtime/reactivity/scheduler.ts
 ---
 A batch is the unit of commit: the writes made since the last flush (each source's value `before` the batch's first write, and once the batch is held or a fork its own latest value `after`), the effects they dirtied, the structure changes its blocks register for commit, and the blocking work still pending in it. Writes made outside a flush go to the one open batch, created by the first write that changes a value and flushed at the next microtask or by `flushSync`. A batch whose blocking work is pending after its structure phase is *held*: it keeps its registered structure changes and the effects it collected, stays among the uncommitted batches, and is processed again once its work settles or something queues into it. A *fork* is a batch that holds until `commit()`, its writes kept in `after` alone and never applied to the sources' values. Committing it applies them and dirties what lies downstream, except an effect whose last run was under the fork's view and that nothing has dirtied since: that run already saw the committed values, so a block does not run twice and an async expression the fork started is not requested again; a derived the fork only computed through its view keeps its real cache and is invalidated by the committed writes, while an explicit derived assignment that no later fork dependency write invalidated commits as its current value. A fork whose traversed roots are all destroyed, or that touched none, leaves the uncommitted set until `commit()` takes it back, so an abandoned fork never puts later trees in multi-batch mode.
 
