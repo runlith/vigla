@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a1a103-2b91-72ec-b4df-d70a4109dd92",
-    "status": "in_work"
+    "status": "done"
   }
 ---
 Hunk 2 (`Batch.schedule` exiting early on a cleared `CLEAN` bit) is proven only by an fpm e2e; tagma's `patches/README.md` names the mechanism — `#process` moving roots scheduled during its traversal into the next batch and processing a committed batch once more — but not who triggers it. A plain-component test red on Svelte 5.57.3 with async on lets the hunk join the scheduler traps.
