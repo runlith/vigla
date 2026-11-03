@@ -1,6 +1,6 @@
 import { template, tracking } from '../reactivity/effects.ts';
 import type { Source } from '../reactivity/graph.ts';
-import { set, source } from '../reactivity/sources.ts';
+import { expire, set, source } from '../reactivity/sources.ts';
 import { get, untrack } from '../reactivity/tracking.ts';
 
 export type Start = (update: () => void) => (() => void) | void;
@@ -20,7 +20,7 @@ export function createSubscriber(start: Start): () => void {
 		const stopping = stop;
 		stop = undefined;
 		stopping?.();
-		update();
+		expire(version);
 	};
 	return () => {
 		if (!tracking()) return;

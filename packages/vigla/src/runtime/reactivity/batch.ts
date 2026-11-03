@@ -22,7 +22,8 @@ import {
 	stamp,
 	type Derived,
 	type Effect,
-	type Source
+	type Source,
+	type Status
 } from './graph.ts';
 import { forget, refresh } from './deriveds.ts';
 import {
@@ -266,12 +267,7 @@ let visits = 0;
 let seen: Set<Source> | null = null;
 let scheduling: Batch | null = null;
 
-function mark(
-	source: Source,
-	status: typeof DIRTY | typeof MAYBE,
-	all: boolean,
-	forked: number
-): void {
+function mark(source: Source, status: Status, all: boolean, forked: number): void {
 	const reactions = source.reactions;
 	if (reactions === null) return;
 	const length = reactions.length;
@@ -302,13 +298,13 @@ function mark(
 	}
 }
 
-function dirty(source: Source, forked = 0): void {
+export function dirty(source: Source, forked = 0, status: Status = DIRTY): void {
 	if (source.reactions === null) return;
 	marked();
 	visits = 0;
 	const all = pending.length > 0;
 	if (all) members(receiving());
-	mark(source, DIRTY, all, forked);
+	mark(source, status, all, forked);
 	seen = null;
 	const batch = scheduling;
 	scheduling = null;

@@ -691,3 +691,69 @@ test('independent applications keep their own context, failures and lifetimes', 
 		second.dispose();
 	}
 });
+
+test('a held run that subscribes to another key leaves the committed run settled', async () => {
+	const app = root();
+	const path = cell('/start');
+	const loads = new Map<string, { load: PromiseWithResolvers<string>; subscribe: () => void }>();
+	const entry = (key: string) => {
+		let found = loads.get(key);
+		if (found === undefined) {
+			found = { load: Promise.withResolvers<string>(), subscribe: createSubscriber(() => {}) };
+			loads.set(key, found);
+		}
+		return found;
+	};
+	let runs = 0;
+	try {
+		entry('/start').load.resolve('start');
+		const value = await app.run(() =>
+			core.resource(() => {
+				if (++runs > 10) return 'looping';
+				const found = entry(path.current);
+				found.subscribe();
+				return found.load.promise;
+			})
+		);
+		app.run(() => effect(() => void value.current));
+		flushSync();
+		path.current = '/next';
+		await tick();
+		assert.equal(runs, 2);
+		entry('/next').load.resolve('next');
+		await app.settled();
+		assert.deepEqual([value.current, runs], ['next', 2]);
+	} finally {
+		app.dispose();
+	}
+});
+
+test('a released subscription still reaches a live reader of a derived a fork re-evaluated', async () => {
+	const app = root();
+	const gate = cell(true);
+	let raw = 1;
+	let emit = (): void => {};
+	const subscribe = createSubscriber((update) => {
+		emit = update;
+		return () => (emit = () => {});
+	});
+	let shown = 0;
+	try {
+		const value = app.run(() => core.derived(() => (gate.current ? (subscribe(), raw) : 0)));
+		app.run(() => effect(() => void (shown = value.current)));
+		flushSync();
+		core
+			.fork(() => {
+				gate.current = false;
+				void value.current;
+			})
+			.discard();
+		await tick();
+		raw = 2;
+		emit();
+		flushSync();
+		assert.equal(shown, 2);
+	} finally {
+		app.dispose();
+	}
+});

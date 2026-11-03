@@ -119,6 +119,7 @@ async/test/test.js > remote functions > prerendered entries not called in prod (
 async/test/test.js > remote functions > queries can read prerendered data during SSR (test-build-2/chromium-build)
 async/test/test.js > remote functions > queries can read prerendered data during SSR (test-build-2/chromium-build-no-js)
 async/test/test.js > remote functions > query redirect to a same-origin URL outside the app navigates (test-dev-1/chromium-dev)
+async/test/test.js > remote functions > query redirects on page load (query in common layout) (test-build-2/chromium-build)
 async/test/test.js > remote functions > query redirects on page load (query in common layout) (test-build-2/chromium-build-no-js)
 async/test/test.js > remote functions > query redirects on page load (query in common layout) (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > query redirects on page load (query in common layout) (test-dev-1/chromium-dev-no-js)

@@ -1,7 +1,9 @@
-import { write } from './batch.ts';
+import { dirty, write } from './batch.ts';
+import { runEager } from './eager.ts';
 import {
 	DERIVED,
 	DIRTY,
+	MAYBE,
 	SOURCE,
 	isDerived,
 	retainFailures,
@@ -10,7 +12,7 @@ import {
 } from './graph.ts';
 import { refresh } from './deriveds.ts';
 import { sequence } from './history.ts';
-import { get, guard, localize, owner, present, untrack, view } from './tracking.ts';
+import { get, guard, localize, marked, owner, present, untrack, view } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
 	return {
@@ -40,6 +42,16 @@ export function state<T>(value: T): Source<T> {
 	const created = source(value);
 	localize(created);
 	return created;
+}
+
+export function expire(target: Source): void {
+	for (const reaction of target.reactions ?? []) {
+		if (!isDerived(reaction)) continue;
+		reaction.status = DIRTY;
+		marked();
+		dirty(reaction, 0, MAYBE);
+	}
+	runEager();
 }
 
 export function set<T>(target: Source<T>, value: T): T {
