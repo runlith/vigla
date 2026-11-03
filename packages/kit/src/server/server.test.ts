@@ -603,8 +603,7 @@ it('loads server parents on demand for invalidated data and streams deferred val
 	expect(response.headers.get('content-type')).toBe('text/sveltekit-data');
 	const reader = response.body!.getReader();
 	const first = JSON.parse(new TextDecoder().decode((await reader.read()).value));
-	expect(first.nodes[0].type).toBe('data');
-	expect(unflatten(first.nodes[0].data)).toEqual({ layout: 'base' });
+	expect(first.nodes[0]).toEqual({ type: 'skip' });
 	expect(first.nodes[1].uses).toEqual({
 		dependencies: ['custom:post'],
 		params: ['id'],

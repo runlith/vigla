@@ -28,7 +28,9 @@ function serverLoad(node: PageNode, root: string): boolean {
 			node.server,
 			readFileSync(path.resolve(root, node.server), 'utf8')
 		);
-		return options === null || Object.hasOwn(options, 'load');
+		return (
+			options === null || Object.hasOwn(options, 'load') || Object.hasOwn(options, 'trailingSlash')
+		);
 	} catch {
 		return true;
 	}

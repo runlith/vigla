@@ -3,10 +3,6 @@
 		"status": "difference",
 		"reason": "Kit #11635: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 leaves the JSON-stringified params at {} after hydrated navigation to /params/aa. The expected {\"a\":\"aa\"} is absent."
 	},
-	"awaiting parent sends its fresh data into the merged page": {
-		"status": "difference",
-		"reason": "Kit #9355: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 reruns the parent for the child load but leaves the merged parent version stale: the retries render 2:3 and 4:5 instead of matching versions."
-	},
 	"an actions-only server module needs no navigation data request": {
 		"status": "difference",
 		"reason": "Kit #10022: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 makes /actions/__data.json?x-sveltekit-invalidated=01 on every attempt despite the server module exporting actions but no load."

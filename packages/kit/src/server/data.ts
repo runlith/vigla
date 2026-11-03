@@ -195,7 +195,7 @@ export async function dataResponse(
 		);
 		const nodes = await Promise.all(
 			loads.map(async (_load, index): Promise<DataResult> => {
-				if (!pending[index]) return { type: 'skip' };
+				if (!pending[index] || (invalidated && !invalidated[index])) return { type: 'skip' };
 				try {
 					return await pending[index]!;
 				} catch (error) {
