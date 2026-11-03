@@ -14,9 +14,9 @@ edges:
   - kind: imports
     to: 01a18680-7dc5-7a26-b604-0af48b752f02
   - kind: imports
-    to: 01a187ca-e656-7569-8564-ac0fabdaf506
+    to: 01a1a3c1-fa06-7690-8926-459c574270c3
 sources:
   - kind: dir
     ref: playgrounds
 ---
-Two runnable demo apps an operator opens to see the product work: `playgrounds/svelte` is an ordinary Svelte 5 app whose `svelte` and `@sveltejs/vite-plugin-svelte` imports resolve to `@vigla/svelte` and `@vigla/vite-plugin` by workspace alias, and `playgrounds/vigla` is plain TypeScript over the `vigla` core with no component compiler. Each runs with `vite` from its own directory; no test or build reads them.
+Two runnable demo apps an operator opens to see the product work: `playgrounds/svelte` is an ordinary Svelte 5 app whose `svelte` and `@sveltejs/vite-plugin-svelte` imports resolve to `@vigla/svelte` and `@vigla/vite-plugin-svelte` by workspace alias, and `playgrounds/vigla` is plain TypeScript over the `vigla` core with no component compiler. Each runs with `vite` from its own directory; no test or build reads them.

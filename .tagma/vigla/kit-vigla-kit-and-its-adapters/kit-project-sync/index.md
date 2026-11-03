@@ -8,6 +8,12 @@ fields:
     "entries": [
       {
         "at": "index.ts"
+      },
+      {
+        "at": "cli.ts",
+        "for": [
+          "1b906004"
+        ]
       }
     ],
     "id": "kit-sync"

@@ -36,7 +36,7 @@ fields:
   }
 edges:
   - kind: imports-tests
-    to: 01a187ca-e656-7569-8564-ac0fabdaf506
+    to: 01a1a3c1-fa06-7690-8926-459c574270c3
 sources:
   - kind: dir
     ref: harness

@@ -23,7 +23,7 @@ edges:
 
 **Fresh state per target.** Runners are target-agnostic; each target supplies the hook run between samples. The upstream target's hook does what upstream's runner does through internals — `clear`, `hydrating`, `ssr_context`, `raf.tasks`, the `$props.id()` counter and the `__svelte` hydration data — since only upstream needs it; Vigla's hook is empty, by the scheduler invariant.
 
-**Targets.** One install tree per target, `targets/upstream` and `targets/vigla`, in each of which `svelte`, `@sveltejs/kit` and `@sveltejs/vite-plugin-svelte` resolve to that target — upstream's 5.57.3, 3.1.0 and 7.3.1, or Vigla's workspace packages `@vigla/svelte`, `@vigla/kit` and `@vigla/vite-plugin` under alias, with `vigla` beside them. Runners, Kit apps and vite-plugin e2e projects run inside a target's tree, so bare `svelte` imports in samples, Kit and the plugin resolve to the target.
+**Targets.** One install tree per target, `targets/upstream` and `targets/vigla`, in each of which `svelte`, `@sveltejs/kit` and `@sveltejs/vite-plugin-svelte` resolve to that target — upstream's 5.57.3, 3.1.0 and 7.3.1, or Vigla's compatibility packages `@vigla/svelte`, `@vigla/sveltekit` and `@vigla/vite-plugin-svelte` under alias, with `vigla` beside them. Runners, Kit apps and vite-plugin e2e projects run inside a target's tree, so bare `svelte` imports in samples, Kit and the plugin resolve to the target.
 
 **Validated on upstream first.** Before any Vigla code, the runners on `targets/upstream` must reproduce the pass set of upstream's own runners run with runes forced and async on. A runner change is valid only when that equality still holds.
 
