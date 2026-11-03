@@ -19,9 +19,8 @@ sources:
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/reads.ts
     symbol: refresh
-  - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/effects.ts
-    symbol: ownDerived
+  - kind: file
+    ref: packages/vigla/src/runtime/reactivity/drafts.ts
 ---
 A fork reruns blocks and async expressions and evaluates deriveds through its view to preload a state that may never commit. Its runs therefore never take what the committed world's runs own. A fork's rerun of an effect leaves the effect's last real run in place: its children, its teardown, its owned deriveds and its abort signal. What the fork's run creates is kept apart as the fork's draft of that effect: its children, including those created after an `await` in the run's resumed segments, and the deriveds it creates with the effects their evaluations create. Discarding the fork destroys its drafts. Committing it replaces a real run's state with the draft only where the fork's run is still the effect's latest. Either way the replaced children go in the order a rerun releases them, the newest application root first. An effect the commit reruns replaces both, since a real run destroys every draft of its effect. Branches a block creates stay out of the draft, because blocks stage their branches per batch themselves. The first run of an effect a fork creates is no draft: no real run precedes it, and the effect belongs to the fork from the start.
 
