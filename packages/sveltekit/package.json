@@ -1,0 +1,47 @@
+{
+	"name": "@vigla/sveltekit",
+	"version": "3.1.0",
+	"type": "module",
+	"types": "./types/index.d.ts",
+	"files": [
+		"dist",
+		"src",
+		"types"
+	],
+	"scripts": {
+		"build": "node ../../release/src/cli.ts emit"
+	},
+	"bin": {
+		"svelte-kit": "./src/bin.ts"
+	},
+	"vigla": {
+		"facade": "@vigla/kit"
+	},
+	"exports": {
+		"./package.json": "./package.json",
+		".": "./src/index.ts",
+		"./internal/env": "./src/internal/env.ts",
+		"./internal/server": "./src/internal/server.ts",
+		"./internal/client": "./src/internal/client.ts",
+		"./internal/payload": "./src/internal/payload.ts",
+		"./adapter": "./src/adapter.ts",
+		"./node": "./src/node.ts",
+		"./hooks": "./src/hooks.ts",
+		"./env": "./src/env.ts",
+		"./params": "./src/params.ts",
+		"./vite": "./src/vite.ts"
+	},
+	"dependencies": {
+		"@vigla/kit": "workspace:*",
+		"@vigla/vite-plugin-svelte": "workspace:*"
+	},
+	"peerDependencies": {
+		"svelte": "^5.57.1",
+		"vite": "^8.0.12"
+	},
+	"devDependencies": {
+		"@types/node": "22.20.1",
+		"vite": "8.2.2",
+		"vitest": "5.0.1"
+	}
+}
