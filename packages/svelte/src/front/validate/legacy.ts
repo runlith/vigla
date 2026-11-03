@@ -1,6 +1,6 @@
 import type * as AST from '../ast.ts';
 import { CompileError } from 'vigla/compiler';
-import { legacy } from '../diagnostics.ts';
+import { fail, legacy } from '../diagnostics.ts';
 import { stopped, type Anchors } from './anchors.ts';
 
 export interface LegacyContext {
@@ -38,6 +38,7 @@ function children(node: AST.TemplateNode): (AST.Fragment | null | undefined)[] {
 function element(
 	node: AST.ElementLike,
 	parent: AST.ElementLike | null,
+	inSnippet: boolean,
 	context: LegacyContext
 ): void {
 	if (node.type === 'SvelteComponent') legacy('svelte_component_deprecated', node);
@@ -57,12 +58,12 @@ function element(
 				{ name: attribute.name }
 			);
 		}
-		if (
-			attribute.type === 'Attribute' &&
-			attribute.name === 'slot' &&
-			parent !== null &&
-			components.has(parent.type)
-		) {
+		if (attribute.type !== 'Attribute' || attribute.name !== 'slot') continue;
+		if (inSnippet) {
+			const value = attribute.value;
+			if (!Array.isArray(value) || value.length !== 1 || value[0]?.type !== 'Text')
+				fail('slot_attribute_invalid', attribute);
+		} else if (parent !== null && components.has(parent.type)) {
 			legacy('slot_attribute_unsupported', attribute);
 		}
 	}
@@ -71,13 +72,14 @@ function element(
 function fragment(
 	nodes: AST.Fragment | null | undefined,
 	parent: AST.ElementLike | null,
-	context: LegacyContext
+	context: LegacyContext,
+	container: AST.TemplateNode | null = null
 ): void {
 	for (const node of nodes?.nodes ?? []) {
 		const isElement = 'attributes' in node && 'name_loc' in node;
 		if (isElement) {
 			try {
-				element(node, parent, context);
+				element(node, parent, container?.type === 'SnippetBlock', context);
 			} catch (error) {
 				if (!(error instanceof CompileError)) throw error;
 				context.anchors.fail(node, error.diagnostic);
@@ -85,7 +87,7 @@ function fragment(
 			}
 		}
 		const owner = isElement ? node : parent;
-		for (const child of children(node)) fragment(child, owner, context);
+		for (const child of children(node)) fragment(child, owner, context, node);
 	}
 }
 
