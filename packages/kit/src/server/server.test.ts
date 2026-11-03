@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { runInNewContext } from 'node:vm';
-import { expect, it, vi } from 'vitest';
+import { expect, it, onTestFinished, vi } from 'vitest';
 import { getContext, getOwner, hydratable, onDestroy, setContext } from 'vigla';
 import type { Component } from 'vigla/server';
 import { unflatten } from 'devalue';
@@ -603,7 +603,8 @@ it('loads server parents on demand for invalidated data and streams deferred val
 	expect(response.headers.get('content-type')).toBe('text/sveltekit-data');
 	const reader = response.body!.getReader();
 	const first = JSON.parse(new TextDecoder().decode((await reader.read()).value));
-	expect(first.nodes[0]).toEqual({ type: 'skip' });
+	expect(first.nodes[0].type).toBe('data');
+	expect(unflatten(first.nodes[0].data)).toEqual({ layout: 'base' });
 	expect(first.nodes[1].uses).toEqual({
 		dependencies: ['custom:post'],
 		params: ['id'],
@@ -620,6 +621,38 @@ it('loads server parents on demand for invalidated data and streams deferred val
 		data: 'resolved'
 	});
 	expect((await reader.read()).done).toBe(true);
+});
+
+it('returns a data redirect without waiting for an independent parent load', async () => {
+	const app = manifest();
+	const started = Promise.withResolvers<void>();
+	const held = Promise.withResolvers<Record<string, unknown>>();
+	onTestFinished(() => held.resolve({}));
+	app.nodes[0] = async () =>
+		node(0, {
+			load: () => {
+				started.resolve();
+				return held.promise;
+			}
+		});
+	app.nodes[2] = async () =>
+		node(2, {
+			load: async () => {
+				await started.promise;
+				redirect(307, '/destination');
+			}
+		});
+	app.routes = [route('/source', null, true)];
+	const server = await start(app, options());
+	const response = await server.respond(
+		request('/source/__data.json?x-sveltekit-invalidated=11'),
+		address
+	);
+	expect(await response.json()).toEqual({
+		type: 'redirect',
+		status: 307,
+		location: '/destination'
+	});
 });
 
 it('runs server then universal loads with inherited data and request context in the rendered document', async () => {

@@ -27,6 +27,7 @@ import type { Transport } from './transport.ts';
 export interface Uses {
 	dependencies: Set<string>;
 	params: Set<string>;
+	paramsAll: boolean;
 	search: Set<string>;
 	parent: boolean;
 	route: boolean;
@@ -58,6 +59,7 @@ function uses(value: SerializedUses = {}): Uses {
 	return {
 		dependencies: new Set(value.dependencies),
 		params: new Set(value.params),
+		paramsAll: false,
 		search: new Set(value.search_params),
 		parent: !!value.parent,
 		route: !!value.route,
@@ -79,6 +81,12 @@ function changed(
 		(usage.parent && parent) ||
 		(usage.route && previous.route.id !== next.route.id) ||
 		(usage.url && moved)
+	)
+		return true;
+	if (
+		usage.paramsAll &&
+		(Object.keys(previous.params).length !== Object.keys(next.params).length ||
+			Object.keys(previous.params).some((name) => previous.params[name] !== next.params[name]))
 	)
 		return true;
 	for (const name of usage.params) if (previous.params[name] !== next.params[name]) return true;
@@ -160,7 +168,7 @@ export class Pages {
 					return Reflect.get(target, key);
 				},
 				ownKeys(target) {
-					if (tracking) for (const key of Object.keys(target)) usage.params.add(key);
+					if (tracking) usage.paramsAll = true;
 					return Reflect.ownKeys(target);
 				}
 			}),

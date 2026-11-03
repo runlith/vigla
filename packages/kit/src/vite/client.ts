@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { analyseOptions } from '../sync/index.ts';
 import type { PageNode } from '../types/internal/routes.ts';
 import type { Project } from './project.ts';
 import { ids, nodeId } from './ids.ts';
@@ -19,10 +21,24 @@ export function clientNode(node: PageNode, index: number, root: string): string 
 	return lines.join('\n');
 }
 
+function serverLoad(node: PageNode, root: string): boolean {
+	if (!node.server) return false;
+	try {
+		const options = analyseOptions(
+			node.server,
+			readFileSync(path.resolve(root, node.server), 'utf8')
+		);
+		return options === null || Object.hasOwn(options, 'load');
+	} catch {
+		return true;
+	}
+}
+
 export function clientApp(project: Project): string {
 	const { config, tree, root, format } = project;
-	const hasServerLoad = (index: number) =>
-		project.build?.analysis.nodes[index]?.hasServerLoad ?? !!tree.nodes[index]?.server;
+	const loads = tree.nodes.map(
+		(node, index) => project.build?.analysis.nodes[index]?.hasServerLoad ?? serverLoad(node, root)
+	);
 	const lines: string[] = [];
 	if (project.vite.command === 'build' && config.output.bundleStrategy !== 'split')
 		lines.push(`import ${JSON.stringify(ids.bootstrap)};`);
@@ -54,10 +70,10 @@ export function clientApp(project: Project): string {
 		if (!route.page) continue;
 		const { leaf, layouts, errors } = route.page;
 		for (const index of layouts) {
-			if (index !== undefined && hasServerLoad(index)) serverLoads.add(index);
+			if (index !== undefined && loads[index]) serverLoads.add(index);
 		}
 		dictionary.push(
-			`${JSON.stringify(route.id)}: [${hasServerLoad(leaf) ? ~leaf : leaf},${sparse(layouts)},${sparse(errors)}]`
+			`${JSON.stringify(route.id)}: [${loads[leaf] ? ~leaf : leaf},${sparse(layouts)},${sparse(errors)}]`
 		);
 	}
 	const clientRouting = config.router.resolution === 'client';

@@ -1,13 +1,23 @@
 {
 	"samples": {
 		"load-dependencies/test/load.test.js > enumerating params tracks optional keys before they exist": {
-			"status": "contract"
+			"status": "difference",
+			"reason": "Kit #11635: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 leaves the JSON-stringified params at {} after hydrated navigation to /params/aa. The expected {\"a\":\"aa\"} is absent."
 		},
 		"load-dependencies/test/load.test.js > awaiting parent sends its fresh data into the merged page": {
-			"status": "contract"
+			"status": "difference",
+			"reason": "Kit #9355: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 reruns the parent for the child load but leaves the merged parent version stale: the retries render 2:3 and 4:5 instead of matching versions."
 		},
 		"load-dependencies/test/load.test.js > an actions-only server module needs no navigation data request": {
+			"status": "difference",
+			"reason": "Kit #10022: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 makes /actions/__data.json?x-sveltekit-invalidated=01 on every attempt despite the server module exporting actions but no load."
+		},
+		"css-target/test/build.test.js > default CSS output flattens unsupported nesting": {
 			"status": "contract"
+		},
+		"linked-env/test/linked.test.js > sync resolves linked environment dependencies through the node loader": {
+			"status": "difference",
+			"reason": "Kit #16987: Kit 3.1.0 with Svelte 5.57.3 and vite-plugin-svelte 7.3.1 on 2026-11-03 fails sync with Cannot find module 'repro-loader-target' despite native Node resolving the linked dependency with the registered loader."
 		},
 		"monorepo-assets/test/assets.test.js > linked workspace stylesheet assets are served in development": {
 			"status": "difference",

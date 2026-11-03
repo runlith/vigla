@@ -160,12 +160,12 @@ export async function dataResponse(
 		});
 	const indexes = [...page.layouts, page.leaf];
 	const loads: Array<() => Promise<ServerDataNode | null>> = [];
+	const pending: Array<Promise<ServerDataNode | null> | undefined> = [];
 	let aborted = false;
 	for (const [index, id] of indexes.entries()) {
-		let pending: Promise<ServerDataNode | null> | undefined;
 		loads.push(
 			() =>
-				(pending ??= (async () => {
+				(pending[index] ??= (async () => {
 					if (aborted) return null;
 					const node = id == null ? undefined : await server.manifest.nodes[id]!();
 					return serverLoad(server, store, node, async () =>
@@ -183,11 +183,21 @@ export async function dataResponse(
 		);
 	}
 	try {
+		await Promise.all(
+			loads.map((load, index) =>
+				invalidated && !invalidated[index]
+					? null
+					: load().catch((error) => {
+							if (error instanceof Redirect) throw error;
+							return null;
+						})
+			)
+		);
 		const nodes = await Promise.all(
-			loads.map(async (load, index): Promise<DataResult> => {
-				if (invalidated && !invalidated[index]) return { type: 'skip' };
+			loads.map(async (_load, index): Promise<DataResult> => {
+				if (!pending[index]) return { type: 'skip' };
 				try {
-					return await load();
+					return await pending[index]!;
 				} catch (error) {
 					if (error instanceof Redirect) throw error;
 					const body = await handleError(store, error);
