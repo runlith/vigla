@@ -1,0 +1,13 @@
+{
+	"name": "@vigla/playground-vigla",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build"
+	},
+	"dependencies": {
+		"vigla": "workspace:*",
+		"vite": "8.2.2"
+	}
+}

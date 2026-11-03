@@ -1,0 +1,56 @@
+:root {
+	font-family: system-ui, sans-serif;
+	color: #1d2330;
+	background: #f4f5f8;
+}
+
+body {
+	margin: 0;
+	padding: 32px;
+}
+
+section {
+	background: white;
+	border-radius: 10px;
+	padding: 16px 20px;
+	margin-bottom: 16px;
+	box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+h1 {
+	margin-top: 0;
+}
+
+h2 {
+	margin: 0 0 12px;
+	font-size: 16px;
+}
+
+button,
+input {
+	font: inherit;
+	padding: 4px 10px;
+	margin-right: 6px;
+}
+
+ul {
+	padding-left: 18px;
+}
+
+.muted {
+	color: #7a8194;
+}
+
+.done {
+	text-decoration: line-through;
+	color: #7a8194;
+}
+
+pre {
+	background: #f4f5f8;
+	padding: 8px 12px;
+	border-radius: 6px;
+	max-height: 260px;
+	overflow: auto;
+	font-size: 12px;
+}

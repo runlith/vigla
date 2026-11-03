@@ -3,6 +3,7 @@
 	"type": "module",
 	"workspaces": [
 		"packages/*",
+		"playgrounds/*",
 		"harness",
 		"release",
 		"targets/*",
