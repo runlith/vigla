@@ -17,3 +17,7 @@ Five functions are exempt from the assignability check:
 - `mount`, `hydrate` and `render` take the svelte2tsx-facing `Component`, `(internals, props)`, while compiled components are the core's `(anchor, props)`.
 - `createRawSnippet` returns the template-facing `Snippet`.
 - `crossfade` is declared as returning `TransitionConfig`, because svelte2tsx's transition check requires it; the runtime truthfully types `undefined` when no counterpart or fallback exists.
+
+`SvelteMap` is also exempt for the server variant alone. There, as in upstream's server entry, it is the host's plain `Map`, so `getOrInsert` and `getOrInsertComputed` exist only where the platform provides them, while the declaration states the client class.
+
+Assignability accepts a runtime export that has members the declaration lacks, so the check cannot catch a declaration that omits a method the runtime has.
