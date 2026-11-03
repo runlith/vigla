@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunk 10 (seat release, flushing teardown): on upstream 5.57.3 the keyed column a teardown deselected still updates — TypeError reading `active` of null"
+}

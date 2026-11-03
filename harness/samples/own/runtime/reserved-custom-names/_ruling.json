@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 treats every hyphenated tag as a custom element and sets annotation-xml's encoding at runtime, so its HTML template parses <p> out of <math> (first assertion fails); its spread also sets value on a MathML element as an expando, not the attribute"
+}

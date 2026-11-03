@@ -1,0 +1,6 @@
+{
+	"sequence runs its handlers outside a request": {
+		"status": "difference",
+		"reason": "Kit #14249: Kit 3.1.0 on 2026-11-03 throws 'Could not get the request store. This is an internal error.' when a handle built by sequence() is called directly, outside a request, as a unit test does."
+	}
+}

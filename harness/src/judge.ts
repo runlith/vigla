@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
 	faults,
 	load,
+	provesDifferences,
 	ruling,
 	runs as running,
 	runsOn,
@@ -10,7 +11,7 @@ import {
 	type Manifest
 } from './manifest.ts';
 import { broken, outcomes, readRuns, suiteResults, type Result } from './reports.ts';
-import { covers, matches, selectors, selects } from './scope.ts';
+import { covers, matches, reaches, selectors, selects } from './scope.ts';
 import { entryId, suiteId, suites } from './suites.ts';
 import { trees } from './trees.ts';
 
@@ -39,6 +40,7 @@ interface Seen {
 	failed: boolean;
 	runs: boolean;
 	upstream: boolean;
+	proof?: true;
 	message?: string;
 }
 
@@ -48,6 +50,7 @@ function passed(seen: Seen): boolean {
 
 export function judge(judgement: Judgement): Verdict {
 	const progress = judgement.passing !== null;
+	const proving = judgement.target === 'upstream' && provesDifferences();
 	const results: Result[] = [];
 	const errors: string[] = [];
 	const loading: string[] = [];
@@ -104,7 +107,7 @@ export function judge(judgement: Judgement): Verdict {
 		}
 		for (const [suite, keys] of reported) {
 			for (const problem of faults(manifest(suite))) errors.push(`${suite}: ${problem}`);
-			if (selectors(suite) !== null) continue;
+			const scoped = selectors(suite) !== null;
 			const scopes = runs
 				.filter((run) => `${run.tree.project}/${run.tree.name}` === suite)
 				.map((run) => run.scope);
@@ -112,6 +115,14 @@ export function judge(judgement: Judgement): Verdict {
 				if (keys.has(key)) continue;
 				if (!scopes.some((scope) => scope === undefined || key.startsWith(scope))) continue;
 				const rule = ruling(manifest(suite), key);
+				if (
+					proving &&
+					rule?.status === 'difference' &&
+					suite.startsWith('own/') &&
+					reaches(suite, key)
+				)
+					errors.push(`${suite}/${key} did not run on ${judgement.target}`);
+				if (scoped) continue;
 				const cell = `${suite}\n${rule?.status ?? 'unruled'} unloaded`;
 				unloaded.set(cell, (unloaded.get(cell) ?? 0) + 1);
 				if (!progress && rule !== undefined && running(rule.status))
@@ -138,14 +149,16 @@ export function judge(judgement: Judgement): Verdict {
 		const ran = result.state === 'passed' || result.state === 'failed';
 		const failed = result.state === 'failed' || (before?.failed ?? false);
 		const message = (result.state === 'failed' ? result.message : undefined) ?? before?.message;
+		const proof = proving && status === 'difference' && result.suite.startsWith('own/');
 		byId.set(id, {
 			ran: ran || (before?.ran ?? false),
 			failed,
 			runs,
 			upstream: upstream && (before?.upstream ?? true),
+			...(proof ? { proof } : {}),
 			...(message === undefined ? {} : { message })
 		});
-		if (!progress && result.state === 'failed')
+		if (!progress && !proof && result.state === 'failed')
 			errors.push(`${result.suite}/${id} failed${result.message ? `: ${result.message}` : ''}`);
 	}
 
@@ -215,6 +228,24 @@ export function judge(judgement: Judgement): Verdict {
 			console.log(
 				`  recorded: ${mark.total}${failing}, newly passing: ${fresh.get(suite)?.length ?? 0}`
 			);
+		}
+	}
+
+	if (proving) {
+		const proofs = [...entries].flatMap(([suite, byId]) =>
+			[...byId]
+				.filter(([, entry]) => entry.proof)
+				.map(([id, entry]) => ({ id: `${suite}/${id}`, entry }))
+		);
+		console.log(`\nown differences on ${judgement.target}: ${proofs.length}`);
+		for (const { id, entry } of proofs) {
+			if (entry.ran && entry.failed) {
+				console.log(`  red, the expected proof: ${id}${entry.message ? `: ${entry.message}` : ''}`);
+				continue;
+			}
+			const problem = entry.ran ? 'green, its defect does not reproduce' : 'did not run';
+			console.log(`  ${problem}: ${id}`);
+			errors.push(`${id} ${problem} on ${judgement.target}`);
 		}
 	}
 

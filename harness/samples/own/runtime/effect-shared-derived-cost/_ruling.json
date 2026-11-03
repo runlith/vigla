@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #19032: the depth-24 shared-diamond public graph measured an effect-write/direct-write same-thread CPU median ratio of 172.94 on upstream 5.57.3, above the 32x regression ceiling"
+}

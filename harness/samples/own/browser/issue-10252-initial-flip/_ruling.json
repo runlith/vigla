@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #10252: the first simultaneous crossfade with keyed FLIP displaces visible rows by 80px before their animations begin on upstream 5.57.3 Chromium"
+}

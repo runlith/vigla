@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 DOM mount leaves a constant select default unapplied when option values are reactive, selecting a instead of b; its hydration variant passes"
+}

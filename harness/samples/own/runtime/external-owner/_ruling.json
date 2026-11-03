@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Application primitives: an external subscription follows any owner, releases when its selected source is cleared, and reads transiently after disposal; upstream 5.57.3 has no vigla entry"
+}

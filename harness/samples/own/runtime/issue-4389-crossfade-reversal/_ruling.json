@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #4389: repeated interrupted paired crossfades invoke the unmatched fallback on upstream 5.57.3"
+}

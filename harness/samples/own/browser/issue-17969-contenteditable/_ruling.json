@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #17969: deleting dynamic plaintext-only contenteditable text, toggling editing off/on and inserting abc produces abcabc in the heading while the model remains abc on upstream 5.57.3 Chromium"
+}

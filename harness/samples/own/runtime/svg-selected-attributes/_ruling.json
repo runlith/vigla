@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 applies HTML selected handling to a direct SVG option attribute, rendering an empty attribute instead of the string true; both DOM and hydration fail the public namespace regression"
+}

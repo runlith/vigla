@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #18355: two overlapping reversals of an awaited each; upstream 5.57.3 reevaluates the rows derived 25 times instead of fewer than 12"
+}

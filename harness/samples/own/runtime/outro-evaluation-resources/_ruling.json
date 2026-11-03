@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 reads the root-derived value as current 2 instead of last-selected 1 through an outgoing-owned computation; Vigla keeps historical and current values and abort resources independent"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Realm isolation (spec 37f29ce1): a tree mounted or rendered through public `vigla` reports its diagnostics in its own front end's form while Svelte's reporter is installed in the same realm; upstream 5.57.3 has no `vigla` entry"
+}

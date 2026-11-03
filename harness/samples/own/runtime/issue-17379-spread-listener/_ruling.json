@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #17379: upstream 5.57.3 invokes delegated spread and dynamic-element handlers after removed nodes are reattached"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Public request scopes (spec 37f29ce1): disposing a request owner mid-render releases the render's component teardowns, those of content a boundary discarded first, and releases a component rendered after it at once; upstream 5.57.3 has no `vigla` entry"
+}

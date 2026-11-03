@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunk 10 (passed guard): on upstream 5.57.3 the guard the traversal passed, cleared by a later teardown, still lets its effect run — TypeError reading `size` of null"
+}

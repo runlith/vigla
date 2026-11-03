@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Application primitives: a service owner outlives its creating branch, holds settled() for owned async work and releases effects with its parent; upstream 5.57.3 has no vigla entry"
+}

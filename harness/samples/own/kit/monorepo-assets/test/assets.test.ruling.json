@@ -1,0 +1,6 @@
+{
+	"linked workspace stylesheet assets are served in development": {
+		"status": "difference",
+		"reason": "Kit #14319: Kit 3.1.0 with Svelte 5.57.3 and vite-plugin-svelte 7.3.1 on 2026-11-03 resolves a linked workspace stylesheet but returns 403 for its font; Vigla serves the asset."
+	}
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 remounts after a native construction error without disposing the failed component: the public onDestroy callback remains at zero instead of one"
+}

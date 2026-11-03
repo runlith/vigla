@@ -1,0 +1,4 @@
+{
+	"status": "contract",
+	"reason": "Layer's deferred-tree trap (spec 8191e72f): pending shown while the chunk is in flight, a session recycle in one flush rebuilds the instance without refetching; green on upstream 5.57.3, kept as a regression test"
+}

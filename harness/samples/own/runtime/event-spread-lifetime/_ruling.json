@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 leaves a spread listener on a removed media element: a retained element still invokes its handler"
+}

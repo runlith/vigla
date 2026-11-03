@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #5052: a nested writable reset leaves compiled store reads stale inside the subscriber on upstream 5.57.3 (1|1|0 rather than 0|0|0)"
+}

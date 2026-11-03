@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #17375: onDestroy reads after a same-tick write; upstream 5.57.3 logs initial|initial|initial instead of changed|changed|changed"
+}

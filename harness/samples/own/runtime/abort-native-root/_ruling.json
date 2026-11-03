@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Application primitives: getAbortSignal follows effects under native roots outside components; upstream 5.57.3 has no vigla entry"
+}

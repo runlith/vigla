@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunk 10 (passed guard, own teardown): on upstream 5.57.3 the branch whose teardown cleared its guard still updates — TypeError reading `size` of null"
+}

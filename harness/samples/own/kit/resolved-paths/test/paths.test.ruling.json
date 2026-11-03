@@ -1,0 +1,6 @@
+{
+	"resolved path types admit server-relative URLs and normalize the root": {
+		"status": "difference",
+		"reason": "Kit #14295 and #16437: Kit 3.1.0/Svelte 5.57.3/plugin 7.3.1 on 2026-11-03 serves ./about from resolve('/about') but rejects that server-relative ResolvedPathname. With root trailingSlash always and base /base, it rejects /base/ and accepts //, /base// and a different base. The retained checker reports TS2322, TS2820 and unused negative directives."
+	}
+}

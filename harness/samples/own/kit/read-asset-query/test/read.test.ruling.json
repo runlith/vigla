@@ -1,0 +1,6 @@
+{
+	"read serves assets whose URL keeps a query": {
+		"status": "difference",
+		"reason": "Kit #17506: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 throws read_asset_missing from read() for imports whose URL keeps a query or hash. Dev: `file.txt?v=1`, `file.txt?no-inline&v=1` and `file.txt?no-inline#part` (from `?url&v=1`, `?url&no-inline&v=1`, `?url&no-inline#part`). Build: `_app/immutable/assets/file.HASH.txt?v=1` and `...txt#part`; `?url&v=1` alone is inlined as a data URL, so the build case needs `no-inline`. Vigla serves all three in dev and build."
+	}
+}

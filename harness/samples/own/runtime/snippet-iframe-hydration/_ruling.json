@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 rejects a real iframe-realm hydration anchor with invalid_snippet_arguments because its DEV snippet validation uses the parent window's Node constructor"
+}

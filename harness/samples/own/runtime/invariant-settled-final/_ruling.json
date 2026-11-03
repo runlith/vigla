@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler invariant 3: on upstream 5.57.3 `settled()` resolves before the held batch commits, so the effect's last run is `0 1 1`"
+}

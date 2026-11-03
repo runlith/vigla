@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #4313: anonymous public compilation with injected CSS gives equally authored but differently pruned sheets one id on upstream 5.57.3, so the later yellow element remains transparent"
+}

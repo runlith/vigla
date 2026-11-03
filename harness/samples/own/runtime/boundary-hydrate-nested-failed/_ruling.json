@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3's skip_nodes (client/dom/hydration.js) counts no server-failed boundary opening `[?` as an open marker, so an outer boundary failing while hydrating stops at the nested failed boundary's close, leaving the outer tail and debris after unmount; read from source, Vigla's red run before the fix showed exactly that"
+}

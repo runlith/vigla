@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 keeps matched senders in flow, displacing the grouped grid source by 41px at time zero; the same public row checks absolute/fixed/flex placement, authored declaration restoration, re-entry and untouched authored animations"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #17379: upstream 5.57.3 still invokes static focus and click handlers after the input is removed and retained"
+}

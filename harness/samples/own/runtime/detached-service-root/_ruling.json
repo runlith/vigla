@@ -1,0 +1,4 @@
+{
+	"status": "contract",
+	"reason": "Layer's detached-root trap: the service keeps reacting after its creating effect stops; passes on upstream 5.57.3"
+}

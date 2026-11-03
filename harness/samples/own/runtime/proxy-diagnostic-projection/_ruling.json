@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 array diagnostics coerce the indexOf fromIndex three times; the public control retains its single native coercion, native assignment key coercions, custom receivers and prop mutation validation"
+}

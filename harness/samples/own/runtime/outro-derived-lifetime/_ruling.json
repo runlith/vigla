@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 reads a root-owned derived transitively as current during a child's outro: [1,20,2,20] instead of the last-selected child computation [1,10,2,20]"
+}

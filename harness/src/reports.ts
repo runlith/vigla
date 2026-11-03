@@ -41,7 +41,12 @@ interface Vitest {
 interface Spec {
 	title: string;
 	file: string;
-	tests: { projectName: string; status: string; expectedStatus: string }[];
+	tests: {
+		projectName: string;
+		status: string;
+		expectedStatus: string;
+		results?: { error?: { message?: string } }[];
+	}[];
 }
 
 interface Group {
@@ -83,10 +88,19 @@ function walk(
 		for (const test of spec.tests) {
 			const marked = test.expectedStatus === 'skipped' && test.status !== 'unexpected';
 			const state = marked ? 'skipped' : (played[test.status] ?? test.status);
+			const message =
+				state === 'failed'
+					? firstLine(
+							test.results?.map((result) =>
+								(result.error?.message ?? '').replace(/\u001b\[[0-9;]*m/g, '')
+							)
+						)
+					: undefined;
 			into.push({
 				key,
 				state,
 				variant: `${mode ?? ''}/${test.projectName}`,
+				...(message === undefined ? {} : { message }),
 				...(marked ? { upstream: true as const } : {})
 			});
 		}

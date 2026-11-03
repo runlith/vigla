@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "A shared graph with a nested promise fails while evaluating upstream 5.57.3's hydration script: devalue's IIFE parameter r shadows its promise resolver and throws TypeError: r is not a function"
+}

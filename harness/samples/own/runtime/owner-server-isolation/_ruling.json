@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Public request scopes (spec 37f29ce1): a plain continuation of one request never observes another concurrent render's owner or context; upstream 5.57.3 has no `vigla` entry"
+}

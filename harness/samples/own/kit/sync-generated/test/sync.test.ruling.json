@@ -1,0 +1,6 @@
+{
+	"unchanged sync preserves root and nested route declarations": {
+		"status": "difference",
+		"reason": "Kit #17464 and #17465: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 rewrites both root and nested $types.d.ts on a second unchanged public CLI sync; the test fails because both modification times advance. Vigla preserves both declarations."
+	}
+}

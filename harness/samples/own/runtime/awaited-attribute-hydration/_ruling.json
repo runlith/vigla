@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 applies awaited attribute values after hydration from an empty cache, so a value the client resolves to undefined leaves the server's data-x in place (first assertion fails); Vigla writes them while claiming, keeping removal and SSR input-default cleanup"
+}

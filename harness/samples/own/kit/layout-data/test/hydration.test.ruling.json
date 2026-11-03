@@ -1,0 +1,6 @@
+{
+	"grouped server data survives initial hydration": {
+		"status": "difference",
+		"reason": "Upstream Kit 3.1.0/Svelte 5.57.3 on 2026-11-02 shows child content on direct /path loading but reports no root/child effect output within 5 seconds on attempt 0 or either retry; refresh is not reached. The page-error text was not retained. Vigla passes initial hydration and refresh on attempt 0."
+	}
+}

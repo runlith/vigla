@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #16139: upstream 5.57.3 leaks inherited prototype functions into both absent and explicit props"
+}

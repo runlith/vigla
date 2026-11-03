@@ -1,0 +1,4 @@
+{
+	"status": "contract",
+	"reason": "Layer's deferred-tree trap (spec 8191e72f): two consumers opened under a rendered boundary await one chunk and show one instance; green on upstream 5.57.3, kept as a regression test"
+}

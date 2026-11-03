@@ -1,0 +1,21 @@
+{
+	"server fetch applies init over a Request input": {
+		"status": "difference",
+		"reason": "Kit #15196: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 drops the init headers of fetch(new Request(url), init) in a server load: the endpoint sees no x-token and the page renders 'none' in dev and build on every attempt."
+	},
+	"a throwing transformPageChunk is called once": {
+		"status": "difference",
+		"reason": "Kit #14063: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 calls a throwing transformPageChunk a second time with done: true for the error page it renders after the first failure: the counter reads 2 instead of 1 in dev and build on every attempt."
+	},
+	"a leaf redirect while its layout load is pending answers the redirect": {
+		"status": "contract"
+	},
+	"a redirect thrown by handle for an undecodable path leaves the server answering": {
+		"status": "difference",
+		"reason": "Kit #17193: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03, built with adapter-node 6.0.0 and served by vite preview, hangs up GET /%E0%A4%A when handle throws redirect() and the server process exits: the next requests get ECONNREFUSED. Vigla answers 400 Malformed URI and keeps serving."
+	},
+	"a cluster worker keeps the live SOCKET_PATH of its siblings": {
+		"status": "difference",
+		"reason": "Kit #16230: adapter-node 6.0.0 with Kit 3.1.0 on 2026-11-03, run as three Node cluster workers forked one after another on one SOCKET_PATH, deletes the socket the first worker's primary bound: the path is missing once all workers listen, on every attempt."
+	}
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3's fragments: 'tree' sets static attributes as plain strings, so an iframe srcdoc is refused under require-trusted-types-for 'script' (TrustedHTML)"
+}

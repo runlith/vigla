@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 recreates a template script by setting its src and text as plain strings, refused under require-trusted-types-for 'script' (TrustedScriptURL on the src first), and its bind:innerHTML writes `value + ''`, stringifying a TrustedHTML"
+}

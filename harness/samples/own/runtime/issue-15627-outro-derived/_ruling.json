@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #15627: a lazy child derived used as an outro parameter reads a deleted guarded prop on upstream 5.57.3 and throws"
+}

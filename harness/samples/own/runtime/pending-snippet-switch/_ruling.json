@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #19107: a boundary's pending prop switching to a snippet mid-await; upstream 5.57.3 remounts the pending branch until about 500 <p>DIV</p> remain instead of one"
+}

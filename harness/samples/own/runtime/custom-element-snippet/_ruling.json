@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 lifts a root snippet containing a native slot outside its custom element and throws ReferenceError: $$props is not defined"
+}

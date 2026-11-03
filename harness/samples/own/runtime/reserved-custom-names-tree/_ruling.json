@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 sets annotation-xml's encoding at runtime and from_tree keeps MathML for its children, so the <p> is created in the MathML namespace (second assertion fails)"
+}

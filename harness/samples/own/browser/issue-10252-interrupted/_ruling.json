@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #10252 rapid shuffles: on upstream 5.57.3 Chromium the first crossfade+FLIP shuffle displaces three tiles by 80px, and a second shuffle at 400ms jumps the restarted senders by 40-80px and ends re-FLIPped receivers 40-80px from their slots"
+}

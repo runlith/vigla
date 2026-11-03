@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Public derived values retain their declaring server context layer; upstream has no vigla derived entry"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 leaves the leaving root's DOM in place when its owner is destroyed mid-outro: <p>leaving</p> remains instead of being removed (first assertion fails); Vigla removes it and resolves the unmount promise"
+}

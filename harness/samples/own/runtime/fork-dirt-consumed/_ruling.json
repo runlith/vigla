@@ -1,0 +1,4 @@
+{
+	"status": "contract",
+	"reason": "Review finding of the scheduler: a held real batch processed first must not consume a block a fork's async value dirtied, so the fork still builds what it preloads; green on upstream 5.57.3, kept as a regression test"
+}

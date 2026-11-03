@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunks 5 and 6 (time travel, blocking): on upstream 5.57.3 the detached probe ends on `undefined/2` — the response batch reverts `a` and the awaiting batch's commit never reruns the probe"
+}

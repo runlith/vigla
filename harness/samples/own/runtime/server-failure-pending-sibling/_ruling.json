@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "A rejected async sibling must reach its server boundary without waiting for an unrelated pending sibling; upstream 5.57.3 remains pending and times out at 30000ms"
+}

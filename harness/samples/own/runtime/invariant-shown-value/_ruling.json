@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler invariant 1: on upstream 5.57.3 a later batch reverts `a`, already on screen, while the earlier batch's boundary is pending"
+}

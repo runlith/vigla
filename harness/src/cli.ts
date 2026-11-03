@@ -10,7 +10,7 @@ import { suiteId, suites } from './suites.ts';
 import { trees } from './trees.ts';
 
 const usage =
-	'usage: cli.ts <target> [--passing] [--record] [--verbose] [--results <dir>] [<project>[/<suite>[/<entry>]] ...]';
+	'usage: cli.ts <target> [--passing] [--record] [--verbose] [--differences] [--results <dir>] [<project>[/<suite>[/<entry>]] ...]';
 
 const { values, positionals } = parseArgs({
 	allowPositionals: true,
@@ -18,6 +18,7 @@ const { values, positionals } = parseArgs({
 		passing: { type: 'boolean', default: false },
 		record: { type: 'boolean', default: false },
 		verbose: { type: 'boolean', default: false },
+		differences: { type: 'boolean', default: false },
 		results: { type: 'string' }
 	}
 });
@@ -34,6 +35,12 @@ if ((values.passing || values.record) && passing === null) {
 	);
 	process.exit(2);
 }
+if (values.differences && basename(target) !== 'upstream') {
+	console.error('--differences runs own differences on targets/upstream, where they are skipped');
+	process.exit(2);
+}
+if (values.differences) process.env.VIGLA_DIFFERENCES = '1';
+else delete process.env.VIGLA_DIFFERENCES;
 
 const ids = [
 	...suites.map(suiteId),
@@ -141,7 +148,7 @@ for (const part of ['vite-plugin', 'kit'] as const) {
 	exits[part] = outcome.status ?? 1;
 }
 
-if (passing !== null) delete exits.svelte;
+if (passing !== null || values.differences) delete exits.svelte;
 const verdict = judge({ target: basename(target), results, parts, passing: recorded, exits });
 
 if (values.record && passing !== null) {

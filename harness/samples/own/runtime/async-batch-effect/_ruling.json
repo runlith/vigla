@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #18374: upstream 5.57.3 with async on and dev:false commits 0/1 instead of 1/1 after the nested microtask writes"
+}

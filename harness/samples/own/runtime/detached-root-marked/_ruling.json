@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunk 2 (stale path mark): on upstream 5.57.3 the batch that closes the branch skips it with the nested root's path still marked, its commit detaches the root as an independent root with `CLEAN` cleared, and `#resolve` then takes every later effect under it as covered — logs stay at `count 0, other 0`. Hunk 2 ported to `#resolve` (walk to the top, deduplicate roots) brings both effects back at the bump; the effect the closing batch dirtied still waits for it"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #10252 coordinate cases on upstream 5.57.3 Chromium: a receiver under an ancestor scaled in the same update starts 90px off its sender, a receiver with its own scale(2) starts 30px off a sender under a scaled ancestor, a sender keeps drifting 25px with its earlier translate intro, and a receiver under perspective starts 13px off"
+}

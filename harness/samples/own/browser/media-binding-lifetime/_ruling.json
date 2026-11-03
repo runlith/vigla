@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 retains video resize listeners after the video branch disappears, so a retained element overwrites new parent dimensions with [0,0] instead of preserving [123,456]"
+}

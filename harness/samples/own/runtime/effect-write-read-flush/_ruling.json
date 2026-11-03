@@ -1,0 +1,4 @@
+{
+	"status": "contract",
+	"reason": "Scheduler trap, hunk 7 (effect self-invalidation): green on upstream 5.57.3, kept as a regression test"
+}

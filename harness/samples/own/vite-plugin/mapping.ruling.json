@@ -1,0 +1,9 @@
+{
+	"preprocessed styles map imported and component declarations": {
+		"status": "contract"
+	},
+	"preprocessed component maps generated code to its original lines": {
+		"status": "difference",
+		"reason": "Frozen Svelte #9961: on Svelte 5.57.3 / vite-plugin-svelte 7.3.1 public Vite transformRequest maps new Example(41) and sample.read() one original line too low after TypeScript preprocessing"
+	}
+}

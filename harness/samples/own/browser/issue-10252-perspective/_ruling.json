@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #10252 under an ancestor perspective(700px) rotateY(35deg) rotateX(10deg) with scroll and a zoom 1.25 list: upstream 5.57.3 Chromium applies viewport deltas as local translations, displacing tiles by up to 60px when the first crossfade+FLIP shuffle starts, by up to 64px when a shuffle at 400ms restarts, and ending motions up to 69px from their slots"
+}

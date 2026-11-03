@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #18150: upstream 5.57.3 clears bind:this before the effect cleanup, which reads null rather than the previous INPUT"
+}

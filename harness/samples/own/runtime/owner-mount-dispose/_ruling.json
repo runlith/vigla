@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Public owner lifetimes (spec 37f29ce1): disposing an owner that holds a mount removes the mounted DOM and its delegated listeners as unmount does; upstream 5.57.3 has no `vigla` entry"
+}

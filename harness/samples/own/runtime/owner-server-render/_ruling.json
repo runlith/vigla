@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Application primitives (spec 8191e72f): a server render() runs under an owner of its own beneath the caller's, sees context and hydratable values set on a request owner before it, and ends with its abort signal and teardowns; upstream 5.57.3 has no `vigla` entry"
+}

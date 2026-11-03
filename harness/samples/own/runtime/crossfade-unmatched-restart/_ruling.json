@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 reuses the canceled out-only deferred options instead of reevaluating the re-entry factory, so an unmatched fallback runs a second time rather than being canceled before resolution"
+}

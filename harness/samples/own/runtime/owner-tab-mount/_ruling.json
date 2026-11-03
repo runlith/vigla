@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Application primitives (spec 8191e72f): mounts under a tab owner inherit its context and keep per-mount ids, and openHydration answers hydratable reads under the owner outside hydrate() until closed; upstream 5.57.3 has no `vigla` entry"
+}

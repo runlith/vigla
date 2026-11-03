@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #18993 public hydration analogue: upstream 5.57.3 renders content after the pre-hydration data write but its expected root/child layout effect is absent"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #18069 narrowed case: upstream 5.57.3 with dev:true emits a false waterfall warning although working's 200ms promise started eagerly before broken's 100ms Promise.all work"
+}

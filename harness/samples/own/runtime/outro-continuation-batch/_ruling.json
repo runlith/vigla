@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 settled returns before the sibling child is rendered while the awaited gate initializes; Vigla renders it and preserves its removal batch's prior view when an unrelated continuation flushes"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #16256: upstream 5.57.3 logs post:false before pre:false when a child focus effect closes the parent branch"
+}

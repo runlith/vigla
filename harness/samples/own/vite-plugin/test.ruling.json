@@ -1,0 +1,25 @@
+{
+	"preprocessed styles keep each project's aliases": {
+		"status": "contract"
+	},
+	"imported style URLs retain their source directory and scoping": {
+		"status": "difference",
+		"reason": "Frozen vite-plugin-svelte #1310: plugin 7.3.1 / Svelte 5.57.3 public Vite build flattens nested CSS imports before resolving URLs and emits no imported image asset"
+	},
+	"dependency events match normalized and native Windows paths": {
+		"status": "difference",
+		"reason": "Frozen vite-plugin-svelte #1394: public preprocess dependencies report C:/ paths while public watcher change events carry native C:\\ paths; on 7.3.1 the native Sass control updates but PostCSS stays red"
+	},
+	"dependency scan crawls components exporting template snippets": {
+		"status": "difference",
+		"reason": "Frozen vite-plugin-svelte #1066 (duplicate #1356): on plugin 7.3.1 / Svelte 5.57.3 / Vite 8.2.2 a fresh dev scan of a JavaScript <script module> exporting a template snippet logs Failed to run dependency scan with [PARSE_ERROR] Export 'row' is not defined"
+	},
+	"parent replacement keeps child hot updates live": {
+		"status": "difference",
+		"reason": "Frozen vite-plugin-svelte #1320: on plugin 7.3.1 / Svelte 5.57.3 the final child HMR notification arrives but the DOM stays at child two after a child-parent-child edit sequence"
+	},
+	"style tags in strings retain their literal value": {
+		"status": "difference",
+		"reason": "Frozen vite-plugin-svelte #1254: plugin 7.3.1 / Svelte 5.57.3 renders <style>Style3 *{}</style> instead of the source string <style>Style3</style>"
+	}
+}

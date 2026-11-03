@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Public owner failure handlers interleave with DOM boundaries; upstream has no vigla owner entry"
+}

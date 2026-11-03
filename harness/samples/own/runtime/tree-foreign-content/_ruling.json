@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 builds fragments: 'tree' templates without the HTML parser's integration points, so the <b> inside an SVG <title> is created in the SVG namespace instead of HTML (third assertion fails)"
+}

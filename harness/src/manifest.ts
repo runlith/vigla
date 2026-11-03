@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { ownManifest } from './rulings.ts';
 
 export type Status = 'contract' | 'converted' | 'dropped' | 'difference' | 'covered';
 
@@ -25,6 +26,7 @@ export type Entry = 'contract' | Ruled;
 export interface Manifest {
 	conversions?: Record<string, string>;
 	samples: Record<string, Entry>;
+	problems?: readonly string[];
 }
 
 export const root = join(import.meta.dirname, '..');
@@ -34,6 +36,13 @@ export function manifestPath(project: string, suite: string): string {
 }
 
 export function load(project: string, suite: string): Manifest {
+	if (project === 'own')
+		return ownManifest(
+			suite,
+			join(root, 'samples', project, suite),
+			manifestPath(project, suite),
+			join(root, '..')
+		);
 	return JSON.parse(readFileSync(manifestPath(project, suite), 'utf8')) as Manifest;
 }
 
@@ -53,8 +62,15 @@ export function runs(status: Status): boolean {
 	return status === 'contract' || status === 'converted';
 }
 
+export function provesDifferences(): boolean {
+	return process.env.VIGLA_DIFFERENCES === '1';
+}
+
 export function runsOn(status: Status, project: string, target: string): boolean {
-	return runs(status) || (status === 'difference' && project === 'own' && target !== 'upstream');
+	return (
+		runs(status) ||
+		(status === 'difference' && project === 'own' && (target !== 'upstream' || provesDifferences()))
+	);
 }
 
 export function faults(manifest: Manifest): string[] {
@@ -73,5 +89,6 @@ export function faults(manifest: Manifest): string[] {
 	}
 	for (const [file, reason] of Object.entries(manifest.conversions ?? {}))
 		if (!reason) found.push(`${file}: converted without a reason`);
+	found.push(...(manifest.problems ?? []));
 	return found;
 }

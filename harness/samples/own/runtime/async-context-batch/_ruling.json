@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #16942: a read after an await in a template expression must use the batch that started it; upstream 5.57.3 shows 3/3 instead of 2/2 when the first of two held batches resolves"
+}

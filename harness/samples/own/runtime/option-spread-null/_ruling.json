@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #17395: upstream 5.57.3 selects empty strings rather than undefined and null for option values supplied through spread"
+}

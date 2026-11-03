@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #18997: upstream 5.57.3 evaluates the same derived 8 times within one held view after counters reset, rather than at most once"
+}

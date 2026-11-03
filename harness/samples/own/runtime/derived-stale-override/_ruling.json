@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #19057: assigning a derived its stale cached value on upstream 5.57.3 yields ['2', 2] for the connected and disconnected cases rather than ['1', 1]"
+}

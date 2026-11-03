@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 publishes the initial bindable fallback before its async script completes; server-binding-async-upstream retains initial around A:a:child. Vigla settles async descendants before publishing final bound values and retaining parent body/head."
+}

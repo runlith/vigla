@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Native per-tree hydration formats and their published-data lifetime use public vigla entries, which upstream does not provide"
+}

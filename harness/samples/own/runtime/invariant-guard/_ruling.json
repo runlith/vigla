@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler invariant 2: upstream 5.57.3 runs the pre effect and template of a branch a commit-time teardown deselected — TypeError reading `name` of null"
+}

@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunk 9 of runlith's Svelte patch: on upstream 5.57.3 the later batch merged into the awaiting one runs the row of the branch that batch removed — TypeError reading `active` of null"
+}

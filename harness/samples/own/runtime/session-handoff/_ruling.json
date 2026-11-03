@@ -1,0 +1,4 @@
+{
+	"status": "contract",
+	"reason": "Layer's session-handoff trap (spec 8191e72f): an answer landing after the keyed session frame changed reaches the view through the incoming frame; green on upstream 5.57.3, kept as a regression test"
+}

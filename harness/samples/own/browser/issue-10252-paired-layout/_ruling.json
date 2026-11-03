@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Upstream 5.57.3 Chromium keeps matched senders in flow, so the four plain and four delegated no-FLIP crossfade motions start 40px and 80px below their displayed sources; a receive half created only inside an opaque deferred callback stays unmatched on both targets, showing receivers in their slots without motion"
+}

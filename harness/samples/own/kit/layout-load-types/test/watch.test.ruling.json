@@ -1,0 +1,6 @@
+{
+	"layout load constraints follow a child losing and regaining its load export": {
+		"status": "difference",
+		"reason": "Kit #17450: Kit 3.1.0/Svelte 5.57.3/plugin 7.3.1 on 2026-11-03 updates the edited child's declaration after its load export is removed, but the parent LayoutServerLoad still accepts an empty result despite required App.PageData.title. The checker wrongly exits 0; a fresh parent constraint must report TS2322 until the child load is restored."
+	}
+}

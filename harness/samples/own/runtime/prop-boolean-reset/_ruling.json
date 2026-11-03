@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Svelte #17474: upstream 5.57.3 cannot reopen the child after its local prop write and parent reset when the prop is passed through !!ask"
+}

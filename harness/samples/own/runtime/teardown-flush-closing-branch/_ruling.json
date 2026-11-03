@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Scheduler trap, hunk 10 (nested eager flush): on upstream 5.57.3 a flushSync in the teardown of a branch an effect closed throws — TypeError reading `clear` of null"
+}
