@@ -94,6 +94,7 @@ export interface Effect extends Reaction {
 	order: number;
 	batch: number;
 	forked: boolean;
+	async: boolean;
 	running: boolean;
 	destroyed: boolean;
 	inert: boolean;
@@ -118,8 +119,6 @@ export function now(): number {
 export function isDerived(node: Source | Reaction): node is Derived {
 	return (node as Source | Effect).kind === DERIVED;
 }
-
-export const asynchronous = new WeakSet<Effect>();
 
 export function application(effect: Effect): Effect {
 	let top = effect;

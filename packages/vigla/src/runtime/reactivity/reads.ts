@@ -14,7 +14,6 @@ import {
 	CLEAN,
 	DIRTY,
 	MAYBE,
-	asynchronous,
 	equal,
 	isDerived,
 	now,
@@ -289,7 +288,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 		if (
 			own === undefined &&
 			effect.kind === BLOCK &&
-			(!asynchronous.has(effect) || effect.forked) &&
+			(!effect.async || effect.forked) &&
 			effect.batch !== 0 &&
 			effect.batch !== (view?.batch.order ?? processed()?.order)
 		)
@@ -310,7 +309,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 		if (
 			effect.kind === BLOCK &&
 			effect.forked &&
-			!asynchronous.has(effect) &&
+			!effect.async &&
 			effect.batch !== batch?.order &&
 			!batch?.reads?.has(effect)
 		)

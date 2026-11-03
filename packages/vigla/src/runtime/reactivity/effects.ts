@@ -7,7 +7,6 @@ import {
 	EFFECT,
 	ROOT,
 	TEMPLATE,
-	asynchronous,
 	isDerived,
 	type Boundary,
 	type Derived,
@@ -232,6 +231,7 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		status: DIRTY,
 		batch: 0,
 		forked: false,
+		async: false,
 		deps: null,
 		rv: 0,
 		fn,
@@ -351,7 +351,7 @@ export function run(effect: Effect, first = false): void {
 	const tracked = effect.kind !== ROOT && effect.kind !== BRANCH;
 	const batch = view?.batch ?? processed();
 	const draft =
-		!first && tracked && batch !== null && (batch.fork || asynchronous.has(effect))
+		!first && tracked && batch !== null && (batch.fork || effect.async)
 			? begin(effect, batch)
 			: null;
 	let signal: AbortController | undefined;

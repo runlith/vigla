@@ -9,7 +9,6 @@ import {
 	DERIVED,
 	DIRTY,
 	EAGER,
-	asynchronous,
 	isDerived,
 	now,
 	type Derived,
@@ -225,7 +224,7 @@ function retain(target: Reaction, current: Frame): void {
 	}
 	target.captured = { values: reads, viewed: view !== null };
 	const effect = target as Effect;
-	if (effect.kind !== BLOCK || asynchronous.has(effect)) return;
+	if (effect.kind !== BLOCK || effect.async) return;
 	const batch = view?.batch ?? processed();
 	if (batch !== null && (batch.after !== null || batch.work > 0 || batch.fork))
 		(batch.reads ??= new Map()).set(effect, reads);

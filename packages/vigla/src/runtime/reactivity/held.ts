@@ -15,7 +15,6 @@ import {
 import {
 	BLOCK,
 	CLEAN,
-	asynchronous,
 	equal,
 	isDerived,
 	type Effect,
@@ -41,12 +40,7 @@ export function reconcile(batch: Batch): void {
 		for (let at = queued.parent; at !== null; at = at.parent) {
 			if (seen.has(at)) break;
 			seen.add(at);
-			if (
-				at.kind === BLOCK &&
-				at.batch !== batch.order &&
-				!asynchronous.has(at) &&
-				depends(at, sources, memo)
-			)
+			if (at.kind === BLOCK && at.batch !== batch.order && !at.async && depends(at, sources, memo))
 				force(batch, at);
 		}
 	}

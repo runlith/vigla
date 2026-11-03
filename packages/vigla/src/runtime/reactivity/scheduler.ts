@@ -34,7 +34,6 @@ import {
 	EFFECT,
 	MAYBE,
 	TEMPLATE,
-	asynchronous,
 	equal,
 	stamp,
 	type Derived,
@@ -85,7 +84,7 @@ function mark(source: Source, status: Status, all: boolean, forked: number): voi
 		}
 		if (forked !== 0 && previous === CLEAN && effect.batch === forked) continue;
 		if (previous < status) effect.status = status;
-		if (eager !== null && previous !== DIRTY && effect.kind === BLOCK && !asynchronous.has(effect))
+		if (eager !== null && previous !== DIRTY && effect.kind === BLOCK && !effect.async)
 			eager.add(effect);
 		if (all || previous === CLEAN) enqueue((scheduling ??= receiving()), effect);
 	}

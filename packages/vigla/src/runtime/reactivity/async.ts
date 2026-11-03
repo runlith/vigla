@@ -7,7 +7,7 @@ import { sequence } from './history.ts';
 import { changed, get } from './reads.ts';
 import { waitFor } from './held.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
-import { asynchronous, type Boundary, type Effect, type Source } from './graph.ts';
+import { type Boundary, type Effect, type Source } from './graph.ts';
 import { source } from './sources.ts';
 import { showing, tallied, tally } from './tallies.ts';
 import { begin, exempt, recheck, released } from './units.ts';
@@ -258,7 +258,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			}
 		);
 	});
-	asynchronous.add(effect);
+	effect.async = true;
 	return ready;
 }
 
