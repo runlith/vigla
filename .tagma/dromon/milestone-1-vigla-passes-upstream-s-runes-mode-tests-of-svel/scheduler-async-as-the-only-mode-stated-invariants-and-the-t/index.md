@@ -29,7 +29,7 @@ Creating a root without the caller's reactive context — what runlith's patch e
 - hunk 8: `patches/svelte@5.57.0.off/packages/layer/src/svelte/rebase.svelte.test.ts`;
 - hunk 9: `patches/svelte@5.57.0.off/packages/layer/src/svelte/branch-removal.svelte.test.ts`.
 
-Hunk 2 has no unit reproduction — `patches/README.md` proves it by an fpm e2e alone; finding one is a task of its own, and the hunk joins the traps only when one exists.
+Hunk 2 (`Batch.schedule` bailing on a branch whose `CLEAN` bit is cleared) has no trap in tagma: `patches/README.md` proves it by a downstream e2e, through a second `#process` of a committed batch, a path 5.57.1 removed when it moved the marking into `#resolve`. Its trap is Vigla's own `harness/samples/own/runtime/detached-root-marked`. One batch closes an `{#if}` branch and dirties an effect of an `$effect.root` created inside that branch. The traversal skips the closing branch with the root's path still marked, and the commit detaches the root as an independent root whose `CLEAN` bit stays cleared. On upstream 5.57.3, and on 5.57.0 in both modes, nothing under that root runs again. With hunk 2 applied to 5.57.0's `schedule`, or ported to 5.57.3's `#resolve`, the next write under the root runs both its effects; the effect the closing batch dirtied waits for that write either way. Those runs were made in scratch, outside the harness, and not kept.
 
 **Acceptance.**
 - Every invariant has a test, green on Vigla.
