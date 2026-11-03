@@ -5,9 +5,9 @@ ord: 2
 tags: ["explanation"]
 sources:
   - kind: file
-    ref: packages/svelte/types/runtime.d.ts
-  - kind: file
     ref: packages/svelte/elements.d.ts
+  - kind: file
+    ref: packages/svelte/types/index.d.ts
 ---
 Anything Vigla turns into a compile error is left out of the declarations. An import or option Vigla rejects is then a type error at the same place the compiler would refuse it. That covers `createEventDispatcher`, `beforeUpdate`, `afterUpdate`, `spring`, `tweened`, `svelte/legacy`, `on:` element attributes, and the `accessors`, `immutable` and `compatibility` compile options. It also covers the class-component forms: `mount`'s `events` option and the `SvelteComponent` value. `svelte:fragment`, `svelte:self` and `svelte:component` are not declared either, but the custom-element index signature of `SvelteHTMLElements` accepts them, so `svelte-check` reports them only through the compiler's own diagnostic.
 

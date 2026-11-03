@@ -7,11 +7,7 @@ sources:
   - kind: file
     ref: packages/svelte/conformance/declarations.ts
   - kind: file
-    ref: packages/svelte/types/runtime.d.ts
-  - kind: file
-    ref: packages/svelte/types/entries.d.ts
-  - kind: file
-    ref: packages/svelte/types/compile.d.ts
+    ref: packages/svelte/types/index.d.ts
 ---
 The ambient blocks state upstream's public names and shapes themselves rather than re-exporting the adapter's or the core's types. Whenever `types/index.d.ts` is in a program, an ambient `declare module 'svelte…'` wins over package resolution, so these blocks are the whole surface a checker sees. A re-export from `vigla` would leak core names into hovers and into libraries' emitted declarations, where `vigla` does not resolve from the library under a strict install.
 
