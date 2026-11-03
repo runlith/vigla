@@ -15,9 +15,13 @@ const positions = new WeakMap<Effect, ChildNode>();
 
 let slotting = false;
 
+const offscreen = new WeakMap<ParentNode, boolean>();
+
 function slots(at: ChildNode | null): boolean {
-	const parent = at?.parentNode ?? null;
-	if (parent === null || parent.nodeType !== 1) return slotting;
+	if (at === null) return false;
+	const parent = at.parentNode;
+	if (parent === null) return slotting;
+	if (parent.nodeType !== 1) return offscreen.get(parent) ?? slotting;
 	const element = parent as Element;
 	return isCustomTag(element.localName) || element.shadowRoot !== null;
 }
@@ -67,6 +71,7 @@ export function build(
 	const first = slotted ? document.createComment('') : document.createTextNode('');
 	const anchor = document.createTextNode('');
 	fragment.append(first, anchor);
+	offscreen.set(fragment, slotted);
 	const outer = slotting;
 	slotting = slotted;
 	let effect: Effect;
@@ -99,6 +104,7 @@ export function place(built: Built, before: ChildNode): void {
 export function stash(built: Built): void {
 	if (built.fragment !== null) return;
 	const fragment = document.createDocumentFragment();
+	offscreen.set(fragment, slots(built.first));
 	let node: ChildNode | null = built.first;
 	while (node !== null) {
 		const next: ChildNode | null = node.nextSibling;

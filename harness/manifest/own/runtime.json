@@ -34,6 +34,7 @@
 		"custom-element-async-props": "contract",
 		"custom-element-hmr": "contract",
 		"custom-element-named-slot": "contract",
+		"custom-element-offscreen-slot": "contract",
 		"custom-element-public-props": "contract",
 		"custom-element-snippet": {
 			"status": "difference",
