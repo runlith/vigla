@@ -1,5 +1,5 @@
 import { failure, warn } from '../../shared/diagnostics.ts';
-import { OPEN_ELSE } from '../../shared/markers.ts';
+import { OPEN_ELSE, OPEN_FAILED } from '../../shared/markers.ts';
 import { reveal } from '../reactivity/async.ts';
 import { current, onCommit, skip as skipEffect } from '../reactivity/batch.ts';
 import { block, branch, destroy, fail } from '../reactivity/effects.ts';
@@ -20,8 +20,6 @@ export interface BoundaryProps {
 	readonly pending?: Snippet | null;
 	readonly onerror?: ((error: unknown, reset: Reset) => void) | null;
 }
-
-export const FAILED = '[?';
 
 type Transform = (error: unknown) => unknown;
 
@@ -97,8 +95,8 @@ class Boundary implements Contract {
 	#hydrate(node: ChildNode): void {
 		const data = instruction(node);
 		claim(node.nextSibling);
-		if (data.startsWith(FAILED)) {
-			const error = JSON.parse(data.slice(FAILED.length)) as unknown;
+		if (data.startsWith(OPEN_FAILED)) {
+			const error = JSON.parse(data.slice(OPEN_FAILED.length)) as unknown;
 			const failed = this.#props.failed;
 			const { reset, report } = this.#resettable(error);
 			task(report);
@@ -303,6 +301,10 @@ class Boundary implements Contract {
 				const { reset, report } = this.#resettable(value);
 				report();
 				if (!failed || this.#effect.destroyed) return;
+				if (this.#failed !== null) {
+					discard(this.#failed);
+					this.#failed = null;
+				}
 				try {
 					const built = this.#run(() =>
 						this.#fallback((anchor) =>

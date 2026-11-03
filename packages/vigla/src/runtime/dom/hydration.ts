@@ -1,5 +1,5 @@
 import { warn } from '../../shared/diagnostics.ts';
-import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';
+import { CLOSE, OPEN, OPEN_ELSE, OPEN_FAILED } from '../../shared/markers.ts';
 
 export const COMMENT = 8;
 
@@ -80,7 +80,10 @@ export function isClose(node: ChildNode): boolean {
 
 function opens(data: string): boolean {
 	return (
-		data === OPEN || data === OPEN_ELSE || (data[0] === '[' && !Number.isNaN(Number(data.slice(1))))
+		data === OPEN ||
+		data === OPEN_ELSE ||
+		data.startsWith(OPEN_FAILED) ||
+		(data[0] === '[' && !Number.isNaN(Number(data.slice(1))))
 	);
 }
 

@@ -2,6 +2,8 @@ export const OPEN = '[';
 
 export const OPEN_ELSE = '[!';
 
+export const OPEN_FAILED = '[?';
+
 export const CLOSE = ']';
 
 export const open = `<!--${OPEN}-->`;
