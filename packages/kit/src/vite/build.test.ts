@@ -275,9 +275,7 @@ test.each(['single', 'inline'] as const)(
 			});
 			expect(existsSync(path.join(output, 'client', manifest.client!.start))).toBe(false);
 			expect(typeof scope[name].app.start).toBe('function');
-			expect(manifest.client!.inline!.style!('/cdn', '/prefix')).toContain(
-				'/cdn/_app/immutable/assets/'
-			);
+			expect(manifest.client!.inline!.style!('/cdn')).toContain('/cdn/_app/immutable/assets/');
 		} else {
 			const globals = globalThis as unknown as Record<string, unknown>;
 			globals[name] = payload;

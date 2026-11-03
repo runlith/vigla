@@ -1136,6 +1136,7 @@ options/test/paths.test.js > inlineStyleThreshold > inlines CSS (test-dev-3/chro
 options/test/paths.test.js > inlineStyleThreshold > inlines CSS (test-server-side-route-resolution-build-1/chromium-build)
 options/test/paths.test.js > inlineStyleThreshold > inlines CSS (test-server-side-route-resolution-dev-1/chromium-dev)
 options/test/paths.test.js > inlineStyleThreshold > inlines CSS (test-server-side-route-resolution-dev-1/chromium-dev-no-js)
+options/test/paths.test.js > inlineStyleThreshold > loads assets located in static directory (test-build-3/chromium-build-no-js)
 options/test/paths.test.js > relative paths > works when proxied (test-dev-2/chromium-dev)
 options/test/paths.test.js > relative paths > works when proxied (test-server-side-route-resolution-dev-1/chromium-dev)
 options/test/test.js > Async > updates the DOM before onNavigate's promise is resolved (test-dev-2/chromium-dev)

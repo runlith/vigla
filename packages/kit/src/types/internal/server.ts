@@ -62,7 +62,7 @@ export type EntryGenerator = () => MaybePromise<Array<Record<string, string>>>;
 export type ComponentLoader = () => Promise<Component<any>>;
 export type NodeLoader = () => Promise<PageNode>;
 
-export type Style = (assets: string, base: string) => string;
+export type Style = (assets: string) => string;
 
 export interface PageNode {
 	index: number;

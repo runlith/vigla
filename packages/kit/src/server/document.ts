@@ -145,7 +145,7 @@ export async function renderDocument(
 		for (const font of node.fonts) fonts.set(font.file, font);
 		const inline = await node.inline_styles?.();
 		for (const [name, style] of Object.entries(inline ?? {}))
-			inlined.set(name, typeof style === 'string' ? style : style(paths.assets, paths.base));
+			inlined.set(name, typeof style === 'string' ? style : style(paths.assets));
 	}
 	const preload =
 		state.resolveOptions.preload ?? ((file) => file.type === 'js' || file.type === 'css');
@@ -165,7 +165,7 @@ export async function renderDocument(
 			links.push(`<${encodeURI(path)}>; rel="preload"; as="style"; nopush`);
 	}
 	const css = manifest.client?.inline
-		? (manifest.client.inline.style?.(paths.assets, paths.base) ?? '')
+		? (manifest.client.inline.style?.(paths.assets) ?? '')
 		: [...inlined.values()].join('\n');
 	if (css) {
 		await csp.style(css);

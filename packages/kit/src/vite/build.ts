@@ -233,10 +233,10 @@ async function buildClient(
 	if (inline) {
 		const styles = inlineStyles.map(
 			(file) =>
-				`(${styleExpression(readFileSync(path.join(client, file), 'utf8'), file, clientFiles, staticFiles)})(assets,base)`
+				`(${styleExpression(readFileSync(path.join(client, file), 'utf8'), file, clientFiles, staticFiles)})(assets)`
 		);
 		if (styles.length) {
-			const source = `(assets,base) => [${styles.join(',')}].join('\\n')`;
+			const source = `(assets) => [${styles.join(',')}].join('\\n')`;
 			context.artifacts.inlineStyle = {
 				source,
 				render: new Function('return ' + source)() as Style

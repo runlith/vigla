@@ -12,12 +12,12 @@ test('inlined CSS rebases only known asset URLs without interpreting user string
 		new Set(['static.svg'])
 	);
 	const render = new Function('return ' + expression)() as Style;
-	expect(render('/cdn/', '/prefix/')).toBe(
+	expect(render('/cdn/')).toBe(
 		css
 			.replace(
 				'url("./image.png?size=2#part")',
 				'url("/cdn/_app/immutable/assets/image.png?size=2#part")'
 			)
-			.replace('url(../../../static.svg)', 'url(/prefix/static.svg)')
+			.replace('url(../../../static.svg)', 'url(/cdn/static.svg)')
 	);
 });

@@ -68,11 +68,10 @@ export function styleExpression(
 					: path.posix.join(path.posix.dirname(stylesheet), pathname)
 			);
 			if (files.has(target) || staticFiles.has(target)) {
-				const prefix = staticFiles.has(target) ? 'base' : 'assets';
 				const url = '/' + target.split('/').map(encodeURIComponent).join('/') + suffix;
 				parts.push(
 					JSON.stringify(css.slice(offset, start)),
-					`(${prefix}.endsWith('/') ? ${prefix}.slice(0,-1) : ${prefix}) + ${JSON.stringify(url)}`
+					`(assets.endsWith('/') ? assets.slice(0,-1) : assets) + ${JSON.stringify(url)}`
 				);
 				offset = end;
 			}
@@ -81,5 +80,5 @@ export function styleExpression(
 		if (css[index] === ')') index++;
 	}
 	parts.push(JSON.stringify(css.slice(offset)));
-	return `(assets, base) => ${parts.join(' + ')}`;
+	return `(assets) => ${parts.join(' + ')}`;
 }
