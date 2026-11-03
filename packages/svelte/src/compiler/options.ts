@@ -106,11 +106,12 @@ function nested(value: unknown, path: string, allowed: readonly string[]): Recor
 
 export function validate(options: object, kind: Kind): Notice[] {
 	const given = options as Record<string, unknown>;
-	const keys = kind === 'component' ? componentKeys : new Set(moduleKeys);
 	const notices: Notice[] = [];
 	for (const key of Object.keys(given)) {
-		if (!keys.has(key)) fail('options_unrecognised', `Unrecognised compiler option ${key}`);
+		if (!componentKeys.has(key))
+			fail('options_unrecognised', `Unrecognised compiler option ${key}`);
 		if (given[key] === undefined) continue;
+		if (kind === 'module' && !moduleKeys.includes(key)) continue;
 		const message = removed[key];
 		if (message !== undefined) fail('options_removed', `Invalid compiler option: ${message}`);
 		const notice = deprecated[key];
@@ -120,6 +121,7 @@ export function validate(options: object, kind: Kind): Notice[] {
 	}
 	const experimental = nested(given.experimental, 'experimental', ['async']);
 	if (experimental.async === false) invalid('`experimental.async: false` — async is the only mode');
+	if (kind === 'module') return notices;
 	const compatibility = nested(given.compatibility, 'compatibility', ['componentApi']);
 	if (compatibility.componentApi === 4) {
 		invalid('`compatibility.componentApi: 4` — the Svelte 4 component API is not supported');
