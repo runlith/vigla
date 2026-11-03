@@ -1,7 +1,7 @@
 ---
 id: 01a18619-654d-70b9-aa41-2a6f0358b0e5
 title: Upstream's own runner establishes the pass set from a copy outside the repository
-ord: 6
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

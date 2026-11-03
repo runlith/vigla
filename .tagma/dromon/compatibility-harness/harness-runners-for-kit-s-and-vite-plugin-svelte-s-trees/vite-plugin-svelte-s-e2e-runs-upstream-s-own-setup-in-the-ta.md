@@ -1,7 +1,7 @@
 ---
 id: 01a18679-1a4c-771c-84a2-4eb789c1b9c1
 title: vite-plugin-svelte's e2e runs upstream's own setup in the target's tree, ruled per test by a beforeEach gate
-ord: 13
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: dir

@@ -1,7 +1,7 @@
 ---
 id: 01a19c4c-2f2a-764c-ba52-de297aea2c75
 title: "The layout-data app retains Kit #17383's initial-hydration route shape"
-ord: 21
+ord: 5
 tags: ["explanation"]
 sources:
   - kind: dir

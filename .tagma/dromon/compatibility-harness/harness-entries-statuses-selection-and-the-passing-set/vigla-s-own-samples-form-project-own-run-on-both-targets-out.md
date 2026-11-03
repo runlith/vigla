@@ -1,7 +1,7 @@
 ---
 id: 01a1868a-e2e4-7d6e-a8fa-25e459dee6f0
 title: Vigla's own samples form project `own`, run on both targets outside the upstream equality
-ord: 14
+ord: 5
 tags: ["explanation"]
 edges:
   - kind: relates

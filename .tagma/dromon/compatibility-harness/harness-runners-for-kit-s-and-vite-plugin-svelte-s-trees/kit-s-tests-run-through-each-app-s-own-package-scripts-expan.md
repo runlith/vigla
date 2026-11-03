@@ -1,7 +1,7 @@
 ---
 id: 01a186ae-3fd5-74c0-a6ef-0500dc17f0fd
 title: Kit's tests run through each app's own package scripts, expanded step by step on the reference and the harness alike
-ord: 15
+ord: 2
 tags: ["explanation"]
 edges:
   - kind: relates

@@ -1,7 +1,7 @@
 ---
 id: 01a186ae-4062-7026-8b94-fdeb26c2ff0e
 title: Kit's unit specs run only once converted to public entries, and its type tests are one entry per file
-ord: 16
+ord: 3
 tags: ["explanation"]
 edges:
   - kind: relates

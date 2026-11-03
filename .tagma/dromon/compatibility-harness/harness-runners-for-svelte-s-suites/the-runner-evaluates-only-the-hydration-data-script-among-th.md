@@ -1,7 +1,7 @@
 ---
 id: 01a18616-321a-7d0e-9a02-dfbffdf66f8b
 title: The runner evaluates only the hydration-data script among the head scripts server rendering emits
-ord: 3
+ord: 8
 tags: ["explanation"]
 edges:
   - kind: relates

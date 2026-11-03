@@ -1,7 +1,7 @@
 ---
 id: 01a18616-32e8-741c-8e0d-7c8f17e3fb6a
 title: The harness resolves svelte from the target by importer and runs the target's package through Vite
-ord: 4
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

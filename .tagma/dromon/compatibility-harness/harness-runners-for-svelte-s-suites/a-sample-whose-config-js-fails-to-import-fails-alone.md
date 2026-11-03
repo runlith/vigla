@@ -1,7 +1,7 @@
 ---
 id: 01a1875f-0aa0-7df9-b865-84ef3a80e84d
 title: A sample whose `_config.js` fails to import fails alone
-ord: 19
+ord: 6
 tags: ["explanation"]
 sources:
   - kind: file

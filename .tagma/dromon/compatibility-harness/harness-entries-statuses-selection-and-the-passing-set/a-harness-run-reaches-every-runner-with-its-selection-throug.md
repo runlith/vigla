@@ -1,7 +1,7 @@
 ---
 id: 01a1875f-0a59-76ea-b325-87d951d05a40
 title: A harness run reaches every runner with its selection through the scope file VIGLA_SCOPE names, and keeps its reports apart
-ord: 18
+ord: 3
 tags: ["explanation"]
 edges:
   - kind: relates

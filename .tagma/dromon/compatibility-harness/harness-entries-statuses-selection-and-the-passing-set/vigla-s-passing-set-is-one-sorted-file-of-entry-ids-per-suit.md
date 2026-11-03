@@ -1,7 +1,7 @@
 ---
 id: 01a1875f-09cc-76a4-b488-9c16f5ffac8a
 title: Vigla's passing set is one sorted file of entry ids per suite, and a recorded entry that fails fails the run
-ord: 17
+ord: 2
 tags: ["explanation"]
 edges:
   - kind: relates

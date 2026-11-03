@@ -1,7 +1,7 @@
 ---
 id: 01a1a134-ba12-7028-9dc3-fd8c77a34629
 title: Svelte's type samples are one entry per file, checked by tsrs in one program against the target's published declarations
-ord: 24
+ord: 9
 tags: ["explanation"]
 edges:
   - kind: relates

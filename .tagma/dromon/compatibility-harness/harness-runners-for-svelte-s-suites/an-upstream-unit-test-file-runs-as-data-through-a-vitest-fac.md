@@ -1,7 +1,7 @@
 ---
 id: 01a1863c-2a1d-7b49-8910-3da64ae5fc67
 title: An upstream unit-test file runs as data through a vitest facade that rules each test from the manifest
-ord: 9
+ord: 4
 tags: ["explanation"]
 edges:
   - kind: relates

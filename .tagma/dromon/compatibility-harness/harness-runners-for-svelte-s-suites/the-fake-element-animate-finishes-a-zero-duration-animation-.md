@@ -1,7 +1,7 @@
 ---
 id: 01a18616-312e-7aac-965d-4e2c25078391
 title: The fake Element.animate finishes a zero-duration animation as soon as its onfinish is set
-ord: 2
+ord: 7
 tags: ["explanation"]
 edges:
   - kind: relates

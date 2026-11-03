@@ -1,7 +1,7 @@
 ---
 id: 01a1863c-4759-78d7-a467-71a0556aa586
 title: Converted samples read bound props back only through keys the props object already has
-ord: 10
+ord: 5
 tags: ["explanation"]
 edges:
   - kind: relates

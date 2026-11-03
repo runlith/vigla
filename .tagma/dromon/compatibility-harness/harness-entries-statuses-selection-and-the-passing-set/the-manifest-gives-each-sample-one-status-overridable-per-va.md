@@ -1,7 +1,7 @@
 ---
 id: 01a18616-570f-7d0c-9712-d2bf5d8f8564
 title: The manifest gives each sample one status, overridable per variant, and only contract and converted entries run, beside project own's differences on Vigla
-ord: 5
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

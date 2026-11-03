@@ -1,7 +1,7 @@
 ---
 id: 01a1863c-0e2b-75ed-9e02-5a99132ffdf0
 title: Browser samples run in Chromium from an esbuild bundle resolved against the target
-ord: 8
+ord: 3
 tags: ["explanation"]
 edges:
   - kind: relates

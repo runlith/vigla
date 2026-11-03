@@ -1,7 +1,7 @@
 ---
 id: 01a1863b-ef68-732f-9afb-66601350085c
 title: runtime-production gets DEV false by resolving esm-env under the production condition
-ord: 7
+ord: 2
 tags: ["explanation"]
 edges:
   - kind: relates

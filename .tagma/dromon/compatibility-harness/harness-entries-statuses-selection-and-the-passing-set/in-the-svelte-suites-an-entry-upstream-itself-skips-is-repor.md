@@ -1,7 +1,7 @@
 ---
 id: 01a19e9d-a45b-7f25-99b0-8a5eec6f403e
 title: In the Svelte suites, an entry upstream itself skips is reported as skipped by upstream, outside the status counts and the passing set
-ord: 23
+ord: 4
 tags: ["explanation"]
 edges:
   - kind: relates

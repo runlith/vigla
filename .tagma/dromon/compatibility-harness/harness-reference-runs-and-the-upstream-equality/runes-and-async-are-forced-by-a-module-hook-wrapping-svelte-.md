@@ -1,7 +1,7 @@
 ---
 id: 01a18679-1a22-7cc3-8c23-93c4b0fa35f1
 title: Runes and async are forced by a module hook wrapping `svelte/compiler`, on the reference and the harness alike
-ord: 12
+ord: 2
 tags: ["explanation"]
 edges:
   - kind: relates

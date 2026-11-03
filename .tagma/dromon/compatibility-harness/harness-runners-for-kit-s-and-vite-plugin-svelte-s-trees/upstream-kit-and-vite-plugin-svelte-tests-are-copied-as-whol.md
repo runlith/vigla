@@ -1,7 +1,7 @@
 ---
 id: 01a18679-19d9-77b5-9372-29e928467398
 title: Upstream Kit and vite-plugin-svelte tests are copied as whole trees whose project conversions the reference run shares
-ord: 11
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates
