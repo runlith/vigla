@@ -5,9 +5,10 @@ import {
 	alias,
 	atCommit,
 	atMerge,
-	Batch,
+	createBatch,
 	current,
-	within
+	within,
+	type Batch
 } from './src/runtime/reactivity/batch.ts';
 import { flushSync, process } from './src/runtime/reactivity/scheduler.ts';
 import { block, destroy, root } from './src/runtime/reactivity/effects.ts';
@@ -76,7 +77,7 @@ test('held and fork choices prepare only on their real commit', async () => {
 			});
 		});
 	});
-	const held = new Batch();
+	const held = createBatch();
 	let settle!: () => void;
 	try {
 		within(held, () => {

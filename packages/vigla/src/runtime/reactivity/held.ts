@@ -22,6 +22,7 @@ import {
 	type Reaction,
 	type Source
 } from './graph.ts';
+import { beforeOf } from './history.ts';
 import { merged } from './provenance.ts';
 import { changed as changedReads } from './reads.ts';
 import { inherits, inside, intersects, materialize } from './views.ts';
@@ -30,7 +31,7 @@ export function reconcile(batch: Batch): void {
 	let sources: Map<Source, unknown> | null = null;
 	for (const other of pending) {
 		if (!inherits(batch, other)) continue;
-		for (const [source, value] of other.before) (sources ??= new Map()).set(source, value);
+		for (const [source, value] of beforeOf(other)) (sources ??= new Map()).set(source, value);
 	}
 	if (sources === null) return;
 	const seen = new Set<Effect>();
@@ -61,9 +62,10 @@ function remap(reader: Batch, from: Batch, into: Batch): void {
 function fold(from: Batch, into: Batch): void {
 	if (DEV) merged(from, into);
 	const older = from.order < into.order;
-	for (const [source, value] of from.before) {
-		if (!older && into.before.has(source)) continue;
-		into.before.set(source, value);
+	const target = beforeOf(into);
+	for (const [source, value] of beforeOf(from)) {
+		if (!older && target.has(source)) continue;
+		target.set(source, value);
 		if (from.passed?.has(source)) (into.passed ??= new Set()).add(source);
 		else into.passed?.delete(source);
 	}
@@ -159,7 +161,7 @@ export function absorb(batch: Batch, content: readonly Effect[]): boolean {
 	}
 	if (target === null) return false;
 	hold(batch, content);
-	const changed = [...batch.before.keys()];
+	const changed = [...beforeOf(batch).keys()];
 	const reused = new Set(batch.runs?.keys());
 	fold(batch, target);
 	mergedEffects(target, changed, reused);
@@ -253,11 +255,11 @@ function rebase(batch: Batch, committed: Batch, changed: readonly Source[]): voi
 						inside(batch, () => changedReads(assigned.reads!, reaction)))
 				) {
 					batch.after?.delete(reaction);
-					batch.before.delete(reaction);
+					beforeOf(batch).delete(reaction);
 					batch.origins?.delete(reaction);
 				}
 				visit(reaction, version);
-			} else if (depends(reaction, batch.before, memo)) rerun.add(reaction as Effect);
+			} else if (depends(reaction, beforeOf(batch), memo)) rerun.add(reaction as Effect);
 		}
 	};
 	const after = batch.after;
@@ -265,7 +267,7 @@ function rebase(batch: Batch, committed: Batch, changed: readonly Source[]): voi
 	for (const source of changed) {
 		if (after !== null && after.has(source)) {
 			const value = committed.after?.has(source) ? committed.after.get(source) : source.v;
-			batch.before.set(source, value);
+			beforeOf(batch).set(source, value);
 			const origin = committed.origins?.get(source) ?? {
 				order: committed.order,
 				version: source.wv
@@ -297,7 +299,7 @@ export function finish(batch: Batch): void {
 	const waits = batch.waits;
 	batch.waits = null;
 	if (pending.length > 0) {
-		const changed = [...batch.before.keys()];
+		const changed = [...beforeOf(batch).keys()];
 		for (const other of [...pending]) rebase(other, batch, changed);
 	}
 	release(batch);

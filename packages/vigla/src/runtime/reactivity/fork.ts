@@ -1,4 +1,4 @@
-import { Batch, open, processing, untouched, within } from './batch.ts';
+import { createBatch, open, processing, untouched, within } from './batch.ts';
 import { apply, flushSync, process } from './scheduler.ts';
 import { inside } from './views.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
@@ -23,7 +23,7 @@ function admits(caller: Effect | null): boolean {
 export function fork(fn: () => void): Fork {
 	if (!admits(owner)) forkTiming();
 	flushSync();
-	const batch = new Batch();
+	const batch = createBatch();
 	batch.fork = true;
 	batch.after = new Map();
 	adopt(batch);

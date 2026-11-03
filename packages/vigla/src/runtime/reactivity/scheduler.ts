@@ -1,6 +1,5 @@
 import { DEV } from 'esm-env';
 import {
-	Batch,
 	enqueue,
 	handOver,
 	holds,
@@ -18,6 +17,7 @@ import {
 	request,
 	setOpen,
 	setProcessing,
+	type Batch,
 	type Change
 } from './batch.ts';
 import { drafting, forkOf } from './drafts.ts';
@@ -43,7 +43,7 @@ import {
 	type Status
 } from './graph.ts';
 import { abandon, absorb, finish, hold, reconcile, rescue } from './held.ts';
-import { record } from './history.ts';
+import { beforeOf, record } from './history.ts';
 import { remember } from './leaving.ts';
 import { written } from './past.ts';
 import { applied, computed, loopWrite, reportLoop, resetLoop, updated } from './provenance.ts';
@@ -163,7 +163,7 @@ export function write<T>(source: Source<T>, value: T, origin?: number): T {
 
 export function apply(batch: Batch): void {
 	for (const [source, value] of batch.after ?? []) {
-		batch.before.set(source, source.v);
+		beforeOf(batch).set(source, source.v);
 		if (source.kind === DERIVED) {
 			const derived = source as Derived;
 			present(() => {

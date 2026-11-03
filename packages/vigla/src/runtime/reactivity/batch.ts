@@ -1,7 +1,7 @@
 import { DEV } from 'esm-env';
 import type { AsyncRun } from './async.ts';
 import { BRANCH, CLEAN, ROOT, type Effect, type Source } from './graph.ts';
-import { clear, detach, History, type Origin } from './history.ts';
+import { clear, detach, enter, sequence, type History, type Origin } from './history.ts';
 import { forgotten } from './provenance.ts';
 import { parked, showing } from './tallies.ts';
 
@@ -13,34 +13,74 @@ export interface Change {
 	apply(): void;
 }
 
-export class Batch extends History {
-	after: Map<Source, unknown> | null = null;
-	origins: Map<Source, Origin> | null = null;
-	runs: Map<Effect, AsyncRun> | null = null;
-	reads: Map<Effect, ReadonlyMap<Source, unknown>> | null = null;
-	readonly queued: Effect[] = [];
-	readonly commits: Change[] = [];
-	merges: Transfer[] | null = null;
-	readonly effects: Effect[] = [];
-	discards: (() => void)[] | null = null;
-	content: Effect[] | null = null;
-	deferred: Effect[] | null = null;
-	members: Set<Effect> | null = null;
-	forced: Set<Effect> | null = null;
-	skipped: Set<Effect> | null = null;
-	shown: Set<Effect> | null = null;
-	owners: Map<Effect, number> | null = null;
-	roots: Set<Effect> | null = null;
-	waits: Map<Batch, Set<Effect>> | null = null;
-	settles: (() => void)[] | null = null;
-	into: Batch | null = null;
-	work = 0;
-	phase: Phase | null = null;
-	started = false;
-	fork = false;
-	held = false;
-	done = false;
-	discarded = false;
+export interface Batch extends History {
+	after: Map<Source, unknown> | null;
+	origins: Map<Source, Origin> | null;
+	runs: Map<Effect, AsyncRun> | null;
+	reads: Map<Effect, ReadonlyMap<Source, unknown>> | null;
+	readonly queued: Effect[];
+	readonly commits: Change[];
+	merges: Transfer[] | null;
+	readonly effects: Effect[];
+	discards: (() => void)[] | null;
+	content: Effect[] | null;
+	deferred: Effect[] | null;
+	members: Set<Effect> | null;
+	forced: Set<Effect> | null;
+	skipped: Set<Effect> | null;
+	shown: Set<Effect> | null;
+	owners: Map<Effect, number> | null;
+	roots: Set<Effect> | null;
+	waits: Map<Batch, Set<Effect>> | null;
+	settles: (() => void)[] | null;
+	into: Batch | null;
+	work: number;
+	phase: Phase | null;
+	started: boolean;
+	fork: boolean;
+	held: boolean;
+	done: boolean;
+	discarded: boolean;
+}
+
+export function createBatch(): Batch {
+	const created: Batch = {
+		order: sequence(),
+		log: [],
+		map: null,
+		prior: null,
+		passed: null,
+		crowded: false,
+		after: null,
+		origins: null,
+		runs: null,
+		reads: null,
+		queued: [],
+		commits: [],
+		merges: null,
+		effects: [],
+		discards: null,
+		content: null,
+		deferred: null,
+		members: null,
+		forced: null,
+		skipped: null,
+		shown: null,
+		owners: null,
+		roots: null,
+		waits: null,
+		settles: null,
+		into: null,
+		work: 0,
+		phase: null,
+		started: false,
+		fork: false,
+		held: false,
+		done: false,
+		discarded: false
+	};
+	enter(created);
+	return created;
 }
 
 export function release(batch: Batch): void {
@@ -106,7 +146,7 @@ export function request(): void {
 
 export function opening(): Batch {
 	if (open === null) {
-		open = new Batch();
+		open = createBatch();
 		request();
 	}
 	return open;

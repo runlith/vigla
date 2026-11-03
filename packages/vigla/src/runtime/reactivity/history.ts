@@ -24,31 +24,31 @@ export function sequence(): number {
 	return ++orders;
 }
 
-export class History {
-	readonly order = sequence();
-	log: unknown[] = [];
-	map: Map<Source, unknown> | null = null;
-	prior: Prior | null = null;
-	passed: Set<Source> | null = null;
-	crowded = false;
+export interface History {
+	readonly order: number;
+	log: unknown[];
+	map: Map<Source, unknown> | null;
+	prior: Prior | null;
+	passed: Set<Source> | null;
+	crowded: boolean;
+}
 
-	constructor() {
-		alive.push(this);
-	}
+export function enter(history: History): void {
+	alive.push(history);
+}
 
-	get before(): Map<Source, unknown> {
-		let map = this.map;
-		if (map === null) {
-			map = this.map = new Map();
-			const log = this.log;
-			for (let index = 0; index < log.length; index += 2) {
-				const source = log[index] as Source;
-				if (!map.has(source)) map.set(source, log[index + 1]);
-			}
-			this.log = [];
+export function beforeOf(history: History): Map<Source, unknown> {
+	let map = history.map;
+	if (map === null) {
+		map = history.map = new Map();
+		const log = history.log;
+		for (let index = 0; index < log.length; index += 2) {
+			const source = log[index] as Source;
+			if (!map.has(source)) map.set(source, log[index + 1]);
 		}
-		return map;
+		history.log = [];
 	}
+	return map;
 }
 
 export function record(history: History, source: Source, previous: unknown, passed: boolean): void {
@@ -80,7 +80,7 @@ function priorOf(history: History, source: Source): unknown {
 	const map = history.map;
 	if (map === null && !history.crowded)
 		return source.logged === history.order ? history.log[source.slot] : NONE;
-	const before = map ?? history.before;
+	const before = map ?? beforeOf(history);
 	return before.has(source) ? before.get(source) : NONE;
 }
 
@@ -103,6 +103,6 @@ export function clear(history: History): void {
 }
 
 export function detach(history: History): void {
-	void history.before;
+	beforeOf(history);
 	leave(history);
 }

@@ -10,6 +10,7 @@ import {
 	type Batch
 } from './batch.ts';
 import { equal, isDerived, type Source } from './graph.ts';
+import { beforeOf } from './history.ts';
 import {
 	endReading,
 	owner,
@@ -29,7 +30,7 @@ export function others(batch: Batch): boolean {
 export function materialize(batch: Batch): Map<Source, unknown> {
 	const after = new Map<Source, unknown>();
 	const origins = (batch.origins ??= new Map());
-	for (const source of batch.before.keys()) {
+	for (const source of beforeOf(batch).keys()) {
 		after.set(source, source.v);
 		if (!origins.has(source)) origins.set(source, { order: batch.order, version: source.wv });
 	}
@@ -37,8 +38,10 @@ export function materialize(batch: Batch): Map<Source, unknown> {
 }
 
 export function intersects(a: Batch, b: Batch): boolean {
-	const [small, large] = a.before.size < b.before.size ? [a, b] : [b, a];
-	for (const source of small.before.keys()) if (large.before.has(source)) return true;
+	const first = beforeOf(a);
+	const second = beforeOf(b);
+	const [small, large] = first.size < second.size ? [first, second] : [second, first];
+	for (const source of small.keys()) if (large.has(source)) return true;
 	return false;
 }
 
@@ -66,7 +69,7 @@ export function viewOf(batch: Batch): View {
 			return;
 		}
 		if (inherits(batch, other)) return;
-		for (const [source, value] of other.before) {
+		for (const [source, value] of beforeOf(other)) {
 			if ((own !== null && own.has(source)) || given.values.has(source)) continue;
 			given.values.set(source, value);
 			given.hidden.set(source, other);

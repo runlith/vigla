@@ -1,6 +1,7 @@
 import { DEV } from 'esm-env';
 import type { Batch } from './batch.ts';
 import { stamp, type Reaction, type Source } from './graph.ts';
+import { beforeOf } from './history.ts';
 import type { View } from './tracking.ts';
 
 export interface Tracing {
@@ -155,7 +156,7 @@ export function merged(from: Batch, into: Batch): void {
 	if (source === undefined) return;
 	const target = history(into);
 	const older = from.order < into.order;
-	for (const value of from.before.keys()) {
+	for (const value of beforeOf(from).keys()) {
 		if (older || !target.before.has(value))
 			target.before.set(value, source.before.get(value) ?? null);
 		const current = source.current.get(value);

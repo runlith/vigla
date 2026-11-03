@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { work } from './src/runtime/reactivity/async.ts';
-import { atCommit, Batch, skip, unskip, within } from './src/runtime/reactivity/batch.ts';
+import { atCommit, createBatch, skip, unskip, within } from './src/runtime/reactivity/batch.ts';
 import { leaving, stayed } from './src/runtime/reactivity/leaving.ts';
 import { flushSync, process } from './src/runtime/reactivity/scheduler.ts';
 import {
@@ -145,7 +145,7 @@ test('a leaving view includes writes concealed by a held batch even when its com
 		});
 	});
 	let settle!: () => void;
-	const held = new Batch();
+	const held = createBatch();
 	try {
 		within(held, () => {
 			set(value, 1);
@@ -187,7 +187,7 @@ test('merged commit callbacks seed the combined batch and fork apply preserves o
 		});
 	});
 	let settle!: () => void;
-	const held = new Batch();
+	const held = createBatch();
 	try {
 		within(held, () => {
 			set(value, 1);
@@ -259,7 +259,7 @@ test('a held selection runs in its own view while unowned outgoing readers keep 
 			set(visible, false);
 		});
 		assert.equal(get(selected), 0);
-		const held = new Batch();
+		const held = createBatch();
 		within(held, () => {
 			set(value, 2);
 			set(visible, true);
@@ -409,7 +409,7 @@ test('a removal flushed by an unrelated continuation uses the processing batch',
 				});
 		});
 	});
-	const held = new Batch();
+	const held = createBatch();
 	let settle!: () => void;
 	try {
 		within(held, () => {

@@ -11,6 +11,7 @@ import {
 	type Reaction,
 	type Source
 } from './graph.ts';
+import { beforeOf } from './history.ts';
 import { countLeaving, outgoing, selecting, setOutgoing } from './outgoing.ts';
 import { running, setOwner, track, view } from './tracking.ts';
 
@@ -84,7 +85,7 @@ function start(): Epoch {
 	latest = epoch;
 	if (batch !== null) {
 		commits.set(batch, epoch);
-		const before = batch.before;
+		const before = beforeOf(batch);
 		for (const [source, value] of before) append(epoch, source, value);
 		const givenView = view !== null && alias(view.batch) === batch ? view : viewOf(batch);
 		for (const source of givenView.hidden.keys())
