@@ -1,7 +1,7 @@
 ---
 id: 01a19e73-9448-7fa1-ba9a-8d536077256f
 title: Public effect, resource and external forms return disposal and keep compiled protocols internal
-ord: 30
+ord: 5
 tags: ["explanation"]
 edges:
   - kind: relates

@@ -1,7 +1,7 @@
 ---
 id: 01a18769-e4ee-7426-8e95-a833a8171ace
 title: A teardown reads the values from before the batch's writes
-ord: 2
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: file

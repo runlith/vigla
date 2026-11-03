@@ -1,7 +1,7 @@
 ---
 id: 01a193e9-7ab5-7fb7-9769-3bba63aa7bf5
 title: A derived owns the effects its current evaluation created
-ord: 9
+ord: 7
 tags: ["explanation"]
 edges:
   - kind: relates

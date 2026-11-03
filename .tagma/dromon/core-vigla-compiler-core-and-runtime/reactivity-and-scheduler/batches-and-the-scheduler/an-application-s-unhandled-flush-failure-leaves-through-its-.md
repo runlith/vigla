@@ -1,7 +1,7 @@
 ---
 id: 01a19e93-ccef-7b2b-a2db-902e4ece65b4
 title: An application's unhandled flush failure leaves through its own front end, and settled() and fork() under an owner judge only its application
-ord: 32
+ord: 5
 tags: ["explanation"]
 edges:
   - kind: relates

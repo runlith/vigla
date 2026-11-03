@@ -1,7 +1,7 @@
 ---
 id: 01a193c4-e7ae-7f38-8d9f-ed92226fbb20
 title: Tracing follows tracked reads and keeps diagnostics outside source lifetimes
-ord: 7
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

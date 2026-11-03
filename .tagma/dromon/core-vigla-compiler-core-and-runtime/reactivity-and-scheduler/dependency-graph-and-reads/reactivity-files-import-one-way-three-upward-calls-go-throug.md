@@ -1,7 +1,7 @@
 ---
 id: 01a19eda-9efe-7287-83e1-8750d9cee391
 title: Reactivity files import one way; three upward calls go through ports the higher file installs
-ord: 38
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

@@ -1,7 +1,7 @@
 ---
 id: 01a19ea4-a547-7190-810a-30c27d2855c5
 title: A source's read mark never falls below a live frame that read it, so a write inside a run scans only frames older than the mark
-ord: 34
+ord: 3
 tags: ["explanation"]
 edges:
   - kind: relates

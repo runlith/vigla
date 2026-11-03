@@ -1,7 +1,7 @@
 ---
 id: 01a19414-dc8b-7c9b-a436-73ada23b5169
 title: Abort signals follow a reaction evaluation or the current owner's lifetime
-ord: 12
+ord: 3
 tags: ["explanation"]
 sources:
   - kind: file

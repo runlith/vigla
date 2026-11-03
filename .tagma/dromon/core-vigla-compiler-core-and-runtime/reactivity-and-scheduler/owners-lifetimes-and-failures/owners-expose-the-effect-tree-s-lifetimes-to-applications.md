@@ -1,7 +1,7 @@
 ---
 id: 01a1877e-fd98-7ad3-8502-952177d1c74f
 title: Owners expose the effect tree's lifetimes to applications
-ord: 4
+ord: 1
 tags: ["explanation"]
 edges:
   - kind: relates

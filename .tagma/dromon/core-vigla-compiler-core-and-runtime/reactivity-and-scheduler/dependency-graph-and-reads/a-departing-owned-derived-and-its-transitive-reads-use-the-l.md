@@ -1,7 +1,7 @@
 ---
 id: 01a19c2f-7484-74b7-a5d4-99f8100b97ba
 title: A departing-owned derived and its transitive reads use the last-selected view
-ord: 20
+ord: 8
 tags: ["explanation"]
 edges:
   - kind: relates

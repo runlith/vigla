@@ -1,7 +1,7 @@
 ---
 id: 01a19ea4-93d1-7012-b8ba-fb652f376240
 title: Each dependency edge records its position at both ends, so removing a reader costs O(1)
-ord: 33
+ord: 2
 tags: ["explanation"]
 edges:
   - kind: relates

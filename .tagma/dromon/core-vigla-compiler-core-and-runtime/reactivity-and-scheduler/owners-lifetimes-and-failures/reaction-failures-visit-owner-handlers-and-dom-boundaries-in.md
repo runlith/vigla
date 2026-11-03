@@ -1,7 +1,7 @@
 ---
 id: 01a19440-b700-71c0-b10f-1bcd6c6e56a2
 title: Reaction failures visit owner handlers and DOM boundaries in scope order
-ord: 14
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: symbol

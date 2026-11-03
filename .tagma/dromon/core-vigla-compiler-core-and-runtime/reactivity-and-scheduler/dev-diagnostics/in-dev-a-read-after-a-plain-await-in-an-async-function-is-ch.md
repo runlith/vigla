@@ -1,7 +1,7 @@
 ---
 id: 01a19e45-3265-7288-baa6-0fae193a6cdf
 title: In DEV, a read after a plain await in an async function is checked against the async run that called it
-ord: 27
+ord: 2
 tags: ["explanation"]
 edges:
   - kind: relates

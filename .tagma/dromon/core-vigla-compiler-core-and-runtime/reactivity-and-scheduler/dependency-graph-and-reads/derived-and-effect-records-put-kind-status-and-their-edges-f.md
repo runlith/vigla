@@ -1,7 +1,7 @@
 ---
 id: 01a195a3-567a-7025-b99c-22982a93bdf4
 title: Derived and effect records put kind, status and their edges first
-ord: 18
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol

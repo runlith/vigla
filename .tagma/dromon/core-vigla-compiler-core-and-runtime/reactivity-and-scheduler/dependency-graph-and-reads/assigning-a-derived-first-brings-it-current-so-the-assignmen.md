@@ -1,7 +1,7 @@
 ---
 id: 01a19477-da88-7eab-8929-8cabd9665679
 title: Assigning a derived first brings it current, so the assignment holds until a dependency changes
-ord: 15
+ord: 6
 tags: ["explanation"]
 sources:
   - kind: symbol

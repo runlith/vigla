@@ -1,7 +1,7 @@
 ---
 id: 01a19e89-ba45-787d-bffe-c704fc8a77b5
 title: One platform store carries the current owner and every async variable across `await`
-ord: 31
+ord: 4
 tags: ["explanation"]
 edges:
   - kind: relates

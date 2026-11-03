@@ -1,7 +1,7 @@
 ---
 id: 01a18779-64fa-78e2-a5ec-458f1a1dd2a2
 title: Pending work holds its batch unless a boundary shows pending content in its place
-ord: 3
+ord: 2
 tags: ["explanation"]
 sources:
   - kind: file

@@ -1,7 +1,7 @@
 ---
 id: 01a195a1-9319-7597-8201-66d90eca7d2b
 title: The mark walk tests a reaction's kind itself, not through isDerived
-ord: 17
+ord: 4
 tags: ["explanation"]
 sources:
   - kind: symbol

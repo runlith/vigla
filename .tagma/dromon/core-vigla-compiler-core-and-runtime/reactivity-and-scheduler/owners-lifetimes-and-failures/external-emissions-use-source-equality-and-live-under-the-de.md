@@ -1,7 +1,7 @@
 ---
 id: 01a193f4-dfa5-7f9e-8a3b-1dc75f03f073
 title: External emissions use source equality and live under the declaration owner
-ord: 10
+ord: 6
 tags: ["explanation"]
 sources:
   - kind: file
