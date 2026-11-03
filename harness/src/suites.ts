@@ -8,7 +8,8 @@ export type Kind =
 	| 'browser'
 	| 'custom-elements'
 	| 'compiler'
-	| 'units';
+	| 'units'
+	| 'types';
 
 export interface Upstream {
 	file: string;
@@ -192,6 +193,15 @@ export const suites: readonly Suite[] = [
 	compiler('sourcemaps'),
 	compiler('css'),
 	{
+		project: 'svelte',
+		name: 'types',
+		kind: 'types',
+		source: 'types',
+		files: ['types.test.ts'],
+		upstream: [{ file: 'types', entry: (title) => ({ sample: title }) }],
+		include: /\.(?:ts|svelte)$/
+	},
+	{
 		project: 'own',
 		name: 'vite-plugin',
 		kind: 'units',
@@ -227,7 +237,7 @@ export function entryOfTest(
 	title: string
 ): { sample: string; variant?: Variant } | null {
 	if (suite.kind === 'units') return { sample: [...ancestors, title].join(' > ') };
-	if (suite.kind === 'compiler') return { sample: title };
+	if (suite.kind === 'compiler' || suite.kind === 'types') return { sample: title };
 	return entryOf(title);
 }
 

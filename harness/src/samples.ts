@@ -86,7 +86,7 @@ export interface Plain<C extends Base> {
 	tests?: Readonly<Record<string, Inline>>;
 }
 
-function register(
+export function register(
 	{ id, manifest, running }: Workspace<Base>,
 	title: string,
 	config: Base,

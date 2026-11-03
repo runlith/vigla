@@ -1,12 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { readdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-
-export interface Check {
-	cwd: string;
-	command: string;
-	args: readonly string[];
-}
+import { join } from 'node:path';
+import { checkerErrors, type Check } from '../checker.ts';
 
 function tests(dir: string): string[] {
 	const found: string[] = [];
@@ -24,15 +19,8 @@ export function checkTypes(dir: string, checks: readonly Check[], report: string
 		const result = spawnSync(check.command, [...check.args], { cwd: check.cwd, encoding: 'utf8' });
 		process.stdout.write(result.stdout ?? '');
 		process.stderr.write(result.stderr ?? '');
-		for (const line of `${result.stdout ?? ''}`.split('\n')) {
-			const match = /^(.+?)\((\d+),(\d+)\): error (TS\d+): (.*)$/.exec(line.trim());
-			if (match === null) continue;
-			const file = resolve(check.cwd, match[1] ?? '');
-			failing.set(file, [
-				...(failing.get(file) ?? []),
-				`${match[2]}:${match[3]} ${match[4]} ${match[5]}`
-			]);
-		}
+		for (const [file, problems] of checkerErrors(result.stdout ?? '', check.cwd))
+			failing.set(file, [...(failing.get(file) ?? []), ...problems]);
 	}
 	const testResults = tests(dir).map((name) => {
 		const problems = failing.get(name);

@@ -1,0 +1,7 @@
+actions.ts
+component.ts
+events.ts
+motion.ts
+on-mount.ts
+snippet.ts
+store.ts

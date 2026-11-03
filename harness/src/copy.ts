@@ -144,7 +144,7 @@ const from = join(base, source);
 const to = join(root, 'samples', project, suite);
 const problems: string[] = [];
 
-if (kind === 'units') {
+if (kind === 'units' || kind === 'types') {
 	const wanted = statSync(from).isFile()
 		? new Map([[basename(from), rewrite(readFileSync(from, 'utf8'))]])
 		: expected(from, include);

@@ -1,0 +1,22 @@
+{
+  "conversions": {
+    "component.ts": "class components, svelte/legacy interop and `new` on a .svelte import removed: Vigla rejects them; the function-component and .svelte call checks are kept unchanged"
+  },
+  "samples": {
+    "actions.ts": "contract",
+    "bindings.svelte": "contract",
+    "component.ts": {
+      "status": "converted",
+      "reason": "class components and svelte/legacy, which Vigla rejects, are incidental to its subject; their sections are removed"
+    },
+    "create-event-dispatcher.ts": {
+      "status": "dropped",
+      "reason": "createEventDispatcher is its subject, and Vigla rejects the import"
+    },
+    "events.ts": "contract",
+    "motion.ts": "contract",
+    "on-mount.ts": "contract",
+    "snippet.ts": "contract",
+    "store.ts": "contract"
+  }
+}
