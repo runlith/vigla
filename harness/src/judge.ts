@@ -126,8 +126,11 @@ export function judge(judgement: Judgement): Verdict {
 		const id = entryId(result.key, result.variant);
 		if (!selects(result.suite, id)) continue;
 		const status = ruling(manifest(result.suite), result.key, result.variant)?.status ?? 'unruled';
+		const runs =
+			status !== 'unruled' && runsOn(status, result.suite.split('/')[0] ?? '', judgement.target);
+		const upstream = runs && result.upstream === true;
 		const cell = `${result.suite}\n${status} ${result.state}`;
-		if (!result.upstream) counts.set(cell, (counts.get(cell) ?? 0) + 1);
+		if (!upstream) counts.set(cell, (counts.get(cell) ?? 0) + 1);
 		if (status === 'unruled') errors.push(`${result.suite}: ${id} has no status in the manifest`);
 		const byId = entries.get(result.suite) ?? new Map<string, Seen>();
 		entries.set(result.suite, byId);
@@ -138,9 +141,8 @@ export function judge(judgement: Judgement): Verdict {
 		byId.set(id, {
 			ran: ran || (before?.ran ?? false),
 			failed,
-			runs:
-				status !== 'unruled' && runsOn(status, result.suite.split('/')[0] ?? '', judgement.target),
-			upstream: result.upstream === true && (before?.upstream ?? true),
+			runs,
+			upstream: upstream && (before?.upstream ?? true),
 			...(message === undefined ? {} : { message })
 		});
 		if (!progress && result.state === 'failed')

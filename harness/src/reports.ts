@@ -56,6 +56,8 @@ interface Playwright {
 	errors?: { message?: string }[];
 }
 
+const ran = ['passed', 'failed'];
+
 const played: Readonly<Record<string, string>> = {
 	expected: 'passed',
 	flaky: 'passed',
@@ -79,11 +81,14 @@ function walk(
 		const key = entryOfTree(tree, join(report.config.rootDir, spec.file), path, spec.title);
 		if (key === null) continue;
 		for (const test of spec.tests) {
-			const state =
-				test.status === 'expected' && test.expectedStatus === 'skipped'
-					? 'skipped'
-					: (played[test.status] ?? test.status);
-			into.push({ key, state, variant: `${mode ?? ''}/${test.projectName}` });
+			const marked = test.expectedStatus === 'skipped' && test.status !== 'unexpected';
+			const state = marked ? 'skipped' : (played[test.status] ?? test.status);
+			into.push({
+				key,
+				state,
+				variant: `${mode ?? ''}/${test.projectName}`,
+				...(marked ? { upstream: true as const } : {})
+			});
 		}
 	}
 	for (const inner of group.suites ?? [])
@@ -115,11 +120,13 @@ export function outcomes(tree: Tree, file: string, mode: string | undefined): Ou
 			const key = entryOfTree(tree, module.name, test.ancestorTitles, test.title);
 			if (key === null) continue;
 			const message = firstLine(test.failureMessages);
+			const marked = !ran.includes(test.status) && module.status !== 'failed';
 			found.push({
 				key,
 				state: test.status,
 				variant: mode,
-				...(message === undefined ? {} : { message })
+				...(message === undefined ? {} : { message }),
+				...(marked ? { upstream: true as const } : {})
 			});
 		}
 	}
