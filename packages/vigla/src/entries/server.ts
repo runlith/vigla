@@ -1,6 +1,7 @@
 export { render } from '../runtime/server/render.ts';
 export type {
 	Component,
+	Hashes,
 	Props,
 	Rendered,
 	Rendering,

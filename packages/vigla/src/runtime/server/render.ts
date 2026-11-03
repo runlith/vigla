@@ -478,23 +478,38 @@ export function render<P extends Props>(
 				throw error;
 			}
 		);
-	const synchronous = (): never => {
-		throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
-	};
-	return {
-		get head(): string {
-			return synchronous();
-		},
-		get body(): string {
-			return synchronous();
-		},
-		get hashes(): Hashes {
-			return synchronous();
-		},
-		then(fulfilled, rejected) {
-			return settled.then(fulfilled, rejected);
-		}
-	};
+	return new Pending(settled);
+}
+
+function synchronous(): never {
+	throw failure('await_invalid', 'Encountered asynchronous work while rendering synchronously.');
+}
+
+class Pending implements Rendering {
+	readonly #settled: Promise<Rendered>;
+
+	constructor(settled: Promise<Rendered>) {
+		this.#settled = settled;
+	}
+
+	get head(): string {
+		return synchronous();
+	}
+
+	get body(): string {
+		return synchronous();
+	}
+
+	get hashes(): Hashes {
+		return synchronous();
+	}
+
+	then<A = Rendered, B = never>(
+		fulfilled?: ((value: Rendered) => A | PromiseLike<A>) | null,
+		rejected?: ((reason: unknown) => B | PromiseLike<B>) | null
+	): PromiseLike<A | B> {
+		return this.#settled.then(fulfilled, rejected);
+	}
 }
 
 const validTag =
