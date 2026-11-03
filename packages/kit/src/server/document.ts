@@ -159,10 +159,10 @@ export async function renderDocument(
 	for (const file of styles) {
 		const path = clientPath(file, paths);
 		head.push(
-			`<link rel="stylesheet" href="${escapeHtml(path, true)}"${inlined.has(file) ? ' disabled media="(max-width: 0)"' : ''}>`
+			`<link rel="stylesheet" href="${escapeHtml(path, true)}" crossorigin${inlined.has(file) ? ' disabled media="(max-width: 0)"' : ''}>`
 		);
 		if (!inlined.has(file) && options.output.linkHeaderPreload && preload({ type: 'css', path }))
-			links.push(`<${encodeURI(path)}>; rel="preload"; as="style"; nopush`);
+			links.push(`<${encodeURI(path)}>; rel="preload"; as="style"; crossorigin; nopush`);
 	}
 	const css = manifest.client?.inline
 		? (manifest.client.inline.style?.(paths.assets) ?? '')

@@ -1553,7 +1553,7 @@ it('renders the prerender fallback as an absolute-path CSR shell with root layou
 	expect(response.status).toBe(200);
 	expect(html).toContain('import("/base/_app/start.js")');
 	expect(html).toContain('import("/base/_app/env.js")');
-	expect(html).toContain('<link rel="stylesheet" href="/base/_app/layout.css">');
+	expect(html).toContain('<link rel="stylesheet" href="/base/_app/layout.css" crossorigin>');
 	expect(html).not.toContain('<main>');
 	expect(html).not.toContain('node_ids:');
 });

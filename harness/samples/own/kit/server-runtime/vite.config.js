@@ -7,6 +7,7 @@ export default defineConfig({
 	plugins: [
 		sveltekit({
 			adapter: adapter(),
+			csp: { directives: { 'script-src': ['self'] } },
 			compilerOptions: { experimental: { async: true } }
 		})
 	]

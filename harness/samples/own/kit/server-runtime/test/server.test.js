@@ -34,6 +34,20 @@ test('a redirect thrown by handle for an undecodable path leaves the server answ
 	expect((await request.get('/')).status()).toBe(200);
 });
 
+test('a prerendered page resolves its streamed promise under a hashed CSP', async ({ page }) => {
+	test.skip(!!process.env.DEV, 'only a build prerenders the page');
+	await page.goto('/streamed');
+	await expect(page.locator('#late')).toHaveText('late');
+});
+
+test('server-rendered stylesheet links request their file with CORS', async ({ request }) => {
+	test.skip(!!process.env.DEV, 'dev serves component styles inline');
+	const html = await (await request.get('/styled')).text();
+	const links = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*>/g)].map((match) => match[0]);
+	expect(links.length).toBeGreaterThan(0);
+	for (const link of links) expect(link).toMatch(/\scrossorigin[\s>]/);
+});
+
 test('a cluster worker keeps the live SOCKET_PATH of its siblings', async () => {
 	test.skip(!!process.env.DEV, 'needs the adapter-node build');
 	const socket = join(tmpdir(), `kit-socket-${process.pid}.sock`);

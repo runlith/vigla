@@ -17,5 +17,13 @@
 	"a cluster worker keeps the live SOCKET_PATH of its siblings": {
 		"status": "difference",
 		"reason": "Kit #16230: adapter-node 6.0.0 with Kit 3.1.0 on 2026-11-03, run as three Node cluster workers forked one after another on one SOCKET_PATH, deletes the socket the first worker's primary bound: the path is missing once all workers listen, on every attempt."
+	},
+	"a prerendered page resolves its streamed promise under a hashed CSP": {
+		"status": "difference",
+		"reason": "Kit #9235: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 prerenders a streamed server-load promise with csp script-src 'self': the page's CSP meta carries one script hash and the later `__sveltekit_*.resolve(...)` script is not covered, so the browser never renders the resolved value (no #late within 5s on every attempt)."
+	},
+	"server-rendered stylesheet links request their file with CORS": {
+		"status": "difference",
+		"reason": "Kit #17403: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 renders the stylesheet link of a built page as <link href=\"./_app/immutable/assets/….css\" rel=\"stylesheet\"> with no crossorigin on every attempt, while Vite's preload helper requests the same file with CORS on client navigation, so a cross-origin paths.assets host can have its no-cors response reused and blocked. The dev variant skips: dev serves component styles inline."
 	}
 }
