@@ -1,8 +1,8 @@
 <script>
-	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	let { children } = $props();
 	let ready = $state(false);
-	onMount(() => { ready = true; });
+	afterNavigate(() => { ready = true; });
 </script>
 
 <main data-ready={ready}>

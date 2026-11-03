@@ -13,7 +13,7 @@ const test = base.extend({
 
 test('enumerating params tracks optional keys before they exist', async ({ page }) => {
 	await page.goto('/params');
-	await expect(page.locator('main')).toHaveAttribute('data-ready', 'true');
+	await page.locator('main[data-ready=true]').waitFor();
 	await expect(page.locator('output')).toHaveText('{}');
 	await page.getByRole('link', { name: 'aa', exact: true }).click();
 	await expect(page.locator('output')).toHaveText('{"a":"aa"}');
@@ -23,7 +23,7 @@ test('enumerating params tracks optional keys before they exist', async ({ page 
 
 test('awaiting parent sends its fresh data into the merged page', async ({ page }) => {
 	await page.goto('/parent/a');
-	await expect(page.locator('main')).toHaveAttribute('data-ready', 'true');
+	await page.locator('main[data-ready=true]').waitFor();
 	const before = await page.locator('output').getAttribute('data-version');
 	await page.getByRole('link', { name: 'b', exact: true }).click();
 	await expect(page).toHaveURL(/\/parent\/b$/);
@@ -34,7 +34,7 @@ test('awaiting parent sends its fresh data into the merged page', async ({ page 
 
 test('an actions-only server module needs no navigation data request', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.locator('main')).toHaveAttribute('data-ready', 'true');
+	await page.locator('main[data-ready=true]').waitFor();
 	const requests = [];
 	page.on('request', (request) => {
 		if (new URL(request.url()).pathname.endsWith('/__data.json')) requests.push(request.url());
