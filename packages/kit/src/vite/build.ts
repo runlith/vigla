@@ -162,9 +162,11 @@ async function buildClient(
 	};
 	context.artifacts.client = built;
 	if (project.config.router.resolution === 'server') {
-		built.nodes = project.tree.nodes.map(
-			(_, index) => dependencies(clientManifest, nodeId(project, index), project.root, true).file
+		const nodes = project.tree.nodes.map((_, index) =>
+			dependencies(clientManifest, nodeId(project, index), project.root, true)
 		);
+		built.nodes = nodes.map((node) => node.file);
+		built.css = nodes.map((node) => node.stylesheets);
 		built.routes = project.tree.routes
 			.filter((route) => route.page)
 			.map((route) => ({

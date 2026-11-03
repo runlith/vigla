@@ -405,6 +405,7 @@ basics/test/playwright/cross-platform/test.js > CSS > applies styles correctly (
 basics/test/playwright/cross-platform/test.js > CSS > applies styles correctly (test-dev-1/chromium-dev-no-js)
 basics/test/playwright/cross-platform/test.js > CSS > applies styles correctly after client-side navigation (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/test.js > CSS > applies styles correctly after client-side navigation (test-dev-1/chromium-dev-no-js)
+basics/test/playwright/cross-platform/test.js > CSS > applies styles correctly after client-side navigation (test-server-side-route-resolution-build-1/chromium-build)
 basics/test/playwright/cross-platform/test.js > CSS > loads styles on routes with encoded characters (test-dev-1/chromium-dev)
 basics/test/playwright/cross-platform/test.js > CSS > loads styles on routes with encoded characters (test-dev-1/chromium-dev-no-js)
 basics/test/playwright/cross-platform/test.js > Errors > 404 (test-dev-1/chromium-dev)
