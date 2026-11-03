@@ -1,5 +1,5 @@
 import { active, alias, excluded, open, processing, type Batch } from './batch.ts';
-import { destroy, detach, fail } from './effects.ts';
+import { destroy, detach, detachment, fail } from './effects.ts';
 import { viewOf } from './views.ts';
 import {
 	CLEAN,
@@ -57,6 +57,7 @@ let latest: Epoch | null = null;
 let chains: WeakMap<Source, Chain> | null = null;
 let commits = new WeakMap<Batch, Epoch>();
 const branches = new WeakMap<Effect, LeavingView>();
+const inheriting = new WeakMap<Effect, () => void>();
 
 function append(epoch: Epoch, source: Source, value: unknown): void {
 	const map = chains as WeakMap<Source, Chain>;
@@ -145,7 +146,12 @@ export function leaving(branch: Effect): () => boolean {
 	};
 	branches.set(branch, given);
 	countLeaving(1);
-	detach(branch, () => stayed(branch));
+	const inherited = detachment(branch);
+	if (inherited !== null) inheriting.set(branch, inherited);
+	detach(branch, () => {
+		stayed(branch);
+		inherited?.();
+	});
 	return () => {
 		if (branches.get(branch) !== given) return false;
 		stayed(branch);
@@ -158,7 +164,8 @@ export function stayed(branch: Effect): void {
 	if (given === undefined) return;
 	branches.delete(branch);
 	countLeaving(-1);
-	detach(branch, null);
+	detach(branch, branch.destroyed ? null : (inheriting.get(branch) ?? null));
+	inheriting.delete(branch);
 	release(given);
 }
 

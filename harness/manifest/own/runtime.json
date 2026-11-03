@@ -229,6 +229,11 @@
 		"tagged-input-cache": "contract",
 		"transition-separate-css-restart": "contract",
 		"transition-separate-js-restart": "contract",
+		"unmount-outro": "contract",
+		"unmount-outro-owner": {
+			"status": "difference",
+			"reason": "Upstream 5.57.3 leaves the leaving root's DOM in place when its owner is destroyed mid-outro: <p>leaving</p> remains instead of being removed (first assertion fails); Vigla removes it and resolves the unmount promise"
+		},
 		"async-batch-effect": { "status": "difference", "reason": "Svelte #18374: upstream 5.57.3 with async on and dev:false commits 0/1 instead of 1/1 after the nested microtask writes" },
 		"async-hydration-prewrite": { "status": "difference", "reason": "Svelte #18993 public hydration analogue: upstream 5.57.3 renders content after the pre-hydration data write but its expected root/child layout effect is absent" },
 		"reserved-custom-names": { "status": "difference", "reason": "Upstream 5.57.3 treats every hyphenated tag as a custom element and sets annotation-xml's encoding at runtime, so its HTML template parses <p> out of <math> (first assertion fails); its spread also sets value on a MathML element as an expando, not the attribute" },

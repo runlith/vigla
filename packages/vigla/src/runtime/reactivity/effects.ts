@@ -574,6 +574,10 @@ function destroyChildren(effect: Effect, keepBranches = false, among: Among = nu
 
 const detaching = new WeakMap<Effect, () => void>();
 
+export function detachment(effect: Effect): (() => void) | null {
+	return detaching.get(effect) ?? null;
+}
+
 export function detach(effect: Effect, fn: (() => void) | null): void {
 	if (fn === null) detaching.delete(effect);
 	else detaching.set(effect, fn);

@@ -6,6 +6,7 @@ import { block, branch, destroy, fail } from '../reactivity/effects.ts';
 import type { Boundary as Contract, Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
 import { owner, setOwner } from '../reactivity/tracking.ts';
+import { seeThrough } from '../transitions/manager.ts';
 import { claim, cursor, hydrating, instruction, isClose, MISMATCH, skip } from './hydration.ts';
 import { build, discard, place, type Built } from './range.ts';
 import type { Render } from './template.ts';
@@ -77,6 +78,7 @@ class Boundary implements Contract {
 			if (hydrating) this.#hydrate(node);
 			else this.#render();
 		});
+		seeThrough(this.#effect);
 	}
 
 	#branch(render: Render, own: boolean): Built {

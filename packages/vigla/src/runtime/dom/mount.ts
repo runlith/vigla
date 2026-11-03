@@ -5,7 +5,7 @@ import { destroy, detach, detached } from '../reactivity/effects.ts';
 import { setFront } from '../reactivity/front.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
-import { introducing } from '../transitions/manager.ts';
+import { introducing, pause } from '../transitions/manager.ts';
 import { boundary, transformAt } from './boundary.ts';
 import { delegateRoot } from './events.ts';
 import {
@@ -46,7 +46,16 @@ export interface HydrateOptions<P extends Props> extends MountOptions<P> {
 	readonly recover?: boolean;
 }
 
-const mounted = new WeakMap<object, Built>();
+interface Mounted {
+	readonly effect: Effect;
+	readonly dispose: () => void;
+}
+
+export interface UnmountOptions {
+	readonly outro?: boolean;
+}
+
+const mounted = new WeakMap<object, Mounted>();
 
 function start<P extends Props, E extends Exports>(
 	component: Component<P, E>,
@@ -93,12 +102,16 @@ function finish(instance: object, built: Built, target: ParentNode): void {
 		return;
 	}
 	const release = delegateRoot(target);
-	mounted.set(instance, built);
-	detach(built.effect, () => {
+	let disposed = false;
+	const dispose = (): void => {
+		if (disposed) return;
+		disposed = true;
 		mounted.delete(instance);
 		release();
 		remove(built);
-	});
+	};
+	mounted.set(instance, { effect: built.effect, dispose });
+	detach(built.effect, dispose);
 }
 
 export function mount<P extends Props, E extends Exports>(
@@ -155,12 +168,23 @@ export function hydrate<P extends Props, E extends Exports>(
 	}
 }
 
-export function unmount(instance: object): Promise<void> {
+export function unmount(instance: object, options?: UnmountOptions): Promise<void> {
 	const found = mounted.get(instance);
 	if (found === undefined) {
 		warn('lifecycle_double_unmount', 'Tried to unmount a component that was not mounted');
 		return Promise.resolve();
 	}
-	destroy(found.effect);
-	return Promise.resolve();
+	const { effect, dispose } = found;
+	if (options?.outro !== true) {
+		destroy(effect);
+		return Promise.resolve();
+	}
+	mounted.delete(instance);
+	return new Promise((resolve) => {
+		detach(effect, () => {
+			dispose();
+			resolve();
+		});
+		pause(effect, () => destroy(effect));
+	});
 }
