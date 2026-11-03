@@ -8,7 +8,7 @@ import {
 	unskip,
 	type Batch
 } from '../reactivity/batch.ts';
-import { hide, show as unhide } from '../reactivity/effects.ts';
+import { branch, hide, show as unhide } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { building, pause, prepare, resume, seeThrough } from '../transitions/manager.ts';
@@ -22,7 +22,7 @@ import {
 	setHydrating,
 	skip as removeServer
 } from './hydration.ts';
-import { build, discard, place, stash, type Built } from './range.ts';
+import { build, discard, opener, place, stash, type Built } from './range.ts';
 import type { Render } from './template.ts';
 
 export function same(a: unknown, b: unknown): boolean {
@@ -62,7 +62,10 @@ export class Branches<K> {
 	}
 
 	#build(render: Render, update: boolean): Built {
-		return this.#transparent ? build(render) : building(update, () => build(render));
+		const at = this.anchor;
+		return this.#transparent
+			? build(render, branch, at)
+			: building(update, () => build(render, branch, at));
 	}
 
 	start(key: K, render: Render | null, matched: boolean | null = null, end: Ending = CLOSED): void {
@@ -74,7 +77,7 @@ export class Branches<K> {
 			built = render === null ? null : this.#build(render, false);
 			if (built !== null) place(built, this.anchor);
 		} else if (matched === null) {
-			cursor.before(document.createTextNode(''));
+			cursor.before(opener(cursor));
 			built = render === null ? null : this.#build(render, false);
 			this.anchor = cursor;
 		} else {

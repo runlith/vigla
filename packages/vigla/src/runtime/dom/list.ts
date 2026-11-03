@@ -12,7 +12,7 @@ import {
 	type Batch
 } from '../reactivity/batch.ts';
 import { write } from '../reactivity/scheduler.ts';
-import { block, hide, show as unhide } from '../reactivity/effects.ts';
+import { block, branch, hide, show as unhide } from '../reactivity/effects.ts';
 import type { Derived, Effect, Source } from '../reactivity/graph.ts';
 import { derived, mutableEqual, mutableSource, source } from '../reactivity/sources.ts';
 import { get } from '../reactivity/reads.ts';
@@ -37,7 +37,7 @@ import {
 	resume,
 	type Mover
 } from '../transitions/manager.ts';
-import { build, discard, place, stash, type Built } from './range.ts';
+import { build, discard, opener, place, stash, type Built } from './range.ts';
 import type { Render } from './template.ts';
 
 interface Row<T> extends Built {
@@ -147,7 +147,9 @@ class List<T> {
 				const position = untrace(() => get(index));
 				return traceInputs(this.#collection)[position];
 			});
-		const built = building(update, () => build((at) => this.#render(at, item, index)));
+		const built = building(update, () =>
+			build((at) => this.#render(at, item, index), branch, this.anchor)
+		);
 		const row: Row<T> = { key, item, index, ...built };
 		this.#rows.set(key, row);
 		return row;
@@ -159,7 +161,7 @@ class List<T> {
 		let restore = false;
 		if (hydrating) this.#start = this.anchor;
 		else {
-			this.#start = document.createTextNode('');
+			this.#start = opener(this.anchor);
 			this.anchor.before(this.#start);
 		}
 		if (hydrating) {
@@ -187,7 +189,7 @@ class List<T> {
 				rows.push(this.#create(key, value, position, false));
 			}
 			if (items.length === 0 && this.#fallback !== null) {
-				this.#empty = building(false, () => build(this.#fallback as Render));
+				this.#empty = building(false, () => build(this.#fallback as Render, branch, this.anchor));
 				this.#emptyShown = true;
 			}
 			if (adopting) this.anchor = isClose(cursor) ? cursor : removeServer();
@@ -223,7 +225,7 @@ class List<T> {
 		}
 		const empty = items.length === 0 && this.#fallback !== null;
 		if (empty && this.#empty === null) {
-			this.#empty = building(true, () => build(this.#fallback as Render));
+			this.#empty = building(true, () => build(this.#fallback as Render, branch, this.anchor));
 			if (batch !== null) hide(this.#empty.effect);
 		}
 		const stage: Stage<T> = { rows, empty };

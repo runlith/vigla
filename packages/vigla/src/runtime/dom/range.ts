@@ -1,5 +1,6 @@
 import { branch, destroy } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
+import { isCustomTag } from '../../shared/html.ts';
 import { cursor, hydrating } from './hydration.ts';
 import type { Render } from './template.ts';
 
@@ -11,6 +12,19 @@ export interface Built {
 }
 
 const positions = new WeakMap<Effect, ChildNode>();
+
+let slotting = false;
+
+function slots(at: ChildNode | null): boolean {
+	const parent = at?.parentNode ?? null;
+	if (parent === null || parent.nodeType !== 1) return slotting;
+	const element = parent as Element;
+	return isCustomTag(element.localName) || element.shadowRoot !== null;
+}
+
+export function opener(at: ChildNode | null): ChildNode {
+	return slots(at) ? document.createComment('') : document.createTextNode('');
+}
 
 export function position(effect: Effect | null): ChildNode | null {
 	for (let current = effect; current !== null; current = current.parent) {
@@ -28,7 +42,7 @@ function adopt(render: Render, create: (fn: () => void) => Effect): Built {
 	const end = cursor;
 	const first = before === null ? parent.firstChild : before.nextSibling;
 	if (first === end) {
-		const marker = document.createTextNode('');
+		const marker = opener(end);
 		end.before(marker);
 		positions.set(effect, marker);
 		return { effect, first: marker, last: marker, fragment: null };
@@ -42,13 +56,25 @@ function adopt(render: Render, create: (fn: () => void) => Effect): Built {
 	};
 }
 
-export function build(render: Render, create: (fn: () => void) => Effect = branch): Built {
+export function build(
+	render: Render,
+	create: (fn: () => void) => Effect = branch,
+	at: ChildNode | null = null
+): Built {
 	if (hydrating) return adopt(render, create);
 	const fragment = document.createDocumentFragment();
-	const first = document.createTextNode('');
+	const slotted = slots(at);
+	const first = slotted ? document.createComment('') : document.createTextNode('');
 	const anchor = document.createTextNode('');
 	fragment.append(first, anchor);
-	const effect = create(() => render(anchor));
+	const outer = slotting;
+	slotting = slotted;
+	let effect: Effect;
+	try {
+		effect = create(() => render(anchor));
+	} finally {
+		slotting = outer;
+	}
 	anchor.remove();
 	positions.set(effect, first);
 	return { effect, first, last: fragment.lastChild as ChildNode, fragment };

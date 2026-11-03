@@ -82,7 +82,7 @@ class Boundary implements Contract {
 	}
 
 	#branch(render: Render, own: boolean): Built {
-		return build(render, (fn) => (own ? branch(fn, this) : branch(fn)));
+		return build(render, (fn) => (own ? branch(fn, this) : branch(fn)), this.#anchor);
 	}
 
 	#fallback(render: Render): Built {
