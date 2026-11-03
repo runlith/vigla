@@ -89,13 +89,13 @@ function mark(source: Source, status: Status, all: boolean, forked: number): voi
 	}
 }
 
-export function dirty(source: Source, forked = 0, status: Status = DIRTY): void {
+function dirty(source: Source, forked = 0): void {
 	if (source.reactions === null) return;
 	marked();
 	visits = 0;
 	const all = pending.length > 0;
 	if (all) members(receiving());
-	mark(source, status, all, forked);
+	mark(source, DIRTY, all, forked);
 	seen = null;
 	const batch = scheduling;
 	scheduling = null;

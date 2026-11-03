@@ -1,6 +1,13 @@
 import { DEV } from 'esm-env';
 import { processed } from './batch.ts';
-import { destroyEffects, fail } from './effects.ts';
+import {
+	destroyEffects,
+	discardAside,
+	fail,
+	restoreAside,
+	setAside,
+	type Aside
+} from './effects.ts';
 import { referencesSelf } from './errors.ts';
 import {
 	BLOCK,
@@ -118,15 +125,19 @@ function through(source: Source, given: View): unknown {
 		if (reached !== undefined) note(reached);
 		return given.values.get(source);
 	}
-	destroyEffects(source);
+	const aside = setAside(source);
 	if (DEV) enter(source);
 	let value: unknown;
 	try {
 		value = compute(source, given);
+	} catch (error) {
+		restoreAside(source, aside, given.batch);
+		throw error;
 	} finally {
 		if (DEV) leave();
 	}
 	if ((source.deps as Source[]).length === 0) {
+		discardAside(aside);
 		given.checked.set(source, false);
 		source.v = value;
 		source.wv = stamp();
@@ -135,6 +146,7 @@ function through(source: Source, given: View): unknown {
 		source.status = CLEAN;
 		return value;
 	}
+	restoreAside(source, aside, given.batch);
 	given.values.set(source, value);
 	return value;
 }
@@ -173,7 +185,11 @@ function recall(source: Source, given: Past): unknown {
 export function refresh(derived: Derived): void {
 	if (derived.deps !== null && !stale(derived)) return;
 	if (view !== null && affected(derived, view)) return;
-	destroyEffects(derived);
+	const given = view;
+	let aside: Aside | null = null;
+	if (given === null) destroyEffects(derived);
+	else aside = setAside(derived);
+	let local = false;
 	if (DEV) enter(derived);
 	const previous = setOwner(derived.owner);
 	try {
@@ -200,11 +216,12 @@ export function refresh(derived: Derived): void {
 		}
 		if (derived.failure !== null) derived.failure = null;
 		const hidden = takeHidden();
-		if (hidden !== null && view !== null) {
+		if (hidden !== null && given !== null) {
+			local = true;
 			derived.status = DIRTY;
-			view.values.set(derived, value);
-			view.reached.set(derived, hidden);
-			view.checked.set(derived, true);
+			given.values.set(derived, value);
+			given.reached.set(derived, hidden);
+			given.checked.set(derived, true);
 			return;
 		}
 		if (!derived.computed || !equal(derived, derived.v, value)) {
@@ -216,6 +233,10 @@ export function refresh(derived: Derived): void {
 	} finally {
 		setOwner(previous);
 		if (DEV) leave();
+		if (aside !== null) {
+			if (local && given !== null) restoreAside(derived, aside, given.batch);
+			else discardAside(aside);
+		}
 	}
 }
 

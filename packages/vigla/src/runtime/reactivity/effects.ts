@@ -7,14 +7,45 @@ import {
 	EFFECT,
 	ROOT,
 	TEMPLATE,
+	isDerived,
 	type Boundary,
 	type Derived,
 	type Effect,
-	type Kind
+	type Kind,
+	type Reaction
 } from './graph.ts';
 import { failure, unhandled } from '../../shared/diagnostics.ts';
-import { abort, abortLifetime, evaluationSignal, lifetime } from './abort.ts';
-import { collect, offscreen, orphaned, pending, processed, revisit, schedule } from './batch.ts';
+import {
+	abort,
+	abortLifetime,
+	evaluationSignal,
+	lifetime,
+	restoreSignal,
+	takeSignal
+} from './abort.ts';
+import {
+	collect,
+	offscreen,
+	orphaned,
+	pending,
+	processed,
+	revisit,
+	schedule,
+	type Batch
+} from './batch.ts';
+import {
+	capture,
+	closing,
+	createdBy,
+	draftOf,
+	drafting,
+	draftedIn,
+	draftsOf,
+	enlist,
+	inDrafts,
+	take,
+	type Draft
+} from './drafts.ts';
 import { frontOf, setFront } from './front.ts';
 import { handlerOf } from './handlers.ts';
 import { orphan, teardownOrphan } from './errors.ts';
@@ -37,10 +68,101 @@ import { observe, unsubscribe } from './edges.ts';
 
 let created = 0;
 
-function ownEffect(effect: Effect): void {
+export interface Aside {
+	readonly effects: Effect[] | null;
+	readonly frozen: Effect[] | null;
+	readonly signal: AbortController | undefined;
+}
+
+function register(reaction: Reaction, draft: Draft): void {
+	const batch = draft.batch;
+	if (!enlist(reaction, draft)) return;
+	(batch.settles ??= []).push(() => close(batch));
+	if (batch.fork) batch.commits.push({ apply: () => adopt(batch) });
+}
+
+function drop(reaction: Reaction, draft: Draft): void {
+	take(reaction, draft);
+	const parent = isDerived(reaction) ? reaction.owner : (reaction as Effect);
+	if (parent !== null) destroyChildren(parent, false, (child) => draft.children.has(child));
+	for (const child of draft.children) destroy(child);
+	const created = draft.created;
+	if (created !== null) {
+		const holder = reaction as Effect;
+		const owned = holder.owned?.filter((derived) => !created.has(derived)) ?? [];
+		holder.owned = owned.length === 0 ? null : owned;
+		for (const derived of created) disconnect(derived);
+	}
+	if (draft.teardown !== null) dispose(reaction as Effect, draft.teardown);
+}
+
+function dropAll(reaction: Reaction): void {
+	for (const draft of [...draftsOf(reaction)]) drop(reaction, draft);
+}
+
+function close(batch: Batch): void {
+	for (const reaction of closing(batch) ?? []) {
+		const draft = draftOf(reaction, batch);
+		if (draft !== undefined) drop(reaction, draft);
+	}
+}
+
+function adopt(batch: Batch): void {
+	for (const reaction of draftedIn(batch) ?? []) {
+		if (isDerived(reaction)) continue;
+		const effect = reaction as Effect;
+		const draft = draftOf(effect, batch);
+		if (draft === undefined || effect.destroyed) continue;
+		if (effect.forked && effect.batch === batch.order) promote(effect, draft);
+	}
+}
+
+function promote(effect: Effect, draft: Draft): void {
+	take(effect, draft);
+	const found = [draft, ...draftsOf(effect)];
+	destroyChildren(effect, effect.kind === BLOCK, (child) => !inDrafts(found, child));
+	const owned = effect.owned;
+	effect.owned = null;
+	for (const derived of owned ?? []) {
+		if (createdBy(found, derived)) (effect.owned ??= []).push(derived);
+		else disconnect(derived);
+	}
+	const teardown = effect.teardown;
+	effect.teardown = draft.teardown;
+	if (teardown !== null) dispose(effect, teardown);
+	restoreSignal(effect, draft.signal);
+}
+
+export function setAside(derived: Derived): Aside {
+	const aside = { effects: derived.effects, frozen: derived.frozen, signal: takeSignal(derived) };
+	derived.effects = derived.frozen = null;
+	return aside;
+}
+
+export function discardAside(aside: Aside): void {
+	for (const effect of aside.effects ?? []) destroy(effect);
+}
+
+export function restoreAside(derived: Derived, aside: Aside, batch: Batch): void {
+	const children = derived.effects ?? [];
+	const signal = takeSignal(derived);
+	derived.effects = aside.effects;
+	derived.frozen = aside.frozen;
+	restoreSignal(derived, aside.signal);
+	const previous = draftOf(derived, batch);
+	if (batch.done) for (const child of children) destroy(child);
+	else if (children.length > 0) {
+		const draft = { batch, children: new Set(children), created: null, teardown: null, signal };
+		register(derived, draft);
+	}
+	if (previous !== undefined) drop(derived, previous);
+}
+
+function ownEffect(effect: Effect): Derived | null {
 	const derived = deriving();
-	if (derived === null || effect.kind === ROOT) return;
-	if (effect.parent === derived.owner && !ownLeaving(effect)) (derived.effects ??= []).push(effect);
+	if (derived === null || effect.kind === ROOT || effect.parent !== derived.owner) return null;
+	if (!ownLeaving(effect)) (derived.effects ??= []).push(effect);
+	return derived;
 }
 
 export function destroyEffects(derived: Derived): void {
@@ -101,7 +223,8 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		else parent.last.next = effect;
 		parent.last = effect;
 	}
-	ownEffect(effect);
+	const claimer = ownEffect(effect);
+	if (drafting !== 0 && parent !== null) capture(parent, effect, claimer);
 	return effect;
 }
 
@@ -167,17 +290,37 @@ function dispose(effect: Effect, teardown: () => void): void {
 	}
 }
 
-export function run(effect: Effect): void {
+function begin(effect: Effect, batch: Batch): Draft {
+	const previous = draftOf(effect, batch);
+	if (previous !== undefined) drop(effect, previous);
+	const draft: Draft = {
+		batch,
+		children: new Set(),
+		created: null,
+		teardown: null,
+		signal: undefined
+	};
+	register(effect, draft);
+	return draft;
+}
+
+export function run(effect: Effect, first = false): void {
 	const fn = effect.fn;
 	if (fn === null) return;
-	destroyChildren(effect, effect.kind === BLOCK);
-	release(effect);
-	const teardown = effect.teardown;
-	if (teardown !== null) {
-		effect.teardown = null;
-		dispose(effect, teardown);
-	}
 	const tracked = effect.kind !== ROOT && effect.kind !== BRANCH;
+	const batch = view?.batch ?? processed();
+	const draft = !first && tracked && batch !== null && batch.fork ? begin(effect, batch) : null;
+	let signal: AbortController | undefined;
+	if (draft === null) {
+		destroyChildren(effect, effect.kind === BLOCK);
+		release(effect);
+		const teardown = effect.teardown;
+		if (teardown !== null) {
+			effect.teardown = null;
+			dispose(effect, teardown);
+		}
+		if (drafting !== 0) dropAll(effect);
+	} else signal = takeSignal(effect);
 	const previous = setOwner(effect);
 	effect.running = true;
 	let result: unknown;
@@ -197,9 +340,12 @@ export function run(effect: Effect): void {
 	} finally {
 		effect.running = false;
 		setOwner(previous);
+		if (draft !== null) {
+			draft.signal = takeSignal(effect);
+			restoreSignal(effect, signal);
+		}
 	}
 	const hidden = tracked ? takeHidden() : null;
-	const batch = view?.batch ?? processed();
 	effect.batch = batch?.order ?? 0;
 	effect.forked = batch?.fork ?? false;
 	if (failed) {
@@ -207,7 +353,10 @@ export function run(effect: Effect): void {
 		fail(effect, caught);
 		return;
 	}
-	if (typeof result === 'function') effect.teardown = result as () => void;
+	if (typeof result === 'function') {
+		if (draft === null) effect.teardown = result as () => void;
+		else draft.teardown = result as () => void;
+	}
 	if (hidden !== null || pending.length > 0) revisit(effect, hidden);
 	if (effect.status === DIRTY && !effect.destroyed) schedule(effect);
 }
@@ -215,7 +364,7 @@ export function run(effect: Effect): void {
 export function start(effect: Effect): Effect {
 	creating++;
 	try {
-		run(effect);
+		run(effect, true);
 	} catch (error) {
 		destroy(effect);
 		throw error;
@@ -342,14 +491,20 @@ function unlink(effect: Effect): void {
 	effect.prev = effect.next = null;
 }
 
-function doomed(child: Effect, keepBranches: boolean): boolean {
-	return !child.destroyed && (child.scope || !keepBranches || child.kind !== BRANCH);
+type Among = ((child: Effect) => boolean) | null;
+
+function doomed(child: Effect, keepBranches: boolean, among: Among): boolean {
+	return (
+		!child.destroyed &&
+		(child.scope || !keepBranches || child.kind !== BRANCH) &&
+		(among === null || among(child))
+	);
 }
 
-function destroyChildren(effect: Effect, keepBranches = false): void {
+function destroyChildren(effect: Effect, keepBranches = false, among: Among = null): void {
 	for (;;) {
 		let end = effect.last;
-		while (end !== null && !doomed(end, keepBranches)) end = end.prev;
+		while (end !== null && !doomed(end, keepBranches, among)) end = end.prev;
 		if (end === null) return;
 		if (end.scope) {
 			destroy(end);
@@ -359,7 +514,7 @@ function destroyChildren(effect: Effect, keepBranches = false): void {
 		while (start.prev !== null && !start.prev.scope) start = start.prev;
 		for (let child: Effect | null = start; child !== null;) {
 			const next: Effect | null = child === end ? null : child.next;
-			if (doomed(child, keepBranches)) destroy(child);
+			if (doomed(child, keepBranches, among)) destroy(child);
 			if (next === null || next.destroyed) break;
 			child = next;
 		}
@@ -391,6 +546,7 @@ export function destroy(effect: Effect): void {
 	unlink(effect);
 	if (offscreen.delete(effect)) effect.inert = false;
 	if (teardown !== null) dispose(effect, teardown);
+	if (drafting !== 0) dropAll(effect);
 	if (effect.parent === null) orphaned(effect);
 	const units = effect.units;
 	if (units !== null) {

@@ -1,9 +1,8 @@
-import { dirty, write } from './scheduler.ts';
-import { runEager } from './eager.ts';
+import { write } from './scheduler.ts';
+import { ownDerived } from './drafts.ts';
 import {
 	DERIVED,
 	DIRTY,
-	MAYBE,
 	SOURCE,
 	isDerived,
 	retainFailures,
@@ -49,9 +48,7 @@ export function expire(target: Source): void {
 		if (!isDerived(reaction)) continue;
 		reaction.status = DIRTY;
 		marked();
-		dirty(reaction, 0, MAYBE);
 	}
-	runEager();
 }
 
 export function set<T>(target: Source<T>, value: T): T {
@@ -134,5 +131,6 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 		links: null
 	};
 	if (equals !== undefined) created.equals = equals;
+	if (owner !== null) ownDerived(created);
 	return created;
 }

@@ -35,6 +35,17 @@ export function evaluationSignal(
 	return controller.signal;
 }
 
+export function takeSignal(evaluation: object): AbortController | undefined {
+	const controller = controllers.get(evaluation);
+	controllers.delete(evaluation);
+	return controller;
+}
+
+export function restoreSignal(evaluation: object, controller: AbortController | undefined): void {
+	if (controller === undefined) controllers.delete(evaluation);
+	else controllers.set(evaluation, controller);
+}
+
 export function abort(reaction: Reaction): boolean {
 	const controller = controllers.get(reaction);
 	if (controller === undefined) return false;

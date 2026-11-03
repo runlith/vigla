@@ -3,8 +3,18 @@ import { test } from 'node:test';
 import * as core from 'vigla';
 import { createSubscriber } from 'vigla/reactivity';
 
-const { cell, effect, root, tick, flushSync, onDestroy, createContext, getAbortSignal, settled } =
-	core;
+const {
+	cell,
+	effect,
+	root,
+	tick,
+	flushSync,
+	onDestroy,
+	createContext,
+	getAbortSignal,
+	settled,
+	untrack
+} = core;
 
 test('a derived tracks a service-owned cell read after Owner.run returns', async () => {
 	const service = root();
@@ -728,20 +738,27 @@ test('a held run that subscribes to another key leaves the committed run settled
 	}
 });
 
-test('a released subscription still reaches a live reader of a derived a fork re-evaluated', async () => {
+test("a fork's evaluation of a derived leaves its committed effects and signal running", async () => {
 	const app = root();
 	const gate = cell(true);
-	let raw = 1;
-	let emit = (): void => {};
-	const subscribe = createSubscriber((update) => {
-		emit = update;
-		return () => (emit = () => {});
-	});
-	let shown = 0;
+	const pulse = cell(0);
+	let runs = 0;
+	let signal: AbortSignal | undefined;
 	try {
-		const value = app.run(() => core.derived(() => (gate.current ? (subscribe(), raw) : 0)));
-		app.run(() => effect(() => void (shown = value.current)));
+		const value = app.run(() =>
+			core.derived(() => {
+				const open = gate.current;
+				signal = getAbortSignal();
+				effect(() => {
+					void pulse.current;
+					runs++;
+				});
+				return open ? 1 : 0;
+			})
+		);
+		app.run(() => effect(() => void value.current));
 		flushSync();
+		const committed = signal!;
 		core
 			.fork(() => {
 				gate.current = false;
@@ -749,10 +766,180 @@ test('a released subscription still reaches a live reader of a derived a fork re
 			})
 			.discard();
 		await tick();
-		raw = 2;
-		emit();
+		pulse.current = 1;
 		flushSync();
-		assert.equal(shown, 2);
+		assert.deepEqual([committed.aborted, runs], [false, 2]);
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a fork's run keeps the subscription it replaced when discarded and replaces it when committed", async () => {
+	const app = root();
+	const path = cell<'a' | 'b'>('a');
+	const raw = { a: 1, b: 10 };
+	const live = new Set<string>();
+	const emits = { a: (): void => {}, b: (): void => {} };
+	const watch = (key: 'a' | 'b') =>
+		createSubscriber((update) => {
+			live.add(key);
+			emits[key] = update;
+			return () => {
+				live.delete(key);
+				emits[key] = () => {};
+			};
+		});
+	const subscribers = { a: watch('a'), b: watch('b') };
+	let shown = 0;
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				subscribers[key]();
+				return Promise.resolve(raw[key]);
+			})
+		);
+		app.run(() => effect(() => void (shown = value.current)));
+		flushSync();
+		const discarded = core.fork(() => (path.current = 'b'));
+		await tick();
+		discarded.discard();
+		await tick();
+		raw.a = 2;
+		emits.a();
+		await app.settled();
+		assert.deepEqual([[...live], shown], [['a'], 2]);
+		const committed = core.fork(() => (path.current = 'b'));
+		await tick();
+		await committed.commit();
+		raw.b = 20;
+		emits.b();
+		await app.settled();
+		assert.deepEqual([[...live], shown], [['b'], 20]);
+	} finally {
+		app.dispose();
+	}
+});
+
+test('a discarded fork leaves the request of a pending run in flight', async () => {
+	const app = root();
+	const path = cell('a');
+	const loads = new Map<string, PromiseWithResolvers<string>>();
+	let shown = '';
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				const signal = getAbortSignal();
+				if (key === 'a') return 'a';
+				const load = Promise.withResolvers<string>();
+				loads.set(key, load);
+				signal.addEventListener('abort', () => load.reject(signal.reason));
+				return load.promise;
+			})
+		);
+		app.run(() => effect(() => void (shown = value.current)));
+		flushSync();
+		path.current = 'b';
+		await tick();
+		core.fork(() => (path.current = 'c')).discard();
+		loads.get('b')!.resolve('b');
+		await new Promise((done) => setTimeout(done));
+		assert.equal(shown, 'b');
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a fork's run releases the services of the run it replaces newest first", async () => {
+	const app = root();
+	const path = cell('a');
+	const log: string[] = [];
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				const owner = core.getOwner()!;
+				owner.root(() => () => log.push(`${key} first`));
+				owner.root(() => () => log.push(`${key} second`));
+				return key;
+			})
+		);
+		app.run(() => effect(() => void value.current));
+		flushSync();
+		const discarded = core.fork(() => (path.current = 'b'));
+		await tick();
+		discarded.discard();
+		const committed = core.fork(() => (path.current = 'b'));
+		await tick();
+		await committed.commit();
+		assert.deepEqual(log, ['b second', 'b first', 'a second', 'a first']);
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a fork's run owns the effects of the deriveds it creates", async () => {
+	const app = root();
+	const path = cell('a');
+	const live = new Set<string>();
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				const local = core.derived(() => {
+					core.effect.pre(() => {
+						live.add(key);
+						return () => live.delete(key);
+					});
+					return key;
+				});
+				return untrack(() => local.current);
+			})
+		);
+		app.run(() => effect(() => void value.current));
+		flushSync();
+		const discarded = core.fork(() => (path.current = 'b'));
+		await tick();
+		discarded.discard();
+		await tick();
+		assert.deepEqual([...live], ['a']);
+		const committed = core.fork(() => (path.current = 'b'));
+		await tick();
+		await committed.commit();
+		assert.deepEqual([...live], ['b']);
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a discarded fork's cancelled request leaves none of its reads behind", async () => {
+	const app = root();
+	const path = cell<'a' | 'b'>('a');
+	const inputs = { a: cell(1), b: cell(1) };
+	const requests: string[] = [];
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				const input = inputs[key].current;
+				const signal = getAbortSignal();
+				requests.push(`${key}${input}`);
+				if (key === 'a') return input;
+				return new Promise<number>((_, reject) =>
+					signal.addEventListener('abort', () => reject(signal.reason))
+				);
+			})
+		);
+		app.run(() => effect(() => void value.current));
+		flushSync();
+		core.fork(() => (path.current = 'b')).discard();
+		await tick();
+		inputs.a.current = 2;
+		await app.settled();
+		inputs.b.current = 2;
+		await app.settled();
+		assert.deepEqual(requests, ['a1', 'b1', 'a2']);
 	} finally {
 		app.dispose();
 	}

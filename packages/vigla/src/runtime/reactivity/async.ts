@@ -246,7 +246,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 				done?.();
 			},
 			(error: unknown) => {
-				if (error === staleReaction) return;
+				if (error === staleReaction && !alias(target).discarded) return;
 				const owned = own();
 				prune();
 				done?.();
