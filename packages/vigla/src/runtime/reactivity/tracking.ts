@@ -193,7 +193,8 @@ function record(at: Frame, source: Source): void {
 	if (at.extra === null && old !== null && at.matched < old.length && old[at.matched] === source)
 		at.matched++;
 	else if (at === late) adopt(at.run as Resumption, source);
-	else (at.extra ??= []).push(source);
+	else if (at.extra === null) at.extra = [source];
+	else at.extra.push(source);
 }
 
 function adopt(run: Resumption, source: Source): void {

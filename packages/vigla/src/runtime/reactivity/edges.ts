@@ -20,19 +20,28 @@ export function depsOf(reaction: Reaction): Source[] {
 	return deps;
 }
 
-function subscribe(dep: Source, reaction: Reaction): void {
-	const slots = reaction.slots as number[];
+function link(dep: Source, reaction: Reaction, at: number): number {
 	const reactions = dep.reactions;
 	if (reactions !== null) {
-		(dep.links as number[]).push(slots.length);
-		slots.push(reactions.length);
-		reactions.push(reaction);
-		return;
+		(dep.links as number[]).push(at);
+		return reactions.push(reaction) - 1;
 	}
 	dep.reactions = [reaction];
-	dep.links = [slots.length];
-	slots.push(0);
+	dep.links = [at];
 	if (isDerived(dep) && dep.frozen !== null) observers.observed(dep);
+	return 0;
+}
+
+function subscribe(dep: Source, reaction: Reaction): void {
+	const slots = reaction.slots as number[];
+	slots.push(link(dep, reaction, slots.length));
+}
+
+function subscribeAll(reaction: Reaction, deps: Source[]): void {
+	const slots = new Array<number>(deps.length);
+	reaction.slots = slots;
+	for (let index = 0; index < deps.length; index++)
+		slots[index] = link(deps[index] as Source, reaction, index);
 }
 
 function place(dep: Source, reaction: Reaction, slot: number): void {
@@ -141,8 +150,7 @@ export function extend(
 	extra.length = count;
 	if (old === null) {
 		target.deps = extra;
-		target.slots = [];
-		for (const dep of extra) subscribe(dep, target);
+		subscribeAll(target, extra);
 		return count;
 	}
 	if (keep) {
