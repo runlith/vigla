@@ -27,4 +27,4 @@ Measured on 72191d71 against a copy of it with the change, 8 alternating runs, m
 | unmount_readers_100000 | 17.0 ms | 14.0 ms |
 | writes_1000_effects_1000 | 8.08 ms | 8.06 ms |
 
-kairo_deep, kairo_broad and effect_reads_1000 stay within noise. Against upstream before the change, at 5 runs: create_kept_1to1 1.03, 1to2 1.22, 1to4 1.11, 1to8 1.13 and 1to1000 1.02.
+kairo_deep, kairo_broad and effect_reads_1000 stay within noise. Against upstream at 5 runs, create_kept_1to1, 1to2, 1to4, 1to8 and 1to1000 went from 1.03, 1.22, 1.11, 1.13 and 1.02 before the change to 0.82, 0.91, 0.91, 0.89 and 0.77 after it (benchmarks/.results/2026-11-03T03-33-59.114Z.json). unmount_readers stays at 0.74, 0.16 and 0.03.
