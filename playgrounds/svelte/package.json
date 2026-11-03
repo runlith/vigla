@@ -8,6 +8,8 @@
 	},
 	"dependencies": {
 		"@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin@*",
+		"bits-ui": "^2.20.4",
+		"runed": "^0.38.0",
 		"svelte": "workspace:@vigla/svelte@*",
 		"vite": "8.2.2"
 	}

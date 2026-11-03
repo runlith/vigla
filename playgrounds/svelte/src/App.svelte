@@ -5,6 +5,8 @@
 	import Profile from './Profile.svelte';
 	import Clock from './Clock.svelte';
 	import Boom from './Boom.svelte';
+	import BitsDemo from './BitsDemo.svelte';
+	import RunedDemo from './RunedDemo.svelte';
 </script>
 
 <h1>Svelte app on Vigla</h1>
@@ -38,6 +40,16 @@
 <section>
 	<h2>svelte/store</h2>
 	<Clock />
+</section>
+
+<section>
+	<h2>bits-ui from npm, unchanged</h2>
+	<BitsDemo />
+</section>
+
+<section>
+	<h2>runed from npm, unchanged</h2>
+	<RunedDemo />
 </section>
 
 <section>
