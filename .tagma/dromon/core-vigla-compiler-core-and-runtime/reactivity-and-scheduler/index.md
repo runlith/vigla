@@ -112,7 +112,8 @@ fields:
         "handlers.ts",
         "views.ts",
         "past.ts",
-        "loss.ts"
+        "loss.ts",
+        "drafts.ts"
       ],
       [
         "front.ts",
