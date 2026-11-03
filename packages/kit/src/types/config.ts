@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/index.d.ts" preserve="true" />
 import type { Options } from '@vigla/vite-plugin';
 import type { Plugin } from 'vite';
 import type { Adapter } from './builder.ts';

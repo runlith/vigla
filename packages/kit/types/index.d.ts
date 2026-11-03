@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 declare namespace App {
 	interface Error {
 		status: number;

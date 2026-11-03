@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { packageDirectory, posix } from './paths.ts';
+import { codeDirectory, posix } from './paths.ts';
 import { hash } from '../shared/hash.ts';
 import type { ResolvedConfig } from 'vite';
 import type { ValidatedConfig } from '../types/builder.ts';
@@ -8,7 +8,7 @@ import type { Project } from './project.ts';
 export function namespace(version: string, dev: boolean): string {
 	return dev ? '__sveltekit_dev' : `__sveltekit_${hash(version)}`;
 }
-export const virtualDirectory = `${posix(packageDirectory)}src/vite/__generated__/`;
+export const virtualDirectory = `${posix(codeDirectory)}vite/__generated__/`;
 export const ids = {
 	server: `${virtualDirectory}server.js`,
 	manifest: `${virtualDirectory}manifest.js`,

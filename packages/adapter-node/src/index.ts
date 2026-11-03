@@ -31,7 +31,7 @@ export default function adapter(options: Options = {}): Adapter {
 				serverDirectory: path.join(out, 'server')
 			});
 			const bundle = await rolldown({
-				input: fileURLToPath(new URL('./runtime.ts', import.meta.url)),
+				input: fileURLToPath(new URL(`./runtime${path.extname(import.meta.url)}`, import.meta.url)),
 				platform: 'node',
 				external: [/^node:/]
 			});

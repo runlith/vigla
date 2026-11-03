@@ -23,7 +23,7 @@ import { styleExpression } from './styles.ts';
 import { pruneRemotes } from './remote-build.ts';
 import { ids, nodeId } from './ids.ts';
 import { resolveEntry } from '../sync/index.ts';
-import { packageDirectory, posix } from './paths.ts';
+import { codeDirectory, codeFile, posix } from './paths.ts';
 import type { Project } from './project.ts';
 import * as e from './messages.ts';
 
@@ -32,7 +32,7 @@ function json(file: string): Manifest {
 }
 const clientModules = ['forms', 'navigation', 'state'].map((name) => ({
 	name: `$app/${name}`,
-	directory: posix(path.join(packageDirectory, 'src/entries/app', name)) + '/'
+	directory: posix(path.join(codeDirectory, 'entries/app', name)) + '/'
 }));
 function refuseClientModules(output: Awaited<ReturnType<ViteBuilder['build']>>): void {
 	const used = new Set<string>();
@@ -124,7 +124,7 @@ async function buildClient(
 	const output = path.join(project.config.outDir, 'output');
 	const server = path.join(output, 'server');
 	const client = path.join(output, 'client');
-	const start = path.join(packageDirectory, 'src/entries/internal/client.ts');
+	const start = codeFile('entries/internal/client');
 	const clientInputs: Record<string, string> = {
 		'entry/start': start,
 		'entry/app': ids.client

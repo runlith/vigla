@@ -1,4 +1,5 @@
 import { fork } from 'node:child_process';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PrerenderPolicy } from '../types/config.ts';
 import type { BuildContext, Analysis } from './types.ts';
@@ -67,10 +68,14 @@ function run(job: FallbackJob, context: BuildContext): Promise<string>;
 function run(job: PrerenderJob, context: BuildContext): Promise<PrerenderResult>;
 function run(job: WorkerJob, context: BuildContext): Promise<WorkerValue> {
 	return new Promise((resolve, reject) => {
-		const child = fork(fileURLToPath(new URL('./worker-entry.ts', import.meta.url)), [], {
-			serialization: 'advanced',
-			stdio: ['inherit', 'inherit', 'inherit', 'ipc']
-		});
+		const child = fork(
+			fileURLToPath(new URL(`./worker-entry${path.extname(import.meta.url)}`, import.meta.url)),
+			[],
+			{
+				serialization: 'advanced',
+				stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+			}
+		);
 		let answered = false;
 		child.once('error', reject);
 		child.once('exit', (code, signal) => {

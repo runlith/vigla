@@ -121,7 +121,7 @@ export async function build(builder: Builder, options: Options): Promise<void> {
 		serverDirectory: path.join(stage, 'server')
 	});
 	const bundle = await rolldown({
-		input: fileURLToPath(new URL('./runtime.ts', import.meta.url)),
+		input: fileURLToPath(new URL(`./runtime${path.extname(import.meta.url)}`, import.meta.url)),
 		platform: 'node',
 		external: [/^node:/, 'bun']
 	});

@@ -5,8 +5,13 @@ import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 
 export const packageDirectory = fileURLToPath(new URL('../../', import.meta.url));
-export const packageImporter = path.join(packageDirectory, 'src/vite/index.ts');
-const sourceDirectory = posix(path.join(packageDirectory, 'src')) + '/';
+export const codeDirectory = fileURLToPath(new URL('../', import.meta.url));
+const codeExtension = path.extname(fileURLToPath(import.meta.url));
+export function codeFile(name: string): string {
+	return path.join(codeDirectory, name + codeExtension);
+}
+export const packageImporter = codeFile('vite/index');
+const sourceDirectory = posix(codeDirectory);
 
 export interface ImportAlias {
 	alias: string;
@@ -75,9 +80,8 @@ export function importAliases(root: string): ImportAlias[] {
 
 export function normalizeId(id: string, aliases: ImportAlias[], root: string): string {
 	id = posix(id.replace(/\?.*$/s, ''));
-	const entries = posix(path.join(packageDirectory, 'src/entries/app'));
-	if (id === `${entries}/server/server.ts`) return '$app/server';
-	if (id === `${entries}/env/private/server.ts`) return '$app/env/private';
+	if (id === posix(codeFile('entries/app/server/server'))) return '$app/server';
+	if (id === posix(codeFile('entries/app/env/private/server'))) return '$app/env/private';
 	for (const alias of aliases) {
 		if (id === alias.path || id.startsWith(alias.path + '/')) {
 			return alias.alias + id.slice(alias.path.length);

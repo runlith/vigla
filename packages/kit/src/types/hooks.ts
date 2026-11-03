@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/index.d.ts" preserve="true" />
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { ErrorBody, ErrorReturn } from './outcomes.ts';
 import type { NavigationEvent, RequestEvent } from './request.ts';

@@ -13,7 +13,6 @@ import { HttpError, Redirect, ActionFailure, ValidationError } from '../shared/o
 import { invalid_error_status, invalid_redirect_status } from '../shared/errors.ts';
 import { error_body_deprecated } from '../shared/warnings.ts';
 import { validateRedirect } from '../shared/redirect.ts';
-import { version } from '../../package.json' with { type: 'json' };
 
 export type {
 	ActionFailure,
@@ -43,7 +42,7 @@ export type {
 	ValidationError
 } from '../types/index.ts';
 export { normalizeUrl } from '../shared/pathname.ts';
-export const VERSION = version;
+export const VERSION = '3.1.0';
 
 export const error: ErrorFunction = (
 	status: number,
