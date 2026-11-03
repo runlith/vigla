@@ -8,7 +8,7 @@ edges:
     to: 01a19421-1645-7dc0-92eb-35c8acbd7905
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/server/context.ts
+    ref: packages/vigla/src/runtime/reactivity/owners.ts
     symbol: onDestroy
   - kind: symbol
     ref: packages/vigla/src/runtime/server/context.ts

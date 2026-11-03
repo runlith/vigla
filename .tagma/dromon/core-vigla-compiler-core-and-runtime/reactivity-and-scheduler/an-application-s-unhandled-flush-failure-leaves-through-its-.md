@@ -13,7 +13,7 @@ sources:
   - kind: file
     ref: packages/vigla/src/runtime/reactivity/front.ts
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/batch.ts
+    ref: packages/vigla/src/runtime/reactivity/units.ts
     symbol: settled
   - kind: symbol
     ref: packages/vigla/src/shared/diagnostics.ts

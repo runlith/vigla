@@ -20,7 +20,7 @@ sources:
     ref: packages/vigla/src/runtime/reactivity/graph.ts
     symbol: Derived
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/tracking.ts
+    ref: packages/vigla/src/runtime/reactivity/effects.ts
     symbol: destroyEffects
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/edges.ts

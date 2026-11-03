@@ -5,7 +5,7 @@ ord: 14
 tags: ["explanation"]
 sources:
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/deriveds.ts
+    ref: packages/vigla/src/runtime/reactivity/reads.ts
     symbol: refresh
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/effects.ts
@@ -17,7 +17,7 @@ sources:
     ref: packages/vigla/src/runtime/reactivity/settle.ts
     symbol: due
   - kind: symbol
-    ref: packages/vigla/src/runtime/reactivity/tracking.ts
+    ref: packages/vigla/src/runtime/reactivity/reads.ts
     symbol: settled
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/sources.ts
