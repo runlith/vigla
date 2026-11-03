@@ -2,6 +2,13 @@
 	"name": "vigla",
 	"version": "0.0.0",
 	"type": "module",
+	"files": [
+		"dist",
+		"src"
+	],
+	"scripts": {
+		"build": "node ../../release/src/cli.ts emit"
+	},
 	"exports": {
 		".": {
 			"browser": "./src/entries/index.ts",
@@ -40,6 +47,7 @@
 	},
 	"dependencies": {
 		"@jridgewell/remapping": "^2.3.5",
+		"@types/estree": "^1.0.9",
 		"acorn": "^8.18.0",
 		"aria-query": "5.3.1",
 		"axobject-query": "^4.1.0",
@@ -50,7 +58,6 @@
 		"magic-string": "^0.30.21"
 	},
 	"devDependencies": {
-		"@types/aria-query": "^5.0.4",
-		"@types/estree": "^1.0.9"
+		"@types/aria-query": "^5.0.4"
 	}
 }

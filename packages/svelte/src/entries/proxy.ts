@@ -1,4 +1,4 @@
-import { mutationTarget, original } from 'vigla/internal/client';
+import { mutationTarget, original, type AssignmentTarget } from 'vigla/internal/client';
 import { untrack } from 'vigla/internal/index-client';
 import { reporter } from './report.ts';
 
@@ -19,7 +19,11 @@ function identity(value: unknown): unknown {
 	}
 }
 
-export function assignmentTarget(receiver: unknown, key: PropertyKey, location: string) {
+export function assignmentTarget(
+	receiver: unknown,
+	key: PropertyKey,
+	location: string
+): AssignmentTarget<unknown> {
 	const object = receiver as Properties;
 	let property: PropertyKey | undefined;
 	const reference = {

@@ -2,15 +2,20 @@
 	"name": "@vigla/adapter-bun",
 	"version": "1.0.0",
 	"type": "module",
+	"files": [
+		"dist",
+		"src"
+	],
+	"scripts": {
+		"build": "node ../../release/src/cli.ts emit"
+	},
 	"exports": {
 		".": "./src/index.ts",
 		"./package.json": "./package.json"
 	},
 	"dependencies": {
+		"@types/bun": "1.4.4",
 		"@vigla/kit": "workspace:*",
 		"rolldown": "1.2.9"
-	},
-	"devDependencies": {
-		"@types/bun": "1.4.4"
 	}
 }

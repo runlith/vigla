@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"noEmit": false,
+		"rootDir": "${configDir}/src",
+		"outDir": "${configDir}/dist",
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"rewriteRelativeImportExtensions": true
+	},
+	"exclude": ["${configDir}/src/**/*.test.ts", "${configDir}/src/**/*.spec.ts"]
+}

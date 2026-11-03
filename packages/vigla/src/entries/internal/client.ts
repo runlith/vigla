@@ -1,5 +1,6 @@
 export { clsx } from '../../shared/attributes.ts';
 export { assignment, mutationTarget } from '../../shared/assignment.ts';
+export type { AssignmentTarget } from '../../shared/assignment.ts';
 export { failure, setReporter } from '../../shared/diagnostics.ts';
 export type { Notice, Reporter, Values } from '../../shared/diagnostics.ts';
 export { snippet } from '../../shared/snippet.ts';

@@ -2,6 +2,13 @@
 	"name": "@vigla/adapter-node",
 	"version": "6.0.0",
 	"type": "module",
+	"files": [
+		"dist",
+		"src"
+	],
+	"scripts": {
+		"build": "node ../../release/src/cli.ts emit"
+	},
 	"exports": {
 		".": "./src/index.ts",
 		"./package.json": "./package.json"

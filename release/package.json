@@ -1,0 +1,12 @@
+{
+	"name": "@vigla/release",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"rolldown": "1.2.9",
+		"tsrs": "0.18.0-ts7.1.0-dev.20260929"
+	},
+	"devDependencies": {
+		"@types/node": "^25.3.1"
+	}
+}

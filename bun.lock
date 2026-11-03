@@ -30,11 +30,9 @@
       "name": "@vigla/adapter-bun",
       "version": "1.0.0",
       "dependencies": {
+        "@types/bun": "1.4.4",
         "@vigla/kit": "workspace:*",
         "rolldown": "1.2.9",
-      },
-      "devDependencies": {
-        "@types/bun": "1.4.4",
       },
     },
     "packages/adapter-node": {
@@ -62,6 +60,7 @@
         "@jridgewell/remapping": "^2.3.5",
         "@opentelemetry/api": "^1.9.1",
         "@standard-schema/spec": "^1.1.0",
+        "@types/estree": "^1.0.9",
         "@vigla/vite-plugin": "workspace:*",
         "cookie": "^2.0.1",
         "devalue": "^5.9.4",
@@ -72,7 +71,6 @@
         "vigla": "workspace:*",
       },
       "devDependencies": {
-        "@types/estree": "^1.0.9",
         "@types/node": "22.20.1",
         "vite": "8.2.2",
         "vitest": "5.0.1",
@@ -88,12 +86,10 @@
         "@jridgewell/remapping": "^2.3.5",
         "@jridgewell/sourcemap-codec": "^1.6.0",
         "@sveltejs/acorn-typescript": "^1.0.13",
+        "@types/estree": "^1.0.9",
         "acorn": "^8.18.0",
         "esrap": "^2.3.6",
         "vigla": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/estree": "^1.0.9",
       },
     },
     "packages/vigla": {
@@ -101,6 +97,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@jridgewell/remapping": "^2.3.5",
+        "@types/estree": "^1.0.9",
         "acorn": "^8.18.0",
         "aria-query": "5.3.1",
         "axobject-query": "^4.1.0",
@@ -112,7 +109,6 @@
       },
       "devDependencies": {
         "@types/aria-query": "^5.0.4",
-        "@types/estree": "^1.0.9",
       },
     },
     "packages/vite-plugin": {
@@ -134,6 +130,16 @@
       },
       "peerDependencies": {
         "vite": "^8.0.0",
+      },
+    },
+    "release": {
+      "name": "@vigla/release",
+      "dependencies": {
+        "rolldown": "1.2.9",
+        "tsrs": "0.18.0-ts7.1.0-dev.20260929",
+      },
+      "devDependencies": {
+        "@types/node": "^25.3.1",
       },
     },
     "targets/upstream": {
@@ -722,6 +728,8 @@
     "@vigla/harness": ["@vigla/harness@workspace:harness"],
 
     "@vigla/kit": ["@vigla/kit@workspace:packages/kit"],
+
+    "@vigla/release": ["@vigla/release@workspace:release"],
 
     "@vigla/svelte": ["@vigla/svelte@workspace:packages/svelte"],
 

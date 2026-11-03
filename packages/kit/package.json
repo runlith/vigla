@@ -2,6 +2,14 @@
 	"name": "@vigla/kit",
 	"version": "3.1.0",
 	"type": "module",
+	"files": [
+		"dist",
+		"src",
+		"types"
+	],
+	"scripts": {
+		"build": "node ../../release/src/cli.ts emit"
+	},
 	"bin": {
 		"svelte-kit": "./src/sync/cli.ts"
 	},
@@ -104,6 +112,7 @@
 		"@jridgewell/remapping": "^2.3.5",
 		"@opentelemetry/api": "^1.9.1",
 		"@standard-schema/spec": "^1.1.0",
+		"@types/estree": "^1.0.9",
 		"@vigla/vite-plugin": "workspace:*",
 		"cookie": "^2.0.1",
 		"devalue": "^5.9.4",
@@ -117,7 +126,6 @@
 		"vite": "^8.0.12"
 	},
 	"devDependencies": {
-		"@types/estree": "^1.0.9",
 		"@types/node": "22.20.1",
 		"vite": "8.2.2",
 		"vitest": "5.0.1"
