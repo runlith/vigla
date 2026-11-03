@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "A setContext after an await or in an effect writes the component's context, read by children created later; upstream 5.57.3 throws set_context_after_init"
+}

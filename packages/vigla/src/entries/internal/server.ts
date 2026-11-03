@@ -26,6 +26,9 @@ export {
 	segment,
 	unsave
 } from '../../runtime/server/context.ts';
+export { setContext as provide } from '../../runtime/reactivity/owners.ts';
+export { keyed } from '../../shared/context.ts';
+export type { Contexts } from '../../shared/context.ts';
 export { popElement, pushElement } from '../../runtime/server/placement.ts';
 export { derived, held, updateDerived } from '../../runtime/server/derived.ts';
 export {

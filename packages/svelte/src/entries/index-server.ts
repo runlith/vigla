@@ -1,10 +1,10 @@
 import * as core from 'vigla/internal/index-server';
 import { guard, project, type Scope } from './context.ts';
-import { failure, phase } from './internal/server.ts';
+import { failure, keyed, phase, provide } from './internal/server.ts';
 
 export * from 'vigla/internal/index-server';
 
-const scope: Scope = { phase, failure };
+const scope: Scope = { phase, failure, provide, keyed };
 
 export const { getContext, setContext, hasContext, getAllContexts, createContext } = project(
 	core,

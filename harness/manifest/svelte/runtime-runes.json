@@ -69,7 +69,10 @@
     "async-const-closure-read": "contract",
     "async-const-wait": "contract",
     "async-context-after-await-const": "contract",
-    "async-context-throws-after-await": "contract",
+    "async-context-throws-after-await": {
+      "status": "difference",
+      "reason": "asserts set_context_after_init after an await; a late setContext writes the component's context (own sample context-late-provide)"
+    },
     "async-custom-element-attribute": "contract",
     "async-debug-awaited-expression": "contract",
     "async-declaration-closure-read": "contract",
@@ -1258,8 +1261,14 @@
     "select-option-added": "contract",
     "select-spread-option-selected": "contract",
     "select-value-with-call": "contract",
-    "set-context-after-await": "contract",
-    "set-context-after-mount": "contract",
+    "set-context-after-await": {
+      "status": "difference",
+      "reason": "asserts set_context_after_init after an await; a late setContext writes the component's context (own sample context-late-provide)"
+    },
+    "set-context-after-mount": {
+      "status": "difference",
+      "reason": "asserts set_context_after_init in an effect after mount; a late setContext writes the component's context (own sample context-late-provide)"
+    },
     "set-text-stable-coercion": "contract",
     "side-effect-derived-array": "contract",
     "side-effect-derived-date": "contract",

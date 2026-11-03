@@ -1,5 +1,4 @@
 async-children (async-ssr)
-async-context-throws-after-await (async-ssr)
 async-directive-with-spreading (async-ssr)
 async-each-fallback-hoisting (async-ssr)
 async-each-hoisting (async-ssr)

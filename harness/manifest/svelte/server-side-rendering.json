@@ -1,7 +1,10 @@
 {
   "samples": {
     "async-children": "contract",
-    "async-context-throws-after-await": "contract",
+    "async-context-throws-after-await": {
+      "status": "difference",
+      "reason": "asserts set_context_after_init after an await; a late setContext writes the component's context (own sample context-late-provide)"
+    },
     "async-directive-with-spreading": "contract",
     "async-each-fallback-hoisting": "contract",
     "async-each-hoisting": "contract",

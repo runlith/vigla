@@ -2,7 +2,7 @@ import { DEV } from 'esm-env';
 import type { Layer } from '../../shared/context.ts';
 import { detached, effect } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import { installComponents, layerOf } from '../reactivity/owners.ts';
+import { installComponents, layerOf, setContext } from '../reactivity/owners.ts';
 import { owner, running, setOwner, untrack } from '../reactivity/tracking.ts';
 
 interface Initializing {
@@ -28,6 +28,16 @@ export function phase(): Phase {
 		if (layer.component) return 'running';
 	}
 	return null;
+}
+
+export function provide<T>(key: unknown, value: T): T {
+	for (let layer = standing() ?? layerOf(owner); layer !== null; layer = layer.parent) {
+		if (layer.component) {
+			(layer.map ??= new Map()).set(key, value);
+			return value;
+		}
+	}
+	return setContext(key, value);
 }
 
 export function push(map?: Map<unknown, unknown>): void {

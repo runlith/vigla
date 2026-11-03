@@ -74,8 +74,10 @@ export {
 	bindWindowSize,
 	on
 } from '../../runtime/dom/targets.ts';
-export { phase, pop, push, userEffect } from '../../runtime/dom/context.ts';
+export { phase, pop, provide, push, userEffect } from '../../runtime/dom/context.ts';
 export type { Phase } from '../../runtime/dom/context.ts';
+export { keyed } from '../../shared/context.ts';
+export type { Contexts } from '../../shared/context.ts';
 export { delegate, delegated, event as listen, invoke } from '../../runtime/dom/events.ts';
 export {
 	forwardProps,
