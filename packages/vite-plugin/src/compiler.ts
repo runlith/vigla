@@ -96,8 +96,29 @@ export interface PreprocessorGroup {
 	script?: Preprocessor;
 }
 
+export interface ScriptAttribute {
+	name: string;
+	value: true | readonly { data?: string }[] | object;
+}
+
+export interface Script {
+	attributes: readonly ScriptAttribute[];
+	content: { start: number; end: number; body: readonly object[] };
+}
+
+export interface ParsedComponent {
+	module?: Script | null;
+	instance?: Script | null;
+}
+
+export type Parse = (
+	source: string,
+	options: { modern: true; filename?: string }
+) => ParsedComponent;
+
 export interface Compiler {
 	readonly format?: Format;
+	readonly parse?: Parse;
 	compile(source: string, options: CompileOptions): CompileResult;
 	compileModule(source: string, options: ModuleCompileOptions): CompileResult;
 	preprocess(

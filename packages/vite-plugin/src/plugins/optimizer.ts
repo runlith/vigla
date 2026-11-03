@@ -17,6 +17,9 @@ import { toRollupError } from '../error.ts';
 import type { FrontEnd } from '../front-end.ts';
 import { arraify, type ResolvedOptions } from '../options.ts';
 import { preprocessWith } from './preprocess.ts';
+import { clientImports } from '../vite-config.ts';
+import { runtimeScanPlugin, type RuntimeResolver } from './runtime-scan.ts';
+import { scanning, scanPlugin } from './scan.ts';
 
 const sensitive = [
 	'compilerOptions',
@@ -120,8 +123,7 @@ function optimizerPlugin(
 		name: components ? 'vite-plugin-svelte:optimize' : 'vite-plugin-svelte:optimize-module'
 	};
 	plugin.options = (input) => {
-		const plugins = (input.plugins ?? []) as { name?: string }[];
-		if (plugins.some((entry) => entry?.name === 'vite:dep-scan:resolve')) {
+		if (scanning(input)) {
 			delete plugin.transform;
 			return;
 		}
@@ -175,6 +177,21 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 			const consumer = config.consumer ?? (name === 'client' ? 'client' : 'server');
 			let resolve: ReturnType<typeof createIdResolver> | undefined;
 			let legacy: ReturnType<ResolvedConfig['createResolver']> | undefined;
+			const resolveRuntime: RuntimeResolver = async (source, importer) => {
+				const environment = api.options.server?.environments[name];
+				return environment
+					? await (resolve ??= createIdResolver(viteConfig, { scan: true }))(
+							environment,
+							source,
+							importer
+						)
+					: await (legacy ??= viteConfig.createResolver({ scan: true }))(
+							source,
+							importer,
+							false,
+							consumer === 'server'
+						);
+			};
 			const plugins: Rolldown.Plugin[] = [
 				{
 					name: 'vite-plugin-svelte:shared-core',
@@ -182,19 +199,7 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 						order: 'pre',
 						filter: { id: /^vigla(?:\/[^?#]+)?$/ },
 						async handler(source, importer) {
-							const environment = api.options.server?.environments[name];
-							const resolved = environment
-								? await (resolve ??= createIdResolver(viteConfig, { scan: true }))(
-										environment,
-										source,
-										importer
-									)
-								: await (legacy ??= viteConfig.createResolver({ scan: true }))(
-										source,
-										importer,
-										false,
-										consumer === 'server'
-									);
+							const resolved = await resolveRuntime(source, importer);
 							if (resolved === undefined)
 								return this.error(
 									`Cannot resolve core runtime ${source} from ${importer ?? viteConfig.root}`
@@ -215,15 +220,22 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 			optimizeDeps.extensions = [
 				...new Set(api.frontEnds.flatMap((frontEnd) => frontEnd.components))
 			];
+			const exclude = config.optimizeDeps?.exclude ?? [];
+			const runtime = api.frontEnds.filter((frontEnd) => !isDepExcluded(frontEnd.name, exclude));
+			plugins.unshift(
+				runtimeScanPlugin(
+					runtime.flatMap(clientImports),
+					['vigla', ...runtime.map((frontEnd) => frontEnd.name)],
+					resolveRuntime
+				)
+			);
 			plugins.push(
+				scanPlugin(api.frontEnds),
 				optimizerPlugin(api, name, consumer, true),
 				optimizerPlugin(api, name, consumer, false)
 			);
 			if (consumer === 'server') {
-				const exclude = config.optimizeDeps?.exclude ?? [];
-				optimizeDeps.include = api.frontEnds
-					.filter((frontEnd) => !isDepExcluded(frontEnd.name, exclude))
-					.flatMap((frontEnd) => frontEnd.imports);
+				optimizeDeps.include = runtime.flatMap((frontEnd) => frontEnd.imports);
 			}
 			return { optimizeDeps };
 		},

@@ -32,7 +32,7 @@ export function deduped(frontEnd: FrontEnd): string[] {
 	return frontEnd.imports.filter((name) => name !== frontEnd.compilerImport);
 }
 
-function clientImports(frontEnd: FrontEnd): string[] {
+export function clientImports(frontEnd: FrontEnd): string[] {
 	return deduped(frontEnd).filter(
 		(name) => !name.endsWith('/server') && !name.includes('/server/')
 	);

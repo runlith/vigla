@@ -1,4 +1,5 @@
 dependency events match normalized and native Windows paths
+dependency scan crawls components exporting template snippets
 imported style URLs retain their source directory and scoping
 parent replacement keeps child hot updates live
 preprocessed component maps generated code to its original lines

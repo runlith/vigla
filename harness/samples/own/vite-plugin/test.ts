@@ -193,6 +193,39 @@ test('dependency events match normalized and native Windows paths', async () => 
 	});
 });
 
+test('dependency scan crawls components exporting template snippets', async () => {
+	const fixture = await project({
+		'Snippet.svelte': '﻿<script module>\n\timport "scanned-module";\n\t{ var shared = 1; }\n\texport { row, shared };\n</script>\n\n{#snippet row()}<p>row</p>{/snippet}\n',
+		'App.svelte': '<script lang="ts">\n\timport { row } from "./Snippet.svelte";\n\tconst rows: unknown = row;\n\timport.meta.glob("./lazy/*.js", { eager: true });\n</script>\n\n<p>{String(rows)}</p>\n<style lang="scss">$tone: red; p { &:hover { color: $tone; } }</style>\n',
+		'lazy/one.js': 'import "scanned-glob";',
+		'node_modules/scanned-module/package.json': '{"name":"scanned-module","type":"module","main":"index.js"}',
+		'node_modules/scanned-module/index.js': 'export {};',
+		'node_modules/scanned-glob/package.json': '{"name":"scanned-glob","type":"module","main":"index.js"}',
+		'node_modules/scanned-glob/index.js': 'export {};',
+		'entry.js': 'import { mount } from "svelte"; import App from "./App.svelte"; mount(App, { target: document.body });',
+		'index.html': '<script type="module" src="/entry.js"></script>'
+	});
+	const errors: string[] = [];
+	const logger = fixture.vite.createLogger('silent');
+	logger.error = (message) => void errors.push(message);
+	const server = await fixture.vite.createServer({
+		...fixture.config,
+		customLogger: logger,
+		optimizeDeps: { noDiscovery: false }
+	});
+	try {
+		await server.listen();
+		const discovered = () => {
+			const metadata = server.environments.client.depsOptimizer?.metadata;
+			return Object.keys({ ...metadata?.optimized, ...metadata?.discovered });
+		};
+		await expect.poll(() => errors.length > 0 || ['scanned-glob', 'scanned-module'].every((name) => discovered().includes(name)), { timeout: 10000 }).toBe(true);
+		expect(errors).toEqual([]);
+	} finally {
+		await server.close();
+	}
+});
+
 test('parent replacement keeps child hot updates live', async () => {
 	const parent = (text: string) => `<script>import Counter from "./Counter.svelte";</script><h1>${text}</h1><Counter />`;
 	const fixture = await project({

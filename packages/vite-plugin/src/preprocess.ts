@@ -132,8 +132,9 @@ async function cssConfig(style: Tagged, config: InlineConfig): Promise<void> {
 					.catch((error: unknown) => {
 						if (!(error instanceof Error) || !error.message.includes('No PostCSS Config found'))
 							throw error;
-						return { plugins: [] };
+						return undefined;
 					});
+	if (postcss === undefined) return;
 	config.css = {
 		...config.css,
 		postcss: {
