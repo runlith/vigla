@@ -62,10 +62,97 @@ fields:
       },
       {
         "at": "collector.ts"
+      },
+      {
+        "at": "reads.ts"
+      },
+      {
+        "at": "scheduler.ts"
+      },
+      {
+        "at": "views.ts"
+      },
+      {
+        "at": "units.ts"
+      },
+      {
+        "at": "provenance.ts"
+      },
+      {
+        "at": "leaving.ts"
       }
     ],
     "id": "reactivity",
-    "kind": "product"
+    "kind": "product",
+    "order": [
+      [
+        "graph.ts",
+        "collector.ts",
+        "tasks.ts",
+        "errors.ts",
+        "history.ts",
+        "abort.ts",
+        "tallies.ts"
+      ],
+      [
+        "provenance.ts"
+      ],
+      [
+        "edges.ts",
+        "outgoing.ts"
+      ],
+      [
+        "batch.ts"
+      ],
+      [
+        "tracking.ts"
+      ],
+      [
+        "carried.ts",
+        "handlers.ts",
+        "views.ts",
+        "past.ts",
+        "loss.ts"
+      ],
+      [
+        "front.ts",
+        "units.ts"
+      ],
+      [
+        "effects.ts"
+      ],
+      [
+        "leaving.ts",
+        "owners.ts"
+      ],
+      [
+        "reads.ts"
+      ],
+      [
+        "eager.ts",
+        "settle.ts",
+        "held.ts"
+      ],
+      [
+        "scheduler.ts"
+      ],
+      [
+        "sources.ts",
+        "fork.ts"
+      ],
+      [
+        "async.ts",
+        "proxy.ts",
+        "external.ts",
+        "latest.ts"
+      ],
+      [
+        "public.ts"
+      ],
+      [
+        "trace.ts"
+      ]
+    ]
   }
 edges:
   - kind: imports
