@@ -1,6 +1,6 @@
 ---
 id: 01a1863d-db39-787b-8f72-b03a2e546434
-title: "Frozen upstream defect reports for milestone 1: 171 selected from 291 open reports"
+title: "Frozen upstream defect reports for milestone 1: 172 selected from 291 open reports"
 ord: 9
 tags: ["research"]
 fields:
@@ -28,8 +28,8 @@ Read on **2026-10-29**. This freezes the issue selection under [[658ccea4]]. Lat
 | --- | ---: | ---: | ---: | ---: |
 | sveltejs/svelte | 51 | 51 | 26 | 25: 14 initial exclusions, 11 fork-base removals |
 | sveltejs/kit | 230 | 223 | 140 | 90: 34 uncertain, 56 excluded |
-| sveltejs/vite-plugin-svelte | 10 | 6 | 5 | 5: 4 inspector issues, 1 fork-base non-reproduction |
-| **Total** | **291** | **280** | **171 reports** | **120** |
+| sveltejs/vite-plugin-svelte | 10 | 6 | 6 | 4: inspector issues |
+| **Total** | **291** | **280** | **172 reports** | **119** |
 
 Svelte's inventory is the union of 19 `bug`, 30 type Bug and 3 `triage: bug` reports, with one overlap. All 51 bodies were read and discussions inspected, with detailed comments read for selected and disputed cases. Kit's full bodies and discussions were read for 223 reports; seven enhanced-img reports were screened out by category. The six non-inspector plugin reports were read with their discussions; four inspector reports were screened out by title. Inventory queries used `gh issue list --state open --label bug --limit 1000` and `gh search issues --state open type:Bug --limit 1000`, with Svelte's `triage: bug` inventory added. Kit has no open `bug`-labelled report; plugin has no open type-Bug report. These are snapshot counts, not a claim to cover unclassified upstream reports.
 
@@ -113,7 +113,7 @@ The fork-base shared queue (`packages/svelte/src/store/shared/index.js:45–59`)
 | [#4389 — Strange behaviour with interrupted crossfade transitions](https://github.com/sveltejs/svelte/issues/4389) | mode-independent; L | [Playground](https://svelte.dev/repl/7b633681d5a849968771c4fe9b7e7536?version=3.18.1) | Open; later transition reversals lose continuity; latest contributor discusses WAAPI interruptibility, no fix. **Fork-base: selected, reproduced.** On Svelte 5.57.3, async and Chromium 151.0.7922.34, after two 340ms-spaced reversals of a 2s crossfade, an opaque box appeared at x=300 within two frames of being at x≈87.715. Evidence: `/Users/teunlao/.tagma-dev/scratch/01a19457-e130-796d-8f16-56fc8fa1a3c9/transitions-run.mjs` and `runes-4389.svelte`; route to interruption continuity in transitions. |
 | [#15627 — `{#if a.deep != null}` runs when `a.deep` is null if used as a transition parameter](https://github.com/sveltejs/svelte/issues/15627) | runes; B | [Maintainer's remaining-crash playground on 5.55.8](https://github.com/sveltejs/svelte/issues/15627#issuecomment-4487142714) | Open; maintainer supplies a remaining lazy outro-parameter crash after improvements; contributor proposes old teardown values and local tests, not a released fix. **Fork-base: selected, reproduced.** On Svelte 5.57.3, async and Chromium 151.0.7922.34, opening and closing the narrowed lazy-derived outro throws `TypeError: Cannot read properties of undefined (reading 'id')` and leaves the drawer present after 600ms. Evidence: `/Users/teunlao/.tagma-dev/scratch/01a19457-e130-796d-8f16-56fc8fa1a3c9/transitions-run.mjs`, `runes-15627-main.svelte` and `issue-15627-drawer.svelte`; route to outro-parameter lifetime and scheduling. |
 
-## vite-plugin-svelte (5)
+## vite-plugin-svelte (6)
 
 | Issue and title | Area; mode; marker | Reproduction | Latest upstream state read |
 | --- | --- | --- | --- |
@@ -121,6 +121,7 @@ The fork-base shared queue (`packages/svelte/src/store/shared/index.js:45–59`)
 | [#1349 — Calling the same import glob multiple times results in stalling build](https://github.com/sveltejs/vite-plugin-svelte/issues/1349) | build; mode-independent; L | [Repository](https://github.com/jzjones/vite-build-issue) | Open, triage; limited-vCPU builds hang with multiple globs; combining globs avoids it for a later reporter; Vite/Rolldown ownership is unproved. |
 | [#1320 — Bug: HMR stops working on child component after updating parent](https://github.com/sveltejs/vite-plugin-svelte/issues/1320) | HMR; mode-independent; L | [Repository](https://github.com/mwojick/svelte-vite-hmr-bug) | Open; child-parent-child edits leave stale child output on plugin 7 and earlier combinations; no comments. |
 | [#1310 — Paths in `@import`-ed css files with `vitePreprocess` aren't rebased](https://github.com/sveltejs/vite-plugin-svelte/issues/1310) | preprocessing/assets; mode-independent; L | [StackBlitz](https://stackblitz.com/edit/vitejs-vite-da2rskgq?file=src%2FApp.svelte) | Open, triage; latest contributor attributes relative-path loss to Vite CSS preprocessing before Svelte receives content; no plugin fix. |
+| [#1066 — Snippet import breaks dev server on first run after npm install](https://github.com/sveltejs/vite-plugin-svelte/issues/1066) | dependency scan; mode-independent; L | [Repository](https://github.com/glupi-borna/svelte-snippet-bug-repro) | Open, upstream, has-workaround; a JavaScript `<script module>` exporting a template snippet fails Vite's dependency scan; reinstated after the fork-base correction below. |
 | [#1254 — style tag in string literal causes incorrect `*{}` injection into template during dev](https://github.com/sveltejs/vite-plugin-svelte/issues/1254) | development CSS transform; runes; L | [StackBlitz](https://stackblitz.com/edit/vitejs-vite-o39yk1ja) | Open, has-workaround; literal style tags confuse injection; ordering/obfuscation workarounds given, no accepted fix. |
 
 ## Svelte and plugin exclusions and unresolved classification
