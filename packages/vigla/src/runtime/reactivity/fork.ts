@@ -1,6 +1,7 @@
 import { createBatch, open, processing, untouched, within } from './batch.ts';
 import { apply, flushSync, process } from './scheduler.ts';
 import { inside } from './views.ts';
+import { destroy, teardown } from './effects.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
 import { application, type Effect } from './graph.ts';
 import { adopt, discard, waitFor } from './held.ts';
@@ -21,7 +22,8 @@ function admits(caller: Effect | null): boolean {
 }
 
 export function fork(fn: () => void): Fork {
-	if (!admits(owner)) forkTiming();
+	const holder = owner;
+	if (!admits(holder)) forkTiming();
 	flushSync();
 	const batch = createBatch();
 	batch.fork = true;
@@ -32,6 +34,13 @@ export function fork(fn: () => void): Fork {
 	untouched(batch);
 	const committed = waitFor(batch);
 	let committing = false;
+	if (holder !== null && holder.destroyed) discard(batch);
+	else if (holder !== null && !batch.done) {
+		const ending = teardown(() => {
+			if (!committing) discard(batch);
+		});
+		void committed.then(() => destroy(ending));
+	}
 	return {
 		async commit() {
 			if (!committing) {

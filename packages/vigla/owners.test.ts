@@ -1172,3 +1172,40 @@ test("a held batch's commit keeps the run it publishes while a newer fork is out
 		app.dispose();
 	}
 });
+
+test('a fork ends with the owner that created it', async () => {
+	const app = root();
+	const first = app.root();
+	const second = app.root();
+	const path = cell('a');
+	const live = new Set<string>();
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				core.effect.pre(() => {
+					live.add(key);
+					return () => live.delete(key);
+				});
+				return key;
+			})
+		);
+		app.run(() => effect(() => void value.current));
+		flushSync();
+		first.run(() =>
+			core.fork(() => {
+				path.current = 'b';
+				first.dispose();
+			})
+		);
+		await tick();
+		const ended = [...live];
+		second.run(() => core.fork(() => (path.current = 'b')));
+		await tick();
+		const during = [...live];
+		second.dispose();
+		assert.deepEqual([ended, during, [...live]], [['a'], ['a', 'b'], ['a']]);
+	} finally {
+		app.dispose();
+	}
+});
