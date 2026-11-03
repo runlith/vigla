@@ -108,32 +108,34 @@ test("preprocessed styles keep each project's aliases", async () => {
 });
 
 test('imported style URLs retain their source directory and scoping', async () => {
-	const fixture = await project({
-		'App.svelte': '<main class="asset">asset</main><style>@import "./lib/style.css";</style>',
-		'lib/style.css': '@import "./nested/asset.css";',
-		'lib/nested/asset.css': '.asset { background-image: url("./image.png?asset=1#tile"); border-image-source: image-set("./set.png" 1x); mask-image: url("@scope/icons/tile.png"); position: sticky; }',
-		'lib/nested/image.png': 'imported-image',
-		'lib/nested/set.png': 'imported-set',
-		'node_modules/@scope/icons/package.json': '{"name":"@scope/icons","exports":{"./tile.png":"./tile.png"}}',
-		'node_modules/@scope/icons/tile.png': 'package-image',
-		'postcss.config.cjs': 'module.exports = { plugins: [{ postcssPlugin: "color", Declaration(decl) { if (decl.prop === "position") decl.value = "fixed"; } }] };',
-		'entry.js': 'import { mount } from "svelte"; import App from "./App.svelte"; mount(App, { target: document.getElementById("app") });',
-		'index.html': '<div id="app"></div><script type="module" src="/entry.js"></script>'
-	}, plugin => ({ preprocess: plugin.vitePreprocess() }));
-	const result = await fixture.vite.build({
-		...fixture.config,
-		build: { write: false, assetsInlineLimit: 0, cssMinify: false }
-	});
-	if (!('output' in result)) throw new Error('expected a single build output');
-	const assets = result.output.filter(entry => entry.type === 'asset');
-	const css = String(assets.find(entry => entry.fileName.endsWith('.css'))?.source);
-	for (const [content, suffix] of [['imported-image', '?asset=1#tile'], ['imported-set', ''], ['package-image', '']]) {
-		const asset = assets.find(entry => (typeof entry.source === 'string' ? entry.source : new TextDecoder().decode(entry.source)) === content);
-		expect(asset, content).toBeDefined();
-		expect(css).toContain(`${asset!.fileName.split('/').at(-1)}${suffix}`);
+	for (const configured of [false, true]) {
+		const fixture = await project({
+			'App.svelte': '<main class="asset">asset</main><style>@import "./lib/style.css";</style>',
+			'lib/style.css': '@import "./nested/asset.css";',
+			'lib/nested/asset.css': '.asset { background-image: url("./image.png?asset=1#tile"); border-image-source: image-set("./set.png" 1x); mask-image: url("@scope/icons/tile.png"); position: sticky; }',
+			'lib/nested/image.png': 'imported-image',
+			'lib/nested/set.png': 'imported-set',
+			'node_modules/@scope/icons/package.json': '{"name":"@scope/icons","exports":{"./tile.png":"./tile.png"}}',
+			'node_modules/@scope/icons/tile.png': 'package-image',
+			...(configured ? { 'postcss.config.cjs': 'module.exports = { plugins: [{ postcssPlugin: "color", Declaration(decl) { if (decl.prop === "position") decl.value = "fixed"; } }] };' } : {}),
+			'entry.js': 'import { mount } from "svelte"; import App from "./App.svelte"; mount(App, { target: document.getElementById("app") });',
+			'index.html': '<div id="app"></div><script type="module" src="/entry.js"></script>'
+		}, plugin => ({ preprocess: plugin.vitePreprocess() }));
+		const result = await fixture.vite.build({
+			...fixture.config,
+			build: { write: false, assetsInlineLimit: 0, cssMinify: false }
+		});
+		if (!('output' in result)) throw new Error('expected a single build output');
+		const assets = result.output.filter(entry => entry.type === 'asset');
+		const css = String(assets.find(entry => entry.fileName.endsWith('.css'))?.source);
+		for (const [content, suffix] of [['imported-image', '?asset=1#tile'], ['imported-set', ''], ['package-image', '']]) {
+			const asset = assets.find(entry => (typeof entry.source === 'string' ? entry.source : new TextDecoder().decode(entry.source)) === content);
+			expect(asset, content).toBeDefined();
+			expect(css).toContain(`${asset!.fileName.split('/').at(-1)}${suffix}`);
+		}
+		expect(css).toMatch(/\.asset(?::where\()?\.[\w-]+/);
+		expect(css).toMatch(new RegExp(`position:\\s*${configured ? 'fixed' : 'sticky'}`));
 	}
-	expect(css).toMatch(/\.asset(?::where\()?\.[\w-]+/);
-	expect(css).toMatch(/position:\s*fixed/);
 });
 
 test('style tags in strings retain their literal value', async () => {

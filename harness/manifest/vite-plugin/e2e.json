@@ -1,5 +1,6 @@
 {
   "conversions": {
+    "e2e-server.js": "allows 30 seconds for CI server startup within the 50-second hook budget and propagates startup failures with server output after cleanup instead of returning an absent server",
     "vitestSetup.ts": "closes a fixture server when startup fails before teardown registration and includes its logs in the startup failure",
     "autoprefixer-browerslist/__tests__/autoprefixer-browerslist.spec.ts": "waits for the prefixed stylesheet state across Vite's optimizer reload instead of reading transient element handles",
     "hmr/__tests__/hmr.spec.ts": "waits for post-restart DOM state across Vite optimizer reloads",
@@ -62,7 +63,10 @@
     "configfile-esm/configfile-esm.spec.ts > should load custom cjs config and work": "contract",
     "configfile-esm/configfile-esm.spec.ts > should load default config and work": "contract",
     "css-dev-sourcemap/css-dev-sourcemap.spec.ts > should apply css compiled from scss": "contract",
-    "css-dev-sourcemap/css-dev-sourcemap.spec.ts > should generate sourcemap": "contract",
+    "css-dev-sourcemap/css-dev-sourcemap.spec.ts > should generate sourcemap": {
+      "status": "difference",
+      "reason": "Provenance-aware imported CSS URL rebasing activates Vite's PostCSS pipeline even without an app PostCSS config; Vite legitimately gives the map an absolute optional file label instead of App.svelte. The own preprocessed styles map imported and component declarations regression preserves this entry's CSS contents and exact sources assertions and additionally checks both declaration positions."
+    },
     "css-dev-sourcemap/css-dev-sourcemap.spec.ts > should not have failed requests": "contract",
     "css-treeshake/css-treeshake.spec.ts > css-treeshake > should apply css from unused components that contain global styles": "contract",
     "css-treeshake/css-treeshake.spec.ts > css-treeshake > should apply css from used components": "contract",

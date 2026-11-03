@@ -244,7 +244,7 @@ export async function serve(root, testMode, port) {
 		}
 	};
 	try {
-		await startedOnPort(serverProcess.process, port, 10000);
+		await startedOnPort(serverProcess.process, port, process.env.CI ? 30000 : 10000);
 		return {
 			port,
 			logs,
@@ -256,5 +256,6 @@ export async function serve(root, testMode, port) {
 		} catch (e1) {
 			console.error('failed to close server process', e1);
 		}
+		throw new Error([String(e), ...logs.server.out, ...logs.server.err].join('\n'), { cause: e });
 	}
 }

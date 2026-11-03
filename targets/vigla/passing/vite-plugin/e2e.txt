@@ -24,7 +24,6 @@ configfile-esm/configfile-esm.spec.ts > should load default config and work (bui
 configfile-esm/configfile-esm.spec.ts > should load default config and work (serve)
 css-dev-sourcemap/css-dev-sourcemap.spec.ts > should apply css compiled from scss (build)
 css-dev-sourcemap/css-dev-sourcemap.spec.ts > should apply css compiled from scss (serve)
-css-dev-sourcemap/css-dev-sourcemap.spec.ts > should generate sourcemap (serve)
 css-dev-sourcemap/css-dev-sourcemap.spec.ts > should not have failed requests (build)
 css-dev-sourcemap/css-dev-sourcemap.spec.ts > should not have failed requests (serve)
 css-treeshake/css-treeshake.spec.ts > css-treeshake > should apply css from unused components that contain global styles (build)

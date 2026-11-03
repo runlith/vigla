@@ -1,5 +1,8 @@
 {
   "samples": {
+    "preprocessed styles map imported and component declarations": {
+      "status": "contract"
+    },
     "preprocessed styles keep each project's aliases": {
       "status": "contract"
     },
