@@ -15,6 +15,8 @@ import type { CompileError, CompileOptions } from '../compiler.ts';
 import { dynamicOptions } from '../compile.ts';
 import { toRollupError } from '../error.ts';
 import type { FrontEnd } from '../front-end.ts';
+import type { Identity } from '../identity.ts';
+import type { Log } from '../log.ts';
 import { arraify, type ResolvedOptions } from '../options.ts';
 import { preprocessWith } from './preprocess.ts';
 import { clientImports } from '../vite-config.ts';
@@ -65,7 +67,8 @@ async function compileComponent(
 	filename: string,
 	code: string,
 	generate: 'client' | 'server',
-	environment: Environment
+	environment: Environment,
+	log: Log
 ) {
 	const compileOptions: CompileOptions = {
 		dev: true,
@@ -87,6 +90,7 @@ async function compileComponent(
 		source,
 		compileOptions,
 		environment,
+		log,
 		'compile'
 	);
 	const compiled = frontEnd.compiler.compile(
@@ -114,13 +118,14 @@ function compileLibraryModule(
 
 function optimizerPlugin(
 	api: PluginAPI,
+	{ name, log }: Identity,
 	environmentName: string,
 	consumer: 'client' | 'server',
 	components: boolean
 ): Rolldown.Plugin {
 	const generate = consumer === 'server' ? 'server' : 'client';
 	const plugin: Rolldown.Plugin = {
-		name: components ? 'vite-plugin-svelte:optimize' : 'vite-plugin-svelte:optimize-module'
+		name: components ? `${name}:optimize` : `${name}:optimize-module`
 	};
 	plugin.options = (input) => {
 		if (scanning(input)) {
@@ -141,7 +146,8 @@ function optimizerPlugin(
 						filename,
 						code,
 						generate,
-						environment
+						environment,
+						log
 					);
 				} catch (error) {
 					throw toRollupError(error as CompileError, api.options);
@@ -168,10 +174,10 @@ async function metadataChanged(cacheDir: string, options: ResolvedOptions): Prom
 	return current !== existing;
 }
 
-export function setupOptimizer(api: PluginAPI): Plugin {
+export function setupOptimizer(api: PluginAPI, identity: Identity): Plugin {
 	let viteConfig: ResolvedConfig;
 	return {
-		name: 'vite-plugin-svelte:setup-optimizer',
+		name: `${identity.name}:setup-optimizer`,
 		apply: 'serve',
 		configEnvironment(name, config) {
 			const consumer = config.consumer ?? (name === 'client' ? 'client' : 'server');
@@ -194,7 +200,7 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 			};
 			const plugins: Rolldown.Plugin[] = [
 				{
-					name: 'vite-plugin-svelte:shared-core',
+					name: `${identity.name}:shared-core`,
 					resolveId: {
 						order: 'pre',
 						filter: { id: /^vigla(?:\/[^?#]+)?$/ },
@@ -224,15 +230,16 @@ export function setupOptimizer(api: PluginAPI): Plugin {
 			const runtime = api.frontEnds.filter((frontEnd) => !isDepExcluded(frontEnd.name, exclude));
 			plugins.unshift(
 				runtimeScanPlugin(
+					identity.name,
 					runtime.flatMap(clientImports),
 					['vigla', ...runtime.map((frontEnd) => frontEnd.name)],
 					resolveRuntime
 				)
 			);
 			plugins.push(
-				scanPlugin(api.frontEnds),
-				optimizerPlugin(api, name, consumer, true),
-				optimizerPlugin(api, name, consumer, false)
+				scanPlugin(identity.name, api.frontEnds),
+				optimizerPlugin(api, identity, name, consumer, true),
+				optimizerPlugin(api, identity, name, consumer, false)
 			);
 			if (consumer === 'server') {
 				optimizeDeps.include = runtime.flatMap((frontEnd) => frontEnd.imports);

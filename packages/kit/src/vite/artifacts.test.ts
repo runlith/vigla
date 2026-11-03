@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import type { ConfiguredServer, ServerModule } from '../types/internal/server.ts';
 import { importVite } from '../config/file.ts';
-import { sveltekit } from './index.ts';
+import { kit } from './index.ts';
 import { packageDirectory } from './paths.ts';
 
 let root: string;
@@ -72,7 +72,7 @@ beforeAll(async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit({
+		plugins: await kit({
 			compilerOptions: { runes: true },
 			inlineStyleThreshold: 0,
 			paths: { base: '/base' }

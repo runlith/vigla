@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Plugin, ResolvedConfig, Rolldown } from 'vite';
 import type { ValidatedConfig } from '../types/builder.ts';
-import { resolveEntry } from '../sync/index.ts';
+import { installation, resolveEntry } from '../sync/index.ts';
 import { compileComponent, componentNames } from '../components/index.ts';
 import { clientApp, clientNode } from './client.ts';
 import {
@@ -15,7 +15,6 @@ import * as e from './messages.ts';
 import {
 	fileUrl,
 	importAliases,
-	installedName,
 	isServerOnly,
 	normalizeId,
 	packageImporter,
@@ -57,7 +56,7 @@ export function virtualModules(
 		enforce: 'pre',
 		configResolved(resolved) {
 			vite = resolved;
-			name = installedName(vite.root);
+			name = installation(vite.root).name;
 		},
 		async resolveId(id, importer, options) {
 			const config = getConfig();

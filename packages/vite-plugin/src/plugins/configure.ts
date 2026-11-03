@@ -3,7 +3,7 @@ import type { Plugin } from 'vite';
 import type { PluginAPI } from '../api.ts';
 import { frontEnds } from '../front-end.ts';
 import { buildIdFilter, buildIdParser } from '../id.ts';
-import { log } from '../log.ts';
+import type { Identity } from '../identity.ts';
 import {
 	arraify,
 	preResolveOptions,
@@ -16,11 +16,12 @@ import type { Options } from '../public.ts';
 import { configureStyles } from '../preprocess.ts';
 import { buildExtraViteConfig, ensureEnvironmentResolve } from '../vite-config.ts';
 
-export function configure(api: PluginAPI, inline?: Partial<Options>): Plugin {
-	validateInlineOptions(inline);
+export function configure(api: PluginAPI, identity: Identity, inline?: Partial<Options>): Plugin {
+	const { log } = identity;
+	validateInlineOptions(inline, log);
 	let preResolved: PreResolvedOptions;
 	return {
-		name: 'vite-plugin-svelte:config',
+		name: `${identity.name}:config`,
 		api,
 		enforce: 'pre',
 		config: {
@@ -29,9 +30,9 @@ export function configure(api: PluginAPI, inline?: Partial<Options>): Plugin {
 				if (process.env.DEBUG) log.setLevel('debug');
 				else if (config.logLevel) log.setLevel(config.logLevel);
 				api.frontEnds = await frontEnds(viteRoot(config));
-				preResolved = await preResolveOptions(inline, config, env, api.frontEnds);
+				preResolved = await preResolveOptions(inline, config, env, api.frontEnds, log);
 				await configureStyles(arraify(preResolved.preprocess), config);
-				const extra = await buildExtraViteConfig(preResolved, config, api.frontEnds);
+				const extra = await buildExtraViteConfig(preResolved, config, api.frontEnds, log);
 				log.debug('additional vite config', extra, 'config');
 				return extra;
 			}
@@ -39,13 +40,13 @@ export function configure(api: PluginAPI, inline?: Partial<Options>): Plugin {
 		configResolved: {
 			order: 'pre',
 			handler(config) {
-				api.options = resolveOptions(preResolved, config);
+				api.options = resolveOptions(preResolved, config, identity);
 				api.moduleOptions = {
 					...preResolved.compilerOptions,
 					dev: api.options.compilerOptions.dev
 				};
 				api.filter = buildIdFilter(api.options, api.frontEnds);
-				api.idParser = buildIdParser(api.options, api.frontEnds);
+				api.idParser = buildIdParser(api.options, api.frontEnds, log);
 				log.debug('resolved options', api.options, 'config');
 			}
 		},

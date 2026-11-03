@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import type { ViteDevServer } from 'vite';
-import { sveltekit } from './index.ts';
+import { kit } from './index.ts';
 import { importVite } from '../config/file.ts';
 import { packageDirectory } from './paths.ts';
 import { hash } from '../shared/hash.ts';
@@ -95,7 +95,7 @@ beforeAll(async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit({
+		plugins: await kit({
 			extensions: ['.view.js'],
 			adapter: { name: 'fixture', adapt() {}, emulate: () => ({ platform: (details) => details }) }
 		}),

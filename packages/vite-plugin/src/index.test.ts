@@ -5,7 +5,7 @@ import { dirname, join, relative } from 'node:path';
 import { findDepPkgJsonPath } from 'vitefu';
 import { createServer, normalizePath, optimizeDeps } from 'vite';
 import { expect, onTestFinished, test } from 'vitest';
-import { svelte, type PluginAPI } from './index.ts';
+import { vigla, type PluginAPI } from './index.ts';
 
 test('compiles opaque source through its claiming front end with custom options intact', async () => {
 	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
@@ -64,7 +64,7 @@ export async function preprocess(source) { return { code: source }; }
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: svelte({
+		plugins: vigla({
 			configFile: false,
 			compilerOptions: { dev: false, prefix: 'compiled: ' },
 			experimental: { compileModule: { infixes: ['.custom.'] } }
@@ -73,8 +73,9 @@ export async function preprocess(source) { return { code: source }; }
 		server: { middlewareMode: true, watch: null, hmr: { port: 0 } }
 	});
 	try {
-		const api = server.config.plugins.find((plugin) => plugin.name === 'vite-plugin-svelte')
-			?.api as PluginAPI | undefined;
+		const api = server.config.plugins.find((plugin) => plugin.name === 'vigla')?.api as
+			| PluginAPI
+			| undefined;
 		expect(
 			api?.frontEnds.find((frontend) => frontend.components.includes('.text'))?.compiler.format
 		).toEqual({ global: '__text', meta: '__text_meta', cssWrapper: 'text-css-wrapper' });
@@ -112,7 +113,7 @@ test('leaves ordinary JavaScript and dependencies alone when no front end is ins
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: svelte({
+		plugins: vigla({
 			configFile: false,
 			extensions: ['.js'],
 			include: /\.js$/,
@@ -122,8 +123,7 @@ test('leaves ordinary JavaScript and dependencies alone when no front end is ins
 		server: { middlewareMode: true, watch: null, hmr: { port: 0 } }
 	});
 	try {
-		const api = server.config.plugins.find((plugin) => plugin.name === 'vite-plugin-svelte')
-			?.api as PluginAPI;
+		const api = server.config.plugins.find((plugin) => plugin.name === 'vigla')?.api as PluginAPI;
 		expect(api.frontEnds).toEqual([]);
 		await optimizeDeps(server.config, true);
 		const output = await server.ssrLoadModule('/entry.js');
@@ -184,7 +184,7 @@ test('frontend prebundles share the native core owner', async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: svelte({ configFile: false }),
+		plugins: vigla({ configFile: false }),
 		optimizeDeps: { noDiscovery: true },
 		server: { middlewareMode: true, hmr: false, watch: null }
 	});

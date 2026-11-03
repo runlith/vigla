@@ -26,8 +26,8 @@ beforeAll(() => {
 	symlinkSync(packageDirectory, path.join(root, 'node_modules/@sveltejs/kit'), 'dir');
 	write(
 		'vite.config.js',
-		`import { sveltekit } from '@sveltejs/kit/vite';
-		export default { plugins: [sveltekit()], test: { include: ['runtime.test.js'] } };`
+		`import { kit } from '@sveltejs/kit/vite';
+		export default { plugins: [kit()], test: { include: ['runtime.test.js'] } };`
 	);
 	write('src/app.html', '<html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>');
 	write(

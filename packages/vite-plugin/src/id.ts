@@ -3,7 +3,7 @@ import process from 'node:process';
 import { normalizePath } from 'vite';
 import type { CompileOptions } from './compiler.ts';
 import type { FrontEnd } from './front-end.ts';
-import { log } from './log.ts';
+import type { Log } from './log.ts';
 import { arraify, type ResolvedOptions } from './options.ts';
 
 export const virtualStyle = /[?&]svelte&type=style&lang.css$/;
@@ -59,7 +59,7 @@ function split(id: string): { filename: string; rawQuery: string } {
 	return { filename, rawQuery };
 }
 
-function parseQuery(rawQuery: string): RequestQuery {
+function parseQuery(rawQuery: string, log: Log): RequestQuery {
 	const query: Record<string, unknown> = Object.fromEntries(new URLSearchParams(rawQuery));
 	for (const key in query) if (query[key] === '') query[key] = true;
 	const given = query.compilerOptions;
@@ -146,13 +146,17 @@ export function buildIdFilter(options: ResolvedOptions, frontEnds: readonly Fron
 	};
 }
 
-export function buildIdParser(options: ResolvedOptions, frontEnds: readonly FrontEnd[]): IdParser {
+export function buildIdParser(
+	options: ResolvedOptions,
+	frontEnds: readonly FrontEnd[],
+	log: Log
+): IdParser {
 	if (frontEnds.length === 0) return () => undefined;
 	const root = normalizePath(options.root);
 	const claim = claims(componentPatterns(options, frontEnds), frontEnds);
 	return (id, ssr, timestamp = Date.now()) => {
 		const { filename, rawQuery } = split(id);
-		const query = parseQuery(rawQuery);
+		const query = parseQuery(rawQuery, log);
 		const rawOrDirect = !!(query.raw || query.direct);
 		if (query.url || (!query.svelte && rawOrDirect)) return undefined;
 		return {
@@ -197,14 +201,15 @@ export function buildModuleIdFilter(
 
 export function buildModuleIdParser(
 	options: ResolvedOptions,
-	frontEnds: readonly FrontEnd[]
+	frontEnds: readonly FrontEnd[],
+	log: Log
 ): ModuleIdParser {
 	if (frontEnds.length === 0) return () => undefined;
 	const root = normalizePath(options.root);
 	const claim = claims(modulePatterns(options, frontEnds), frontEnds);
 	return (id, ssr, timestamp = Date.now()) => {
 		const { filename, rawQuery } = split(id);
-		const query = parseQuery(rawQuery);
+		const query = parseQuery(rawQuery, log);
 		if (query.url || query.raw || query.direct) return undefined;
 		return {
 			id,

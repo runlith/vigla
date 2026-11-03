@@ -1,6 +1,6 @@
 import type { Warning } from './compiler.ts';
 import type { ModuleRequest } from './id.ts';
-import { buildExtendedLogMessage, isDebugNamespaceEnabled, log } from './log.ts';
+import { buildExtendedLogMessage, type Log } from './log.ts';
 import type { ResolvedOptions } from './options.ts';
 
 function ignored(warning: Warning, isBuild: boolean, emitCss: boolean): boolean {
@@ -10,9 +10,9 @@ function ignored(warning: Warning, isBuild: boolean, emitCss: boolean): boolean 
 	);
 }
 
-function warnDev(warning: Warning): void {
+function warnDev(log: Log, warning: Warning): void {
 	if (warning.filename?.includes('node_modules')) {
-		if (isDebugNamespaceEnabled('node-modules-onwarn')) {
+		if (log.debugs('node-modules-onwarn')) {
 			log.debug(buildExtendedLogMessage(warning), undefined, 'node-modules-onwarn');
 		}
 	} else if (log.info.enabled) {
@@ -20,9 +20,9 @@ function warnDev(warning: Warning): void {
 	}
 }
 
-function warnBuild(warning: Warning): void {
+function warnBuild(log: Log, warning: Warning): void {
 	if (warning.filename?.includes('node_modules')) {
-		if (isDebugNamespaceEnabled('node-modules-onwarn')) {
+		if (log.debugs('node-modules-onwarn')) {
 			log.debug(buildExtendedLogMessage(warning), warning.frame, 'node-modules-onwarn');
 		}
 	} else if (log.warn.enabled) {
@@ -33,12 +33,13 @@ function warnBuild(warning: Warning): void {
 export function logCompilerWarnings(
 	request: ModuleRequest,
 	warnings: Warning[],
-	options: ResolvedOptions
+	options: ResolvedOptions,
+	log: Log
 ): void {
 	const { emitCss, onwarn, isBuild } = options;
 	const viaSocket = !isBuild && options.experimental?.sendWarningsToBrowser;
 	const handled: Warning[] = [];
-	const base = isBuild ? warnBuild : warnDev;
+	const base = (warning: Warning) => (isBuild ? warnBuild : warnDev)(log, warning);
 	const warn = viaSocket
 		? (warning: Warning) => {
 				handled.push(warning);

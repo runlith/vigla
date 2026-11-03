@@ -1,5 +1,4 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
@@ -43,17 +42,6 @@ export function moduleUrl(file: string, root: string): string {
 	return relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)
 		? fileUrl(file)
 		: '/' + relative;
-}
-
-export function installedName(root: string): string {
-	const require = createRequire(path.join(root, 'package.json'));
-	for (const name of ['@sveltejs/kit', '@vigla/kit']) {
-		try {
-			const file = require.resolve(`${name}/package.json`);
-			if (JSON.parse(readFileSync(file, 'utf8')).name === '@vigla/kit') return name;
-		} catch {}
-	}
-	throw new Error(`Cannot resolve @vigla/kit from ${root}`);
 }
 
 function targets(value: unknown): string[] {

@@ -4,19 +4,19 @@ import { dynamicOptions } from '../compile.ts';
 import type { CompileError, CompileOptions } from '../compiler.ts';
 import { toRollupError } from '../error.ts';
 import { buildModuleIdFilter, buildModuleIdParser, type ModuleIdParser } from '../id.ts';
-import { log } from '../log.ts';
+import type { Identity } from '../identity.ts';
 import { logCompilerWarnings } from '../warnings.ts';
 
-export function compileModule(api: PluginAPI): Plugin {
+export function compileModule(api: PluginAPI, { name, log }: Identity): Plugin {
 	let idParser: ModuleIdParser;
 	const plugin: Plugin = {
-		name: 'vite-plugin-svelte:compile-module',
+		name: `${name}:compile-module`,
 		enforce: 'post',
 		configResolved() {
 			Object.assign(plugin.transform as object, {
 				filter: buildModuleIdFilter(api.options, api.frontEnds)
 			});
-			idParser = buildModuleIdParser(api.options, api.frontEnds);
+			idParser = buildModuleIdParser(api.options, api.frontEnds, log);
 		},
 		transform: {
 			async handler(code, id) {
@@ -35,6 +35,7 @@ export function compileModule(api: PluginAPI): Plugin {
 					code,
 					compileOptions,
 					this.environment,
+					log,
 					'compileModule'
 				);
 				const final: CompileOptions = dynamic ? { ...compileOptions, ...dynamic } : compileOptions;
@@ -51,7 +52,7 @@ export function compileModule(api: PluginAPI): Plugin {
 				}
 				try {
 					const result = request.frontEnd.compiler.compileModule(code, final);
-					logCompilerWarnings(request, result.warnings, api.options);
+					logCompilerWarnings(request, result.warnings, api.options, log);
 					return { code: result.js.code, map: result.js.map as never };
 				} catch (error) {
 					throw toRollupError(error as CompileError, api.options);

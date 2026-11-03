@@ -17,7 +17,7 @@ import type { Config } from '../types/config.ts';
 import type { ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { namespace } from './ids.ts';
 import { walk } from '../build/index.ts';
-import { sveltekit } from './index.ts';
+import { kit } from './index.ts';
 import { importVite } from '../config/file.ts';
 import { packageDirectory } from './paths.ts';
 
@@ -137,7 +137,7 @@ beforeAll(async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit(config()),
+		plugins: await kit(config()),
 		build: { minify: false, assetsInlineLimit: 0 }
 	});
 	await builder.buildApp();
@@ -145,7 +145,7 @@ beforeAll(async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit(config()),
+		plugins: await kit(config()),
 		preview: { host: '127.0.0.1', port: 0 }
 	});
 	const address = preview.httpServer.address();
@@ -236,7 +236,7 @@ test.each(['single', 'inline'] as const)(
 			root,
 			configFile: false,
 			logLevel: 'silent',
-			plugins: await sveltekit(config(strategy)),
+			plugins: await kit(config(strategy)),
 			build: { minify: false, assetsInlineLimit: 0 }
 		});
 		await builder.buildApp();
@@ -310,7 +310,7 @@ test('a prerender policy exception fails the build in the parent process', async
 			root,
 			configFile: false,
 			logLevel: 'silent',
-			plugins: await sveltekit(config()),
+			plugins: await kit(config()),
 			build: { minify: false, assetsInlineLimit: 0 }
 		});
 		await expect(builder.buildApp()).rejects.toThrow('policy rejected /missing');

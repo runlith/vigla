@@ -6,13 +6,14 @@ export type RuntimeResolver = (
 	importer: string | undefined
 ) => Promise<string | undefined>;
 
-const runtimeId = '\0vite-plugin-svelte:runtime-scan';
-
 function escape(text: string): string {
 	return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function withEntry(input: Rolldown.InputOption | undefined): Rolldown.InputOption {
+function withEntry(
+	input: Rolldown.InputOption | undefined,
+	runtimeId: string
+): Rolldown.InputOption {
 	if (input === undefined) return [runtimeId];
 	if (typeof input === 'string') return [input, runtimeId];
 	if (Array.isArray(input)) return [...input, runtimeId];
@@ -21,6 +22,7 @@ function withEntry(input: Rolldown.InputOption | undefined): Rolldown.InputOptio
 
 function crawler(
 	name: string,
+	runtimeId: string,
 	entries: readonly string[],
 	owned: RegExp,
 	resolve: RuntimeResolver
@@ -47,21 +49,24 @@ function crawler(
 }
 
 export function runtimeScanPlugin(
+	prefix: string,
 	entries: readonly string[],
 	packages: readonly string[],
 	resolve: RuntimeResolver
 ): Rolldown.Plugin {
 	const owned = new RegExp(`^(?:${packages.map(escape).join('|')})(?:/[^?#]+)?$`);
+	const name = `${prefix}:runtime-scan`;
+	const runtimeId = `\0${name}`;
 	const plugin: Rolldown.Plugin = {
-		name: 'vite-plugin-svelte:runtime-scan',
+		name,
 		options(input) {
 			if (entries.length === 0 || !scanning(input)) return;
 			const plugins = (input.plugins ?? []) as Rolldown.Plugin[];
 			return {
 				...input,
-				input: withEntry(input.input),
+				input: withEntry(input.input, runtimeId),
 				plugins: plugins.map((entry) =>
-					entry === plugin ? crawler(plugin.name, entries, owned, resolve) : entry
+					entry === plugin ? crawler(name, runtimeId, entries, owned, resolve) : entry
 				)
 			};
 		}

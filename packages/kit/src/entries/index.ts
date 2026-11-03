@@ -42,7 +42,7 @@ export type {
 	ValidationError
 } from '../types/index.ts';
 export { normalizeUrl } from '../shared/pathname.ts';
-export const VERSION = '3.1.0';
+export const VERSION = '0.1.0';
 
 export const error: ErrorFunction = (
 	status: number,

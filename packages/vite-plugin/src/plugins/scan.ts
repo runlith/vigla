@@ -189,10 +189,10 @@ function scanner(name: string, parsing: readonly FrontEnd[]): Rolldown.Plugin {
 	};
 }
 
-export function scanPlugin(frontEnds: readonly FrontEnd[]): Rolldown.Plugin {
+export function scanPlugin(prefix: string, frontEnds: readonly FrontEnd[]): Rolldown.Plugin {
 	const parsing = frontEnds.filter((frontEnd) => frontEnd.compiler.parse !== undefined);
 	const plugin: Rolldown.Plugin = {
-		name: 'vite-plugin-svelte:scan',
+		name: `${prefix}:scan`,
 		options(input) {
 			if (parsing.length === 0 || !scanning(input)) return;
 			const plugins = (input.plugins ?? []) as Rolldown.Plugin[];

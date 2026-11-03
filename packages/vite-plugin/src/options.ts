@@ -11,8 +11,9 @@ import {
 import type { CompileOptions } from './compiler.ts';
 import { loadConfigFile } from './config-file.ts';
 import type { FrontEnd } from './front-end.ts';
-import { log } from './log.ts';
-import type { Options, SvelteConfig } from './public.ts';
+import type { Identity } from './identity.ts';
+import type { Log } from './log.ts';
+import type { Config, Options } from './public.ts';
 
 export interface PreResolvedOptions extends Options {
 	root: string;
@@ -52,7 +53,7 @@ export function arraify<T>(value: T | T[] | null | undefined): T[] {
 	return value == null ? [] : Array.isArray(value) ? value : [value];
 }
 
-export function validateInlineOptions(options: Partial<Options> | undefined): void {
+export function validateInlineOptions(options: Partial<Options> | undefined, log: Log): void {
 	const invalid = Object.keys(options ?? {}).filter((key) => !inlineOptions.has(key));
 	if (invalid.length > 0) {
 		log.warn(
@@ -62,13 +63,14 @@ export function validateInlineOptions(options: Partial<Options> | undefined): vo
 }
 
 function convertPluginOptions(
-	config: (Partial<SvelteConfig> & { configFile?: string }) | undefined
+	config: (Partial<Config> & { configFile?: string }) | undefined,
+	log: Log
 ): Partial<Options> | undefined {
 	if (!config) return undefined;
 	const misplaced = Object.keys(config).filter((key) => pluginOptions.has(key));
 	if (misplaced.length > 0) {
 		throw new Error(
-			`Invalid options in svelte config. Move the following options into 'vitePlugin:{...}': ${misplaced.join(', ')}`
+			`Invalid options in config file. Move the following options into 'vitePlugin:{...}': ${misplaced.join(', ')}`
 		);
 	}
 	if (!config.vitePlugin) return config as Partial<Options>;
@@ -77,19 +79,19 @@ function convertPluginOptions(
 	const atRoot = keys.filter((key) => rootOptions.has(key));
 	if (atRoot.length > 0) {
 		throw new Error(
-			`Invalid options in svelte config under vitePlugin:{...}', move them to the config root : ${atRoot.join(', ')}`
+			`Invalid options in config file under vitePlugin:{...}', move them to the config root : ${atRoot.join(', ')}`
 		);
 	}
 	const duplicate = keys.filter((key) => Object.prototype.hasOwnProperty.call(config, key));
 	if (duplicate.length > 0) {
 		throw new Error(
-			`Invalid duplicate options in svelte config under vitePlugin:{...}', they are defined in root too and must only exist once: ${duplicate.join(', ')}`
+			`Invalid duplicate options in config file under vitePlugin:{...}', they are defined in root too and must only exist once: ${duplicate.join(', ')}`
 		);
 	}
 	const unknown = keys.filter((key) => !pluginOptions.has(key));
 	if (unknown.length > 0) {
 		log.warn(
-			`ignoring unknown plugin options in svelte config under vitePlugin:{...}: ${unknown.join(', ')}`
+			`ignoring unknown plugin options in config file under vitePlugin:{...}: ${unknown.join(', ')}`
 		);
 		for (const key of unknown) delete plugin[key];
 	}
@@ -115,7 +117,8 @@ export async function preResolveOptions(
 	inline: Partial<Options> | undefined,
 	viteUserConfig: UserConfig,
 	viteEnv: ConfigEnv,
-	frontEnds: readonly FrontEnd[]
+	frontEnds: readonly FrontEnd[],
+	log: Log
 ): Promise<PreResolvedOptions> {
 	const root = viteRoot(viteUserConfig);
 	const isBuild = viteEnv.command === 'build';
@@ -124,8 +127,10 @@ export async function preResolveOptions(
 		emitCss: true,
 		prebundleSvelteLibraries: !isBuild
 	};
+	const stems = frontEnds.map((frontEnd) => frontEnd.config);
 	const loaded = convertPluginOptions(
-		await loadConfigFile({ ...viteUserConfig, root }, inline, frontEnds)
+		await loadConfigFile({ ...viteUserConfig, root }, inline, stems, log),
+		log
 	);
 	const extra = {
 		root,
@@ -138,7 +143,11 @@ export async function preResolveOptions(
 	return merged;
 }
 
-function enforceOptionsForHmr(options: ResolvedOptions, viteConfig: ResolvedConfig): void {
+function enforceOptionsForHmr(
+	options: ResolvedOptions,
+	viteConfig: ResolvedConfig,
+	log: Log
+): void {
 	const compilerOptions = options.compilerOptions;
 	if (compilerOptions.hmr && viteConfig.server?.hmr === false) {
 		log.warn(
@@ -163,13 +172,13 @@ function enforceOptionsForHmr(options: ResolvedOptions, viteConfig: ResolvedConf
 		});
 		if (!usesFilename || usesCss) {
 			log.warn(
-				`The custom compilerOptions.cssHash in your svelte config can degrade your DX. See ${cssHashLink} for more information.`
+				`The custom compilerOptions.cssHash in your config can degrade your DX. See ${cssHashLink} for more information.`
 			);
 		}
 	}
 }
 
-function enforceOptionsForProduction(options: ResolvedOptions): void {
+function enforceOptionsForProduction(options: ResolvedOptions, log: Log): void {
 	if (!options.isProduction) return;
 	if (options.compilerOptions.hmr) {
 		log.warn(
@@ -185,17 +194,17 @@ function enforceOptionsForProduction(options: ResolvedOptions): void {
 	}
 }
 
-function removeIgnoredOptions(options: ResolvedOptions): void {
+function removeIgnoredOptions(options: ResolvedOptions, { name, log }: Identity): void {
 	const ignored = ['generate', 'format', 'filename'];
 	const passed = Object.keys(options.compilerOptions ?? {}).filter((key) => ignored.includes(key));
 	if (passed.length === 0) return;
 	log.warn(
-		`The following Svelte compilerOptions are controlled by vite-plugin-svelte and essential to its functionality. User-specified values are ignored. Please remove them from your configuration: ${passed.join(', ')}`
+		`The following compilerOptions are controlled by ${name} and essential to its functionality. User-specified values are ignored. Please remove them from your configuration: ${passed.join(', ')}`
 	);
 	for (const key of passed) delete options.compilerOptions[key];
 }
 
-function handleDeprecatedOptions(options: ResolvedOptions): void {
+function handleDeprecatedOptions(options: ResolvedOptions, log: Log): void {
 	const experimental = options.experimental as Record<string, unknown> | undefined;
 	if (!experimental) return;
 	const own = options as unknown as Record<string, unknown>;
@@ -204,19 +213,19 @@ function handleDeprecatedOptions(options: ResolvedOptions): void {
 		own[promoted] = experimental[promoted];
 		delete experimental[promoted];
 		log.warn(
-			`Option "experimental.${promoted}" is no longer experimental and has moved to "${promoted}". Please update your Svelte or Vite config.`
+			`Option "experimental.${promoted}" is no longer experimental and has moved to "${promoted}". Please update your config.`
 		);
 	}
 }
 
-function logRemovedPluginApi(config: ResolvedConfig): void {
+function logRemovedPluginApi(config: ResolvedConfig, log: Log): void {
 	const using = config.plugins.filter(
 		(plugin) => (plugin?.api as { sveltePreprocess?: unknown } | undefined)?.sveltePreprocess
 	);
 	if (using.length === 0) return;
 	log.error.once(
 		`The following vite plugins use the removed 'plugin.api.sveltePreprocess' api: ${using.map((plugin) => plugin.name).join(', ')}
-				These preprocessors are no longer added to your svelte config and if your application depends on them it breaks.
+				These preprocessors are no longer added to your config and if your application depends on them it breaks.
 				Update the plugins or contact their maintainers. See ${transformLink} for more information.
 				`.replace(/\t+/g, '\t')
 	);
@@ -224,7 +233,8 @@ function logRemovedPluginApi(config: ResolvedConfig): void {
 
 export function resolveOptions(
 	preResolved: PreResolvedOptions,
-	viteConfig: ResolvedConfig
+	viteConfig: ResolvedConfig,
+	identity: Identity
 ): ResolvedOptions {
 	const defaults = {
 		compilerOptions: {
@@ -239,10 +249,11 @@ export function resolveOptions(
 	};
 	const extra = { root: viteConfig.root, isProduction: viteConfig.isProduction };
 	const merged = mergeConfigs<ResolvedOptions>(defaults, preResolved, extra);
-	removeIgnoredOptions(merged);
-	handleDeprecatedOptions(merged);
-	logRemovedPluginApi(viteConfig);
-	enforceOptionsForHmr(merged, viteConfig);
-	enforceOptionsForProduction(merged);
+	const { log } = identity;
+	removeIgnoredOptions(merged, identity);
+	handleDeprecatedOptions(merged, log);
+	logRemovedPluginApi(viteConfig, log);
+	enforceOptionsForHmr(merged, viteConfig, log);
+	enforceOptionsForProduction(merged, log);
 	return merged;
 }

@@ -1,5 +1,5 @@
 /// <reference path="../../types/index.d.ts" preserve="true" />
-import type { Options } from '@vigla/vite-plugin';
+import type { Options, PluginFactory } from '@vigla/vite-plugin';
 import type { Plugin } from 'vite';
 import type { Adapter } from './builder.ts';
 import type { CspConfig } from './csp.ts';
@@ -119,4 +119,4 @@ export interface Config extends Omit<Options, 'experimental'> {
 	typescript?: TypescriptConfig;
 	version?: VersionConfig;
 }
-export declare function sveltekit(config?: Config): Promise<Plugin[]>;
+export declare function kit(config?: Config, factory?: PluginFactory): Promise<Plugin[]>;

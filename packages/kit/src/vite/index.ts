@@ -1,9 +1,15 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { svelte, type Options, type PluginAPI } from '@vigla/vite-plugin';
+import { vigla, type Options, type PluginAPI, type PluginFactory } from '@vigla/vite-plugin';
 import type { CorsOptions, Plugin, ResolvedConfig, UserConfig } from 'vite';
 import { resolveConfig, splitConfig, validateConfig } from '../config/index.ts';
-import { createSync, loadEnvironment, validateEnvironment, resolveEntry } from '../sync/index.ts';
+import {
+	createSync,
+	installation,
+	loadEnvironment,
+	validateEnvironment,
+	resolveEntry
+} from '../sync/index.ts';
 import { configAliases, importVite } from '../config/file.ts';
 import type { Config } from '../types/config.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
@@ -11,7 +17,7 @@ import { configureDev } from './dev.ts';
 import { namespace } from './ids.ts';
 import * as e from './messages.ts';
 import { scanVirtualModules, serverGuard, virtualModules } from './modules.ts';
-import { importAliases, installedName, posix, packageDirectory, usesHtmlHook } from './paths.ts';
+import { importAliases, posix, packageDirectory, usesHtmlHook } from './paths.ts';
 import type { Project } from './project.ts';
 import { createRemotePlugin } from './remote.ts';
 import { buildPlugin } from './build.ts';
@@ -71,17 +77,18 @@ function definitions(
 	};
 }
 
-export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
+export async function kit(input: Config = {}, factory: PluginFactory = vigla): Promise<Plugin[]> {
 	const split = splitConfig(input);
 	const validated = validateConfig(split.config);
 	const options: Partial<Options> = { ...split.plugin, configFile: false };
 	if (input.compilerOptions !== undefined) options.compilerOptions = input.compilerOptions;
 	if (input.preprocess !== undefined) options.preprocess = input.preprocess;
 	if (input.extensions !== undefined) options.extensions = input.extensions;
-	const compiler = svelte(options);
-	const api = compiler.find((plugin) => plugin.name === 'vite-plugin-svelte')!.api as PluginAPI;
+	const compiler = factory(options);
+	const api = compiler.find((plugin) => plugin.name === factory.marker)!.api as PluginAPI;
 	let root: string;
 	let name: string;
+	let dependency: string;
 	let config: ValidatedConfig;
 	let project: Project;
 	let runtime: typeof import('vite');
@@ -132,7 +139,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 				for (const file of ['svelte.config.js', 'svelte.config.ts']) {
 					if (existsSync(path.join(root, file))) e.config_file_unsupported({ file });
 				}
-				name = installedName(root);
+				({ name, path: dependency } = installation(root));
 				config = resolveConfig(validated, root);
 				setup.api.options = config;
 				const dev = env.command === 'serve';
@@ -191,7 +198,7 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 							`!${config.files.routes}/**/+*server.*`
 						],
 						exclude: [name, '@vigla/kit', '$app', '$env'],
-						include: [`${name} > devalue`, `${name} > esm-env`]
+						include: [`${dependency} > devalue`, `${dependency} > esm-env`]
 					},
 					ssr: {
 						noExternal: [name, '@vigla/kit', 'vigla', 'esm-env', 'devalue', 'cookie'],

@@ -3,18 +3,18 @@ import type { Plugin } from 'vite';
 import type { PluginAPI } from '../api.ts';
 import type { Css } from '../compiler.ts';
 import { virtualStyle } from '../id.ts';
-import { log } from '../log.ts';
+import type { Identity } from '../identity.ts';
 
 interface CssMeta {
 	svelte?: { css?: Css | null };
 }
 
-export function loadCompiledCss(api: PluginAPI): Plugin {
+export function loadCompiledCss(api: PluginAPI, { name, log }: Identity): Plugin {
 	let cached = false;
 	const kept = new Map<string, Css>();
 	const filter = { id: virtualStyle };
 	return {
-		name: 'vite-plugin-svelte:load-compiled-css',
+		name: `${name}:load-compiled-css`,
 		configResolved(config) {
 			cached = config.command === 'serve' || !!config.build?.watch;
 		},
@@ -61,9 +61,9 @@ export function loadCompiledCss(api: PluginAPI): Plugin {
 	};
 }
 
-export function loadCustom(api: PluginAPI): Plugin {
+export function loadCustom(api: PluginAPI, { name, log }: Identity): Plugin {
 	const plugin: Plugin = {
-		name: 'vite-plugin-svelte:load-custom',
+		name: `${name}:load-custom`,
 		enforce: 'pre',
 		configResolved() {
 			Object.assign(plugin.load as object, { filter: api.filter });

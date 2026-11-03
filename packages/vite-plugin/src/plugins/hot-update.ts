@@ -3,7 +3,8 @@ import type { EnvironmentModuleNode, Plugin, ViteDevServer } from 'vite';
 import type { PluginAPI } from '../api.ts';
 import { configNames } from '../config-file.ts';
 import { virtualStyle } from '../id.ts';
-import { log } from '../log.ts';
+import type { Identity } from '../identity.ts';
+import type { Log } from '../log.ts';
 
 function normalize(code: string | null | undefined): string | null | undefined {
 	if (code == null) return code;
@@ -21,7 +22,8 @@ function same(previous: string | null | undefined, next: string | null | undefin
 function changed(
 	previous: string | null | undefined,
 	next: string | null | undefined,
-	id: string | null
+	id: string | null,
+	log: Log
 ): boolean {
 	if (same(previous, next)) return false;
 	const loose = same(normalize(previous), normalize(next));
@@ -35,22 +37,21 @@ function changed(
 	return !loose;
 }
 
-function watchConfig(api: PluginAPI, server: ViteDevServer): void {
+function watchConfig(api: PluginAPI, { name, log }: Identity, server: ViteDevServer): void {
 	const configFile = api.options.configFile;
 	if (configFile === false) return;
 	const { watcher, ws } = server;
 	const { root, server: serverConfig } = server.config;
 	const restart = (filename: string) => {
 		if (serverConfig.middlewareMode) {
-			const message =
-				'Svelte config change detected, restart your dev process to apply the changes.';
+			const message = 'Config file change detected, restart your dev process to apply the changes.';
 			log.info(message, filename);
 			ws.send({
 				type: 'error',
-				err: { message, stack: '', plugin: 'vite-plugin-svelte', id: filename }
+				err: { message, stack: '', plugin: name, id: filename }
 			});
 		} else {
-			log.info(`svelte config changed: restarting vite server. - file: ${filename}`);
+			log.info(`config file changed: restarting vite server. - file: ${filename}`);
 			void server.restart();
 		}
 	};
@@ -61,17 +62,19 @@ function watchConfig(api: PluginAPI, server: ViteDevServer): void {
 		watcher.on('change', onConfig);
 		watcher.on('unlink', onConfig);
 	} else {
-		const candidates = configNames(api.frontEnds).map((name) => path.join(root, name));
+		const stems = api.frontEnds.map((frontEnd) => frontEnd.config);
+		const candidates = configNames(stems).map((file) => path.join(root, file));
 		watcher.on('add', (filename: string) => {
 			if (candidates.includes(filename)) restart(filename);
 		});
 	}
 }
 
-export function hotUpdate(api: PluginAPI): Plugin {
+export function hotUpdate(api: PluginAPI, identity: Identity): Plugin {
+	const { log } = identity;
 	const results = new Map<string | null, string>();
 	const plugin: Plugin = {
-		name: 'vite-plugin-svelte:hot-update',
+		name: `${identity.name}:hot-update`,
 		enforce: 'post',
 		configResolved() {
 			Object.assign(plugin.transform as object, {
@@ -94,10 +97,10 @@ export function hotUpdate(api: PluginAPI): Plugin {
 			const client = Object.values(server.environments).find(
 				(environment) => environment.config.consumer === 'client'
 			);
-			if (client) watchConfig(api, server);
+			if (client) watchConfig(api, identity, server);
 			else {
 				log.warn(
-					'No client environment found, not adding watchers for svelte config and preprocessor dependencies'
+					'No client environment found, not adding watchers for config file and preprocessor dependencies'
 				);
 			}
 		},
@@ -132,7 +135,8 @@ export function hotUpdate(api: PluginAPI): Plugin {
 				const affected: EnvironmentModuleNode[] = [];
 				for (const [index, module] of own.entries()) {
 					await transform(module.url);
-					if (changed(previous[index], results.get(module.id), module.id)) affected.push(module);
+					if (changed(previous[index], results.get(module.id), module.id, log))
+						affected.push(module);
 					else {
 						log.debug(
 							`skipping hot update for ${module.id} because result is unchanged`,

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import type { PreviewServer } from 'vite';
 import { importVite } from '../config/file.ts';
-import { sveltekit } from './index.ts';
+import { kit } from './index.ts';
 import { packageDirectory } from './paths.ts';
 
 let root: string;
@@ -101,7 +101,7 @@ beforeAll(async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit({ paths: { base: '/base' } }),
+		plugins: await kit({ paths: { base: '/base' } }),
 		preview: { host: '127.0.0.1', port: 0 }
 	});
 	const address = preview.httpServer.address();

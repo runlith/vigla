@@ -3,7 +3,7 @@ import type { Environment } from 'vite';
 import type { CompileError, CompileOptions, CompileResult } from './compiler.ts';
 import { enhanceCompileError } from './error.ts';
 import type { ComponentRequest } from './id.ts';
-import { log } from './log.ts';
+import type { Log } from './log.ts';
 import { mapToRelative } from './maps.ts';
 import type { ResolvedOptions } from './options.ts';
 
@@ -21,6 +21,7 @@ export async function dynamicOptions(
 	code: string,
 	compileOptions: CompileOptions,
 	environment: Environment,
+	log: Log,
 	scope: string
 ): Promise<Partial<CompileOptions> | undefined> {
 	const dynamic = await options.dynamicCompileOptions?.({
@@ -44,6 +45,7 @@ export async function compileComponent(
 	code: string,
 	options: ResolvedOptions,
 	environment: Environment,
+	log: Log,
 	sourcemap?: object
 ): Promise<Compiled> {
 	const { filename, normalizedFilename, cssId, ssr, raw, frontEnd } = request;
@@ -58,6 +60,7 @@ export async function compileComponent(
 		code,
 		compileOptions,
 		environment,
+		log,
 		'compile'
 	);
 	const final: CompileOptions = dynamic ? { ...compileOptions, ...dynamic } : compileOptions;

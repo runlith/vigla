@@ -3,11 +3,12 @@ import type { PluginAPI } from '../api.ts';
 import { compileComponent, type Compiled } from '../compile.ts';
 import type { CompileError } from '../compiler.ts';
 import { toRollupError } from '../error.ts';
+import type { Identity } from '../identity.ts';
 import { logCompilerWarnings } from '../warnings.ts';
 
-export function compile(api: PluginAPI): Plugin {
+export function compile(api: PluginAPI, { name, log }: Identity): Plugin {
 	const plugin: Plugin = {
-		name: 'vite-plugin-svelte:compile',
+		name: `${name}:compile`,
 		configResolved() {
 			Object.assign(plugin.transform as object, { filter: api.filter });
 		},
@@ -23,13 +24,14 @@ export function compile(api: PluginAPI): Plugin {
 						code,
 						api.options,
 						this.environment,
+						log,
 						this.getCombinedSourcemap() as unknown as object
 					);
 				} catch (error) {
 					throw toRollupError(error as CompileError, api.options);
 				}
 				if (compiled.compiled.warnings) {
-					logCompilerWarnings(request, compiled.compiled.warnings, api.options);
+					logCompilerWarnings(request, compiled.compiled.warnings, api.options, log);
 				}
 				return {
 					code: compiled.compiled.js.code,

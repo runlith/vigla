@@ -1,6 +1,6 @@
 {
 	"name": "@vigla/kit",
-	"version": "3.1.0",
+	"version": "0.1.0",
 	"type": "module",
 	"files": [
 		"dist",
@@ -11,7 +11,7 @@
 		"build": "node ../../release/src/cli.ts emit"
 	},
 	"bin": {
-		"svelte-kit": "./src/sync/cli.ts"
+		"vigla-kit": "./src/sync/bin.ts"
 	},
 	"exports": {
 		".": {
@@ -44,7 +44,8 @@
 			"default": "./src/vite/index.ts"
 		},
 		"./internal/env": "./src/entries/internal/env.ts",
-		"./internal/node": "./src/node/static.ts"
+		"./internal/node": "./src/node/static.ts",
+		"./cli": "./src/sync/cli.ts"
 	},
 	"imports": {
 		"#internal/origin": {

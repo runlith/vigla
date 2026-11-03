@@ -38,7 +38,7 @@ export interface PluginOptions {
 	experimental?: ExperimentalOptions;
 }
 
-export interface SvelteConfig {
+export interface Config {
 	extensions?: string[];
 	preprocess?: Arrayable<PreprocessorGroup>;
 	compilerOptions?: Omit<CompileOptions, 'filename' | 'format' | 'generate'>;
@@ -46,7 +46,7 @@ export interface SvelteConfig {
 	vitePlugin?: PluginOptions;
 }
 
-export interface Options extends Omit<SvelteConfig, 'vitePlugin'>, PluginOptions {
+export interface Options extends Omit<Config, 'vitePlugin'>, PluginOptions {
 	configFile?: string | false;
 }
 

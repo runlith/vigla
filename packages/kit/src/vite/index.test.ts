@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync 
 import path from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { createServer, type ViteDevServer } from 'vite';
-import { sveltekit } from './index.ts';
+import { kit } from './index.ts';
 import { importVite } from '../config/file.ts';
 import { packageDirectory } from './paths.ts';
 
@@ -66,7 +66,7 @@ beforeAll(async () => {
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await sveltekit({
+		plugins: await kit({
 			paths: { base: '/base' },
 			alias: {
 				exact: 'src/lib/value.js',
@@ -89,7 +89,7 @@ afterAll(async () => {
 	if (root) rmSync(root, { recursive: true, force: true });
 });
 
-test('sveltekit serves endpoint requests with explicit environment values and prefix paths', async () => {
+test('kit serves endpoint requests with explicit environment values and prefix paths', async () => {
 	const response = await fetch(`${origin}/base/`);
 	expect(response.status, await response.clone().text()).toBe(200);
 	expect(await response.json()).toEqual({
@@ -106,12 +106,12 @@ test('sveltekit serves endpoint requests with explicit environment values and pr
 	expect(await matched.json()).toEqual({ value: 42 });
 });
 
-test('sveltekit resolves exact and wildcard aliases including regular-expression characters', async () => {
+test('kit resolves exact and wildcard aliases including regular-expression characters', async () => {
 	const module = await server.ssrLoadModule('/src/aliases.js');
 	expect(module.result).toEqual(['root', 'nested', 'root', 'nested']);
 });
 
-test('sveltekit serves assets under the configured base', async () => {
+test('kit serves assets under the configured base', async () => {
 	const response = await fetch(`${origin}/base/file.txt`);
 	expect(response.status).toBe(200);
 	expect(await response.text()).toBe('asset content');
@@ -171,7 +171,7 @@ test('dependency scanning externalizes virtual modules and discovers normal depe
 			root,
 			configFile: false,
 			logLevel: 'silent',
-			plugins: await sveltekit({ paths: { base: '/base' } }),
+			plugins: await kit({ paths: { base: '/base' } }),
 			optimizeDeps: { entries: [file] }
 		},
 		'serve'

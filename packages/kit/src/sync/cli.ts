@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import {
 	existsSync,
 	mkdirSync,
@@ -60,9 +59,10 @@ async function sync(file: string | undefined, mode: string): Promise<void> {
 	}
 }
 
-const parsed = (() => {
+function parse(args: string[]) {
 	try {
 		return parseArgs({
+			args,
 			allowPositionals: true,
 			strict: true,
 			options: {
@@ -77,20 +77,19 @@ const parsed = (() => {
 		console.log(help);
 		process.exit(1);
 	}
-})();
+}
 
-const { values, positionals } = parsed;
-if (values.version) {
-	const { version } = JSON.parse(
-		readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
-	);
-	console.log(version);
-} else if (values.help || positionals.length === 0) {
-	console.log(help);
-} else if (positionals[0] === 'sync') {
-	await sync(values.config, values.mode);
-} else {
-	console.error(styleText(['bold', 'red'], `> Unknown command: ${positionals[0]}`));
-	console.log(help);
-	process.exitCode = 1;
+export async function cli(args: string[], version: string): Promise<void> {
+	const { values, positionals } = parse(args);
+	if (values.version) {
+		console.log(version);
+	} else if (values.help || positionals.length === 0) {
+		console.log(help);
+	} else if (positionals[0] === 'sync') {
+		await sync(values.config, values.mode);
+	} else {
+		console.error(styleText(['bold', 'red'], `> Unknown command: ${positionals[0]}`));
+		console.log(help);
+		process.exitCode = 1;
+	}
 }

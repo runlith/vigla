@@ -5,7 +5,8 @@ import type { PluginAPI } from '../api.ts';
 import type { CompileError, PreprocessorGroup, Processed } from '../compiler.ts';
 import { toRollupError } from '../error.ts';
 import type { ComponentRequest } from '../id.ts';
-import { log } from '../log.ts';
+import type { Identity } from '../identity.ts';
+import type { Log } from '../log.ts';
 import { mapToRelative } from '../maps.ts';
 import { arraify } from '../options.ts';
 
@@ -52,7 +53,7 @@ class Dependencies {
 	readonly #dependants = new Map<string, Set<string>>();
 	readonly #server: ViteDevServer;
 
-	constructor(server: ViteDevServer) {
+	constructor(server: ViteDevServer, log: Log) {
 		this.#server = server;
 		const changed = (filename: string) => {
 			for (const dependant of this.#dependants.get(dependencyKey(filename)) ?? []) {
@@ -107,11 +108,11 @@ class Dependencies {
 	}
 }
 
-export function preprocess(api: PluginAPI): Plugin {
+export function preprocess(api: PluginAPI, { name, log }: Identity): Plugin {
 	let run: Preprocess | undefined;
 	let dependencies: Dependencies | undefined;
 	const plugin: Plugin = {
-		name: 'vite-plugin-svelte:preprocess',
+		name: `${name}:preprocess`,
 		enforce: 'pre',
 		configResolved(config) {
 			const groups = arraify(api.options.preprocess);
@@ -129,7 +130,7 @@ export function preprocess(api: PluginAPI): Plugin {
 			}
 		},
 		configureServer(server) {
-			dependencies = new Dependencies(server);
+			dependencies = new Dependencies(server, log);
 		},
 		buildStart() {
 			dependencies?.clear();

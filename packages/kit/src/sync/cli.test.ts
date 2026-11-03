@@ -16,7 +16,7 @@ import { afterEach, expect, test } from 'vitest';
 
 const roots: string[] = [];
 const packageRoot = resolve(import.meta.dirname, '../..');
-const cli = join(packageRoot, 'src/sync/cli.ts');
+const cli = join(packageRoot, 'src/sync/bin.ts');
 const require = createRequire(join(packageRoot, 'package.json'));
 
 function project(files: Record<string, string>) {
@@ -53,7 +53,7 @@ afterEach(() => {
 
 test('sync loads the selected Vite config and mode and writes route and environment declarations', () => {
 	const app = project({
-		'custom.config.js': `import { sveltekit } from '@sveltejs/kit/vite'; export default { plugins: [sveltekit({ extensions: ['.view'], outDir: 'generated' })] };`,
+		'custom.config.js': `import { kit } from '@sveltejs/kit/vite'; export default { plugins: [kit({ extensions: ['.view'], outDir: 'generated' })] };`,
 		'src/routes/[slug]/+page.view': '',
 		'src/env.ts': `import { dev } from '$app/env'; import { defineEnvVars } from '@sveltejs/kit/env'; export const variables = defineEnvVars({ [import.meta.env.MODE === 'cli-test' && !dev ? 'PUBLIC_MODE' : 'WRONG_MODE']: { public: true }, SECRET: {} });`,
 		'tsconfig.json': '{ "extends": "$app/tsconfig" }'
