@@ -10,5 +10,6 @@ export { assignmentTarget, search } from '../proxy.ts';
 export {
 	lapsingDerived as derived,
 	pre as user_pre_effect,
+	unowned as without_reactive_context,
 	userEffect as user_effect
 } from 'vigla/internal/client';

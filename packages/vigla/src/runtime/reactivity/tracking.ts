@@ -298,6 +298,15 @@ export function withoutReaction<T>(fn: () => T): T {
 	}
 }
 
+export function unowned<T>(fn: () => T): T {
+	const previous = setOwner(null);
+	try {
+		return withoutReaction(fn);
+	} finally {
+		setOwner(previous);
+	}
+}
+
 export function untrack<T>(fn: () => T): T {
 	const previous = frame;
 	const collecting = swapCollector(null);

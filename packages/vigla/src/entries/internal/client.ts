@@ -131,5 +131,5 @@ export {
 	update,
 	updatePre
 } from '../../runtime/reactivity/sources.ts';
-export { endReading as unsave } from '../../runtime/reactivity/tracking.ts';
+export { endReading as unsave, unowned } from '../../runtime/reactivity/tracking.ts';
 export { get } from '../../runtime/reactivity/reads.ts';

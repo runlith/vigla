@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "svelte/internal/client exports without_reactive_context, which Tagma's svelte@5.57.0 patch adds for @runlith/layer: a root created inside it outlives the effect that created it; upstream 5.57.3 has no such export"
+}
