@@ -7,4 +7,4 @@ sources:
   - kind: file
     ref: packages/kit/src/types/paths.ts
 ---
-Kit's own source compiles against `$app/types` at its fallback, where every route id is `string`, while an application compiles against its generated finite unions. A type that splits the ids with `Exclude` or `Extract` collapses to `never` under the fallback, and Kit's build, which produces those values for every application, then cannot be typed without casts. Such a type therefore answers `string` when the ids are `string` and keeps the precise split only for finite unions; the generated application sees upstream's types unchanged.
+Kit's own source compiles against `$app/types` at its fallback, where every route id is `string`, while an application compiles against its generated finite unions. A type that splits the ids with `Exclude` or `Extract` collapses to `never` under the fallback, and Kit's build, which produces those values for every application, then cannot be typed without casts. Such a type therefore answers `string` when the ids are `string` and keeps the precise page/endpoint split only for generated finite unions.
