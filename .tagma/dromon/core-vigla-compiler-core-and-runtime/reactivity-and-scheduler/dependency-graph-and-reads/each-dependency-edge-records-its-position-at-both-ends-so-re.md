@@ -22,4 +22,6 @@ An operation finishes moving edges before any code it triggers runs. A derived t
 
 Reconciling a run that read some old dependencies again in a new order keeps each such edge where it stands in the source's `reactions`. Only the edge's index in `deps` changes. The old slot reaches the new position through the source's `read` mark, which carries it only between those two steps. No user code and no write can run there, so readers of the mark never see it ([[7d2855c5]]).
 
+A reaction's first subscription builds `slots` at the size its run read, as `new Array(count)` filled by index. Growing it from `[]` reserved 17 entries for a reaction with one dependency. Building it from an `[x]` literal was rejected. V8 tenures a literal's allocation site once most of what it creates survives, as a mounted list's arrays do. The arrays then land away from the reactions that own them, and unmounting a long list gets slower.
+
 The mark walk and staleness checks never read `slots` or `links`, so both fields stay behind the fields every visit reads ([[2a93bdf4]]).
