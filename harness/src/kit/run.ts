@@ -112,7 +112,15 @@ function gated(dir: string, step: Step): Step {
 	const setup = join(dir, 'harness.gate.js');
 	writeFileSync(
 		setup,
-		"import { beforeEach } from 'vitest';\nimport { gateTask } from '@vigla/harness/kit/gate';\n\nbeforeEach((context) => gateTask(context));\n"
+		[
+			"import { beforeEach } from 'vitest';",
+			'',
+			"if (typeof window === 'undefined') {",
+			"\tconst { gateTask } = await import('@vigla/harness/kit/gate');",
+			'\tbeforeEach((context) => gateTask(context));',
+			'}',
+			''
+		].join('\n')
 	);
 	const extra = JSON.stringify({ test: { setupFiles: [setup] } });
 	const config = join(dir, 'harness.vitest.config.js');
