@@ -1,0 +1,38 @@
+{
+	"a command sees the rerouted route": {
+		"status": "difference",
+		"reason": "Kit #15558: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 answers `null /reroute/original` on attempts 0 to 2 for a command called from /reroute/original, which the reroute hook sends to /reroute/actual; the test expects `/reroute/actual /reroute/original`. Remote requests skip the reroute hook. Vigla before its fix gave the same answer."
+	},
+	"a command called from an endpoint may request refreshes": {
+		"status": "difference",
+		"reason": "Kit #17035: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 answers 500 {\"status\":500,\"message\":\"Internal Error\"} when a +server.js route calls a command that uses requested(...).refreshAll(), on attempts 0 to 2. Vigla answers 200."
+	},
+	"a command called in an effect runs once": {
+		"status": "difference",
+		"reason": "Kit #14605: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 sends 1001 command POST requests within 1.5 seconds from a page whose $effect calls the command once; the test expects 1. Vigla sends one."
+	},
+	"hovering a link does not redirect through a preloaded query": {
+		"status": "difference",
+		"reason": "Kit #14935: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 leaves the address bar at /prefetch-redirect/auth 1.5 seconds after hovering a link whose page awaits a redirecting query; the test expects the URL to stay /prefetch-redirect until the click. Vigla keeps it until the click."
+	},
+	"a refreshed query that redirects inside a form navigates": {
+		"status": "difference",
+		"reason": "Kit #14968: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 never reaches the /form-refresh-redirect/reset page after the second submit, whose server-side counter().refresh() throws a redirect: #where is absent for 5 seconds on attempt 0. Vigla navigates."
+	},
+	"hovering a link preloads its query at most once": {
+		"status": "difference",
+		"reason": "Kit #15807: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 with forkPreloads on 2026-11-03 sends two remote requests for aboutData while hovering the link; the test expects at most one. Vigla sends none until navigation."
+	},
+	"a redirect from a query crossing a layout boundary renders the new page": {
+		"status": "difference",
+		"reason": "Kit #16974: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 changes the URL to /layout-crossing-login after the click but keeps rendering the home page (#where stays `home`) on attempt 0. Vigla renders the login page without the dashboard layout."
+	},
+	"live connections close promptly when their readers unmount": {
+		"status": "difference",
+		"reason": "Kit #16422: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 still holds all 3 live connections open 5 seconds after the page that read them unmounted (the server counts 3, expected 0). Vigla closes them."
+	},
+	"a live query reading another query follows its updates": {
+		"status": "difference",
+		"reason": "Kit #15954: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 keeps showing 0 after the first bump of a query.live that reads another query on each yield; the test expects 1, 2, 3. The nested query is memoized for the stream's whole request. Vigla re-evaluates it per yield."
+	}
+}

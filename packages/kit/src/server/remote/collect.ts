@@ -27,8 +27,9 @@ export async function collect(store: RequestStore, data: RemoteData): Promise<Re
 						drain();
 					},
 					async (error) => {
-						if (!(error instanceof Redirect))
-							bucket(data, entry.internals)[key] = { e: await handleError(store, error) };
+						if (error instanceof Redirect) {
+							if (store.event.isRemoteRequest) data.redirect ??= error.location;
+						} else bucket(data, entry.internals)[key] = { e: await handleError(store, error) };
 						drain();
 					}
 				)

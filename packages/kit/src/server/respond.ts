@@ -161,7 +161,8 @@ export async function respond(
 			return finish(await shell(scope.store));
 		}
 		let path = url.pathname;
-		if (!remote && server.hooks.reroute && !path.includes(`/${server.manifest.app_dir}/routes/`)) {
+		const rerouting = !remote || request.headers.has('x-sveltekit-pathname');
+		if (rerouting && server.hooks.reroute && !path.includes(`/${server.manifest.app_dir}/routes/`)) {
 			const before = state.prerendering?.insideReroute;
 			try {
 				if (state.prerendering) state.prerendering.insideReroute = true;

@@ -103,7 +103,8 @@ export async function* generate(
 	let done = false;
 	try {
 		while (true) {
-			const result = await runRequest(derived, () => iterator.next());
+			const step = { ...derived, remote: { ...derived.remote, cache: new Map() } };
+			const result = await runRequest(step, () => iterator.next());
 			if (result.done) {
 				done = true;
 				return;

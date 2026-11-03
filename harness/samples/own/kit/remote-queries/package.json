@@ -1,0 +1,20 @@
+{
+	"name": "remote-queries",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"test:dev": "DEV=true playwright test"
+	},
+	"devDependencies": {
+		"@playwright/test": "*",
+		"@standard-schema/spec": "*",
+		"@sveltejs/kit": "*",
+		"@sveltejs/vite-plugin-svelte": "*",
+		"svelte": "*",
+		"valibot": "*",
+		"vite": "*"
+	}
+}
