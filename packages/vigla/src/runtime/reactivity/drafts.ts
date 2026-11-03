@@ -13,8 +13,27 @@ export interface Draft {
 const drafts = new WeakMap<Reaction, Draft[]>();
 const drafted = new WeakMap<Batch, Set<Reaction>>();
 const origins = new WeakMap<Derived, Draft>();
+const homes = new WeakMap<Effect, Draft>();
 const none: readonly Draft[] = [];
 export let drafting = 0;
+
+export function admit(draft: Draft, effect: Effect): void {
+	draft.children.add(effect);
+	homes.set(effect, draft);
+}
+
+export function forkOf(effect: Effect): Batch | null {
+	const draft = homes.get(effect);
+	return draft !== undefined && draft.batch.fork && !draft.batch.done ? draft.batch : null;
+}
+
+export function speculation(effect: Effect): Batch | null {
+	for (let at: Effect | null = effect; at !== null; at = at.parent) {
+		const found = forkOf(at);
+		if (found !== null) return found;
+	}
+	return null;
+}
 
 export function draftOf(reaction: Reaction, batch: Batch): Draft | undefined {
 	for (const draft of drafts.get(reaction) ?? none) if (draft.batch === batch) return draft;
@@ -57,6 +76,7 @@ export function take(reaction: Reaction, draft: Draft): void {
 	if (found.length === 0) drafts.delete(reaction);
 	drafting--;
 	for (const derived of draft.created ?? []) origins.delete(derived);
+	for (const child of draft.children) if (homes.get(child) === draft) homes.delete(child);
 }
 
 export function inDrafts(found: readonly Draft[], effect: Effect): boolean {
@@ -75,12 +95,14 @@ function runningFor(): Batch | null {
 
 export function capture(parent: Effect, effect: Effect, claimer: Derived | null): void {
 	if (claimer !== null) {
-		origins.get(claimer)?.children.add(effect);
+		const origin = origins.get(claimer);
+		if (origin !== undefined) admit(origin, effect);
 		return;
 	}
 	if (parent.kind === BLOCK && effect.kind === BRANCH) return;
 	const batch = runningFor();
-	if (batch !== null) draftOf(parent, batch)?.children.add(effect);
+	const draft = batch === null ? undefined : draftOf(parent, batch);
+	if (draft !== undefined) admit(draft, effect);
 }
 
 export function ownDerived(derived: Derived): void {

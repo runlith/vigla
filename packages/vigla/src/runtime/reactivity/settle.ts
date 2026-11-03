@@ -1,4 +1,5 @@
-import { excluded, offscreen, type Batch } from './batch.ts';
+import { excluded, handOver, offscreen, type Batch } from './batch.ts';
+import { drafting, speculation } from './drafts.ts';
 import { escape, run } from './effects.ts';
 import { CLEAN, DIRTY, type Effect } from './graph.ts';
 import { instantly } from './past.ts';
@@ -28,7 +29,9 @@ function blocks(marked: Set<Effect>, batch: Batch): void {
 			for (let index = ordered.length - 1; index >= 0; index--) {
 				const effect = ordered[index] as Effect;
 				if (effect.destroyed || excluded(effect, batch)) continue;
-				if (due(effect)) run(effect);
+				const fork = drafting === 0 ? null : speculation(effect);
+				if (fork !== null && fork !== batch) handOver(effect, fork);
+				else if (due(effect)) run(effect);
 			}
 		}
 	});

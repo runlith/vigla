@@ -263,6 +263,16 @@ export function overlook(branch: Effect, from: Batch): void {
 	pass(open);
 }
 
+export function handOver(effect: Effect, fork: Batch): void {
+	const found: Effect[] = [];
+	if (effect.status !== CLEAN && effect.kind !== BRANCH && effect.kind !== ROOT) found.push(effect);
+	gather(effect, found, true);
+	if (found.length === 0) return;
+	if (!pending.includes(fork)) pending.push(fork);
+	for (const each of found) force(fork, each);
+	request();
+}
+
 export function requeue(batch: Batch, branch: Effect): void {
 	overlooked.delete(branch);
 	const found: Effect[] = [];

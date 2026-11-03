@@ -1005,3 +1005,57 @@ test("a derived read again while a fork's commit releases its evaluation keeps i
 		app.dispose();
 	}
 });
+
+test("an outstanding fork's effects run only in the fork's world", async () => {
+	const app = root();
+	const path = cell('a');
+	const pulse = cell(0);
+	const log: string[] = [];
+	try {
+		const value = await app.run(() =>
+			core.resource(() => {
+				const key = path.current;
+				core.effect.pre(() => void log.push(`${key}:${path.current}${pulse.current}`));
+				return key;
+			})
+		);
+		app.run(() => effect(() => void value.current));
+		flushSync();
+		const staged = core.fork(() => (path.current = 'b'));
+		await tick();
+		pulse.current = 1;
+		flushSync();
+		await staged.commit();
+		assert.deepEqual(log, ['a:a0', 'b:b0', 'a:a1', 'b:b1']);
+	} finally {
+		app.dispose();
+	}
+});
+
+test('a fork that only evaluated a derived still reruns the effects its evaluation created', async () => {
+	const app = root();
+	const path = cell('a');
+	const pulse = cell(0);
+	const log: string[] = [];
+	try {
+		const value = app.run(() =>
+			core.derived(() => {
+				const key = path.current;
+				void core.resource(() => void log.push(`${key}${pulse.current}`));
+				return key;
+			})
+		);
+		void value.current;
+		flushSync();
+		const staged = core.fork(() => {
+			path.current = 'b';
+			void value.current;
+		});
+		pulse.current = 1;
+		await tick();
+		assert.deepEqual(log, ['a0', 'b0', 'a1', 'b1']);
+		staged.discard();
+	} finally {
+		app.dispose();
+	}
+});

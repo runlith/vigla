@@ -35,6 +35,7 @@ import {
 	type Batch
 } from './batch.ts';
 import {
+	admit,
 	capture,
 	closing,
 	createdBy,
@@ -175,7 +176,8 @@ export function restoreAside(derived: Derived, aside: Aside, batch: Batch): void
 	const previous = draftOf(derived, batch);
 	if (batch.done) for (const child of children) destroy(child);
 	else if (children.length > 0) {
-		const draft = { batch, children: new Set(children), created: null, teardown: null, signal };
+		const draft = { batch, children: new Set<Effect>(), created: null, teardown: null, signal };
+		for (const child of children) admit(draft, child);
 		register(derived, draft);
 	}
 	if (previous !== undefined) drop(derived, previous);
