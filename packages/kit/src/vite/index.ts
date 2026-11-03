@@ -138,15 +138,17 @@ export async function sveltekit(input: Config = {}): Promise<Plugin[]> {
 				const dev = env.command === 'serve';
 				globalName = namespace(config.version.name, dev);
 				const aliases = importAliases(root);
+				const workspace = runtime.searchForWorkspaceRoot(root);
 				const allow = new Set([
 					config.files.routes,
 					config.files.src,
 					config.outDir,
 					packageDirectory,
 					path.join(root, 'node_modules'),
-					path.join(runtime.searchForWorkspaceRoot(root), 'node_modules'),
+					path.join(workspace, 'node_modules'),
 					...aliases.map((alias) => alias.path)
 				]);
+				if (user.server?.fs?.allow === undefined) allow.add(workspace);
 				const hooks = resolveEntry(config.files.hooks.client, config.moduleExtensions);
 				if (hooks) allow.add(path.dirname(hooks));
 				const worker = resolveEntry(config.files.serviceWorker, config.moduleExtensions);

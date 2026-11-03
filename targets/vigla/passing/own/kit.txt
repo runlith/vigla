@@ -1,2 +1,3 @@
 layout-data/test/hydration.test.js > grouped server data survives initial hydration (test-dev-1/chromium-dev)
+monorepo-assets/test/assets.test.js > linked workspace stylesheet assets are served in development (test-dev-1)
 sync-generated/test/sync.test.js > unchanged sync preserves root and nested route declarations (test-dev-1)
