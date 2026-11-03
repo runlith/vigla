@@ -17,7 +17,7 @@ edges:
 ---
 **Outcome.** A monorepo publishing the core `vigla` (compiler core, client and server runtime), the Svelte compatibility adapter `@vigla/svelte`, `@vigla/vite-plugin`, `@vigla/kit` and its adapters, written anew in TypeScript, on which:
 - every upstream test in scope has a manifest status, and every entry not dropped passes on Vigla;
-- the upstream defects of the frozen list are fixed, each with a test red on upstream and green on Vigla;
+- each upstream defect of the frozen list that this milestone fixed carries a test red on upstream and green on Vigla; the reports it did not reach move to the next milestone, by the operator's decision;
 - an app on Svelte 5 runes and SvelteKit 3.1 switches by aliasing `svelte` to `@vigla/svelte`, `@sveltejs/kit` to `@vigla/kit` and `@sveltejs/vite-plugin-svelte` to `@vigla/vite-plugin` in its package manager, and upstream `svelte-check` 4.7.7 keeps checking it.
 
 Moving Tagma onto Vigla is stage 2 and outside this spec.
@@ -55,7 +55,7 @@ The reference configuration is runes forced and async on, for every test that co
 **Acceptance.**
 - The manifest gives every upstream test in scope a status, and every non-contract status a reason.
 - Every entry not dropped passes on Vigla in the repository's full test run.
-- Every defect of the frozen list has a test red on Svelte 5.57.3 or Kit 3.1.0 and green on Vigla.
+- Every frozen-list defect claimed fixed has a test red on Svelte 5.57.3, Kit 3.1.0 or vite-plugin-svelte 7.3.1 and green on Vigla; every other report on the list is recorded in research 2e546434 as dropped with evidence or carried to the next milestone.
 - Kit's `basics` app, converted to runes with its conversions recorded in the manifest, builds and passes its tests on an aliased install, and `svelte-check` 4.7.7 reports the same diagnostics over it on Vigla as on upstream.
 - The performance targets hold.
 - Every child spec's acceptance holds.
