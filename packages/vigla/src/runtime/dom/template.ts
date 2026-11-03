@@ -2,7 +2,7 @@ import { format, htmlPolicy } from '../../shared/format.ts';
 import { namespaces } from '../../shared/html.ts';
 import { template } from '../reactivity/effects.ts';
 import { derived } from '../reactivity/sources.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import {
 	advance,
 	claim,

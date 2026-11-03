@@ -1,8 +1,5 @@
 import { staleReaction } from '../../shared/abort.ts';
-import { failure } from '../../shared/diagnostics.ts';
-import { teardown } from './effects.ts';
 import type { Effect, Reaction } from './graph.ts';
-import { evaluation, owner } from './tracking.ts';
 
 const controllers = new WeakMap<object, AbortController>();
 const lifetimes = new WeakMap<Effect, AbortController>();
@@ -21,26 +18,17 @@ export function abortLifetime(effect: Effect): void {
 	lifetimes.get(effect)?.abort(staleReaction);
 }
 
-export function getAbortSignal(): AbortSignal {
-	if (evaluation() === null && owner !== null) return lifetime(owner);
-	return getReactionSignal();
-}
-
-export function getReactionSignal(): AbortSignal {
-	const reaction = evaluation();
-	if (reaction === null) {
-		throw failure(
-			'get_abort_signal_outside_reaction',
-			'`getAbortSignal()` can only be called inside an effect or derived'
-		);
-	}
-	let controller = controllers.get(reaction);
+export function evaluationSignal(
+	evaluation: object,
+	release: (stop: () => void) => unknown
+): AbortSignal {
+	let controller = controllers.get(evaluation);
 	if (controller === undefined) {
 		controller = new AbortController();
-		controllers.set(reaction, controller);
+		controllers.set(evaluation, controller);
 		const current = controller;
-		teardown(() => {
-			if (controllers.get(reaction) === current) controllers.delete(reaction);
+		release(() => {
+			if (controllers.get(evaluation) === current) controllers.delete(evaluation);
 			current.abort(staleReaction);
 		});
 	}

@@ -1,4 +1,4 @@
-import { leaving, stayed } from '../reactivity/batch.ts';
+import { leaving, stayed } from '../reactivity/leaving.ts';
 import { effect, hide, show, teardown } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
 import { sweep } from './frame.ts';

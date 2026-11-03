@@ -13,7 +13,9 @@ import {
 	unsave
 } from './src/entries/internal/client.ts';
 import { hold, work } from './src/runtime/reactivity/async.ts';
-import { flushSync, resumed, settled, suspend } from './src/runtime/reactivity/batch.ts';
+import { flushSync } from './src/runtime/reactivity/scheduler.ts';
+import { resumed, suspend } from './src/runtime/reactivity/views.ts';
+import { settled } from './src/runtime/reactivity/units.ts';
 import { block } from './src/runtime/reactivity/effects.ts';
 
 test('an earlier async commit becomes the visible base of a later pending result', async () => {

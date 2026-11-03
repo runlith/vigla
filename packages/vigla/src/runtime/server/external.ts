@@ -4,7 +4,7 @@ import {
 	type Subscribable,
 	type WritableSource
 } from '../../shared/external.ts';
-import { onDestroy } from './context.ts';
+import { onDestroy } from '../reactivity/owners.ts';
 import { ambient } from '../reactivity/carried.ts';
 import { untrack } from '../reactivity/tracking.ts';
 import { track, type Dependency } from './cells.ts';

@@ -5,12 +5,13 @@ import {
 	type Subscribable,
 	type WritableSource
 } from '../../shared/external.ts';
-import { write } from './batch.ts';
+import { write } from './scheduler.ts';
 import { sequence } from './history.ts';
 import { teardown } from './effects.ts';
 import { mutableSource } from './sources.ts';
-import { tag } from './trace.ts';
-import { get, untrack } from './tracking.ts';
+import { tag } from './provenance.ts';
+import { get } from './reads.ts';
+import { untrack } from './tracking.ts';
 
 export function external<T>(
 	read: () => Subscribable<T> | null | undefined,

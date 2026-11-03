@@ -1,5 +1,15 @@
-import { freeze, thaw } from './effects.ts';
 import { isDerived, type Derived, type Reaction, type Source } from './graph.ts';
+
+export interface Observers {
+	observed(derived: Derived): void;
+	unobserved(derived: Derived): void;
+}
+
+let observers: Observers = { observed() {}, unobserved() {} };
+
+export function observe(given: Observers): void {
+	observers = given;
+}
 
 export function depsOf(reaction: Reaction): Source[] {
 	let deps = reaction.deps;
@@ -22,7 +32,7 @@ function subscribe(dep: Source, reaction: Reaction): void {
 	dep.reactions = [reaction];
 	dep.links = [slots.length];
 	slots.push(0);
-	if (isDerived(dep) && dep.frozen !== null) thaw(dep);
+	if (isDerived(dep) && dep.frozen !== null) observers.observed(dep);
 }
 
 function place(dep: Source, reaction: Reaction, slot: number): void {
@@ -54,7 +64,7 @@ function cut(dep: Source, slot: number, emptied: Derived[] | null): Derived[] | 
 
 function freezeUnread(emptied: Derived[] | null): void {
 	if (emptied === null) return;
-	for (const derived of emptied) if (derived.reactions === null) freeze(derived);
+	for (const derived of emptied) if (derived.reactions === null) observers.unobserved(derived);
 }
 
 export function add(reaction: Reaction, dep: Source): void {

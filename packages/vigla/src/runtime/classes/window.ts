@@ -1,5 +1,5 @@
 import { set, source } from '../reactivity/sources.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import { Subscribed, type Start } from './subscriber.ts';
 
 function on(...events: string[]): Start {

@@ -1,8 +1,9 @@
-import { flushSync, write } from './batch.ts';
+import { flushSync, write } from './scheduler.ts';
 import { eager } from './effects.ts';
 import type { Effect, Source } from './graph.ts';
 import { source } from './sources.ts';
-import { get, owner, present, reading } from './tracking.ts';
+import { get } from './reads.ts';
+import { owner, present, reading } from './tracking.ts';
 
 const versions = new WeakMap<Effect, Source<number>>();
 let bumped: Source<number>[] = [];

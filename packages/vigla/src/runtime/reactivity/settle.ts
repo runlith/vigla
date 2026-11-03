@@ -1,10 +1,10 @@
-import { excluded, type Batch } from './batch.ts';
-import { escape, offscreen, run } from './effects.ts';
+import { excluded, offscreen, type Batch } from './batch.ts';
+import { escape, run } from './effects.ts';
 import { CLEAN, DIRTY, type Effect } from './graph.ts';
-import { stale } from './tracking.ts';
+import { instantly } from './past.ts';
+import { stale } from './reads.ts';
 
 export let eager: Set<Effect> | null = null;
-export let instant = false;
 
 export function due(effect: Effect, recheck = false, batch: Batch | null = null): boolean {
 	try {
@@ -20,9 +20,7 @@ export function due(effect: Effect, recheck = false, batch: Batch | null = null)
 }
 
 function blocks(marked: Set<Effect>, batch: Batch): void {
-	const outer = instant;
-	instant = true;
-	try {
+	instantly(() => {
 		for (const block of marked) {
 			const ordered = [block];
 			for (let at = block.parent; at !== null; at = at.parent)
@@ -33,9 +31,7 @@ function blocks(marked: Set<Effect>, batch: Batch): void {
 				if (due(effect)) run(effect);
 			}
 		}
-	} finally {
-		instant = outer;
-	}
+	});
 }
 
 export function settle(

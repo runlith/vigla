@@ -1,9 +1,8 @@
 import { DEV } from 'esm-env';
-import { keyed, type Context, type Layer } from '../../shared/context.ts';
-import { failure } from '../../shared/diagnostics.ts';
-import { destroyed, detached, effect } from '../reactivity/effects.ts';
+import type { Layer } from '../../shared/context.ts';
+import { detached, effect } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
-import { ownContext } from '../reactivity/owners.ts';
+import { installComponents, layerOf } from '../reactivity/owners.ts';
 import { owner, running, setOwner, untrack } from '../reactivity/tracking.ts';
 
 interface Initializing {
@@ -15,20 +14,16 @@ interface Initializing {
 
 let initializing: Initializing | null = null;
 
-function layerOf(effect: Effect | null): Layer<Effect> | null {
-	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
+function standing(): Layer<Effect> | null {
+	return initializing !== null && initializing.layer.owner === owner ? initializing.layer : null;
 }
 
-function current(): Layer<Effect> | null {
-	return initializing !== null && initializing.layer.owner === owner
-		? initializing.layer
-		: layerOf(owner);
-}
+installComponents({ layer: standing });
 
 export type Phase = 'initializing' | 'running' | null;
 
 export function phase(): Phase {
-	if (initializing !== null && initializing.layer.owner === owner) return 'initializing';
+	if (standing() !== null) return 'initializing';
 	for (let layer = layerOf(owner); layer !== null; layer = layer.parent) {
 		if (layer.component) return 'running';
 	}
@@ -37,7 +32,7 @@ export function phase(): Phase {
 
 export function push(map?: Map<unknown, unknown>): void {
 	const caller = owner;
-	const parent = current();
+	const parent = standing() ?? layerOf(owner);
 	const instance = caller === null ? null : detached(null, caller);
 	const layer: Layer<Effect> = { parent, owner: instance, component: true, map: map ?? null };
 	initializing = { layer, outer: initializing, caller, deferred: [] };
@@ -70,64 +65,16 @@ export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () =>
 
 export function userEffect(fn: () => void | (() => void)): void {
 	if (DEV) Object.defineProperty(fn, 'name', { value: '$effect' });
-	if (initializing !== null && initializing.layer.owner === owner && running() === null) {
+	if (initializing !== null && standing() !== null && running() === null) {
 		initializing.deferred.push(() => effect(fn));
 		return;
 	}
 	effect(fn);
 }
 
-function own(): Layer<Effect> {
-	if (initializing !== null && initializing.layer.owner === owner) return initializing.layer;
-	if (owner === null) {
-		throw failure('context_without_owner', 'Context can only be set where an owner exists');
-	}
-	return ownContext(owner);
-}
-
-export function getContext<T>(key: unknown): T {
-	for (let layer = current(); layer !== null; layer = layer.parent) {
-		if (layer.map?.has(key)) return layer.map.get(key) as T;
-	}
-	return undefined as T;
-}
-
-export function setContext<T>(key: unknown, value: T): T {
-	const layer = own();
-	(layer.map ??= new Map()).set(key, value);
-	return value;
-}
-
-export function hasContext(key: unknown): boolean {
-	for (let layer = current(); layer !== null; layer = layer.parent) {
-		if (layer.map?.has(key)) return true;
-	}
-	return false;
-}
-
-export function createContext<T>(): Context<T> {
-	return keyed<T>({ getContext, setContext, hasContext });
-}
-
-export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
-	const chain: Layer<Effect>[] = [];
-	for (let layer = current(); layer !== null; layer = layer.parent) chain.push(layer);
-	const all = new Map<unknown, unknown>();
-	for (let index = chain.length - 1; index >= 0; index--) {
-		for (const [key, value] of chain[index]?.map ?? []) all.set(key, value);
-	}
-	return all as T;
-}
-
 export function onMount(fn: () => unknown): void {
 	userEffect(() => {
 		const cleanup = untrack(fn);
 		if (typeof cleanup === 'function') return cleanup as () => void;
-	});
-}
-
-export function onDestroy(fn: () => unknown): void {
-	destroyed(() => {
-		untrack(fn);
 	});
 }

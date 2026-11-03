@@ -1,17 +1,17 @@
 import { active, alias, excluded, open, processing, type Batch } from './batch.ts';
-import { destroy, fail } from './effects.ts';
-import { viewOf } from './held.ts';
+import { destroy, detach, fail } from './effects.ts';
+import { viewOf } from './views.ts';
 import {
 	CLEAN,
 	isDerived,
 	retainsFailures,
-	ROOT,
 	type Derived,
 	type Effect,
 	type Failure,
 	type Reaction,
 	type Source
 } from './graph.ts';
+import { countLeaving, outgoing, selecting, setOutgoing } from './outgoing.ts';
 import { running, setOwner, track, view } from './tracking.ts';
 
 interface Entry {
@@ -32,7 +32,7 @@ interface Epoch {
 	next: Epoch | null;
 }
 
-interface Cached {
+export interface Cached {
 	value: unknown;
 	failure: Failure | null;
 	ready: boolean;
@@ -56,29 +56,6 @@ let latest: Epoch | null = null;
 let chains: WeakMap<Source, Chain> | null = null;
 let commits = new WeakMap<Batch, Epoch>();
 const branches = new WeakMap<Effect, LeavingView>();
-
-export let outgoing: LeavingView | null = null;
-export let leavingCount = 0;
-export let selecting = true;
-
-export function withoutLeaving<T>(fn: () => T): T {
-	const previous = outgoing;
-	const allowed = selecting;
-	outgoing = null;
-	selecting = false;
-	try {
-		return fn();
-	} finally {
-		outgoing = previous;
-		selecting = allowed;
-	}
-}
-
-function setOutgoing(next: LeavingView | null): LeavingView | null {
-	const previous = outgoing;
-	outgoing = next;
-	return previous;
-}
 
 function append(epoch: Epoch, source: Source, value: unknown): void {
 	const map = chains as WeakMap<Source, Chain>;
@@ -166,7 +143,8 @@ export function leaving(branch: Effect): () => boolean {
 		users: 1
 	};
 	branches.set(branch, given);
-	leavingCount++;
+	countLeaving(1);
+	detach(branch, () => stayed(branch));
 	return () => {
 		if (branches.get(branch) !== given) return false;
 		stayed(branch);
@@ -178,7 +156,8 @@ export function stayed(branch: Effect): void {
 	const given = branches.get(branch);
 	if (given === undefined) return;
 	branches.delete(branch);
-	leavingCount--;
+	countLeaving(-1);
+	detach(branch, null);
 	release(given);
 }
 
@@ -206,18 +185,6 @@ export function leavingView(derived: Derived): LeavingView | null {
 		if (given !== undefined) return admitted(at) ? null : given;
 	}
 	return null;
-}
-
-export function localLeaving(source: Source, reaction: Reaction): void {
-	outgoing?.locals.set(source, reaction);
-}
-
-export function ownLeaving(effect: Effect): boolean {
-	const given = outgoing;
-	if (given === null || given.cache === null || effect.kind === ROOT) return false;
-	(given.cache.effects ??= []).push(effect);
-	(given.effects ??= new Set()).add(effect);
-	return true;
 }
 
 function entryOf(source: Source, epoch: Epoch): Entry | null {

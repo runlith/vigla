@@ -1,49 +1,256 @@
-import { asynchronous } from './async.ts';
+import { DEV } from 'esm-env';
 import { processed } from './batch.ts';
-import { refresh } from './deriveds.ts';
+import { destroyEffects, fail } from './effects.ts';
+import { referencesSelf } from './errors.ts';
 import {
 	BLOCK,
 	CLEAN,
 	DIRTY,
 	MAYBE,
+	asynchronous,
 	equal,
 	isDerived,
+	now,
+	retainsFailures,
+	stamp,
+	type Derived,
 	type Effect,
 	type Reaction,
 	type Source
 } from './graph.ts';
-import { affected, get, validate, view } from './tracking.ts';
+import { NONE } from './history.ts';
+import { leavingView, readLeaving } from './leaving.ts';
+import { lose } from './loss.ts';
+import { leavingCount, outgoing, selecting, withoutLeaving } from './outgoing.ts';
+import { updated } from './provenance.ts';
+import {
+	capture,
+	compute,
+	depend,
+	lost,
+	note,
+	observedReads,
+	past,
+	reading,
+	setOwner,
+	takeHidden,
+	track,
+	validate,
+	view,
+	viewedReads,
+	type Past,
+	type View
+} from './tracking.ts';
+import { inside } from './views.ts';
 
-const collecting = new WeakMap<object, Map<Source, unknown>>();
-const observed = new WeakMap<Reaction, Map<Source, unknown>>();
-const viewed = new WeakSet<Reaction>();
+const evaluating: Derived[] = [];
 
-export function capture(frame: object, source: Source, value: unknown): void {
-	let reads = collecting.get(frame);
-	if (reads === undefined) collecting.set(frame, (reads = new Map()));
-	reads.set(source, value);
+function enter(derived: Derived): void {
+	if (evaluating.includes(derived)) referencesSelf();
+	evaluating.push(derived);
 }
 
-export function retain(target: Reaction, frame: object): void {
-	const reads = collecting.get(frame);
-	if (reads === undefined) observed.delete(target);
-	else observed.set(target, reads);
-	if (view !== null && reads !== undefined) viewed.add(target);
-	else viewed.delete(target);
-	const effect = target as Effect;
-	const batch = view?.batch ?? processed();
-	if (
-		effect.kind === BLOCK &&
-		!asynchronous.has(effect) &&
-		reads !== undefined &&
-		batch !== null &&
-		(batch.after !== null || batch.work > 0 || batch.fork)
-	)
-		(batch.reads ??= new Map()).set(effect, reads);
+function leave(): void {
+	evaluating.pop();
 }
 
-export function clear(frame: object): void {
-	collecting.delete(frame);
+export function get<T>(source: Source<T>): T {
+	if (DEV && lost !== null && !reading()) lose(source);
+	const value = read(source);
+	capture(source, value);
+	return value;
+}
+
+function read<T>(source: Source<T>): T {
+	depend(source);
+	if (past !== null) return recall(source, past) as T;
+	if (selecting && (leavingCount !== 0 || outgoing !== null)) {
+		const given = outgoing ?? (isDerived(source) ? leavingView(source) : null);
+		if (given !== null) return readLeaving(source, given) as T;
+		if (isDerived(source))
+			return withoutLeaving(() => (view === null ? settled(source) : through(source, view))) as T;
+	}
+	if (view !== null) return through(source, view) as T;
+	if (isDerived(source)) return settled(source) as T;
+	return source.v;
+}
+
+function settled(derived: Derived): unknown {
+	if (derived.status !== CLEAN) refresh(derived);
+	const failure = derived.failure;
+	if (failure !== null) throw failure.error;
+	return derived.v;
+}
+
+function affected(derived: Derived, given: View): boolean {
+	const known = given.checked.get(derived);
+	if (known !== undefined) return known;
+	given.checked.set(derived, false);
+	let found = derived.deps === null;
+	for (const dep of derived.deps ?? []) {
+		if (given.values.has(dep) || (isDerived(dep) && affected(dep, given))) {
+			found = true;
+			break;
+		}
+	}
+	given.checked.set(derived, found);
+	return found;
+}
+
+function through(source: Source, given: View): unknown {
+	if (given.values.has(source)) {
+		const hidden = given.hidden.get(source);
+		if (hidden !== undefined) note([hidden]);
+		else if (isDerived(source)) {
+			const reached = given.reached.get(source);
+			if (reached !== undefined) note(reached);
+		}
+		return given.values.get(source);
+	}
+	if (!isDerived(source)) return source.v;
+	if (!affected(source, given)) {
+		refresh(source);
+		if (!given.values.has(source)) {
+			if (source.failure !== null) throw source.failure.error;
+			return source.v;
+		}
+		const reached = given.reached.get(source);
+		if (reached !== undefined) note(reached);
+		return given.values.get(source);
+	}
+	destroyEffects(source);
+	if (DEV) enter(source);
+	let value: unknown;
+	try {
+		value = compute(source, given);
+	} finally {
+		if (DEV) leave();
+	}
+	if ((source.deps as Source[]).length === 0) {
+		given.checked.set(source, false);
+		source.v = value;
+		source.wv = stamp();
+		source.rv = now();
+		source.computed = true;
+		source.status = CLEAN;
+		return value;
+	}
+	given.values.set(source, value);
+	return value;
+}
+
+function dated(derived: Derived, given: Past): boolean {
+	if (derived.deps === null) return true;
+	for (const dep of derived.deps) {
+		if (given.written?.has(dep)) continue;
+		if (given.before(dep) !== NONE || (given.later !== null && given.later(dep) !== NONE))
+			return true;
+		if (isDerived(dep) && dated(dep, given)) return true;
+	}
+	return false;
+}
+
+function recall(source: Source, given: Past): unknown {
+	if (given.written === null || !given.written.has(source)) {
+		const before = given.before(source);
+		if (before !== NONE) return before;
+		if (given.later !== null) {
+			const later = given.later(source);
+			if (later !== NONE) return later;
+		}
+	}
+	if (!isDerived(source)) return view === null ? source.v : through(source, view);
+	if (given.derived !== null && given.derived.has(source)) return given.derived.get(source);
+	if (!dated(source, given)) {
+		if (view !== null) return through(source, view);
+		return settled(source);
+	}
+	const value = source.fn();
+	(given.derived ??= new Map()).set(source, value);
+	return value;
+}
+
+export function refresh(derived: Derived): void {
+	if (derived.deps !== null && !stale(derived)) return;
+	if (view !== null && affected(derived, view)) return;
+	destroyEffects(derived);
+	if (DEV) enter(derived);
+	const previous = setOwner(derived.owner);
+	try {
+		let value: unknown;
+		try {
+			value =
+				selecting && leavingCount !== 0
+					? withoutLeaving(() => track(derived, derived.fn))
+					: track(derived, derived.fn);
+		} catch (error) {
+			takeHidden();
+			derived.computed = false;
+			derived.wv = stamp();
+			const holder = derived.owner;
+			if (holder === null || retainsFailures(derived)) derived.failure = { error };
+			if (holder === null) return;
+			derived.v = undefined as typeof derived.v;
+			if (holder.destroyed) return;
+			const status = derived.status;
+			derived.status = DIRTY;
+			fail(holder, error);
+			derived.status = status;
+			return;
+		}
+		if (derived.failure !== null) derived.failure = null;
+		const hidden = takeHidden();
+		if (hidden !== null && view !== null) {
+			derived.status = DIRTY;
+			view.values.set(derived, value);
+			view.reached.set(derived, hidden);
+			view.checked.set(derived, true);
+			return;
+		}
+		if (!derived.computed || !equal(derived, derived.v, value)) {
+			derived.v = value;
+			derived.wv = stamp();
+			derived.computed = true;
+			if (DEV) updated(derived);
+		}
+	} finally {
+		setOwner(previous);
+		if (DEV) leave();
+	}
+}
+
+export function forget(source: Source): void {
+	const given = view;
+	if (given === null) return;
+	given.values.delete(source);
+	given.hidden.delete(source);
+	const staged = given.batch.fork ? given.batch.after : null;
+	const cleared = staged === null ? null : new Set<Source>();
+	const clear = (from: Source): void => {
+		for (const reaction of from.reactions ?? []) {
+			if (!isDerived(reaction)) continue;
+			if (cleared === null) {
+				if (!given.checked.has(reaction)) continue;
+			} else {
+				if (cleared.has(reaction)) continue;
+				cleared.add(reaction);
+			}
+			given.checked.delete(reaction);
+			given.values.delete(reaction);
+			given.reached.delete(reaction);
+			if (staged?.has(reaction)) {
+				const reads = given.batch.origins?.get(reaction)?.reads;
+				if (reads !== undefined && !inside(given.batch, () => changed(reads, reaction)))
+					given.values.set(reaction, staged.get(reaction));
+				else {
+					staged.delete(reaction);
+					given.batch.origins?.delete(reaction);
+				}
+			}
+			clear(reaction);
+		}
+	};
+	clear(source);
 }
 
 export function changed(reads: ReadonlyMap<Source, unknown>, target: Reaction): boolean {
@@ -66,7 +273,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 			effect.batch !== (view?.batch.order ?? processed()?.order)
 		)
 			return true;
-		const reads = own ?? observed.get(target);
+		const reads = own ?? observedReads(target);
 		if (reads !== undefined) {
 			const dirty = changed(reads, target);
 			if (!dirty) target.status = CLEAN;
@@ -87,7 +294,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 			!batch?.reads?.has(effect)
 		)
 			return true;
-		const reads = viewed.has(target) ? observed.get(target) : undefined;
+		const reads = viewedReads(target);
 		if (reads !== undefined) {
 			const dirty = changed(reads, target);
 			if (!dirty) target.status = CLEAN;

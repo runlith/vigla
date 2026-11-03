@@ -1,6 +1,6 @@
 import type { Source } from '../reactivity/graph.ts';
 import { set, state } from '../reactivity/sources.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import { bump } from './subscriber.ts';
 import { keyed } from './local.ts';
 

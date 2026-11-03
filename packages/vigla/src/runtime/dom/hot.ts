@@ -1,6 +1,6 @@
 import { set, state } from '../reactivity/sources.ts';
 import type { Source } from '../reactivity/graph.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import { hydrating } from './hydration.ts';
 import { render, type Mountable } from './swap.ts';
 

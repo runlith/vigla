@@ -1,26 +1,15 @@
 import { warn } from '../../shared/diagnostics.ts';
 import { active, open, processing } from './batch.ts';
 import type { Source } from './graph.ts';
-import { labelOf } from './trace.ts';
-import { asyncRun, type Resumption } from './tracking.ts';
+import { labelOf } from './provenance.ts';
+import { asyncRun, lost, setLost, type Resumption } from './tracking.ts';
 
-export let lost: Resumption | null = null;
 const warned = new WeakSet<Resumption>();
 
 function expire(run: Resumption | null): void {
 	queueMicrotask(() => {
-		if (lost === run) lost = null;
+		if (lost === run) setLost(null);
 	});
-}
-
-export function pauseLoss(): Resumption | null {
-	const previous = lost;
-	lost = null;
-	return previous;
-}
-
-export function resumeLoss(previous: Resumption | null): void {
-	lost = previous;
 }
 
 export async function trackLoss<T>(value: T | PromiseLike<T>): Promise<() => T> {
@@ -28,7 +17,7 @@ export async function trackLoss<T>(value: T | PromiseLike<T>): Promise<() => T> 
 	if (lost !== null) expire(lost);
 	const resolved = await value;
 	return () => {
-		lost = run;
+		setLost(run);
 		expire(run);
 		return resolved;
 	};
@@ -53,11 +42,11 @@ export async function* trackLossEach<T>(
 			try {
 				yield value;
 			} catch (error) {
-				lost = run;
+				setLost(run);
 				if (iterator.return !== undefined) (await trackLoss(iterator.return()))();
 				throw error;
 			}
-			lost = run;
+			setLost(run);
 		}
 	} catch (error) {
 		close = false;

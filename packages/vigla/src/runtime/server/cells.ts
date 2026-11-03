@@ -5,7 +5,7 @@ import type { Effect, Failure } from '../reactivity/graph.ts';
 import type { Cell } from '../reactivity/sources.ts';
 import { collect, collected } from '../reactivity/collector.ts';
 import { owner, setOwner, untrack, withoutReaction } from '../reactivity/tracking.ts';
-import { layerOf } from './context.ts';
+import { layerOf } from '../reactivity/owners.ts';
 
 export interface Dependency {
 	readonly version: number;

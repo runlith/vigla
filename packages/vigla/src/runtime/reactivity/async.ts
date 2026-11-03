@@ -1,27 +1,17 @@
-import {
-	alias,
-	collect,
-	current,
-	holds,
-	inside,
-	onMerge,
-	quieted,
-	request,
-	stage,
-	within,
-	write,
-	type Batch
-} from './batch.ts';
+import { alias, collect, current, holds, onMerge, request, within, type Batch } from './batch.ts';
+import { stage, write } from './scheduler.ts';
+import { inside } from './views.ts';
 import { staleReaction } from '../../shared/abort.ts';
-import { ambient } from './carried.ts';
-import { application, block, fail } from './effects.ts';
+import { block, fail } from './effects.ts';
 import { sequence } from './history.ts';
-import { changed } from './reads.ts';
+import { changed, get } from './reads.ts';
 import { waitFor } from './held.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
-import type { Boundary, Effect, Source } from './graph.ts';
+import { asynchronous, type Boundary, type Effect, type Source } from './graph.ts';
 import { source } from './sources.ts';
-import { awaiting, get, owner, running, settleReads, type Resumption } from './tracking.ts';
+import { showing, tallied, tally } from './tallies.ts';
+import { begin, exempt, recheck, released } from './units.ts';
+import { awaiting, owner, running, settleReads, type Resumption } from './tracking.ts';
 
 export interface AsyncRun {
 	stale(): boolean;
@@ -36,39 +26,8 @@ interface Result {
 	readonly speculative: boolean;
 }
 
-interface Tally {
-	units: number;
-	source: Source<number> | null;
-	queued: boolean;
-	readonly effects: Effect[];
-}
-
-const tallies = new WeakMap<Boundary, Tally>();
-
-export const asynchronous = new WeakSet<Effect>();
-
-function tally(boundary: Boundary): Tally {
-	let found = tallies.get(boundary);
-	if (found === undefined) {
-		found = { units: 0, source: null, queued: false, effects: [] };
-		tallies.set(boundary, found);
-	}
-	return found;
-}
-
-export function showing(boundary: Boundary | null): boolean {
-	for (let at = boundary; at !== null; at = at.parent) if (at.showing) return true;
-	return false;
-}
-
-export function parked(boundary: Boundary): Effect[] {
-	let at = boundary;
-	while (!at.showing && at.parent !== null) at = at.parent;
-	return tally(at).effects;
-}
-
 export function reveal(boundary: Boundary): void {
-	const found = tallies.get(boundary);
+	const found = tallied(boundary);
 	if (found === undefined) return;
 	for (const effect of found.effects.splice(0)) if (!effect.destroyed) collect(effect);
 }
@@ -83,77 +42,6 @@ function count(boundary: Boundary | null, delta: 1 | -1): void {
 	queueMicrotask(() => {
 		found.queued = false;
 		if (found.source !== null) write(found.source, found.units);
-	});
-}
-
-let outstanding = 0;
-const watchers = new Set<() => void>();
-const speculative = new WeakSet<() => void>();
-let drains: (() => void)[] = [];
-
-export function unsettled(): boolean {
-	return outstanding > 0;
-}
-
-function released(): void {
-	if (--outstanding === 0) {
-		quieted();
-		const resolved = drains;
-		drains = [];
-		for (const done of resolved) done();
-	}
-	recheck();
-}
-
-function recheck(): void {
-	if (watchers.size === 0) return;
-	for (const check of [...watchers]) check();
-}
-
-function busy(effect: Effect): boolean {
-	if (effect.destroyed) return false;
-	for (const settle of effect.units ?? []) if (!speculative.has(settle)) return true;
-	for (let child = effect.first; child !== null; child = child.next) if (busy(child)) return true;
-	return false;
-}
-
-export function unit(holder: Effect | null): () => void {
-	outstanding++;
-	let open = true;
-	const settle = (): void => {
-		if (!open) return;
-		open = false;
-		holder?.units?.delete(settle);
-		released();
-	};
-	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
-	return settle;
-}
-
-export function drained(): Promise<void> {
-	const effect = ambient();
-	if (effect !== null) return settledUnder(application(effect));
-	return new Promise((done) => {
-		if (outstanding === 0) queueMicrotask(done);
-		else drains.push(done);
-	});
-}
-
-export function settledUnder(effect: Effect): Promise<void> {
-	return new Promise((done) => {
-		let confirming = false;
-		const check = (): void => {
-			if (confirming || busy(effect)) return;
-			confirming = true;
-			queueMicrotask(() => {
-				confirming = false;
-				if (busy(effect)) return;
-				watchers.delete(check);
-				done();
-			});
-		};
-		watchers.add(check);
-		check();
 	});
 }
 
@@ -172,7 +60,7 @@ export function work(): () => void {
 	const boundary = holder === null ? null : holder.boundary;
 	const blocking = !showing(boundary);
 	const counted = !batch.fork;
-	if (counted) outstanding++;
+	if (counted) begin();
 	count(boundary, 1);
 	if (blocking) {
 		batch.work += 1;
@@ -201,7 +89,7 @@ export function work(): () => void {
 		if (counted) released();
 		else recheck();
 	};
-	if (!counted) speculative.add(settle);
+	if (!counted) exempt(settle);
 	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
 	return settle;
 }

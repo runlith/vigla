@@ -1,6 +1,7 @@
 import type { Derived, Effect } from '../reactivity/graph.ts';
 import { derived, set, state } from '../reactivity/sources.ts';
-import { get, owner, setOwner } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
+import { owner, setOwner } from '../reactivity/tracking.ts';
 
 type Method = (this: Date, ...args: unknown[]) => unknown;
 

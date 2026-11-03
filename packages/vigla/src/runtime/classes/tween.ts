@@ -1,7 +1,7 @@
 import { template } from '../reactivity/effects.ts';
 import type { Source } from '../reactivity/graph.ts';
 import { set, state } from '../reactivity/sources.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import { loop, type Task } from './frames.ts';
 
 export type Interpolator<T> = (from: T, to: T) => (progress: number) => T;

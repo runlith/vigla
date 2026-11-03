@@ -3,7 +3,8 @@ import { failure } from '../../shared/diagnostics.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { original, proxy } from '../reactivity/proxy.ts';
 import { derived, set } from '../reactivity/sources.ts';
-import { get, owner, untrack } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
+import { owner, untrack } from '../reactivity/tracking.ts';
 import { advance, COMMENT, cursor, hydrating } from './hydration.ts';
 
 export const BINDABLE = 1;

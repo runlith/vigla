@@ -1,5 +1,8 @@
 import type { Source } from './graph.ts';
-import { NONE, type Prior } from './past.ts';
+
+export const NONE: unique symbol = Symbol('none');
+
+export type Prior = (source: Source) => unknown;
 
 let orders = 0;
 const alive: History[] = [];

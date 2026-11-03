@@ -1,7 +1,8 @@
 import { template, tracking } from '../reactivity/effects.ts';
 import type { Source } from '../reactivity/graph.ts';
 import { expire, set, source } from '../reactivity/sources.ts';
-import { get, untrack } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
+import { untrack } from '../reactivity/tracking.ts';
 
 export type Start = (update: () => void) => (() => void) | void;
 

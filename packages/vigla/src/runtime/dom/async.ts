@@ -1,8 +1,9 @@
 import { asyncDerived, work } from '../reactivity/async.ts';
-import { resumed, suspend } from '../reactivity/batch.ts';
+import { resumed, suspend } from '../reactivity/views.ts';
 import { fail } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
-import { endReading, get, owner } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
+import { endReading, owner } from '../reactivity/tracking.ts';
 import { derived, set, state } from '../reactivity/sources.ts';
 import type { Exports } from './mount.ts';
 import { CLOSE, OPEN, OPEN_ELSE } from '../../shared/markers.ts';

@@ -1,8 +1,9 @@
-import { Batch, apply, flushSync, inside, open, process, processing, within } from './batch.ts';
-import { application } from './effects.ts';
+import { Batch, open, processing, untouched, within } from './batch.ts';
+import { apply, flushSync, process } from './scheduler.ts';
+import { inside } from './views.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
-import type { Effect } from './graph.ts';
-import { adopt, discard, untouched, waitFor } from './held.ts';
+import { application, type Effect } from './graph.ts';
+import { adopt, discard, waitFor } from './held.ts';
 import { owner } from './tracking.ts';
 
 export interface Fork {

@@ -7,14 +7,13 @@ import {
 	atMerge,
 	Batch,
 	current,
-	flushSync,
-	process,
 	within
 } from './src/runtime/reactivity/batch.ts';
+import { flushSync, process } from './src/runtime/reactivity/scheduler.ts';
 import { block, destroy, root } from './src/runtime/reactivity/effects.ts';
 import { fork } from './src/runtime/reactivity/fork.ts';
 import { set, state } from './src/runtime/reactivity/sources.ts';
-import { get } from './src/runtime/reactivity/tracking.ts';
+import { get } from './src/runtime/reactivity/reads.ts';
 
 test('a commit captures every participant before applying and prepares reentrant changes in the next wave', () => {
 	const selected = state(false);

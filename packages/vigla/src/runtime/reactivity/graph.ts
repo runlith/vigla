@@ -112,3 +112,11 @@ export function now(): number {
 export function isDerived(node: Source | Reaction): node is Derived {
 	return (node as Source | Effect).kind === DERIVED;
 }
+
+export const asynchronous = new WeakSet<Effect>();
+
+export function application(effect: Effect): Effect {
+	let top = effect;
+	while (top.parent !== null) top = top.parent;
+	return top;
+}

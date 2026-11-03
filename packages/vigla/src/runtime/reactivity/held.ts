@@ -1,179 +1,30 @@
+import { DEV } from 'esm-env';
 import {
-	active,
 	alias,
-	detach,
 	enqueue,
-	inside,
+	force,
 	members,
 	open,
 	opening,
 	pending,
-	processing,
 	release,
 	request,
+	rerunAfter,
 	type Batch
 } from './batch.ts';
 import {
 	BLOCK,
-	BRANCH,
 	CLEAN,
-	ROOT,
+	asynchronous,
 	equal,
 	isDerived,
 	type Effect,
 	type Reaction,
 	type Source
 } from './graph.ts';
-import type { View } from './tracking.ts';
-import { DEV } from 'esm-env';
-import { merged } from './trace.ts';
+import { merged } from './provenance.ts';
 import { changed as changedReads } from './reads.ts';
-import { asynchronous } from './async.ts';
-
-export const overlooked = new WeakSet<Effect>();
-
-function gather(effect: Effect, out: Effect[], marked: boolean, adopter = 0): void {
-	if (marked) effect.pending = false;
-	for (let child = effect.first; child !== null; child = child.next) {
-		if (child.destroyed) continue;
-		const foreign = adopter !== 0 && child.batch !== 0 && child.batch !== adopter;
-		if ((child.status !== CLEAN || foreign) && child.kind !== BRANCH && child.kind !== ROOT)
-			out.push(child);
-		if (!marked || child.pending) gather(child, out, marked, adopter);
-	}
-}
-
-export function overlook(branch: Effect, from: Batch): void {
-	const found: Effect[] = [];
-	gather(branch, found, true);
-	overlooked.add(branch);
-	if (found.length === 0 || from.fork) return;
-	const pass = (other: Batch | null): void => {
-		if (other === null || other === from || other.done) return;
-		if (other.shown === null || !other.shown.has(branch)) return;
-		for (const effect of found) force(other, effect);
-		request();
-	};
-	for (const other of pending) pass(other);
-	pass(open);
-}
-
-export function requeue(batch: Batch, branch: Effect): void {
-	overlooked.delete(branch);
-	const found: Effect[] = [];
-	gather(branch, found, false, batch.order);
-	for (const effect of found) force(batch, effect);
-}
-
-function park(batch: Batch): void {
-	const index = pending.indexOf(batch);
-	if (index !== -1) pending.splice(index, 1);
-	batch.queued.length = 0;
-	batch.commits.length = 0;
-	batch.effects.length = 0;
-	batch.members = batch.forced = batch.skipped = batch.shown = batch.waits = null;
-	batch.content = batch.deferred = batch.discards = null;
-	batch.runs = null;
-	batch.merges = null;
-	for (const other of pending) other.waits?.delete(batch);
-	open?.waits?.delete(batch);
-	detach(batch);
-}
-
-export function orphaned(root: Effect): void {
-	if (pending.length === 0) return;
-	for (const batch of [...pending]) {
-		const roots = batch.roots;
-		if (!batch.fork || roots === null || !roots.delete(root)) continue;
-		if (roots.size === 0) park(batch);
-	}
-}
-
-export function untouched(batch: Batch): void {
-	if (batch.fork && batch.roots === null && !batch.done) park(batch);
-}
-
-export function others(batch: Batch): boolean {
-	if (batch.after !== null || batch.fork || (open !== null && open !== batch)) return true;
-	for (const other of pending) if (other !== batch) return true;
-	return false;
-}
-
-export function viewOf(batch: Batch): View {
-	const given: View = {
-		batch,
-		values: new Map(),
-		hidden: new Map(),
-		checked: new Map(),
-		reached: new Map()
-	};
-	const own = (batch.after ??= materialize(batch));
-	const hide = (other: Batch): void => {
-		if (other === batch || other.done) return;
-		if (other.fork) {
-			for (const source of other.after?.keys() ?? []) {
-				if ((own !== null && own.has(source)) || given.values.has(source)) continue;
-				given.values.set(source, source.v);
-				given.hidden.set(source, other);
-			}
-			return;
-		}
-		if (inherits(batch, other)) return;
-		for (const [source, value] of other.before) {
-			if ((own !== null && own.has(source)) || given.values.has(source)) continue;
-			given.values.set(source, value);
-			given.hidden.set(source, other);
-		}
-	};
-	for (const other of pending) hide(other);
-	if (open !== null) hide(open);
-	if (own !== null)
-		for (const [source, value] of own)
-			if (isDerived(source) || !equal(source, source.v, value)) given.values.set(source, value);
-	return given;
-}
-
-function force(batch: Batch, effect: Effect): void {
-	if (effect.destroyed) return;
-	(batch.forced ??= new Set()).add(effect);
-	enqueue(batch, effect);
-}
-
-function record(reader: Batch, writer: Batch, effects: Iterable<Effect>): void {
-	if (writer.done) return;
-	if (writer === reader) {
-		for (const effect of effects) force(reader, effect);
-		return;
-	}
-	const waits = (reader.waits ??= new Map());
-	let found = waits.get(writer);
-	if (found === undefined) waits.set(writer, (found = new Set()));
-	for (const effect of effects) found.add(effect);
-}
-
-export function revisit(effect: Effect, hidden: Set<Batch> | null): void {
-	const reader = active ?? processing;
-	for (const found of hidden ?? []) {
-		const writer = alias(found);
-		if (writer.done) continue;
-		if (members(writer).has(effect)) (writer.forced ??= new Set()).add(effect);
-		if (reader !== null && reader !== writer) record(reader, writer, [effect]);
-	}
-	for (const other of pending) {
-		if (other === reader || other.done || other.fork || other.queued.length === 0) continue;
-		if (members(other).has(effect)) (other.forced ??= new Set()).add(effect);
-	}
-}
-
-function intersects(a: Batch, b: Batch): boolean {
-	const [small, large] = a.before.size < b.before.size ? [a, b] : [b, a];
-	for (const source of small.before.keys()) if (large.before.has(source)) return true;
-	return false;
-}
-
-function inherits(batch: Batch, other: Batch): boolean {
-	return !other.fork && !other.done && other.order < batch.order && intersects(other, batch);
-}
+import { inherits, inside, intersects, materialize } from './views.ts';
 
 export function reconcile(batch: Batch): void {
 	let sources: Map<Source, unknown> | null = null;
@@ -200,21 +51,11 @@ export function reconcile(batch: Batch): void {
 	}
 }
 
-function materialize(batch: Batch): Map<Source, unknown> {
-	const after = new Map<Source, unknown>();
-	const origins = (batch.origins ??= new Map());
-	for (const source of batch.before.keys()) {
-		after.set(source, source.v);
-		if (!origins.has(source)) origins.set(source, { order: batch.order, version: source.wv });
-	}
-	return after;
-}
-
 function remap(reader: Batch, from: Batch, into: Batch): void {
 	const found = reader.waits?.get(from);
 	if (found === undefined) return;
 	reader.waits?.delete(from);
-	record(reader, into, found);
+	rerunAfter(reader, into, found);
 }
 
 function fold(from: Batch, into: Batch): void {
@@ -281,7 +122,7 @@ function fold(from: Batch, into: Batch): void {
 	}
 	const index = pending.indexOf(from);
 	if (index !== -1) pending.splice(index, 1);
-	for (const [writer, effects] of from.waits ?? []) record(into, alias(writer), effects);
+	for (const [writer, effects] of from.waits ?? []) rerunAfter(into, alias(writer), effects);
 	from.waits = null;
 	remap(into, from, into);
 	for (const other of pending) remap(other, from, into);

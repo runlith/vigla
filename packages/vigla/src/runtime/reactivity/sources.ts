@@ -1,4 +1,4 @@
-import { dirty, write } from './batch.ts';
+import { dirty, write } from './scheduler.ts';
 import { runEager } from './eager.ts';
 import {
 	DERIVED,
@@ -10,9 +10,9 @@ import {
 	type Derived,
 	type Source
 } from './graph.ts';
-import { refresh } from './deriveds.ts';
+import { get, refresh } from './reads.ts';
 import { sequence } from './history.ts';
-import { get, guard, localize, marked, owner, present, untrack, view } from './tracking.ts';
+import { guard, localize, marked, owner, present, untrack, view } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
 	return {

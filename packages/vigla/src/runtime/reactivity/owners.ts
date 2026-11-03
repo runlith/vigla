@@ -1,21 +1,107 @@
-import type { Layer } from '../../shared/context.ts';
+import { keyed, type Context, type Layer } from '../../shared/context.ts';
+import { failure } from '../../shared/diagnostics.ts';
 import { format } from '../../shared/format.ts';
 import { destroy, destroyed, detached, start } from './effects.ts';
 import { setFront } from './front.ts';
 import { lifetime } from './abort.ts';
-import { settledUnder, unit } from './async.ts';
+import { settledUnder, unit } from './units.ts';
 import { presently } from './past.ts';
-import type { Boundary, Effect } from './graph.ts';
-import { carry, port } from './carried.ts';
-import { owner as running, setOwner, withoutReaction } from './tracking.ts';
+import type { Effect } from './graph.ts';
+import { ambient, carry, port } from './carried.ts';
+import { handle } from './handlers.ts';
+import { setOwner, withoutReaction } from './tracking.ts';
 
 const effects = new WeakMap<Owner, Effect>();
 const owners = new WeakMap<Effect, Owner>();
-const boundaries = new WeakMap<Effect, FailureBoundary>();
 
-export function handlerOf(effect: Effect): Boundary | null {
-	const boundary = boundaries.get(effect);
-	return effect.destroyed || boundary?.handlers.length === 0 ? null : (boundary ?? null);
+export interface Components {
+	layer(): Layer<Effect> | null;
+	teardown?(fn: () => void): boolean;
+}
+
+const installed: Components[] = [];
+
+export function installComponents(components: Components): void {
+	installed.push(components);
+}
+
+export function layerOf(effect: Effect | null): Layer<Effect> | null {
+	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
+}
+
+function standing(): Layer<Effect> | null {
+	for (const components of installed) {
+		const layer = components.layer();
+		if (layer !== null) return layer;
+	}
+	return null;
+}
+
+function current(): Layer<Effect> | null {
+	return standing() ?? layerOf(ambient());
+}
+
+function writable(): Layer<Effect> {
+	const layer = standing();
+	if (layer !== null) return layer;
+	const effect = ambient();
+	if (effect === null) {
+		throw failure('context_without_owner', 'Context can only be set where an owner exists');
+	}
+	return ownContext(effect);
+}
+
+export function getContext<T>(key: unknown): T {
+	for (let layer = current(); layer !== null; layer = layer.parent) {
+		if (layer.map?.has(key)) return layer.map.get(key) as T;
+	}
+	return undefined as T;
+}
+
+export function setContext<T>(key: unknown, value: T): T {
+	const layer = writable();
+	(layer.map ??= new Map()).set(key, value);
+	return value;
+}
+
+export function hasContext(key: unknown): boolean {
+	for (let layer = current(); layer !== null; layer = layer.parent) {
+		if (layer.map?.has(key)) return true;
+	}
+	return false;
+}
+
+export function createContext<T>(): Context<T> {
+	return keyed<T>({ getContext, setContext, hasContext });
+}
+
+export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
+	const chain: Layer<Effect>[] = [];
+	for (let layer = current(); layer !== null; layer = layer.parent) chain.push(layer);
+	const all = new Map<unknown, unknown>();
+	for (let index = chain.length - 1; index >= 0; index--) {
+		for (const [key, value] of chain[index]?.map ?? []) all.set(key, value);
+	}
+	return all as T;
+}
+
+function register(effect: Effect | null, fn: () => void): Effect {
+	const previous = setOwner(effect);
+	try {
+		return destroyed(fn);
+	} finally {
+		setOwner(previous);
+	}
+}
+
+export function onDestroy(fn: () => void): void {
+	const effect = ambient();
+	if (effect !== null && effect.destroyed) {
+		withoutReaction(() => presently(fn));
+		return;
+	}
+	for (const components of installed) if (components.teardown?.(fn) === true) return;
+	register(effect, fn);
 }
 
 export function ownContext(effect: Effect): Layer<Effect> {
@@ -39,40 +125,7 @@ function repoint(effect: Effect, inherited: Layer<Effect> | null, layer: Layer<E
 	}
 }
 
-type ErrorHandler = (error: unknown) => void;
-
-class FailureBoundary implements Boundary {
-	readonly showing = false;
-	readonly handlers: ErrorHandler[] = [];
-	readonly #effect: Effect;
-
-	constructor(effect: Effect) {
-		this.#effect = effect;
-	}
-
-	get parent(): Boundary | null {
-		return this.#effect.parent?.boundary ?? null;
-	}
-
-	settle(delta: 1 | -1): void {
-		this.parent?.settle(delta);
-	}
-
-	failed(error: unknown): void {
-		const handler = this.handlers.at(-1);
-		if (handler === undefined || this.#effect.destroyed) throw error;
-		const previous = setOwner(this.#effect);
-		try {
-			withoutReaction(() => handler(error));
-		} finally {
-			setOwner(previous);
-		}
-	}
-}
-
 export class Owner {
-	#boundary: FailureBoundary | null = null;
-
 	constructor(effect: Effect) {
 		effects.set(this, effect);
 		owners.set(effect, this);
@@ -92,17 +145,10 @@ export class Owner {
 		return lifetime(effectOf(this));
 	}
 
-	onError(handler: ErrorHandler): () => void {
+	onError(handler: (error: unknown) => void): () => void {
 		const effect = effectOf(this);
 		if (effect.destroyed) throw new Error('Cannot handle failures under a disposed owner');
-		const boundary = (this.#boundary ??= new FailureBoundary(effect));
-		boundaries.set(effect, boundary);
-		const registered: ErrorHandler = (error) => handler(error);
-		boundary.handlers.push(registered);
-		return () => {
-			const index = boundary.handlers.indexOf(registered);
-			if (index !== -1) boundary.handlers.splice(index, 1);
-		};
+		return handle(effect, handler);
 	}
 
 	run<T>(fn: () => T): T {
@@ -137,15 +183,9 @@ export class Owner {
 			return () => {};
 		}
 		let live = true;
-		const previous = setOwner(effect);
-		let registered: Effect;
-		try {
-			registered = destroyed(() => {
-				if (live) fn();
-			});
-		} finally {
-			setOwner(previous);
-		}
+		const registered = register(effect, () => {
+			if (live) fn();
+		});
 		return () => {
 			live = false;
 			destroy(registered);
@@ -175,7 +215,8 @@ export function ownerOf(effect: Effect): Owner {
 }
 
 export function getOwner(): Owner | null {
-	return running === null ? null : ownerOf(running);
+	const effect = ambient();
+	return effect === null ? null : ownerOf(effect);
 }
 
 export function root(fn?: () => void | (() => void), parent: Owner | null = null): Owner {

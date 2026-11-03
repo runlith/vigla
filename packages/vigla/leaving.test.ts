@@ -1,17 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { work } from './src/runtime/reactivity/async.ts';
-import {
-	atCommit,
-	Batch,
-	flushSync,
-	leaving,
-	process,
-	skip,
-	stayed,
-	unskip,
-	within
-} from './src/runtime/reactivity/batch.ts';
+import { atCommit, Batch, skip, unskip, within } from './src/runtime/reactivity/batch.ts';
+import { leaving, stayed } from './src/runtime/reactivity/leaving.ts';
+import { flushSync, process } from './src/runtime/reactivity/scheduler.ts';
 import {
 	branch,
 	block,
@@ -22,13 +14,14 @@ import {
 	show,
 	teardown
 } from './src/runtime/reactivity/effects.ts';
-import { getAbortSignal } from './src/runtime/reactivity/abort.ts';
+import { getAbortSignal } from './src/runtime/reactivity/effects.ts';
 import { proxy } from './src/runtime/reactivity/proxy.ts';
 import { fork } from './src/runtime/reactivity/fork.ts';
 import type { Derived, Effect } from './src/runtime/reactivity/graph.ts';
 import { ownerOf } from './src/runtime/reactivity/owners.ts';
 import { derived, memo, set, state, type Cell } from './src/runtime/reactivity/sources.ts';
-import { get, untrack } from './src/runtime/reactivity/tracking.ts';
+import { get } from './src/runtime/reactivity/reads.ts';
+import { untrack } from './src/runtime/reactivity/tracking.ts';
 
 test('an outgoing derived keeps one transitive view and local state without publishing its cache', () => {
 	const value = state(1);

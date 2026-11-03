@@ -1,6 +1,6 @@
 import { failure } from '../shared/diagnostics.ts';
 import type * as client from './index.ts';
-import { unit } from '../runtime/reactivity/async.ts';
+import { unit } from '../runtime/reactivity/units.ts';
 import { ambient } from '../runtime/reactivity/carried.ts';
 import type { Resource } from '../runtime/reactivity/public.ts';
 import { external as connect } from '../runtime/server/external.ts';
@@ -14,14 +14,15 @@ import {
 
 export {
 	createContext,
-	getAbortSignal,
 	getAllContexts,
 	getContext,
 	getOwner,
 	hasContext,
 	onDestroy,
+	root,
 	setContext
-} from '../runtime/server/context.ts';
+} from '../runtime/reactivity/owners.ts';
+export { getAbortSignal } from '../runtime/server/context.ts';
 export { cell, memo as derived, cell as state } from '../runtime/server/cells.ts';
 export { untrack } from '../runtime/reactivity/tracking.ts';
 export { AsyncVariable, carryAcrossAwait, type AsyncStore } from '../runtime/reactivity/carried.ts';
@@ -64,7 +65,6 @@ export const hydrate: typeof client.hydrate = () => unavailable('hydrate');
 export const unmount: typeof client.unmount = () => unavailable('unmount');
 export const fork: typeof client.fork = () => unavailable('fork');
 
-export { root } from '../runtime/reactivity/owners.ts';
 export type { Owner } from '../runtime/reactivity/owners.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
 export type { Effects, Resource } from '../runtime/reactivity/public.ts';
@@ -106,7 +106,7 @@ export function tracking(): boolean {
 
 export async function tick(): Promise<void> {}
 
-export { drained as settled } from '../runtime/reactivity/async.ts';
+export { drained as settled } from '../runtime/reactivity/units.ts';
 
 export async function hold<T>(fn: () => T): Promise<Awaited<T>> {
 	const finish = unit(ambient());

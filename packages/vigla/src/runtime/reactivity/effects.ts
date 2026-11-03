@@ -12,19 +12,19 @@ import {
 	type Effect,
 	type Kind
 } from './graph.ts';
-import { unhandled } from '../../shared/diagnostics.ts';
-import { abort, abortLifetime } from './abort.ts';
-import { collect, orphaned, pending, processed, retire, revisit, schedule } from './batch.ts';
-import { disconnect } from './deriveds.ts';
+import { failure, unhandled } from '../../shared/diagnostics.ts';
+import { abort, abortLifetime, evaluationSignal, lifetime } from './abort.ts';
+import { collect, offscreen, orphaned, pending, processed, revisit, schedule } from './batch.ts';
 import { frontOf, setFront } from './front.ts';
-import { handlerOf } from './owners.ts';
+import { handlerOf } from './handlers.ts';
 import { orphan, teardownOrphan } from './errors.ts';
-import { presently } from './past.ts';
-import { stayed } from './leaving.ts';
+import { ownLeaving } from './outgoing.ts';
+import { presently, retire } from './past.ts';
 import {
+	deriving,
+	evaluation,
 	marked,
 	owner,
-	ownEffect,
 	present,
 	reading,
 	setOwner,
@@ -33,11 +33,29 @@ import {
 	withoutReaction,
 	view
 } from './tracking.ts';
-import { unsubscribe } from './edges.ts';
+import { observe, unsubscribe } from './edges.ts';
 
 let created = 0;
 
-export const offscreen = new Set<Effect>();
+function ownEffect(effect: Effect): void {
+	const derived = deriving();
+	if (derived === null || effect.kind === ROOT) return;
+	if (effect.parent === derived.owner && !ownLeaving(effect)) (derived.effects ??= []).push(effect);
+}
+
+export function destroyEffects(derived: Derived): void {
+	const effects = derived.effects;
+	if (effects === null) return;
+	derived.effects = derived.frozen = null;
+	for (const effect of effects) destroy(effect);
+}
+
+function disconnect(derived: Derived): void {
+	destroyEffects(derived);
+	unsubscribe(derived);
+	derived.status = DIRTY;
+	marked();
+}
 
 export function hide(effect: Effect): void {
 	if (effect.destroyed || offscreen.has(effect)) return;
@@ -110,12 +128,6 @@ export function fail(effect: Effect | null, error: unknown): void {
 		}
 	}
 	escape(effect, error);
-}
-
-export function application(effect: Effect): Effect {
-	let top = effect;
-	while (top.parent !== null) top = top.parent;
-	return top;
 }
 
 let creating = 0;
@@ -304,6 +316,22 @@ export function tracking(): boolean {
 	return reading();
 }
 
+export function getAbortSignal(): AbortSignal {
+	if (evaluation() === null && owner !== null) return lifetime(owner);
+	return getReactionSignal();
+}
+
+export function getReactionSignal(): AbortSignal {
+	const reaction = evaluation();
+	if (reaction === null) {
+		throw failure(
+			'get_abort_signal_outside_reaction',
+			'`getAbortSignal()` can only be called inside an effect or derived'
+		);
+	}
+	return evaluationSignal(reaction, teardown);
+}
+
 function unlink(effect: Effect): void {
 	const parent = effect.parent;
 	if (parent === null) return;
@@ -340,22 +368,20 @@ function destroyChildren(effect: Effect, keepBranches = false): void {
 
 const detaching = new WeakMap<Effect, () => void>();
 
-export function detach(root: Effect, fn: () => void): void {
-	detaching.set(root, fn);
+export function detach(effect: Effect, fn: (() => void) | null): void {
+	if (fn === null) detaching.delete(effect);
+	else detaching.set(effect, fn);
 }
 
 export function destroy(effect: Effect): void {
 	if (effect.destroyed) return;
 	effect.destroyed = true;
-	if (effect.kind === ROOT) {
-		const detached = detaching.get(effect);
-		if (detached !== undefined) {
-			detaching.delete(effect);
-			dispose(effect, detached);
-		}
+	const detached = detaching.get(effect);
+	if (detached !== undefined) {
+		detaching.delete(effect);
+		dispose(effect, detached);
 	}
 	abortLifetime(effect);
-	stayed(effect);
 	destroyChildren(effect);
 	release(effect);
 	unsubscribe(effect);
@@ -415,3 +441,5 @@ export function thaw(derived: Derived): void {
 		schedule(effect);
 	}
 }
+
+observe({ observed: thaw, unobserved: freeze });

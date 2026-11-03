@@ -1,5 +1,5 @@
 import { set, state } from '../reactivity/sources.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import { bind, ReactiveURLSearchParams, replace } from './search.ts';
 
 export class ReactiveURL extends URL {

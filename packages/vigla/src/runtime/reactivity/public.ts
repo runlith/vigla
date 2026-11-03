@@ -8,7 +8,7 @@ import {
 import { asyncDerived } from './async.ts';
 import { destroy, effect as user, effectRoot, pre } from './effects.ts';
 import { external as connect } from './external.ts';
-import { get } from './tracking.ts';
+import { get } from './reads.ts';
 
 type Body = () => void | (() => void);
 

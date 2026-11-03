@@ -1,6 +1,7 @@
 import { run } from './effects.ts';
 import type { Effect } from './graph.ts';
-import { present, stale } from './tracking.ts';
+import { stale } from './reads.ts';
+import { present } from './tracking.ts';
 
 const queued = new Set<Effect>();
 let running = false;

@@ -62,7 +62,7 @@ export { element } from '../../runtime/dom/element.ts';
 export { inspect } from '../../runtime/dom/inspect.ts';
 export { slots, slotProps } from '../../shared/slots.ts';
 export { customElement, host, slot } from '../../runtime/dom/custom-element.ts';
-export { flushSync } from '../../runtime/reactivity/batch.ts';
+export { flushSync } from '../../runtime/reactivity/scheduler.ts';
 export { componentSource, disclose, frame, locate } from '../../runtime/dom/meta.ts';
 export { ownership } from '../../runtime/dom/ownership.ts';
 export { exclude, fallback, toArray } from '../../runtime/dom/values.ts';
@@ -103,7 +103,7 @@ export {
 	tree
 } from '../../runtime/dom/template.ts';
 export { asyncDerived, pending, work } from '../../runtime/reactivity/async.ts';
-export { resumed, suspend } from '../../runtime/reactivity/batch.ts';
+export { resumed, suspend } from '../../runtime/reactivity/views.ts';
 export {
 	effect,
 	effectRoot,
@@ -112,11 +112,13 @@ export {
 	template,
 	tracking
 } from '../../runtime/reactivity/effects.ts';
-export { getReactionSignal } from '../../runtime/reactivity/abort.ts';
+export { getReactionSignal } from '../../runtime/reactivity/effects.ts';
 export { external } from '../../runtime/reactivity/external.ts';
 export { latest } from '../../runtime/reactivity/latest.ts';
 export { trackLoss, trackLossEach } from '../../runtime/reactivity/loss.ts';
-export { tag, tagProxy, trace, traceStacks } from '../../runtime/reactivity/trace.ts';
+export { tag, tagProxy, traceStacks } from '../../runtime/reactivity/provenance.ts';
+export { trace } from '../../runtime/reactivity/trace.ts';
 export { original, proxy, snapshot } from '../../runtime/reactivity/proxy.ts';
 export { derived, set, state, update, updatePre } from '../../runtime/reactivity/sources.ts';
-export { endReading as unsave, get } from '../../runtime/reactivity/tracking.ts';
+export { endReading as unsave } from '../../runtime/reactivity/tracking.ts';
+export { get } from '../../runtime/reactivity/reads.ts';

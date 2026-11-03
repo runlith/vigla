@@ -1,10 +1,12 @@
 import { OPEN_ELSE } from '../../shared/markers.ts';
-import { flushSync, resumed, suspend, write } from '../reactivity/batch.ts';
+import { flushSync, write } from '../reactivity/scheduler.ts';
+import { resumed, suspend } from '../reactivity/views.ts';
 import { block } from '../reactivity/effects.ts';
 import type { Effect, Source } from '../reactivity/graph.ts';
 import { derived, source } from '../reactivity/sources.ts';
 import { task } from '../reactivity/tasks.ts';
-import { get, owner, present, setOwner, untrack } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
+import { owner, present, setOwner, untrack } from '../reactivity/tracking.ts';
 import { Branches } from './branches.ts';
 import { hydrating, instruction } from './hydration.ts';
 import type { Render } from './template.ts';

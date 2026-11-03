@@ -1,11 +1,12 @@
 import { DEV } from 'esm-env';
-import { write } from './batch.ts';
+import { write } from './scheduler.ts';
 import { sequence } from './history.ts';
 import { holdEager } from './eager.ts';
 import type { Source } from './graph.ts';
 import { set, source as plain, state, type Cell } from './sources.ts';
-import { get, guard, local, untrack } from './tracking.ts';
-import { labelFor, labelled, tag } from './trace.ts';
+import { get } from './reads.ts';
+import { guard, local, untrack } from './tracking.ts';
+import { labelFor, labelled, tag } from './provenance.ts';
 
 const RAW = Symbol('raw');
 

@@ -1,10 +1,10 @@
-import { keyed, type Context, type Layer } from '../../shared/context.ts';
+import type { Layer } from '../../shared/context.ts';
 import { lifetime } from '../reactivity/abort.ts';
 import { failure } from '../../shared/diagnostics.ts';
-import { destroy, destroyed, teardown } from '../reactivity/effects.ts';
+import { destroy, teardown } from '../reactivity/effects.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { ambient } from '../reactivity/carried.ts';
-import { ownContext, ownerOf, type Owner } from '../reactivity/owners.ts';
+import { installComponents, layerOf, ownerOf } from '../reactivity/owners.ts';
 import { owner, setOwner } from '../reactivity/tracking.ts';
 import type { Data } from './hydration.ts';
 import type { Output } from './render.ts';
@@ -33,9 +33,30 @@ let site: Output | null = null;
 const stores = new WeakMap<Effect, Data>();
 const resumed = new WeakSet<Layer<Effect>>();
 
-export function layerOf(effect: Effect | null): Layer<Effect> | null {
-	return (effect?.context as Layer<Effect> | null | undefined) ?? null;
+function standing(): Layer<Effect> | null {
+	if (render === null || owner !== render.scope) return null;
+	const layer = layerOf(owner);
+	return layer !== null && layer.component ? layer : null;
 }
+
+function instanceOf(effect: Effect): Instance | null {
+	for (let layer = layerOf(effect); layer !== null; layer = layer.parent) {
+		if (layer.component) return layer as Instance;
+	}
+	return null;
+}
+
+installComponents({
+	layer: standing,
+	teardown(fn) {
+		const effect = ambient();
+		const instance =
+			effect !== null && render !== null && effect === render.scope ? instanceOf(effect) : null;
+		if (instance === null) return false;
+		(instance.destroys ??= []).push(fn);
+		return true;
+	}
+});
 
 export function enter(output: Output | null): Output | null {
 	const previous = site;
@@ -145,11 +166,6 @@ export function storeOf(effect: Effect | null): Data | null {
 		if (data !== undefined) return data;
 	}
 	return null;
-}
-
-export function getOwner(): Owner | null {
-	const effect = ambient();
-	return effect === null ? null : ownerOf(effect);
 }
 
 export function openStore(data: Data): void {
@@ -297,78 +313,7 @@ export function isRendering(): boolean {
 export type Phase = 'initializing' | 'running' | null;
 
 export function phase(): Phase {
-	const layer = render !== null && owner === render.scope ? layerOf(owner) : null;
-	if (layer === null || !layer.component) return null;
+	const layer = standing();
+	if (layer === null) return null;
 	return resumed.has(layer) ? 'running' : 'initializing';
-}
-
-function own(): Layer<Effect> {
-	const layer = layerOf(owner);
-	if (render !== null && owner === render.scope && layer !== null && layer.component) return layer;
-	const effect = ambient();
-	if (effect === null) {
-		throw failure('context_without_owner', 'Context can only be set where an owner exists');
-	}
-	return ownContext(effect);
-}
-
-export function getContext<T>(key: unknown): T {
-	for (let layer = layerOf(ambient()); layer !== null; layer = layer.parent) {
-		if (layer.map?.has(key)) return layer.map.get(key) as T;
-	}
-	return undefined as T;
-}
-
-export function setContext<T>(key: unknown, value: T): T {
-	const layer = own();
-	(layer.map ??= new Map()).set(key, value);
-	return value;
-}
-
-export function hasContext(key: unknown): boolean {
-	for (let layer = layerOf(ambient()); layer !== null; layer = layer.parent) {
-		if (layer.map?.has(key)) return true;
-	}
-	return false;
-}
-
-export function createContext<T>(): Context<T> {
-	return keyed<T>({ getContext, setContext, hasContext });
-}
-
-export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
-	const chain: Layer<Effect>[] = [];
-	for (let layer = layerOf(ambient()); layer !== null; layer = layer.parent) chain.push(layer);
-	const all = new Map<unknown, unknown>();
-	for (let index = chain.length - 1; index >= 0; index--) {
-		for (const [key, value] of chain[index]?.map ?? []) all.set(key, value);
-	}
-	return all as T;
-}
-
-function instanceOf(effect: Effect): Instance | null {
-	for (let layer = layerOf(effect); layer !== null; layer = layer.parent) {
-		if (layer.component) return layer as Instance;
-	}
-	return null;
-}
-
-export function onDestroy(fn: () => void): void {
-	const effect = ambient();
-	if (effect?.destroyed) {
-		fn();
-		return;
-	}
-	const instance =
-		effect !== null && render !== null && effect === render.scope ? instanceOf(effect) : null;
-	if (instance !== null) {
-		(instance.destroys ??= []).push(fn);
-		return;
-	}
-	const previous = setOwner(effect);
-	try {
-		destroyed(fn);
-	} finally {
-		setOwner(previous);
-	}
 }

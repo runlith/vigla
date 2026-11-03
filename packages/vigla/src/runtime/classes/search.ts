@@ -1,5 +1,5 @@
 import { state } from '../reactivity/sources.ts';
-import { get } from '../reactivity/tracking.ts';
+import { get } from '../reactivity/reads.ts';
 import { bump } from './subscriber.ts';
 
 export interface Searched {
