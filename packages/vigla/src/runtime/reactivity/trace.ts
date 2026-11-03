@@ -1,6 +1,7 @@
 import { DEV } from 'esm-env';
+import { snapshot } from '../../shared/clone.ts';
 import { isDerived, type Derived, type Reaction, type Source } from './graph.ts';
-import { ABSENT, snapshot } from './proxy.ts';
+import { ABSENT } from './proxy.ts';
 import {
 	labelOf,
 	ranAt,
@@ -75,7 +76,7 @@ function log(source: Source, reaction: Reaction, traces: readonly Error[]): void
 		label === undefined ? `%c${type}%c` : `%c${type}%c ${label}`,
 		style,
 		dirty ? 'font-weight: normal' : style,
-		typeof value === 'object' && value !== null && relabelled(value) ? snapshot(value) : value
+		typeof value === 'object' && value !== null && relabelled(value) ? snapshot(value, true) : value
 	);
 	if (derived) for (const dep of new Set(source.deps ?? [])) log(dep, reaction, []);
 	if (dirty && update?.stack !== null && update?.stack !== undefined) console.log(update.stack);

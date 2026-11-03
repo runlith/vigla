@@ -37,49 +37,6 @@ function index(prop: string | symbol): number {
 	return typeof prop === 'string' && /^(0|[1-9]\d*)$/.test(prop) ? Number(prop) : -1;
 }
 
-function clone(value: unknown, cloned: Map<object, unknown>): unknown {
-	if (typeof value === 'object' && value !== null) {
-		const known = cloned.get(value);
-		if (known !== undefined) return known;
-		if (value instanceof Map) return new Map(value);
-		if (value instanceof Set) return new Set(value);
-		if (Array.isArray(value)) {
-			const copy: unknown[] = new Array(value.length);
-			cloned.set(value, copy);
-			for (let position = 0; position < value.length; position++) {
-				if (position in value) copy[position] = clone(value[position], cloned);
-			}
-			return copy;
-		}
-		if (Object.getPrototypeOf(value) === Object.prototype) {
-			const copy: Indexed = {};
-			cloned.set(value, copy);
-			for (const key of Object.keys(value)) copy[key] = clone((value as Indexed)[key], cloned);
-			return copy;
-		}
-		if (value instanceof Date) {
-			value.getTime();
-			return structuredClone(value);
-		}
-		const json = (value as { toJSON?: unknown }).toJSON;
-		if (typeof json === 'function') {
-			const copy = clone(json.call(value), cloned);
-			cloned.set(value, copy);
-			return copy;
-		}
-	}
-	if (typeof EventTarget === 'function' && value instanceof EventTarget) return value;
-	try {
-		return structuredClone(value);
-	} catch {
-		return value;
-	}
-}
-
-export function snapshot<T>(value: T): T {
-	return clone(value, new Map()) as T;
-}
-
 export function proxy<T>(value: T): T {
 	return wrap(value, true);
 }

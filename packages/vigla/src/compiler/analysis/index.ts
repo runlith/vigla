@@ -40,6 +40,7 @@ export {
 	resuming
 } from './asynchronous.ts';
 export { hoisted } from './template.ts';
+export { ignoring, type Ignoring } from './ignoring.ts';
 export type { AsyncStep, Settled } from './asynchronous.ts';
 export type { Preserve } from './whitespace.ts';
 export { patternNames, spanOf, unsupported } from './scope.ts';

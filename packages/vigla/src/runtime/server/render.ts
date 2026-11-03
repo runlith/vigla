@@ -610,7 +610,3 @@ export function bindProps(props: Props, values: Props): void {
 			props[key] = value;
 	}
 }
-
-export function snapshot<T>(value: T): T {
-	return typeof value === 'object' && value !== null ? structuredClone(value) : value;
-}

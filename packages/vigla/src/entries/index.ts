@@ -32,7 +32,7 @@ export { hold, pending } from '../runtime/reactivity/async.ts';
 export { effect, external, resource } from '../runtime/reactivity/public.ts';
 export type { Effects, Resource } from '../runtime/reactivity/public.ts';
 export { latest } from '../runtime/reactivity/latest.ts';
-export { snapshot } from '../runtime/reactivity/proxy.ts';
+export { snapshot } from '../shared/clone.ts';
 export type {
 	External,
 	Subscribable,

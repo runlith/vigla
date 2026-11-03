@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import type { Format } from '../../shared/format.ts';
 import type { RuntimeNames } from '../ir/runtime.ts';
 import {
+	ignoring,
 	spanOf,
 	unsupported,
 	type ComponentAnalysis,
@@ -76,7 +77,8 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		early: [],
 		dev: options.dev,
 		filename: options.filename,
-		externalCells: new Map()
+		externalCells: new Map(),
+		ignoring: ignoring(analysis.unit.ignores, analysis.ignored)
 	};
 	const imports: ES.ImportDeclaration[] = [];
 	const hoisted = context.hoisted;
@@ -195,7 +197,8 @@ export function serverModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		runtimeNames: options.runtimeNames,
 		props: null,
 		out: null,
-		dev: options.dev
+		dev: options.dev,
+		ignoring: ignoring(analysis.unit.ignores)
 	};
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));
 	return b.program([b.namespaceImport(context.runtime.name, options.runtime), ...body]);

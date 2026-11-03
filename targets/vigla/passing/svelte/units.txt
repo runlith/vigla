@@ -10,10 +10,13 @@ internal/shared/clone.test.ts > array
 internal/shared/clone.test.ts > class with state field
 internal/shared/clone.test.ts > class with toJSON
 internal/shared/clone.test.ts > cycles
+internal/shared/clone.test.ts > many uncloneable properties
 internal/shared/clone.test.ts > object
 internal/shared/clone.test.ts > primitive
 internal/shared/clone.test.ts > proxied state
 internal/shared/clone.test.ts > reactive class
+internal/shared/clone.test.ts > uncloneable properties
+internal/shared/clone.test.ts > uncloneable value
 reactivity/date.test.ts > Date fine grained tests
 reactivity/date.test.ts > Date methods invoked for the first time in a derived
 reactivity/date.test.ts > Date methods shared between deriveds

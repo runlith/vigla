@@ -2,6 +2,7 @@ import type * as ES from 'estree';
 import type { Format } from '../../shared/format.ts';
 import type { ExpressionProjection, RuntimeNames } from '../ir/runtime.ts';
 import {
+	ignoring,
 	patternNames,
 	spanOf,
 	unsupported,
@@ -135,6 +136,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		props,
 		ownership: options.dev ? ownership(analysis, names) : undefined,
 		losses: options.dev ? losses(analysis.unit.ignores, analysis.ignored) : undefined,
+		ignoring: ignoring(analysis.unit.ignores, analysis.ignored),
 		events: new Set(),
 		groups: new Map(),
 		instance: [],
@@ -296,7 +298,8 @@ export function clientModule(analysis: ModuleAnalysis, options: ModuleOptions): 
 		props: null,
 		filename: analysis.unit.filename ?? '(unknown)',
 		dev: options.dev,
-		losses: options.dev ? losses(analysis.unit.ignores) : undefined
+		losses: options.dev ? losses(analysis.unit.ignores) : undefined,
+		ignoring: ignoring(analysis.unit.ignores)
 	};
 	traceStacks(context);
 	const body = analysis.unit.program.body.map((statement) => rewrite(context, statement));

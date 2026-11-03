@@ -1,6 +1,6 @@
+import { snapshot } from '../../shared/clone.ts';
 import { formatFrame } from '../../shared/diagnostics.ts';
 import { eager, template } from '../reactivity/effects.ts';
-import { snapshot } from '../reactivity/proxy.ts';
 import { untrack } from '../reactivity/tracking.ts';
 
 const internal =
@@ -43,7 +43,7 @@ export function inspect(
 			error = caught;
 			return;
 		}
-		const copied = snapshot(values) as readonly unknown[];
+		const copied = snapshot(values, true) as readonly unknown[];
 		untrack(() => {
 			if (!stack) {
 				inspector(initial ? 'init' : 'update', ...copied);

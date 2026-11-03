@@ -7,6 +7,7 @@ import {
 	spanOf,
 	unsupported,
 	type Binding,
+	type Ignoring,
 	type ScriptAnalysis,
 	type StateField
 } from '../analysis/index.ts';
@@ -38,6 +39,7 @@ export interface Context {
 	readonly externalCells?: Map<ExternalBinding, ES.Identifier>;
 	readonly refreshing?: ES.Node;
 	readonly propsId?: ES.Identifier;
+	readonly ignoring?: Ignoring;
 }
 
 export function runtime(
@@ -414,12 +416,12 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 						return b.literal(0);
 					case '$state.eager':
 						return next(single(current));
-					case '$state.snapshot':
-						return runtime(
-							context,
-							'snapshot',
-							...current.arguments.map((argument) => next(argument as ES.Expression))
-						);
+					case '$state.snapshot': {
+						const args = current.arguments.map((argument) => next(argument as ES.Expression));
+						if (context.ignoring?.(current, 'state_snapshot_uncloneable'))
+							args.push(b.literal(true));
+						return runtime(context, 'snapshot', ...args);
+					}
 					default:
 						return undefined;
 				}

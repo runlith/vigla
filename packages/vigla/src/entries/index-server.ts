@@ -68,7 +68,7 @@ export const fork: typeof client.fork = () => unavailable('fork');
 export type { Owner } from '../runtime/reactivity/owners.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
 export type { Effects, Resource } from '../runtime/reactivity/public.ts';
-export { snapshot } from '../runtime/reactivity/proxy.ts';
+export { snapshot } from '../shared/clone.ts';
 
 const noop = (): void => {};
 

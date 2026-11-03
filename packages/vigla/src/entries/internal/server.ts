@@ -38,6 +38,6 @@ export {
 	Output,
 	propsId,
 	Settlement,
-	snapshot,
 	spreadProps
 } from '../../runtime/server/render.ts';
+export { snapshot } from '../../shared/clone.ts';

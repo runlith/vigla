@@ -8,6 +8,7 @@ import {
 	spanOf,
 	unsupported,
 	type Binding,
+	type Ignoring,
 	type ScriptAnalysis,
 	type StateField
 } from '../analysis/index.ts';
@@ -32,6 +33,7 @@ export interface Context {
 	readonly props: ES.Identifier | null;
 	readonly ownership?: Ownership;
 	readonly losses?: Losses;
+	readonly ignoring?: Ignoring;
 	readonly fields?: ReadonlyMap<string, StateField>;
 	readonly className?: string;
 	readonly filename?: string;
@@ -532,7 +534,10 @@ export function rewrite<T extends ES.Node>(context: Context, node: T): T {
 					return runtime(context, 'latest', b.arrow([], next(single(current) as ES.Expression)));
 				const replaced = effectCall(context, rune, current);
 				if (replaced === undefined) return undefined;
-				return { ...replaced, arguments: current.arguments.map((argument) => next(argument)) };
+				const args = current.arguments.map((argument) => next(argument));
+				if (rune === '$state.snapshot' && context.ignoring?.(current, 'state_snapshot_uncloneable'))
+					args.push(b.literal(true));
+				return { ...replaced, arguments: args };
 			}
 			case 'VariableDeclaration': {
 				let changed = false;
