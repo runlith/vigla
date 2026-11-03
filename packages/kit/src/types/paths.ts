@@ -5,13 +5,16 @@ export type StripFragment<T extends string> = T extends `${infer Path}?${string}
 	: T extends `${infer Path}#${string}`
 		? Path
 		: T;
-export type ResolveArgs<T> = T extends `/${string}`
-	? StripFragment<T> extends infer Id extends RouteId
-		? RouteParams<Id> extends Record<string, never>
-			? [route: T]
-			: [route: T, params: RouteParams<Id>]
-		: [never]
-	: [pathname: T];
+export type ResolveArgs<T> =
+	RouteParams<StripFragment<T & string> & RouteId> extends Record<string, never>
+		? [route: T]
+		: T extends `/${string}`
+			? StripFragment<T> extends infer Id extends RouteId
+				? RouteParams<Id> extends Record<string, never>
+					? [route: T]
+					: [route: T, params: RouteParams<Id>]
+				: [never]
+			: [pathname: T];
 export type RouteMatch = { [Id in RouteId]: { id: Id; params: RouteParams<Id> } }[RouteId];
 export interface ManifestPath<Path extends string = string> {
 	path: Path;

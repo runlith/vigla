@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import type { EnvVarConfig } from '../types/env.ts';
+import type { ValidatedConfig } from '../types/builder.ts';
 import type { PageOptions, RouteParam, RouteTree } from '../types/internal/routes.ts';
 import { parseRoute, resolveRoute, routeSegments } from '../shared/routing/index.ts';
 import { importPath, writeChanged } from './files.ts';
@@ -67,11 +68,17 @@ function pathType(path: string): string {
 		: JSON.stringify(path);
 }
 function withSlash(path: string, options: PageOptions | null): string[] {
+	if (path === '') return [''];
 	if (options === null || options.trailingSlash === 'ignore') return [path, path + '/'];
 	return [options.trailingSlash === 'always' ? path + '/' : path];
 }
 
-export function writeAppTypes(tree: RouteTree, root: string, name: string): void {
+export function writeAppTypes(
+	config: ValidatedConfig,
+	tree: RouteTree,
+	root: string,
+	name: string
+): void {
 	const directory = join(root, 'node_modules/$app/types');
 	const pages = tree.routes.filter((route) => route.page);
 	const endpoints = tree.routes.filter((route) => route.endpoint);
@@ -114,7 +121,7 @@ export function writeAppTypes(tree: RouteTree, root: string, name: string): void
 		`\t\tRouteParams(): { ${params.join('; ')} };`,
 		`\t\tLayoutParams(): { ${layouts.join('; ')} };`,
 		`\t\tPath(): ${[...paths].join(' | ') || 'never'};`,
-		'\t\tResolvedPathname(): `${"/" | `/${string}/`}${ReturnType<AppTypes["Path"]>}`;',
+		`\t\tResolvedPathname(): \`\${${JSON.stringify(config.paths.base + '/')}}\${ReturnType<AppTypes["Path"]>}\`${config.paths.relative ? ' | `${"." | ".." | `../${string}`}/${ReturnType<AppTypes["Path"]>}`' : ''};`,
 		`\t\tAssetPath(): ${union(tree.assets.map(({ file }) => file))};`,
 		'\t}',
 		'}'

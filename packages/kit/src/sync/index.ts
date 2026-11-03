@@ -28,7 +28,7 @@ export function createSync(config: ValidatedConfig, root: string): Sync {
 	const sync = async (): Promise<RouteTree> => {
 		const tree = discover(config, root);
 		writeTsconfig(config, root);
-		writeAppTypes(tree, root, name);
+		writeAppTypes(config, tree, root, name);
 		writeRouteTypes(config, tree, root, name);
 		writeEnvironment(root, name, entry, variables);
 		return tree;

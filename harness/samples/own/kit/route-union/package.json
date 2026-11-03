@@ -1,0 +1,16 @@
+{
+	"name": "route-union",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test:dev": "vitest run"
+	},
+	"devDependencies": {
+		"@sveltejs/kit": "*",
+		"@sveltejs/vite-plugin-svelte": "*",
+		"svelte": "*",
+		"tsrs": "*",
+		"vite": "*",
+		"vitest": "*"
+	}
+}

@@ -23,6 +23,18 @@
 			"status": "difference",
 			"reason": "Kit #14319: Kit 3.1.0 with Svelte 5.57.3 and vite-plugin-svelte 7.3.1 on 2026-11-03 resolves a linked workspace stylesheet but returns 403 for its font; Vigla serves the asset."
 		},
+		"layout-load-types/test/watch.test.js > layout load constraints follow a child losing and regaining its load export": {
+			"status": "difference",
+			"reason": "Kit #17450: Kit 3.1.0/Svelte 5.57.3/plugin 7.3.1 on 2026-11-03 updates the edited child's declaration after its load export is removed, but the parent LayoutServerLoad still accepts an empty result despite required App.PageData.title. The checker wrongly exits 0; a fresh parent constraint must report TS2322 until the child load is restored."
+		},
+		"resolved-paths/test/paths.test.js > resolved path types admit server-relative URLs and normalize the root": {
+			"status": "difference",
+			"reason": "Kit #14295 and #16437: Kit 3.1.0/Svelte 5.57.3/plugin 7.3.1 on 2026-11-03 serves ./about from resolve('/about') but rejects that server-relative ResolvedPathname. With root trailingSlash always and base /base, it rejects /base/ and accepts //, /base// and a different base. The retained checker reports TS2322, TS2820 and unused negative directives."
+		},
+		"route-union/test/routes.test.js > a large static RouteId union remains a valid resolve argument": {
+			"status": "difference",
+			"reason": "Kit #15536: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 rejects the generated 32-member static RouteId union passed to resolve with TS2345 (tuple of unions versus union of tuples); literal and invalid-route controls behave as expected."
+		},
 		"sync-generated/test/sync.test.js > unchanged sync preserves root and nested route declarations": {
 			"status": "difference",
 			"reason": "Kit #17464 and #17465: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 rewrites both root and nested $types.d.ts on a second unchanged public CLI sync; the test fails because both modification times advance. Vigla preserves both declarations."
