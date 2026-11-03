@@ -137,7 +137,7 @@ function through(source: Source, given: View): unknown {
 		if (DEV) leave();
 	}
 	if ((source.deps as Source[]).length === 0) {
-		discardAside(aside);
+		discardAside(source, aside);
 		given.checked.set(source, false);
 		source.v = value;
 		source.wv = stamp();
@@ -235,7 +235,7 @@ export function refresh(derived: Derived): void {
 		if (DEV) leave();
 		if (aside !== null) {
 			if (local && given !== null) restoreAside(derived, aside, given.batch);
-			else discardAside(aside);
+			else discardAside(derived, aside);
 		}
 	}
 }

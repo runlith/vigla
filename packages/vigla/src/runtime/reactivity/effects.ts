@@ -24,6 +24,7 @@ import {
 	takeSignal
 } from './abort.ts';
 import {
+	alias,
 	collect,
 	offscreen,
 	orphaned,
@@ -101,10 +102,23 @@ function dropAll(reaction: Reaction): void {
 }
 
 function close(batch: Batch): void {
+	const committed = !alias(batch).discarded;
 	for (const reaction of closing(batch) ?? []) {
 		const draft = draftOf(reaction, batch);
-		if (draft !== undefined) drop(reaction, draft);
+		if (draft === undefined) continue;
+		if (committed && isDerived(reaction)) install(reaction, draft);
+		else drop(reaction, draft);
 	}
+}
+
+function install(derived: Derived, draft: Draft): void {
+	take(derived, draft);
+	const replaced = derived.effects;
+	const effects = [...draft.children].filter((effect) => !effect.destroyed);
+	derived.effects = effects.length === 0 ? null : effects;
+	derived.frozen = null;
+	for (const effect of replaced ?? []) destroy(effect);
+	restoreSignal(derived, draft.signal);
 }
 
 function adopt(batch: Batch): void {
@@ -139,11 +153,13 @@ export function setAside(derived: Derived): Aside {
 	return aside;
 }
 
-export function discardAside(aside: Aside): void {
+export function discardAside(derived: Derived, aside: Aside): void {
 	for (const effect of aside.effects ?? []) destroy(effect);
+	if (drafting !== 0) dropAll(derived);
 }
 
 export function restoreAside(derived: Derived, aside: Aside, batch: Batch): void {
+	if (batch.done && !alias(batch).discarded) return discardAside(derived, aside);
 	const children = derived.effects ?? [];
 	const signal = takeSignal(derived);
 	derived.effects = aside.effects;
@@ -166,6 +182,7 @@ function ownEffect(effect: Effect): Derived | null {
 }
 
 export function destroyEffects(derived: Derived): void {
+	if (drafting !== 0) dropAll(derived);
 	const effects = derived.effects;
 	if (effects === null) return;
 	derived.effects = derived.frozen = null;
