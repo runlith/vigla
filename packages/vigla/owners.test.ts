@@ -944,3 +944,64 @@ test("a discarded fork's cancelled request leaves none of its reads behind", asy
 		app.dispose();
 	}
 });
+
+test("a committed fork's evaluation of a derived nobody reads any more holds no resources", async () => {
+	const app = root();
+	const view = app.root();
+	const input = cell(0);
+	const live = new Set<number>();
+	const signals: AbortSignal[] = [];
+	try {
+		const value = app.run(() =>
+			core.derived(() => {
+				const current = input.current;
+				signals.push(getAbortSignal());
+				core.effect.pre(() => {
+					live.add(current);
+					return () => live.delete(current);
+				});
+				return current;
+			})
+		);
+		await view.run(() => core.resource(() => value.current));
+		flushSync();
+		const committed = core.fork(() => (input.current = 1));
+		await tick();
+		view.dispose();
+		await committed.commit();
+		assert.deepEqual([[...live], signals.map((signal) => signal.aborted)], [[], [true, true]]);
+	} finally {
+		app.dispose();
+	}
+});
+
+test("a derived read again while a fork's commit releases its evaluation keeps its newest signal", async () => {
+	const app = root();
+	const view = app.root();
+	const input = cell(0);
+	const signals: AbortSignal[] = [];
+	try {
+		const value: core.Cell<number> = app.run(() =>
+			core.derived(() => {
+				const current = input.current;
+				const signal = getAbortSignal();
+				if (signals.length === 0)
+					signal.addEventListener('abort', () => void core.latest(() => value.current));
+				signals.push(signal);
+				return current;
+			})
+		);
+		await view.run(() => core.resource(() => value.current));
+		flushSync();
+		const committed = core.fork(() => (input.current = 1));
+		await tick();
+		await committed.commit();
+		view.dispose();
+		assert.deepEqual(
+			signals.map((signal) => signal.aborted),
+			[true, true, true]
+		);
+	} finally {
+		app.dispose();
+	}
+});

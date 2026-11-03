@@ -102,23 +102,30 @@ function dropAll(reaction: Reaction): void {
 }
 
 function close(batch: Batch): void {
-	const committed = !alias(batch).discarded;
+	const cohort = alias(batch);
 	for (const reaction of closing(batch) ?? []) {
+		if (!cohort.discarded && isDerived(reaction)) {
+			install(reaction, cohort);
+			continue;
+		}
 		const draft = draftOf(reaction, batch);
-		if (draft === undefined) continue;
-		if (committed && isDerived(reaction)) install(reaction, draft);
-		else drop(reaction, draft);
+		if (draft !== undefined) drop(reaction, draft);
 	}
 }
 
-function install(derived: Derived, draft: Draft): void {
-	take(derived, draft);
+function install(derived: Derived, cohort: Batch): void {
+	const found = draftsOf(derived).filter((draft) => alias(draft.batch) === cohort);
+	const latest = found.pop();
+	if (latest === undefined) return;
+	for (const draft of found) drop(derived, draft);
+	take(derived, latest);
 	const replaced = derived.effects;
-	const effects = [...draft.children].filter((effect) => !effect.destroyed);
+	const effects = [...latest.children].filter((effect) => !effect.destroyed);
 	derived.effects = effects.length === 0 ? null : effects;
 	derived.frozen = null;
+	restoreSignal(derived, latest.signal);
 	for (const effect of replaced ?? []) destroy(effect);
-	restoreSignal(derived, draft.signal);
+	if (derived.reactions === null) freeze(derived);
 }
 
 function adopt(batch: Batch): void {
@@ -133,6 +140,7 @@ function adopt(batch: Batch): void {
 
 function promote(effect: Effect, draft: Draft): void {
 	take(effect, draft);
+	restoreSignal(effect, draft.signal);
 	const found = [draft, ...draftsOf(effect)];
 	destroyChildren(effect, effect.kind === BLOCK, (child) => !inDrafts(found, child));
 	const owned = effect.owned;
@@ -144,7 +152,6 @@ function promote(effect: Effect, draft: Draft): void {
 	const teardown = effect.teardown;
 	effect.teardown = draft.teardown;
 	if (teardown !== null) dispose(effect, teardown);
-	restoreSignal(effect, draft.signal);
 }
 
 export function setAside(derived: Derived): Aside {
@@ -583,6 +590,7 @@ function holding(effect: Effect): boolean {
 }
 
 export function freeze(derived: Derived): void {
+	if (drafting !== 0) dropAll(derived);
 	const effects = derived.effects;
 	if (effects === null) return;
 	if (abort(derived)) {
