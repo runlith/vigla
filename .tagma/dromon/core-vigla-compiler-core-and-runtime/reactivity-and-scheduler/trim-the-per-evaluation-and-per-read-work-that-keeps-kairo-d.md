@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a19e8e-1ebc-75c8-bf20-40d6cc82a51d",
-    "status": "in_work"
+    "status": "done"
   }
 ---
 On HEAD 3a75edc0, after 8c6aa02f35, cbe70359ca and c4da25733d, three benchmarks still trail upstream: `kairo_deep` 1.12–1.15, `kairo_broad` 1.09–1.10 and `own/effect_reads_1000` 1.11. Profiles show no single producer.
@@ -41,3 +41,16 @@ Measured on 3c6e2ff6 against a copy with this change and c342720e, 6 alternating
 | writes_1000_effects_1000 | 8.02 ms | 7.52 ms |
 
 kairo_mux and kairo_triangle gained 3%. mol, repeated_deps, clean_effects, effect_writes_1000, effect_reads_1000_writes_1000 and create_kept stayed within noise. effect_reads_1000 went 2.96 → 2.90 ms.
+
+**Against upstream on 3084d695** (benchmarks/.results/2026-11-03T04-15-34.470Z.json, 5 runs, owned / unowned):
+
+| Benchmark | Ratio |
+|---|---|
+| kairo_deep | 0.95 / 0.98 |
+| kairo_broad | 0.96 / 0.95 |
+| kairo_mux | 0.99 / 0.99 |
+| kairo_unstable | 0.95 / 1.01 |
+
+Every other kairo, mol and repeated_deps entry is at 0.95 or below.
+
+**effect_reads_1000 stays at 1.06.** Probes that read 1000 cells 100 times per effect run measure repeated reads at a median 11.97 ns on Vigla against 12.4 ns on upstream. Reads of 10,000 cells once per run cost 13.27 ns against 12.7 ns. The gap is therefore about 0.5 ns on each source's first read in a run, the `record` path that walks the previous dependencies. Dropping its explicit length check, as upstream does, measured the same. No single producer shows in the profile.
