@@ -125,6 +125,51 @@ export function enhance_invalid_method(): never {
 		);
 	throw new Error('https://svelte.dev/e/kit/enhance_invalid_method');
 }
+export function remote_form_multiple_elements(): never {
+	if (DEV)
+		throwDiagnostic(
+			'remote_form_multiple_elements',
+			'A remote form instance can only be attached to one form element',
+			remote_form_multiple_elements
+		);
+	throw new Error('https://svelte.dev/e/kit/remote_form_multiple_elements');
+}
+export function remote_form_not_attached(): never {
+	if (DEV)
+		throwDiagnostic(
+			'remote_form_not_attached',
+			'The remote form must be attached to a form element before submitting',
+			remote_form_not_attached
+		);
+	throw new Error('https://svelte.dev/e/kit/remote_form_not_attached');
+}
+export function remote_form_reserved_field(): never {
+	if (DEV)
+		throwDiagnostic(
+			'remote_form_reserved_field',
+			'Remote form field names cannot begin with $',
+			remote_form_reserved_field
+		);
+	throw new Error('https://svelte.dev/e/kit/remote_form_reserved_field');
+}
+export function remote_form_mixed_inputs(): never {
+	if (DEV)
+		throwDiagnostic(
+			'remote_form_mixed_inputs',
+			'All inputs of an array field must have the same type',
+			remote_form_mixed_inputs
+		);
+	throw new Error('https://svelte.dev/e/kit/remote_form_mixed_inputs');
+}
+export function remote_form_multiple_files(): never {
+	if (DEV)
+		throwDiagnostic(
+			'remote_form_multiple_files',
+			'Use file multiple for an input with multiple files',
+			remote_form_multiple_files
+		);
+	throw new Error('https://svelte.dev/e/kit/remote_form_multiple_files');
+}
 export function enhance_file_without_enctype(): never {
 	if (DEV)
 		throwDiagnostic(

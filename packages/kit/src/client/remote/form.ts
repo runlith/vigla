@@ -26,36 +26,14 @@ import {
 	normalizeIssue,
 	splitPath
 } from '../../shared/form-fields.ts';
-import { throwDiagnostic, warnDiagnostic } from '../../shared/diagnostics.ts';
+import { warnDiagnostic } from '../../shared/diagnostics.ts';
+import { remote_form_multiple_elements, remote_form_not_attached } from '../errors.ts';
 import { client } from '../client.ts';
 import { updating } from './updates.ts';
 import type { Remotes } from './cache.ts';
 import { attach, formData, validateFormData } from './form-element.ts';
 
 const attachment = createAttachmentKey();
-
-export function formError(
-	code:
-		| 'remote_form_multiple_elements'
-		| 'remote_form_not_attached'
-		| 'remote_form_reserved_field'
-		| 'remote_form_mixed_inputs'
-		| 'remote_form_multiple_files'
-): never {
-	if (DEV) {
-		const messages = {
-			remote_form_multiple_elements:
-				'A remote form instance can only be attached to one form element',
-			remote_form_not_attached:
-				'The remote form must be attached to a form element before submitting',
-			remote_form_reserved_field: 'Remote form field names cannot begin with $',
-			remote_form_mixed_inputs: 'All inputs of an array field must have the same type',
-			remote_form_multiple_files: 'Use file multiple for an input with multiple files'
-		};
-		throwDiagnostic(code, messages[code], formError);
-	}
-	throw new Error(`https://svelte.dev/e/kit/${code}`);
-}
 
 interface Instance {
 	form: Form;
@@ -328,7 +306,7 @@ export class Form {
 	}
 
 	submit(): UpdatingPromise<boolean> {
-		if (!this.element) formError('remote_form_not_attached');
+		if (!this.element) remote_form_not_attached();
 		const data = formData(this.element);
 		validateFormData(this.element, data);
 		this.#submitted.current = true;
@@ -401,7 +379,7 @@ export class Form {
 	}
 
 	attach(element: HTMLFormElement): () => void {
-		if (this.element) formError('remote_form_multiple_elements');
+		if (this.element) remote_form_multiple_elements();
 		this.element = element;
 		this.#dirty.current = {};
 		this.#touched.current = {};

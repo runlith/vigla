@@ -83,6 +83,7 @@ async/test/server.test.js > remote functions > doesn't duplicate remote modules 
 async/test/server.test.js > remote functions > doesn't write bundle to disk when treeshaking prerendered remote functions (test-build-2/chromium-build-no-js)
 async/test/server.test.js > remote functions > non-dynamic prerendered remote functions are treeshaken (test-build-2/chromium-build-no-js)
 async/test/server.test.js > remote functions > non-dynamic prerendered remote functions with colliding basenames are treeshaken (test-build-2/chromium-build-no-js)
+async/test/server.test.js > remote functions > production client output excludes remote diagnostic text and build dependencies (test-build-2/chromium-build-no-js)
 async/test/server.test.js > remote functions > treeshaken prerendered remote functions explain how to call them at runtime (test-build-2/chromium-build-no-js)
 async/test/test.js > remote functions > .as(type, value) renders correct values (test-dev-1/chromium-dev)
 async/test/test.js > remote functions > enhanced form state > form enhance submit returns boolean (test-dev-1/chromium-dev)

@@ -7,8 +7,13 @@ import {
 	DELETE_KEY,
 	type FormKey
 } from '../../shared/form-fields.ts';
-import { enhance_file_without_enctype } from '../errors.ts';
-import { formError, type Form } from './form.ts';
+import {
+	enhance_file_without_enctype,
+	remote_form_mixed_inputs,
+	remote_form_multiple_files,
+	remote_form_reserved_field
+} from '../errors.ts';
+import type { Form } from './form.ts';
 
 function clone(form: HTMLFormElement): HTMLFormElement {
 	return HTMLFormElement.prototype.cloneNode.call(form) as HTMLFormElement;
@@ -23,7 +28,7 @@ export function formData(form: HTMLFormElement, submitter?: HTMLElement | null):
 
 export function validateFormData(element: HTMLFormElement, data: FormData): void {
 	if (!DEV) return;
-	for (const key of data.keys()) if (/^\$[.[]?/.test(key)) formError('remote_form_reserved_field');
+	for (const key of data.keys()) if (/^\$[.[]?/.test(key)) remote_form_reserved_field();
 	if (
 		clone(element).enctype !== 'multipart/form-data' &&
 		[...data.values()].some((value) => value instanceof File)
@@ -76,7 +81,7 @@ export function attach(form: Form, element: HTMLFormElement): () => void {
 						candidate instanceof HTMLInputElement && candidate.name === control.name
 				);
 				if (DEV && controls.some((candidate) => (candidate.type === 'file') !== isFile))
-					formError('remote_form_mixed_inputs');
+					remote_form_mixed_inputs();
 				value = isFile
 					? controls.flatMap((candidate) => [...(candidate.files ?? [])])
 					: controls
@@ -85,7 +90,7 @@ export function attach(form: Form, element: HTMLFormElement): () => void {
 			}
 		} else if (isFile) {
 			const file = control as HTMLInputElement;
-			if (DEV && file.multiple) formError('remote_form_multiple_files');
+			if (DEV && file.multiple) remote_form_multiple_files();
 			value = file.files?.[0] ?? DELETE_KEY;
 		} else
 			value =
