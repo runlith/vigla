@@ -4,6 +4,7 @@
 	"workspaces": [
 		"packages/*",
 		"harness",
+		"release",
 		"targets/*",
 		"targets/*/vite-plugin",
 		"targets/*/kit"
@@ -14,7 +15,9 @@
 		"harness:passing": "node harness/src/cli.ts targets/vigla --passing",
 		"harness:differential": "node harness/src/differential.ts",
 		"bench": "node benchmarks/src/cli.ts",
-		"typecheck": "tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/vigla --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p packages/vite-plugin --noEmit && tsrs -p packages/kit --noEmit && tsrs -p packages/adapter-node --noEmit && tsrs -p packages/adapter-bun --noEmit && tsrs -p packages/adapter-static --noEmit && tsrs -p targets/vigla --noEmit && tsrs -p benchmarks --noEmit"
+		"build": "node release/src/cli.ts build",
+		"pack": "node release/src/cli.ts pack",
+		"typecheck": "tsrs -p release --noEmit && tsrs -p harness --noEmit && tsrs -p targets/upstream --noEmit && tsrs -p packages/vigla --noEmit && tsrs -p packages/svelte --noEmit && tsrs -p packages/svelte/conformance --noEmit && tsrs -p packages/vite-plugin --noEmit && tsrs -p packages/kit --noEmit && tsrs -p packages/adapter-node --noEmit && tsrs -p packages/adapter-bun --noEmit && tsrs -p packages/adapter-static --noEmit && tsrs -p targets/vigla --noEmit && tsrs -p benchmarks --noEmit"
 	},
 	"devDependencies": {
 		"@types/node": "^25.3.1",

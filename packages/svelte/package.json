@@ -2,6 +2,33 @@
 	"name": "@vigla/svelte",
 	"version": "5.57.3",
 	"type": "module",
+	"types": "./types/index.d.ts",
+	"files": [
+		"dist",
+		"src",
+		"compiler",
+		"types",
+		"elements.d.ts",
+		"svelte-html.d.ts",
+		"index.d.ts",
+		"compiler.d.ts",
+		"action.d.ts",
+		"animate.d.ts",
+		"easing.d.ts",
+		"motion.d.ts",
+		"store.d.ts",
+		"transition.d.ts"
+	],
+	"scripts": {
+		"build": "node ../../release/src/cli.ts emit && node ../../release/src/cli.ts bundle src/compiler/index.ts compiler/index.js"
+	},
+	"release": {
+		"exports": {
+			"./compiler": {
+				"require": "./compiler/index.js"
+			}
+		}
+	},
 	"vigla": {
 		"frontEnd": {
 			"compiler": "./compiler",
@@ -23,51 +50,84 @@
 	},
 	"exports": {
 		".": {
+			"types": "./types/index.d.ts",
 			"worker": "./src/entries/index-server.ts",
 			"browser": "./src/entries/index.ts",
 			"default": "./src/entries/index-server.ts"
 		},
 		"./package.json": "./package.json",
-		"./action": "./src/entries/action.ts",
-		"./animate": "./src/entries/animate.ts",
-		"./attachments": "./src/entries/attachments.ts",
-		"./easing": "./src/entries/easing.ts",
-		"./compiler": "./src/compiler/index.ts",
-		"./events": "./src/entries/events.ts",
+		"./action": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/action.ts"
+		},
+		"./animate": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/animate.ts"
+		},
+		"./attachments": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/attachments.ts"
+		},
+		"./easing": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/easing.ts"
+		},
+		"./compiler": {
+			"types": "./types/index.d.ts",
+			"default": "./src/compiler/index.ts"
+		},
+		"./elements": {
+			"types": "./elements.d.ts"
+		},
+		"./events": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/events.ts"
+		},
+		"./internal": "./src/entries/internal/index.ts",
 		"./internal/client": "./src/entries/internal/client.ts",
+		"./internal/disclose-version": "./src/entries/internal/disclose-version.ts",
+		"./internal/flags/tracing": "./src/entries/internal/tracing.ts",
 		"./internal/server": "./src/entries/internal/server.ts",
 		"./motion": {
+			"types": "./types/index.d.ts",
 			"worker": "./src/entries/motion-server.ts",
 			"browser": "./src/entries/motion.ts",
 			"default": "./src/entries/motion-server.ts"
 		},
 		"./reactivity": {
+			"types": "./types/index.d.ts",
 			"worker": "./src/entries/reactivity-server.ts",
 			"browser": "./src/entries/reactivity.ts",
 			"default": "./src/entries/reactivity-server.ts"
 		},
 		"./reactivity/window": {
+			"types": "./types/index.d.ts",
 			"worker": "./src/entries/window-server.ts",
 			"browser": "./src/entries/window.ts",
 			"default": "./src/entries/window-server.ts"
 		},
-		"./server": "./src/entries/server.ts",
+		"./server": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/server.ts"
+		},
 		"./store": {
+			"types": "./types/index.d.ts",
 			"worker": "./src/entries/store-server.ts",
 			"browser": "./src/entries/store-client.ts",
 			"default": "./src/entries/store-server.ts"
 		},
-		"./transition": "./src/entries/transition.ts"
+		"./transition": {
+			"types": "./types/index.d.ts",
+			"default": "./src/entries/transition.ts"
+		}
 	},
 	"dependencies": {
 		"@jridgewell/remapping": "^2.3.5",
 		"@jridgewell/sourcemap-codec": "^1.6.0",
 		"@sveltejs/acorn-typescript": "^1.0.13",
+		"@types/estree": "^1.0.9",
 		"acorn": "^8.18.0",
 		"vigla": "workspace:*",
 		"esrap": "^2.3.6"
-	},
-	"devDependencies": {
-		"@types/estree": "^1.0.9"
 	}
 }
