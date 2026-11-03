@@ -51,6 +51,13 @@ export function unsafeMutation(): never {
 	);
 }
 
+export function descriptorsFixed(): never {
+	return fail(
+		'state_descriptors_fixed',
+		'Property descriptors defined on `$state` objects must contain `value` and always be `enumerable`, `configurable` and `writable`.'
+	);
+}
+
 export function depthExceeded(): Error {
 	return failure(
 		'effect_update_depth_exceeded',

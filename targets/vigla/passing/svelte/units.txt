@@ -1,3 +1,4 @@
+internal/client/proxy.test.ts > defines a property
 internal/client/proxy.test.ts > deletes a property
 internal/client/proxy.test.ts > does not mutate the original object
 internal/client/proxy.test.ts > does not re-proxy proxies

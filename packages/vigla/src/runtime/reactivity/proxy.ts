@@ -7,6 +7,7 @@ import { set, source as plain, state, type Cell } from './sources.ts';
 import { get } from './reads.ts';
 import { guard, local, untrack } from './tracking.ts';
 import { labelFor, labelled, tag } from './provenance.ts';
+import { descriptorsFixed } from './errors.ts';
 
 const RAW = Symbol('raw');
 
@@ -226,8 +227,14 @@ function wrap<T>(value: T, aware: boolean): T {
 			return { value: found, writable: true, enumerable: true, configurable: true };
 		},
 		defineProperty(object, prop, descriptor) {
-			if (!tracked(prop) || !('value' in descriptor))
-				return Reflect.defineProperty(object, prop, descriptor);
+			if (!tracked(prop)) return Reflect.defineProperty(object, prop, descriptor);
+			if (
+				!('value' in descriptor) ||
+				descriptor.configurable === false ||
+				descriptor.enumerable === false ||
+				descriptor.writable === false
+			)
+				descriptorsFixed();
 			assign(prop, descriptor.value);
 			return true;
 		}
