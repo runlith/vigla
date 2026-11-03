@@ -4,6 +4,7 @@ load-dependencies/test/load.test.js > an actions-only server module needs no nav
 load-dependencies/test/load.test.js > awaiting parent sends its fresh data into the merged page (test-dev-1/chromium-dev)
 load-dependencies/test/load.test.js > enumerating params tracks optional keys before they exist (test-dev-1/chromium-dev)
 monorepo-assets/test/assets.test.js > linked workspace stylesheet assets are served in development (test-dev-1)
+navigation-attachment/test/download.test.js > navigation callbacks continue after an attachment download (test-dev-1/chromium-dev)
 read-asset-query/test/read.test.js > read serves assets whose URL keeps a query (test-build-1/chromium-dev)
 read-asset-query/test/read.test.js > read serves assets whose URL keeps a query (test-dev-1/chromium-dev)
 resolved-paths/test/paths.test.js > resolved path types admit server-relative URLs and normalize the root (test-dev-1)

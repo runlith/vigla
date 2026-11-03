@@ -1,0 +1,16 @@
+{
+	"name": "navigation-attachment",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"test:dev": "DEV=true playwright test"
+	},
+	"devDependencies": {
+		"@playwright/test": "*",
+		"@sveltejs/kit": "*",
+		"@sveltejs/vite-plugin-svelte": "*",
+		"svelte": "*",
+		"vite": "*"
+	}
+}
