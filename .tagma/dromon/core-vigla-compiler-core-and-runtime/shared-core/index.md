@@ -47,6 +47,9 @@ fields:
       },
       {
         "at": "nesting.ts"
+      },
+      {
+        "at": "clone.ts"
       }
     ],
     "id": "shared",
