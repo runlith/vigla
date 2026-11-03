@@ -101,18 +101,10 @@ export function judge(judgement: Judgement): Verdict {
 				keys.add(outcome.key);
 				results.push({ suite, ...outcome });
 			}
-			if (selectors(suite) !== null) continue;
-			const seen = new Set(found.map((outcome) => outcome.key));
-			for (const key of Object.keys(manifest(suite).samples)) {
-				if (seen.has(key) || (run.scope !== undefined && !key.startsWith(run.scope))) continue;
-				const status = ruling(manifest(suite), key, run.mode)?.status ?? 'unruled';
-				const cell = `${suite}\n${status} unloaded`;
-				unloaded.set(cell, (unloaded.get(cell) ?? 0) + 1);
-			}
 		}
 		for (const [suite, keys] of reported) {
 			for (const problem of faults(manifest(suite))) errors.push(`${suite}: ${problem}`);
-			if (progress || selectors(suite) !== null) continue;
+			if (selectors(suite) !== null) continue;
 			const scopes = runs
 				.filter((run) => `${run.tree.project}/${run.tree.name}` === suite)
 				.map((run) => run.scope);
@@ -120,7 +112,9 @@ export function judge(judgement: Judgement): Verdict {
 				if (keys.has(key)) continue;
 				if (!scopes.some((scope) => scope === undefined || key.startsWith(scope))) continue;
 				const rule = ruling(manifest(suite), key);
-				if (rule !== undefined && running(rule.status))
+				const cell = `${suite}\n${rule?.status ?? 'unruled'} unloaded`;
+				unloaded.set(cell, (unloaded.get(cell) ?? 0) + 1);
+				if (!progress && rule !== undefined && running(rule.status))
 					errors.push(`${suite}: ${key} runs by its status but no run reported it`);
 			}
 		}
