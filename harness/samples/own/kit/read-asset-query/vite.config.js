@@ -1,0 +1,11 @@
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+	clearScreen: false,
+	plugins: [
+		sveltekit({
+			adapter: { name: 'test-adapter', adapt() {}, supports: { read: () => true } }
+		})
+	]
+});

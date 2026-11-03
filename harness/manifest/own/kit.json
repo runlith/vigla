@@ -1,5 +1,19 @@
 {
 	"samples": {
+		"navigation-boot/test/boot.test.js > a second back during startup renders the URL in history": {
+			"status": "contract"
+		},
+		"navigation-boot/test/boot.test.js > a link clicked while mounting starts a client navigation": {
+			"status": "contract"
+		},
+		"navigation-attachment/test/download.test.js > navigation callbacks continue after an attachment download": {
+			"status": "difference",
+			"reason": "Kit #9744: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 calls beforeNavigate for an external Content-Disposition attachment but not for the following client navigation. The hydrated about page renders while the recorded paths remain /file.pdf instead of /file.pdf|/about on all three attempts."
+		},
+		"read-asset-query/test/read.test.js > read serves assets whose URL keeps a query": {
+			"status": "difference",
+			"reason": "Kit #17506: upstream Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 throws read_asset_missing from read() for imports whose URL keeps a query or hash. Dev: `file.txt?v=1`, `file.txt?no-inline&v=1` and `file.txt?no-inline#part` (from `?url&v=1`, `?url&no-inline&v=1`, `?url&no-inline#part`). Build: `_app/immutable/assets/file.HASH.txt?v=1` and `...txt#part`; `?url&v=1` alone is inlined as a data URL, so the build case needs `no-inline`. Vigla serves all three in dev and build."
+		},
 		"load-dependencies/test/load.test.js > enumerating params tracks optional keys before they exist": {
 			"status": "difference",
 			"reason": "Kit #11635: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 leaves the JSON-stringified params at {} after hydrated navigation to /params/aa. The expected {\"a\":\"aa\"} is absent."
@@ -14,10 +28,6 @@
 		},
 		"css-target/test/build.test.js > default CSS output flattens unsupported nesting": {
 			"status": "contract"
-		},
-		"linked-env/test/linked.test.js > sync resolves linked environment dependencies through the node loader": {
-			"status": "difference",
-			"reason": "Kit #16987: Kit 3.1.0 with Svelte 5.57.3 and vite-plugin-svelte 7.3.1 on 2026-11-03 fails sync with Cannot find module 'repro-loader-target' despite native Node resolving the linked dependency with the registered loader."
 		},
 		"monorepo-assets/test/assets.test.js > linked workspace stylesheet assets are served in development": {
 			"status": "difference",
