@@ -3,6 +3,7 @@ import { uneval } from 'devalue';
 import { loadErrorPage, loadTemplate } from '../config/index.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
+import type { PageNode } from '../types/internal/routes.ts';
 import type { Project } from './project.ts';
 import { ids, nodeId } from './ids.ts';
 import { resolveEntry } from '../sync/index.ts';
@@ -106,6 +107,10 @@ return { handle: server.handle, handleFetch: server.handleFetch, handleError: se
 };`;
 }
 
+export function importsUniversal(node: PageNode | undefined): boolean {
+	return !!node?.universal && node.options?.ssr !== false;
+}
+
 export function serverManifest(project: Project): string {
 	const { config, tree, root } = project;
 	const absolute = (file: string) => JSON.stringify(posix(path.resolve(root, file)));
@@ -113,11 +118,11 @@ export function serverManifest(project: Project): string {
 		const component = node.component
 			? absolute(node.component)
 			: JSON.stringify(index === 1 ? ids.error : ids.layout);
-		const universal = node.universal
-			? node.options?.ssr === false
+		const universal = importsUniversal(node)
+			? `await import(${absolute(node.universal!)})`
+			: node.universal
 				? uneval(node.options)
-				: `await import(${absolute(node.universal)})`
-			: 'undefined';
+				: 'undefined';
 		return `async () => ({ index: ${index}, imports: [], stylesheets: [], fonts: [], component: () => import(${component}).then(module => module.default), universal: ${universal}, server: ${node.server ? `await import(${absolute(node.server)})` : 'undefined'}, universal_id: ${uneval(node.universal)}, server_id: ${uneval(node.server)} })`;
 	});
 	const routes = tree.routes

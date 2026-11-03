@@ -72,6 +72,16 @@ beforeAll(async () => {
 		'src/routes/updates/+page.view.js',
 		'export default function Page(output, props) { output.push("<output>" + props.data.count + "</output>"); }'
 	);
+	write(
+		'src/routes/without-ssr/+page.view.js',
+		'import "./shell.css"; export default function Page(output) { output.push("<p>shell</p>"); }'
+	);
+	write('src/routes/without-ssr/+page.js', 'export const ssr = false;');
+	write('src/routes/without-ssr/shell.css', '.shell { color: teal; }');
+	write(
+		'src/routes/with-shell/+page.view.js',
+		'import Shell from "../without-ssr/+page.view.js"; export default function Page(output) { Shell(output); }'
+	);
 	write('src/routes/styles/encöded/dynamic.js', 'import "./dynamic.css";');
 	write('src/routes/styles/encöded/dynamic.css', '#dynamic { color: purple; }');
 	write('src/routes/styles/encöded/styles.css', '@import "./base.css"; .ordered { color: green; }');
@@ -123,6 +133,14 @@ test('SSR includes ordered and dynamically imported CSS without applying raw, ur
 	expect(html).toContain(
 		JSON.stringify({ config: { owner: 'universal', server: true }, prerender: true })
 	);
+});
+
+test('a page without SSR inlines no styles of components earlier requests rendered', async () => {
+	const shared = await fetch(origin + '/with-shell');
+	expect(await shared.text()).toContain('.shell');
+	const shell = await fetch(origin + '/without-ssr');
+	expect(shell.status).toBe(200);
+	expect(await shell.text()).not.toContain('.shell');
 });
 
 test('remote functions discovered during SSR are served by the existing dev manifest', async () => {

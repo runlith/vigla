@@ -17,6 +17,7 @@ import { clientDirectory, ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
 import { fileUrl, moduleUrl, posix } from './paths.ts';
 import type { Project } from './project.ts';
+import { importsUniversal } from './server.ts';
 
 const scope = new AsyncLocalStorage();
 
@@ -326,10 +327,21 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						const source = tree.nodes[index];
 						return async () => {
 							const node = await load();
+							const component = node.component;
+							let rendered = false;
+							if (component)
+								node.component = () => {
+									rendered = true;
+									return component();
+								};
 							node.inline_styles = () =>
 								styles(project, environment, [
-									source?.component && path.resolve(project.root, source.component),
-									source?.universal && path.resolve(project.root, source.universal)
+									rendered && source?.component
+										? path.resolve(project.root, source.component)
+										: undefined,
+									importsUniversal(source)
+										? path.resolve(project.root, source!.universal!)
+										: undefined
 								]);
 							return node;
 						};
