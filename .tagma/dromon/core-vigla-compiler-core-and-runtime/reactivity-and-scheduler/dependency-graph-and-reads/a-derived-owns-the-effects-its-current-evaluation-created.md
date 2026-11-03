@@ -25,6 +25,9 @@ sources:
   - kind: symbol
     ref: packages/vigla/src/runtime/reactivity/edges.ts
     symbol: freezeUnread
+  - kind: symbol
+    ref: packages/vigla/src/runtime/reactivity/effects.ts
+    symbol: spent
 ---
 An attached effect created directly while a derived evaluates belongs to that evaluation, while retaining the declaration owner's context and place in the effect tree. Declaring a derived therefore keeps the owner in the tree: a template or pre effect whose first run read and left nothing is dropped, except one that declared a derived, as upstream's `EFFECT_PRESERVED` keeps it, since the effects a later evaluation links under a dropped owner would never be reached by traversal (`creating effects within a derived correctly handles ownership`). Recomputing or disconnecting the derived destroys those effects when its work is replaced; otherwise a cached expression can retain a subscription to a value it no longer returns. An evaluation whose result stays in a batch's view replaces nothing at once: the committed evaluation keeps its effects until that batch commits, and the view's effects take their place then, or end if the batch is discarded ([[389a8e9e]]). An explicit root belongs to its chosen parent, or stands independently with no parent; the caller's derived never adopts it. A component's `$effect` created while a derived evaluates during the component's initialisation is created at once rather than at the end of initialisation, as upstream defers only outside a reaction: deferred, no derived would own it.
 
