@@ -7,7 +7,7 @@
 		"@sveltejs/adapter-node": "6.0.0",
 		"@sveltejs/kit": "3.1.0",
 		"@sveltejs/package": "2.5.8",
-		"@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin@*",
+		"@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin-svelte@*",
 		"@tsconfig/svelte": "5.0.8",
 		"@types/node": "22.20.1",
 		"autoprefixer": "10.5.5",

@@ -7,7 +7,7 @@
 		"build": "vite build"
 	},
 	"dependencies": {
-		"@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin@*",
+		"@sveltejs/vite-plugin-svelte": "workspace:@vigla/vite-plugin-svelte@*",
 		"bits-ui": "^2.20.4",
 		"runed": "^0.38.0",
 		"svelte": "workspace:@vigla/svelte@*",

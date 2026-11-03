@@ -27,7 +27,7 @@ test('preprocessed styles map imported and component declarations', async () => 
 	const home = join(target.root, 'vite-plugin');
 	const require = createRequire(join(home, 'package.json'));
 	const vite = (await import(pathToFileURL(require.resolve('vite')).href)) as typeof import('vite');
-	const plugin = (await import(pathToFileURL(require.resolve('@sveltejs/vite-plugin-svelte')).href)) as typeof import('@vigla/vite-plugin');
+	const plugin = (await import(pathToFileURL(require.resolve('@sveltejs/vite-plugin-svelte')).href)) as typeof import('@vigla/vite-plugin-svelte');
 	const work = join(home, '.work');
 	await mkdir(work, { recursive: true });
 	const root = await mkdtemp(join(work, 'style-map-'));
@@ -76,7 +76,7 @@ test('preprocessed component maps generated code to its original lines', async (
 	const home = join(target.root, 'vite-plugin');
 	const require = createRequire(join(home, 'package.json'));
 	const vite = (await import(pathToFileURL(require.resolve('vite')).href)) as typeof import('vite');
-	const plugin = (await import(pathToFileURL(require.resolve('@sveltejs/vite-plugin-svelte')).href)) as typeof import('@vigla/vite-plugin');
+	const plugin = (await import(pathToFileURL(require.resolve('@sveltejs/vite-plugin-svelte')).href)) as typeof import('@vigla/vite-plugin-svelte');
 	const work = join(home, '.work');
 	await mkdir(work, { recursive: true });
 	const root = await mkdtemp(join(work, 'mapping-'));

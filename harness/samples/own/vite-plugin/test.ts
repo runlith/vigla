@@ -6,11 +6,11 @@ import { JSDOM } from 'jsdom';
 import { expect, inject, onTestFinished, test } from 'vitest';
 import type { InlineConfig, ViteDevServer } from 'vite';
 import type { Browser, Page } from 'playwright-core';
-import type { Options } from '@vigla/vite-plugin';
+import type { Options } from '@vigla/vite-plugin-svelte';
 import type { Target } from '../../../src/target.ts';
 import './mapping.ts';
 
-type Plugin = typeof import('@vigla/vite-plugin');
+type Plugin = typeof import('@vigla/vite-plugin-svelte');
 
 interface Project {
 	root: string;
