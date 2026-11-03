@@ -1,0 +1,6 @@
+{
+	"navigation callbacks continue after an attachment download": {
+		"status": "difference",
+		"reason": "Kit #9744: Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 on 2026-11-03 calls beforeNavigate for an external Content-Disposition attachment but not for the following client navigation. The hydrated about page renders while the recorded paths remain /file.pdf instead of /file.pdf|/about on all three attempts."
+	}
+}
