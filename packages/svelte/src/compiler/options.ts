@@ -89,10 +89,6 @@ function invalid(details: string): never {
 	fail('options_invalid_value', `Invalid compiler option: ${details}`);
 }
 
-function unbuilt(what: string): never {
-	fail('unsupported', `${what} is not supported yet`);
-}
-
 function nested(value: unknown, path: string, allowed: readonly string[]): Record<string, unknown> {
 	if (value === undefined) return {};
 	if (typeof value !== 'object' || value === null) invalid(`${path} should be an object`);
@@ -126,8 +122,9 @@ export function validate(options: object, kind: Kind): Notice[] {
 	if (compatibility.componentApi === 4) {
 		invalid('`compatibility.componentApi: 4` — the Svelte 4 component API is not supported');
 	}
-	if (given.runes === false) invalid('`runes: false` — legacy mode is not supported');
-	if (typeof given.runes === 'function') unbuilt('A `runes` option given as a function');
+	const runes =
+		typeof given.runes === 'function' ? given.runes({ filename: given.filename }) : given.runes;
+	if (runes === false) invalid('`runes: false` — legacy mode is not supported');
 	if (
 		given.namespace !== undefined &&
 		given.namespace !== 'html' &&
