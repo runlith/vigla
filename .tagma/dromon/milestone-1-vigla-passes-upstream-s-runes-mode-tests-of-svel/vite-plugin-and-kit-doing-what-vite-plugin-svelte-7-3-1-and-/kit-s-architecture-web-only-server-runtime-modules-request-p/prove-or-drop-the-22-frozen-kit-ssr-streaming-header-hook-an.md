@@ -5,8 +5,7 @@ ord: 7
 tags: ["task"]
 fields:
   {
-    "holder": "tagma:01a1a145-958a-7df6-9bee-761297384b53",
-    "status": "in_work"
+    "status": "open"
   }
 edges:
   - kind: discovered-from
@@ -39,6 +38,6 @@ Frozen Kit reports of [[2e546434]] in this area with no test and no recorded non
 - [#11714 adapter-node: bad request errors are swallowed](https://github.com/sveltejs/kit/issues/11714) · mode-independent · INLINE [body](https://github.com/sveltejs/kit/issues/11714#issue-2094913305) · Conditional on the node/static adapter decision. Maintainer (2024-01) linked #9702; no decision.
 - [#16230 adapter-node 5.5.7: "delete existing socket file on startup" (#15449) breaks SOCKET_PATH under Node cluster / PM2 cluster mode](https://github.com/sveltejs/kit/issues/16230) · mode-independent · INLINE [body](https://github.com/sveltejs/kit/issues/16230#issue-4802698185) · Conditional on the node/static adapter decision. No maintainer reply.
 
-**Status (2026-11-03).** Proved by `own/kit/server-runtime` in 813cf02deb, each red on Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 and green on Vigla: #15196, #14063, #17193, #16230, #14249. Dropped with fork-base runs recorded in [[2e546434]]: #11813, #11676, #11061, #11842, #14782. Reproduced on Kit 3.1.0, not fixed: #11648 (prerender build fails with `404 /reroute/ linked from /reroute`; probably the app's `reroute` not mapping the slash form the 308 redirects to, not confirmed), #11714 (adapter-node answers `TRACE` with 400 and `handleError` is never called; a fix needs a Kit API decision, since an adapter cannot reach `handleError`). Fix written, awaiting its Vigla run: #17403 (`crossorigin` on server-rendered stylesheet links and their `Link` preload; upstream red not measured, 3.1.0 source read only); #9235 test is red on Kit 3.1.0 (the streamed `resolve` script is outside the prerendered CSP hashes) and green by hash inspection on Vigla, its Vigla run pending.
+**Status (2026-11-03).** Open: 11 of 22 closed (7 proved, 4 dropped), 11 left. Proved by `own/kit/server-runtime` in 813cf02deb, each red on Kit 3.1.0/Svelte 5.57.3/vite-plugin-svelte 7.3.1 and green on Vigla: #15196, #14063, #17193, #16230, #14249. Dropped with fork-base runs recorded in [[2e546434]]: #11813, #11061, #11842, #14782 (#11676 belongs to [[bb465e1a]]). Reproduced on Kit 3.1.0, not fixed: #11648 (prerender build fails with `404 /reroute/ linked from /reroute`; probably the app's `reroute` not mapping the slash form the 308 redirects to, not confirmed), #11714 (adapter-node answers `TRACE` with 400 and `handleError` is never called; a fix needs a Kit API decision, since an adapter cannot reach `handleError`). Also proved in 657ef89ccc, red on Kit 3.1.0 by `--differences` and green on Vigla: #17403 (`crossorigin` on server-rendered stylesheet links and their `Link` preload) and #9235 (the streamed `resolve` script of a prerendered page sits outside the CSP hashes on upstream; Vigla hashes it).
 
 Left untriaged by the wrap-up order (no reproduction attempted): #9481, #12184 (both `vite preview`), #13226, #14357, #11747, #9154, #10714, #10779, #17004. Rig for reproductions: `/Users/teunlao/.tagma-dev/scratch/01a1a145-958a-7df6-9bee-761297384b53/rig/` (`./link.sh upstream|vigla`, `./run.sh <port>`).
