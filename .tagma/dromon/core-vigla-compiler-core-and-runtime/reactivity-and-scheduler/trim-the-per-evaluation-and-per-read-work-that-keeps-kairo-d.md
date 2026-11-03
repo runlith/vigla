@@ -5,7 +5,8 @@ ord: 52
 tags: ["task"]
 fields:
   {
-    "status": "open"
+    "holder": "tagma:01a19e8e-1ebc-75c8-bf20-40d6cc82a51d",
+    "status": "in_work"
   }
 ---
 On HEAD 3a75edc0, after 8c6aa02f35, cbe70359ca and c4da25733d, three benchmarks still trail upstream: `kairo_deep` 1.12–1.15, `kairo_broad` 1.09–1.10 and `own/effect_reads_1000` 1.11. Profiles show no single producer.
