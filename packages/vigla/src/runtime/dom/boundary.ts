@@ -126,7 +126,12 @@ class Boundary implements Contract {
 			});
 			return;
 		}
-		this.#main = this.#branch(this.#content, true);
+		this.#errored = false;
+		const main = this.#branch(this.#content, true);
+		if (this.#errored) {
+			destroy(main.effect);
+			claim(node.nextSibling);
+		} else this.#main = main;
 		this.#settleAnchor();
 	}
 
