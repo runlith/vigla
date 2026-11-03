@@ -41,6 +41,7 @@ export function settle(
 	leftover: Effect[]
 ): void {
 	const outer = eager;
+	let marked: Set<Effect> | null = null;
 	let index = 0;
 	try {
 		for (; index < effects.length; index++) {
@@ -50,11 +51,12 @@ export function settle(
 				continue;
 			const recheck = batch.forced?.delete(effect) === true;
 			if (!due(effect, force || recheck, batch)) continue;
-			const marked = new Set<Effect>();
-			eager = marked;
+			eager = marked ??= new Set();
 			run(effect);
 			eager = outer;
-			if (marked.size > 0) blocks(marked, batch);
+			if (marked.size === 0) continue;
+			blocks(marked, batch);
+			marked.clear();
 		}
 	} catch (error) {
 		eager = outer;

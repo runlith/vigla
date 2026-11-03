@@ -183,8 +183,12 @@ export function apply(batch: Batch): void {
 	runEager();
 }
 
+function created(a: Effect, b: Effect): number {
+	return a.order - b.order;
+}
+
 function resolve(pass: readonly Effect[], forced: Set<Effect> | null): Effect[] {
-	const roots = new Set<Effect>();
+	const roots: Effect[] = [];
 	for (const effect of pass) {
 		if (effect.destroyed) continue;
 		if (effect.status === CLEAN && (forced === null || !forced.has(effect))) continue;
@@ -198,9 +202,14 @@ function resolve(pass: readonly Effect[], forced: Set<Effect> | null): Effect[] 
 			}
 			top.pending = true;
 		}
-		if (!covered) roots.add(top);
+		if (top === effect) {
+			covered = effect.pending;
+			effect.pending = true;
+		}
+		if (!covered) roots.push(top);
 	}
-	return [...roots].sort((a, b) => a.order - b.order);
+	if (roots.length > 1) roots.sort(created);
+	return roots;
 }
 
 function unmark(effect: Effect): void {
@@ -242,6 +251,7 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 }
 
 function commit(batch: Batch): void {
+	if (batch.commits.length === 0) return;
 	const commits = batch.commits.splice(0);
 	let index = 0;
 	try {

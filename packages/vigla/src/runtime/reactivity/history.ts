@@ -6,17 +6,12 @@ export type Prior = (source: Source) => unknown;
 
 let orders = 0;
 const alive: History[] = [];
-let spare: unknown[] | null = null;
 
-function fresh(): unknown[] {
-	const found = spare ?? [];
-	spare = null;
-	return found;
-}
-
-function recycle(log: unknown[]): void {
-	log.length = 0;
-	spare ??= log;
+function leave(history: History): void {
+	const index = alive.indexOf(history);
+	if (index === -1) return;
+	for (let at = index + 1; at < alive.length; at++) alive[at - 1] = alive[at] as History;
+	alive.pop();
 }
 
 export interface Origin {
@@ -31,7 +26,7 @@ export function sequence(): number {
 
 export class History {
 	readonly order = sequence();
-	log: unknown[] = fresh();
+	log: unknown[] = [];
 	map: Map<Source, unknown> | null = null;
 	prior: Prior | null = null;
 	passed: Set<Source> | null = null;
@@ -50,7 +45,6 @@ export class History {
 				const source = log[index] as Source;
 				if (!map.has(source)) map.set(source, log[index + 1]);
 			}
-			recycle(log);
 			this.log = [];
 		}
 		return map;
@@ -101,10 +95,8 @@ export function earlier(history: History): Prior {
 }
 
 export function clear(history: History): void {
-	const index = alive.indexOf(history);
-	if (index !== -1) alive.splice(index, 1);
-	recycle(history.log);
-	history.log = [];
+	leave(history);
+	if (history.log.length > 0) history.log = [];
 	history.map = null;
 	history.prior = null;
 	history.passed = null;
@@ -112,6 +104,5 @@ export function clear(history: History): void {
 
 export function detach(history: History): void {
 	void history.before;
-	const index = alive.indexOf(history);
-	if (index !== -1) alive.splice(index, 1);
+	leave(history);
 }
