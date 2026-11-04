@@ -50,11 +50,56 @@ test("the configured adapter's builder keeps Kit's members and raises upstream's
 		}
 	});
 	const setup = plugins.find((plugin) => plugin.name === 'kit:setup')!;
-	await setup.api.options.adapter.adapt({ getAppPath: () => '_app' });
+	await setup.api.options.adapter.adapt({ getAppPath: () => '_app', config: {} });
 	expect(received!.getAppPath()).toBe('_app');
 	expect(() => received!.generateManifest()).toThrow(
 		'adapter_generate_manifest_removed\nThe `generateManifest` adapter API has been removed'
 	);
+});
+
+test("an invalid adapter fails with upstream's whole diagnostic naming SvelteKit", async () => {
+	const messages: string[] = [];
+	const log = vi
+		.spyOn(console, 'log')
+		.mockImplementation((message) => messages.push(String(message)));
+	try {
+		await expect(sveltekit({ adapter: {} as never })).rejects.toThrow(
+			'Failed to load SvelteKit options from Vite config'
+		);
+		expect(messages.join('\n').trim()).toBe(
+			'config_invalid_adapter\nThe SvelteKit Vite plugin `config.adapter` should be an object with an `adapt` method\nhttps://svelte.dev/e/kit/config_invalid_adapter'
+		);
+	} finally {
+		log.mockRestore();
+	}
+});
+
+test('reading config.kit inside an adapter warns once with upstream text and returns the config', async () => {
+	const messages: string[] = [];
+	const warn = vi
+		.spyOn(console, 'warn')
+		.mockImplementation((message) => messages.push(String(message)));
+	try {
+		let received: { config: { kit?: unknown } } | undefined;
+		const plugins = await sveltekit({
+			adapter: {
+				name: 'retired',
+				adapt(builder) {
+					received = builder as never;
+				}
+			}
+		});
+		const setup = plugins.find((plugin) => plugin.name === 'kit:setup')!;
+		const config = { appDir: '_app' };
+		await setup.api.options.adapter.adapt({ config });
+		expect(received!.config.kit).toBe(config);
+		expect(received!.config.kit).toBe(config);
+		expect(messages).toEqual([
+			'%c[sveltekit] adapter_config_kit_deprecated\n%cReading `config.kit` inside adapters is deprecated — it should access configuration on the `config` object directly. You may need to update your adapter\nhttps://svelte.dev/e/kit/adapter_config_kit_deprecated'
+		]);
+	} finally {
+		warn.mockRestore();
+	}
 });
 
 test('deprecated options warn under SvelteKit and still configure the app', async () => {
