@@ -16,15 +16,6 @@ fields:
           "owner": "1ac4162a"
         },
         {
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/build/crawl.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/build/instrument.ts",
-          "owner": "1ac4162a"
-        },
-        {
           "count": 6,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/build/messages.ts",
           "owner": "1ac4162a"
@@ -32,10 +23,6 @@ fields:
         {
           "count": 4,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/build/prerender.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/build/worker.ts",
           "owner": "1ac4162a"
         },
         {
@@ -209,10 +196,6 @@ fields:
           "owner": "1ac4162a"
         },
         {
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/shared/redirect.ts",
-          "owner": "1ac4162a"
-        },
-        {
           "count": 8,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/shared/warnings.ts",
           "owner": "1ac4162a"
@@ -234,7 +217,6 @@ fields:
           "owner": "1ac4162a"
         },
         {
-          "count": 7,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/build.ts",
           "owner": "1ac4162a"
         },
@@ -244,22 +226,12 @@ fields:
         },
         {
           "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/ids.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "count": 24,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/index.ts",
           "owner": "1ac4162a"
         },
         {
           "count": 5,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/messages.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "count": 3,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/modules.ts",
           "owner": "1ac4162a"
         },
         {
