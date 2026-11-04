@@ -4,15 +4,11 @@ import type { ValidatedConfig } from '../types/builder.ts';
 import { installation, resolveEntry } from '../sync/index.ts';
 import { compileComponent, componentNames } from '../components/index.ts';
 import { clientApp, clientNode } from './client.ts';
-import {
-	environmentConfig,
-	environmentModule,
-	legacyEnvironment,
-	workerEnvironment
-} from './env.ts';
+import { environmentConfig, environmentModule, workerEnvironment } from './env.ts';
 import { clientDirectory, ids, virtualDirectory } from './ids.ts';
 import * as e from './messages.ts';
 import {
+	appModules,
 	fileUrl,
 	importAliases,
 	isServerOnly,
@@ -31,7 +27,6 @@ export function scanVirtualModules(): Rolldown.Plugin {
 			filter: {
 				id: [
 					/^\$app\//,
-					/^\$env\//,
 					/\/generated\/(?:dev|build)\/client\/nodes\//,
 					new RegExp(virtualDirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
 				]
@@ -69,20 +64,11 @@ export function virtualModules(
 			if (id === '$app/manifest') return ids.appManifest;
 			if (id === '$app/env/public') return ids.publicEnv;
 			if (id === '$app/env/private') return ids.privateEnv;
-			if (/^\$env\/(static|dynamic)\/(public|private)$/.test(id))
-				return `${virtualDirectory}${id.slice(1)}.js`;
-			if (id.startsWith('$app/')) {
-				const name = id.slice(5);
-				return await this.resolve(`#app/${name}`, packageImporter, { ...options, skipSelf: true });
-			}
-			if (id === '$lib' || /^\$lib[/?]/.test(id) || /^\$service-worker(?:\?|$)/.test(id)) {
-				const resolved = await this.resolve(id, importer, { ...options, skipSelf: true });
-				if (resolved) return resolved;
-				const name = id.startsWith('$lib') ? '$lib' : '$service-worker';
-				if (name in config.alias || `${name}/*` in config.alias) return null;
-				if (name === '$lib') e.module_removed_lib();
-				e.module_removed_service_worker();
-			}
+			if (id.startsWith('$app/') && appModules.has(id.slice(5)))
+				return await this.resolve(`#${id.slice(1)}`, packageImporter, {
+					...options,
+					skipSelf: true
+				});
 			if (importer?.startsWith(virtualDirectory) && id.startsWith(name + '/')) {
 				return await this.resolve(id, path.join(vite.root, 'package.json'), {
 					...options,
@@ -120,16 +106,6 @@ export function virtualModules(
 				return environmentModule(environment, 'public', client, project.vite.command === 'serve');
 			if (id === ids.privateEnv)
 				return environmentModule(environment, 'private', false, project.vite.command === 'serve');
-			const legacy = /^env\/(static|dynamic)\/(public|private)\.js$/.exec(
-				id.slice(virtualDirectory.length)
-			);
-			if (id.startsWith(virtualDirectory) && legacy)
-				return legacyEnvironment(
-					legacy[2] as 'public' | 'private',
-					legacy[1] === 'dynamic',
-					name,
-					project.vite.command === 'serve'
-				);
 			const node = /^(\d+)\.js$/.exec(id.slice(nodes.length));
 			if (id.startsWith(nodes) && node) {
 				const index = Number(node[1]);
@@ -188,20 +164,15 @@ export function serverGuard(getConfig: () => ValidatedConfig): Plugin {
 			const parents = importers.get(file) ?? new Set<string>();
 			parents.add(posix(importer.split('?')[0]!));
 			importers.set(file, parents);
-			if (id === '$app/server' || id === '$app/env/private' || /^\$env\/.*\/private$/.test(id))
-				special.set(file, id);
+			if (id === '$app/server' || /^\$.+\/private$/.test(id)) special.set(file, id);
 		},
 		load(id) {
 			const config = getConfig();
 			id = posix(id.split('?')[0]!);
 			const alias = importAliases(root);
 			const pretty = (file: string) => special.get(file) ?? normalizeId(file, alias, root);
-			const legacyPrivate =
-				id.startsWith(virtualDirectory) &&
-				/^env\/(static|dynamic)\/private\.js$/.test(id.slice(virtualDirectory.length));
 			if (
 				special.has(id) ||
-				legacyPrivate ||
 				id === ids.privateEnv ||
 				id === ids.env ||
 				isServerOnly(id, {

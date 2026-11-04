@@ -60,11 +60,6 @@
 			"browser": "./src/entries/app/env/client.ts",
 			"default": "./src/entries/app/env/server.ts"
 		},
-		"#app/environment": {
-			"workerd": "./src/entries/app/environment/server.ts",
-			"browser": "./src/entries/app/environment/client.ts",
-			"default": "./src/entries/app/environment/server.ts"
-		},
 		"#app/forms": {
 			"workerd": "./src/entries/app/forms/server.ts",
 			"browser": "./src/entries/app/forms/client.ts",

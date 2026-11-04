@@ -5,10 +5,6 @@ interface AssetWarning {
 	path: string;
 	fixed: string;
 }
-interface EnvWarning {
-	module: string;
-	replacement: string;
-}
 interface SchemeWarning {
 	route: string;
 	dependency: string;
@@ -30,22 +26,6 @@ export function asset_leading_slash(values: AssetWarning): void {
 			`\`asset('${values.path}')\` should now be \`asset('${values.fixed}')\``
 		);
 	else warnCode('asset_leading_slash');
-}
-export function app_environment_deprecated(): void {
-	if (DEV)
-		warnDiagnostic(
-			'app_environment_deprecated',
-			'`$app/environment` is deprecated, use `$app/env` instead'
-		);
-	else warnCode('app_environment_deprecated');
-}
-export function env_module_deprecated(values: EnvWarning): void {
-	if (DEV)
-		warnDiagnostic(
-			'env_module_deprecated',
-			`\`${values.module}\` is deprecated, use \`${values.replacement}\` instead`
-		);
-	else warnCode('env_module_deprecated');
 }
 export function handle_error_status_deprecated(): void {
 	if (DEV)

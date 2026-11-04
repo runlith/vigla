@@ -122,7 +122,7 @@ test('the client graph rejects a server-only import reached through package impo
 	await expect(
 		server.environments.client!.transformRequest('/src/lib/server/value.js')
 	).rejects.toThrow('server_only_import');
-	await expect(server.environments.client!.transformRequest('$env/static/private')).rejects.toThrow(
+	await expect(server.environments.client!.transformRequest('$app/env/private')).rejects.toThrow(
 		'server_only_import'
 	);
 });

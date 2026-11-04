@@ -29,6 +29,15 @@ interface PackageManifest {
 	peerDependencies?: Record<string, string>;
 }
 
+const manifest = JSON.parse(
+	readFileSync(path.join(packageDirectory, 'package.json'), 'utf8')
+) as PackageManifest;
+export const appModules = new Set(
+	Object.keys(manifest.imports ?? {})
+		.filter((key) => key.startsWith('#app/'))
+		.map((key) => key.slice(5))
+);
+
 export function posix(file: string): string {
 	return file.replaceAll('\\', '/');
 }

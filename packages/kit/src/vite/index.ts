@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { vigla, type Options, type PluginAPI, type PluginFactory } from '@vigla/vite-plugin';
 import type { CorsOptions, Plugin, ResolvedConfig, UserConfig } from 'vite';
@@ -157,9 +156,6 @@ async function plugins(
 			async handler(user, env) {
 				root = posix(path.resolve(user.root ?? process.cwd()));
 				runtime = await importVite(root);
-				for (const file of ['svelte.config.js', 'svelte.config.ts']) {
-					if (existsSync(path.join(root, file))) e.config_file_unsupported({ file });
-				}
 				({ name, path: dependency } = installation(root));
 				config = resolveConfig(validated, root);
 				setup.api.options = config;

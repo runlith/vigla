@@ -33,27 +33,6 @@ export function adapter_instrumentation_unsupported({ file, adapter }: AdapterMe
 		adapter_instrumentation_unsupported
 	);
 }
-export function config_file_unsupported({ file }: FileMessage): never {
-	throwDiagnostic(
-		'config_file_unsupported',
-		`\`${file}\` is no longer used. Please pass configuration via the \`sveltekit(...)\` plugin in your Vite config.`,
-		config_file_unsupported
-	);
-}
-export function module_removed_lib(): never {
-	throwDiagnostic(
-		'module_removed_lib',
-		"`$lib` has been removed. Use `#lib` instead: https://svelte.dev/docs/kit/$lib. To keep using `$lib`, add `alias: { '$lib': 'src/lib' }` to your SvelteKit config.",
-		module_removed_lib
-	);
-}
-export function module_removed_service_worker(): never {
-	throwDiagnostic(
-		'module_removed_service_worker',
-		'`$service-worker` has been removed. Use `immutable`, `assets` and `prerendered` from `$app/manifest`, `version` from `$app/env`, and `resolve(...)` from `$app/paths` instead: https://svelte.dev/docs/kit/$service-worker',
-		module_removed_service_worker
-	);
-}
 export function server_only_import({ module, chain }: ImportMessage): never {
 	throwDiagnostic(
 		'server_only_import',

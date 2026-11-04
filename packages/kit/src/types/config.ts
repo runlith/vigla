@@ -6,7 +6,6 @@ import type { CspConfig } from './csp.ts';
 import type { Identity } from './identity.ts';
 
 export interface CsrfConfig {
-	checkOrigin?: boolean;
 	trustedOrigins?: string[];
 }
 export interface EnvironmentConfig {
@@ -29,7 +28,6 @@ export interface ProjectFiles {
 }
 export interface OutputConfig {
 	linkHeaderPreload?: boolean;
-	preloadStrategy?: 'modulepreload' | 'preload-js' | 'preload-mjs';
 	bundleStrategy?: 'split' | 'single' | 'inline';
 }
 export interface PathsConfig {

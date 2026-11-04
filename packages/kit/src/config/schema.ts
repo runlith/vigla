@@ -1,5 +1,4 @@
 import * as e from './errors.ts';
-import * as w from './warnings.ts';
 
 type Validator = (input: unknown, keypath: string) => any;
 type Schema = Record<string, Validator>;
@@ -58,19 +57,6 @@ function choice(values: string[]): Validator {
 		return input;
 	});
 }
-function removed(
-	raise: (values: { keypath: string }) => never = e.config_option_removed
-): Validator {
-	return (input, keypath) => {
-		if (input !== undefined) raise({ keypath });
-	};
-}
-function deprecated(parse: Validator, warn: (values: { keypath: string }) => void): Validator {
-	return (input, keypath) => {
-		if (input !== undefined) warn({ keypath });
-		return parse(input, keypath);
-	};
-}
 const passthrough: Validator = (input) => input;
 const directives: Schema = Object.fromEntries(
 	[
@@ -114,11 +100,8 @@ const handler = fallback(undefined, (input, keypath) => {
 });
 
 export const experimental = {
-	tracing: removed(e.config_option_removed_experimental_tracing),
-	instrumentation: removed(e.config_option_removed_experimental_instrumentation),
 	remoteFunctions: bool(true),
-	forkPreloads: bool(false),
-	handleRenderingErrors: removed()
+	forkPreloads: bool(false)
 };
 export const schema: Schema = {
 	adapter: fallback(undefined, (input, keypath) => {
@@ -131,15 +114,12 @@ export const schema: Schema = {
 			e.config_invalid_adapter({ keypath });
 		return input;
 	}),
-	alias: deprecated(
-		fallback({}, (input, keypath) => {
-			if (!input || typeof input !== 'object' || Array.isArray(input))
-				e.config_expected_object({ keypath });
-			for (const [key, value] of Object.entries(input)) string()(value, `${keypath}.${key}`);
-			return { ...input };
-		}),
-		w.config_option_deprecated_alias
-	),
+	alias: fallback({}, (input, keypath) => {
+		if (!input || typeof input !== 'object' || Array.isArray(input))
+			e.config_expected_object({ keypath });
+		for (const [key, value] of Object.entries(input)) string()(value, `${keypath}.${key}`);
+		return { ...input };
+	}),
 	appDir: fallback('_app', (input, keypath) => {
 		const value = string()(input, keypath) as string;
 		if (!value) e.config_empty_string({ keypath });
@@ -152,10 +132,7 @@ export const schema: Schema = {
 		directives: object(directives),
 		reportOnly: object(directives)
 	}),
-	csrf: object({
-		checkOrigin: removed(e.config_option_removed_check_origin),
-		trustedOrigins: strings([])
-	}),
+	csrf: object({ trustedOrigins: strings([]) }),
 	embedded: bool(false),
 	env: object({ dir: string('') }),
 	experimental: object(experimental, true),
@@ -171,7 +148,6 @@ export const schema: Schema = {
 		src: string('src'),
 		assets: string('static'),
 		hooks: object({ client: string(), server: string(), universal: string() }),
-		lib: removed(e.config_option_removed_files_lib),
 		params: string(),
 		routes: string(),
 		serviceWorker: string(),
@@ -180,18 +156,9 @@ export const schema: Schema = {
 	}),
 	inlineStyleThreshold: number(0),
 	moduleExtensions: strings(['.js', '.ts']),
-	kit: (input) => {
-		if (input !== undefined)
-			e.config_kit_namespace({
-				keys: Object.keys(input as object)
-					.map((key) => `\`${key}\``)
-					.join(', ')
-			});
-	},
 	outDir: string(),
 	output: object({
 		linkHeaderPreload: bool(false),
-		preloadStrategy: removed(e.config_option_removed_preload_strategy),
 		bundleStrategy: choice(['split', 'single', 'inline'])
 	}),
 	paths: object({
@@ -242,32 +209,26 @@ export const schema: Schema = {
 		handleMissingId: handler,
 		handleEntryGeneratorMismatch: handler,
 		handleUnseenRoutes: handler,
-		handleInvalidUrl: handler,
-		origin: removed(e.config_option_removed_prerender_origin)
+		handleInvalidUrl: handler
 	}),
 	router: object({ type: choice(['pathname', 'hash']), resolution: choice(['client', 'server']) }),
 	serviceWorker: object({
-		files: removed(),
 		register: bool(true),
 		options: (input, keypath) =>
 			input === undefined ? undefined : object({}, true)(input, keypath)
 	}),
 	tracing: object({ server: bool(false) }),
-	typescript: deprecated(
-		object({
-			config: (input, keypath) => {
-				if (input === undefined) return (value: unknown) => value;
-				if (typeof input !== 'function') e.config_expected_function({ keypath });
-				return input;
-			}
-		}),
-		w.config_option_deprecated_typescript
-	),
+	typescript: object({
+		config: (input, keypath) => {
+			if (input === undefined) return (value: unknown) => value;
+			if (typeof input !== 'function') e.config_expected_function({ keypath });
+			return input;
+		}
+	}),
 	version: object({
 		name: (input, path) => string(Date.now().toString())(input, path),
 		pollInterval: number(3_600_000)
-	}),
-	vitePlugin: removed(e.config_option_removed_vite_plugin)
+	})
 };
 
 export const parseOptions = object(schema, true);

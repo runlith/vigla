@@ -185,69 +185,6 @@ export function config_prerender_entry_invalid({
 		config_prerender_entry_invalid
 	);
 }
-export function config_kit_namespace({ keys }: { keys: string }): never {
-	return throwDiagnostic(
-		'config_kit_namespace',
-		`SvelteKit configuration (${keys}) no longer lives inside a \`kit\` namespace. Pass it directly to the \`sveltekit(...)\` Vite plugin`,
-		config_kit_namespace
-	);
-}
-export function config_option_removed({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed',
-		`The \`${keypath}\` option has been removed. Please see the list of breaking changes for your major release`,
-		config_option_removed
-	);
-}
-export function config_option_removed_check_origin({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_check_origin',
-		`\`${keypath}\` has been removed in favour of \`csrf.trustedOrigins\``,
-		config_option_removed_check_origin
-	);
-}
-export function config_option_removed_experimental_tracing({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_experimental_tracing',
-		`\`${keypath}\` has been removed. Server-side tracing is now configured via \`tracing.server\``,
-		config_option_removed_experimental_tracing
-	);
-}
-export function config_option_removed_experimental_instrumentation({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_experimental_instrumentation',
-		`\`${keypath}\` has been removed. \`src/instrumentation.server.js\` is now included in the build automatically when it exists; no opt-in is required`,
-		config_option_removed_experimental_instrumentation
-	);
-}
-export function config_option_removed_files_lib({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_files_lib',
-		`\`${keypath}\` has been removed. Use \`#lib\` instead of \`$lib\`: https://svelte.dev/docs/kit/$lib`,
-		config_option_removed_files_lib
-	);
-}
-export function config_option_removed_preload_strategy({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_preload_strategy',
-		`\`${keypath}\` has been removed. \`modulepreload\` will always be used`,
-		config_option_removed_preload_strategy
-	);
-}
-export function config_option_removed_prerender_origin({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_prerender_origin',
-		`\`${keypath}\` has been removed in favour of \`config.paths.origin\``,
-		config_option_removed_prerender_origin
-	);
-}
-export function config_option_removed_vite_plugin({ keypath }: KeyPath): never {
-	return throwDiagnostic(
-		'config_option_removed_vite_plugin',
-		`\`${keypath}\` has been removed. Pass plugin options directly to the \`sveltekit(...)\` Vite plugin`,
-		config_option_removed_vite_plugin
-	);
-}
 export function config_server_resolution_hash(): never {
 	return throwDiagnostic(
 		'config_server_resolution_hash',

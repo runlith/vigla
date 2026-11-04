@@ -106,34 +106,6 @@ test.each([
 		'config_origin_has_path',
 		'config.paths.origin'
 	],
-	[{ kit: { outDir: 'out' } }, 'config_kit_namespace', 'outDir'],
-	[
-		{ csrf: { checkOrigin: false } },
-		'config_option_removed_check_origin',
-		'config.csrf.checkOrigin'
-	],
-	[{ files: { lib: 'lib' } }, 'config_option_removed_files_lib', 'config.files.lib'],
-	[
-		{ experimental: { tracing: true } },
-		'config_option_removed_experimental_tracing',
-		'config.experimental.tracing'
-	],
-	[
-		{ experimental: { instrumentation: true } },
-		'config_option_removed_experimental_instrumentation',
-		'config.experimental.instrumentation'
-	],
-	[
-		{ output: { preloadStrategy: 'preload-js' } },
-		'config_option_removed_preload_strategy',
-		'config.output.preloadStrategy'
-	],
-	[
-		{ prerender: { origin: 'https://site.test' } },
-		'config_option_removed_prerender_origin',
-		'config.prerender.origin'
-	],
-	[{ vitePlugin: {} }, 'config_option_removed_vite_plugin', 'config.vitePlugin'],
 	[{ router: { resolution: 'server', type: 'hash' } }, 'config_server_resolution_hash', ''],
 	[
 		{ router: { resolution: 'server' }, output: { bundleStrategy: 'single' } },
@@ -174,24 +146,6 @@ test('keeps adapter plugin configuration on the validated adapter', () => {
 	const config = validateConfig({ appDir: 'custom', adapter });
 	expect(config.adapter.vite).toEqual({ plugins: [{ name: 'custom' }] });
 	expect(typeof adapter.vite).toBe('function');
-});
-
-test('warns for deprecated options while preserving their values', () => {
-	const messages: string[] = [];
-	const warn = vi
-		.spyOn(console, 'warn')
-		.mockImplementation((message) => messages.push(String(message)));
-	try {
-		const config = validateConfig({
-			alias: { '@lib': 'source/lib' },
-			typescript: { config: (value: unknown) => value }
-		});
-		expect(config.alias).toEqual({ '@lib': 'source/lib' });
-		expect(messages.join('\n')).toContain('config_option_deprecated_alias');
-		expect(messages.join('\n')).toContain('config_option_deprecated_typescript');
-	} finally {
-		warn.mockRestore();
-	}
 });
 
 test('requires trusted URL policy only when an enforced service worker exists', () => {

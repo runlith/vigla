@@ -80,16 +80,3 @@ export function workerEnvironment(
 			: uneval(values)
 	} });`;
 }
-
-export function legacyEnvironment(
-	visibility: 'public' | 'private',
-	dynamic: boolean,
-	name: string,
-	dev: boolean
-): string {
-	const target = visibility === 'public' ? ids.publicEnv : ids.privateEnv;
-	const exports = dynamic
-		? `import * as env from ${JSON.stringify(target)}; export { env };`
-		: `export * from ${JSON.stringify(target)};`;
-	return `${exports}\n${dev ? `import { env_module_deprecated } from ${JSON.stringify(`${name}/internal/env`)}; env_module_deprecated({ module: '$env/${dynamic ? 'dynamic' : 'static'}/${visibility}', replacement: '$app/env/${visibility}' });` : ''}`;
-}
