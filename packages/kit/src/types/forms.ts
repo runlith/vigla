@@ -23,20 +23,22 @@ export interface SubmitInput {
 }
 export interface SubmitResult<
 	Success extends Record<string, unknown> | undefined,
-	Failure extends Record<string, unknown> | undefined
+	Failure extends Record<string, unknown> | undefined,
+	Update extends FormUpdateOptions = FormUpdateOptions
 > {
 	formData: FormData;
 	formElement: HTMLFormElement;
 	action: URL;
 	result: ActionResult<Success, Failure>;
-	update(options?: FormUpdateOptions): Promise<void>;
+	update(options?: Update): Promise<void>;
 }
 export type SubmitFunction<
 	Success extends Record<string, unknown> | undefined = Record<string, any>,
-	Failure extends Record<string, unknown> | undefined = Record<string, any>
+	Failure extends Record<string, unknown> | undefined = Record<string, any>,
+	Update extends FormUpdateOptions = FormUpdateOptions
 > = (
 	input: SubmitInput
-) => MaybePromise<void | ((result: SubmitResult<Success, Failure>) => MaybePromise<void>)>;
+) => MaybePromise<void | ((result: SubmitResult<Success, Failure, Update>) => MaybePromise<void>)>;
 export interface Enhancement {
 	destroy(): void;
 }

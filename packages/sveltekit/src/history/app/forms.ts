@@ -1,23 +1,16 @@
 import { DEV } from 'esm-env';
-import { enhance as enhanceForm, type SubmitFunction } from '$app/forms';
+import { enhance as enhanceForm, type FormUpdateOptions, type SubmitFunction } from '$app/forms';
 import { warnDiagnostic } from '../diagnostics.ts';
 
 export * from '$app/forms';
 
-interface RetiredUpdateOptions {
-	reset?: boolean;
-	refreshAll?: boolean;
-	navigate?: boolean;
-	invalidateAll?: boolean;
-}
-
 interface Submission {
-	update(options?: RetiredUpdateOptions): Promise<void>;
+	update(options?: FormUpdateOptions): Promise<void>;
 }
 
 type Callback = (submission: Submission) => unknown;
 
-function current(options?: RetiredUpdateOptions): RetiredUpdateOptions | undefined {
+function current(options?: FormUpdateOptions): FormUpdateOptions | undefined {
 	if (options?.invalidateAll === undefined) return options;
 	if (DEV)
 		warnDiagnostic(
@@ -37,12 +30,15 @@ function wrap(callback: unknown): unknown {
 		});
 }
 
-export function enhance(
+export function enhance<
+	Success extends Record<string, unknown> | undefined,
+	Failure extends Record<string, unknown> | undefined
+>(
 	form: HTMLFormElement,
-	submit: (input: unknown) => unknown = () => {}
+	submit: SubmitFunction<Success, Failure> = () => {}
 ): ReturnType<typeof enhanceForm> {
-	return enhanceForm(form, ((input: unknown) => {
+	return enhanceForm<Success, Failure>(form, ((input) => {
 		const callback = submit(input);
 		return callback instanceof Promise ? callback.then(wrap) : wrap(callback);
-	}) as SubmitFunction);
+	}) as SubmitFunction<Success, Failure>);
 }

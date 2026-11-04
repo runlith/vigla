@@ -46,8 +46,18 @@ declare module '$app/env' {
 }
 
 declare module '$app/forms' {
-	import type { ActionResult, Enhancement, SubmitFunction } from '#types/forms';
-	export type { ActionResult, SubmitFunction } from '#types/forms';
+	import type {
+		ActionResult,
+		Enhancement,
+		FormUpdateOptions as UpdateOptions,
+		SubmitFunction as Submit
+	} from '#types/forms';
+	export type { ActionResult } from '#types/forms';
+	export interface FormUpdateOptions extends UpdateOptions {}
+	export type SubmitFunction<
+		Success extends Record<string, unknown> | undefined = Record<string, any>,
+		Failure extends Record<string, unknown> | undefined = Record<string, any>
+	> = Submit<Success, Failure, FormUpdateOptions>;
 	export function enhance<
 		Success extends Record<string, unknown> | undefined,
 		Failure extends Record<string, unknown> | undefined
@@ -66,17 +76,17 @@ declare module '$app/navigation' {
 	import type {
 		AfterNavigate,
 		BeforeNavigate,
-		GotoOptions,
+		GotoOptions as NavigationOptions,
 		Invalidation,
 		NavigationCallback,
 		PreloadResult,
 		SnapshotOptions
 	} from '#types/navigation';
 	import type { RouteId } from '$app/types';
+	export interface GotoOptions extends NavigationOptions {}
 	export type {
 		AfterNavigate,
 		BeforeNavigate,
-		GotoOptions,
 		Navigation,
 		NavigationBase,
 		NavigationEnter,

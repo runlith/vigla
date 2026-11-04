@@ -6,8 +6,6 @@ import { throwDiagnostic, warnDiagnostic } from '../diagnostics.ts';
 export * from '$app/navigation';
 
 interface RetiredGotoOptions extends GotoOptions {
-	replaceState?: boolean;
-	invalidateAll?: boolean;
 	noScroll?: boolean;
 	keepFocus?: boolean;
 }
