@@ -43,9 +43,6 @@ fields:
         "at": "app/env/client.ts"
       },
       {
-        "at": "app/environment/client.ts"
-      },
-      {
         "at": "app/service-worker/client.ts"
       },
       {
@@ -59,9 +56,6 @@ fields:
       },
       {
         "at": "app/env/private/server.ts"
-      },
-      {
-        "at": "app/environment/server.ts"
       },
       {
         "at": "app/forms/server.ts"

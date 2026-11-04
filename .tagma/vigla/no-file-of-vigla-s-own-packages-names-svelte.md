@@ -6,28 +6,7 @@ tags: ["rule"]
 fields:
   {
     "enforcement": {
-      "debt": [
-        {
-          "count": 4,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/config/errors.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/config/warnings.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/index.ts",
-          "owner": "1ac4162a"
-        },
-        {
-          "count": 4,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/messages.ts",
-          "owner": "1ac4162a"
-        }
-      ],
+      "debt": [],
       "escaped": [],
       "inspection": "products-name-no-svelte",
       "on": [
