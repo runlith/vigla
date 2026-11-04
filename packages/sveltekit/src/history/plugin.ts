@@ -73,20 +73,9 @@ function legacy(kind: string, visibility: string, dev: boolean): string {
 	return `${exports}\n${warning}`;
 }
 
-export interface HookFiles {
-	server: string;
-	client: string;
-}
+export type HookEntries = Record<'server' | 'client', string | null>;
 
-function posix(file: string): string {
-	return file.replaceAll('\\', '/');
-}
-
-function stem(file: string): string {
-	return posix(file.slice(0, file.length - path.extname(file).length));
-}
-
-export function appModules(hookFiles: () => HookFiles): Plugin {
+export function appModules(entries: () => HookEntries): Plugin {
 	const hooks = `${prefix}hooks:`;
 	return {
 		name: `${identity.name}:history-app`,
@@ -95,9 +84,8 @@ export function appModules(hookFiles: () => HookFiles): Plugin {
 			const wrapper = wrapped.get(id);
 			if (wrapper && importer?.split('?')[0] !== wrapper) return wrapper;
 			if (importer?.startsWith(hooks) || !path.isAbsolute(id)) return;
-			const files = hookFiles();
-			const file = stem(id.split('?')[0]!);
-			if (file === posix(files.server) || file === posix(files.client)) return hooks + id;
+			const { server, client } = entries();
+			if (id === server || id === client) return hooks + id;
 		},
 		load(id) {
 			if (!id.startsWith(hooks)) return;

@@ -150,7 +150,15 @@ async function plugins(
 	const setup: Plugin = {
 		name: 'kit:setup',
 		enforce: 'pre',
-		api: { options: validated },
+		api: {
+			options: validated,
+			hooks: (): Record<'server' | 'client', string | null> => {
+				const hooks = project?.tree.hooks;
+				const absolute = (file: string | null | undefined) =>
+					file ? posix(path.resolve(root, file)) : null;
+				return { server: absolute(hooks?.server), client: absolute(hooks?.client) };
+			}
+		},
 		config: {
 			order: 'pre',
 			async handler(user, env) {
