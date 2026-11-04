@@ -89,6 +89,12 @@ fields:
         "for": [
           "1b906004"
         ]
+      },
+      {
+        "at": "internal/shallow/",
+        "for": [
+          "1b906004"
+        ]
       }
     ],
     "id": "kit-entries"
@@ -112,4 +118,4 @@ sources:
   - kind: file
     ref: packages/kit/vitest.config.ts
 ---
-What an app imports from Kit: `@vigla/kit` (`@sveltejs/kit` through the facade) and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit's public names; the behaviour lives in those runtimes. `internal/identity` is the facade's alone: through it the facade's entries adopt SvelteKit's identity.
+What an app imports from Kit: `@vigla/kit` (`@sveltejs/kit` through the facade) and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit's public names; the behaviour lives in those runtimes. `internal/identity` and `internal/shallow` are the facade's alone: through the first the facade's entries adopt SvelteKit's identity, through the second its `pushState`/`replaceState` write shallow history without running navigation callbacks, reporting errors under their own names.
