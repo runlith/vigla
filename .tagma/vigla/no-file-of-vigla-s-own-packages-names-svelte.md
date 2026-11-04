@@ -278,54 +278,6 @@ fields:
           "count": 2,
           "fingerprint": "products-name-no-svelte names svelte @ packages/kit/src/vite/server.ts",
           "owner": "1ac4162a"
-        },
-        {
-          "count": 7,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/dependencies.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/error.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 5,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/id.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 11,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/options.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/plugins/compile.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/plugins/load.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/plugins/optimizer.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/public.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 8,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/vite-config.ts",
-          "owner": "baff1c75"
-        },
-        {
-          "count": 2,
-          "fingerprint": "products-name-no-svelte names svelte @ packages/vite-plugin/src/warnings.ts",
-          "owner": "baff1c75"
         }
       ],
       "escaped": [],
@@ -350,16 +302,16 @@ edges:
     to: 01a18687-b44d-720f-8b8d-0e1091aef644
 sources:
   - kind: dir
-    ref: packages/vigla
-  - kind: dir
-    ref: packages/vite-plugin
-  - kind: dir
-    ref: packages/kit
+    ref: packages/adapter-bun
   - kind: dir
     ref: packages/adapter-node
   - kind: dir
-    ref: packages/adapter-bun
-  - kind: dir
     ref: packages/adapter-static
+  - kind: dir
+    ref: packages/kit
+  - kind: dir
+    ref: packages/vigla
+  - kind: dir
+    ref: packages/vite-plugin
 ---
 The core `vigla`, `@vigla/vite-plugin`, `@vigla/kit` and the `@vigla/adapter-*` packages contain the word `svelte` in no case and no form — `sveltekit`, `svelte-kit` and `__SVELTEKIT_` included — in code, strings, file names, manifests or messages. A name of Svelte, vite-plugin-svelte or SvelteKit that an application needs is supplied by the compatibility package standing in for that upstream: `@vigla/svelte`, `@vigla/vite-plugin-svelte` or `@vigla/sveltekit`. Tests are exempt.
