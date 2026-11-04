@@ -89,6 +89,12 @@ fields:
       },
       {
         "at": "internal/payload.ts"
+      },
+      {
+        "at": "internal/identity.ts",
+        "for": [
+          "1b906004"
+        ]
       }
     ],
     "id": "kit-entries"

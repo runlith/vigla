@@ -15,6 +15,8 @@ fields:
 edges:
   - kind: imports
     to: 01a18680-7dc2-71f8-be01-915833d45c4b
+  - kind: imports
+    to: 01a193f1-4d9b-787a-b261-3bc8d5d68827
 sources:
   - kind: dir
     ref: packages/kit/src/components

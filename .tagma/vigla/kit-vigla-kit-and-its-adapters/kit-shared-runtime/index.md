@@ -59,6 +59,9 @@ fields:
       },
       {
         "at": "render.ts"
+      },
+      {
+        "at": "identity.ts"
       }
     ],
     "id": "kit-shared"
