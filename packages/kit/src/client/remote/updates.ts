@@ -1,6 +1,6 @@
 import type { RemoteQueryUpdate, UpdatingPromise } from '../../types/remote.ts';
 import { DEV } from 'esm-env';
-import { throwDiagnostic, warnDiagnostic } from '../../shared/diagnostics.ts';
+import { throwCode, throwDiagnostic, warnDiagnostic } from '../../shared/diagnostics.ts';
 import type { Remotes } from './cache.ts';
 
 export const queryId = Symbol('query.id');
@@ -35,7 +35,7 @@ function invalidUpdate(): never {
 			'Expected a query, query function, or query override',
 			invalidUpdate
 		);
-	throw new Error('https://svelte.dev/e/kit/remote_updates_invalid_argument');
+	throwCode('remote_updates_invalid_argument');
 }
 
 function categorize(remotes: Remotes, updates: RemoteQueryUpdate[]): Updates {
@@ -56,7 +56,7 @@ function categorize(remotes: Remotes, updates: RemoteQueryUpdate[]): Updates {
 							'Only one override per query can be passed to updates',
 							categorize
 						);
-					throw new Error('https://svelte.dev/e/kit/remote_updates_duplicate_override');
+					throwCode('remote_updates_duplicate_override');
 				}
 				keys.add(key);
 				refreshes.add(key);

@@ -597,10 +597,10 @@ it('loads server parents on demand for invalidated data and streams deferred val
 	app.routes = [route('/[id]', null, true)];
 	const server = await start(app, options());
 	const response = await server.respond(
-		request('/post/__data.json?q=one&x-sveltekit-invalidated=01'),
+		request('/post/__data.json?q=one&x-vigla-invalidated=01'),
 		address
 	);
-	expect(response.headers.get('content-type')).toBe('text/sveltekit-data');
+	expect(response.headers.get('content-type')).toBe('text/vigla-data');
 	const reader = response.body!.getReader();
 	const first = JSON.parse(new TextDecoder().decode((await reader.read()).value));
 	expect(first.nodes[0]).toEqual({ type: 'skip' });
@@ -644,7 +644,7 @@ it('returns a data redirect without waiting for an independent parent load', asy
 	app.routes = [route('/source', null, true)];
 	const server = await start(app, options());
 	const response = await server.respond(
-		request('/source/__data.json?x-sveltekit-invalidated=11'),
+		request('/source/__data.json?x-vigla-invalidated=11'),
 		address
 	);
 	expect(await response.json()).toEqual({
@@ -776,7 +776,7 @@ it('serializes universal fetch replay safely and uses the generated boot global'
 		address
 	);
 	const html = await response.text();
-	expect(html).toContain('data-sveltekit-fetched data-url="/resource" data-ttl="17"');
+	expect(html).toContain('data-vigla-fetched data-url="/resource" data-ttl="17"');
 	expect(html).toContain('\\u003c/script>');
 	expect(html).toContain('globalThis.__vigla_contract=');
 	expect(html).toContain('kit.init(__vigla_contract)');
@@ -808,7 +808,7 @@ it('returns named form failures and redirects in the upstream action wire format
 		headers: {
 			origin: 'https://app.test',
 			accept: 'application/json',
-			'x-sveltekit-action': 'true'
+			'x-vigla-action': 'true'
 		}
 	};
 	const response = await server.respond(request('/?/save&other=1', init), address);
@@ -940,7 +940,7 @@ it('replays a bodyless fetched response as a valid Web Response', async () => {
 	const server = await start(app, options());
 	const response = await server.respond(request(), address);
 	const html = await response.text();
-	const replay = JSON.parse(/data-sveltekit-fetched[^>]*>([^<]*)<\/script>/.exec(html)![1]!);
+	const replay = JSON.parse(/data-vigla-fetched[^>]*>([^<]*)<\/script>/.exec(html)![1]!);
 	const restored = new Response(replay.body, replay);
 	expect(restored.status).toBe(204);
 	expect(restored.body).toBeNull();
@@ -1216,7 +1216,7 @@ it('sends internal requests for unknown routes to the host, marked while an erro
 		expect(missing.status).toBe(404);
 		expect(await missing.text()).toContain('<main>host</main>');
 		expect(host.mock.calls[1]![1]).toMatchObject({ redirect: 'manual' });
-		expect(new Headers(host.mock.calls[1]![1]!.headers).get('x-sveltekit-error')).toBe('true');
+		expect(new Headers(host.mock.calls[1]![1]!.headers).get('x-vigla-error')).toBe('true');
 	} finally {
 		host.mockRestore();
 	}
@@ -1393,7 +1393,7 @@ it('inherits prerender defaults for internal GETs while preserving endpoint over
 					const response = await fetch(`/endpoint/${params.kind}`);
 					const body = response.ok ? await response.text() : (await response.json()).message;
 					return {
-						layout: `${response.status}:${response.headers.get('x-sveltekit-prerender')}:${body}`
+						layout: `${response.status}:${response.headers.get('x-vigla-prerender')}:${body}`
 					};
 				}
 			},
@@ -1425,7 +1425,7 @@ it('inherits prerender defaults for internal GETs while preserving endpoint over
 		prerendering: prerendering()
 	});
 	expect(direct.status).toBe(200);
-	expect(direct.headers.get('x-sveltekit-prerender')).toBe('true');
+	expect(direct.headers.get('x-vigla-prerender')).toBe('true');
 	expect(await direct.text()).toBe('explicit');
 	const disabled = await server.respond(request('/page/disabled'), {
 		...address,
@@ -1440,7 +1440,7 @@ it('inherits prerender defaults for internal GETs while preserving endpoint over
 		prerendering: prerendering()
 	});
 	expect(implicit.status).toBe(200);
-	expect(implicit.headers.get('x-sveltekit-prerender')).toBe('true');
+	expect(implicit.headers.get('x-vigla-prerender')).toBe('true');
 	expect(await implicit.text()).toContain('<main>200:true:implicit</main>');
 });
 
@@ -1487,14 +1487,14 @@ it('rejects prerender query reads outside reroute and preserves route ids on err
 		{ ...address, prerendering: prerendering() }
 	);
 	expect(hook.status).toBe(400);
-	expect(hook.headers.get('x-sveltekit-routeid')).toBe('/target');
+	expect(hook.headers.get('x-vigla-routeid')).toBe('/target');
 	expect(await hook.json()).toEqual({ status: 400, message: 'url_search_unavailable_prerender' });
 	const endpoint = await server.respond(
 		request('/query?q=blocked', { headers: { accept: 'application/json' } }),
 		{ ...address, prerendering: prerendering() }
 	);
 	expect(endpoint.status).toBe(400);
-	expect(endpoint.headers.get('x-sveltekit-routeid')).toBe('/query');
+	expect(endpoint.headers.get('x-vigla-routeid')).toBe('/query');
 	expect(await endpoint.json()).toEqual({
 		status: 400,
 		message: 'url_search_unavailable_prerender'
@@ -1503,7 +1503,7 @@ it('rejects prerender query reads outside reroute and preserves route ids on err
 		...address,
 		prerendering: prerendering()
 	});
-	expect(data.headers.get('x-sveltekit-routeid')).toBe('/page');
+	expect(data.headers.get('x-vigla-routeid')).toBe('/page');
 	expect((await data.json()).nodes[1].error).toEqual({
 		status: 400,
 		message: 'url_search_unavailable_prerender'
@@ -1717,9 +1717,7 @@ it('keeps initial fetch replay keys and TTL aligned with the document request', 
 	];
 	const server = await start(app, options());
 	const response = await server.respond(request(), address);
-	const scripts = [
-		...(await response.text()).matchAll(/<script ([^>]*data-sveltekit-fetched[^>]*)>/g)
-	];
+	const scripts = [...(await response.text()).matchAll(/<script ([^>]*data-vigla-fetched[^>]*)>/g)];
 	expect(scripts).toHaveLength(2);
 	expect(scripts[0]![1]).not.toContain('data-hash');
 	expect(scripts[1]![1]).toContain('data-ttl="30"');
@@ -1827,7 +1825,7 @@ it('normalizes page slashes and answers conditional requests without a response 
 	);
 	expect(redirect.status).toBe(308);
 	expect(redirect.headers.get('location')).toBe('./page/');
-	expect(redirect.headers.get('x-sveltekit-normalize')).toBe('1');
+	expect(redirect.headers.get('x-vigla-normalize')).toBe('1');
 	await redirect.body?.cancel();
 	const document = await server.respond(
 		request('/page/', { headers: { accept: 'text/html' } }),

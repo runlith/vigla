@@ -27,7 +27,7 @@ beforeAll(async () => {
 		path.join(root, 'node_modules/svelte'),
 		'dir'
 	);
-	write('src/app.html', '<html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>');
+	write('src/app.html', '<html><head>%vigla.head%</head><body>%vigla.body%</body></html>');
 	write(
 		'src/routes/state/reset-states/+server.ts',
 		`export function POST() {
@@ -80,7 +80,7 @@ beforeAll(async () => {
 		build: { minify: false, assetsInlineLimit: 0 }
 	});
 	await builder.buildApp();
-	const directory = path.join(root, '.svelte-kit/output/server');
+	const directory = path.join(root, '.vigla/output/server');
 	const module = (await import(
 		pathToFileURL(path.join(directory, 'index.js')).href
 	)) as ServerModule;

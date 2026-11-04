@@ -188,7 +188,7 @@ export const schema: Schema = {
 					.join(', ')
 			});
 	},
-	outDir: string('.svelte-kit'),
+	outDir: string(),
 	output: object({
 		linkHeaderPreload: bool(false),
 		preloadStrategy: removed(e.config_option_removed_preload_strategy),

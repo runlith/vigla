@@ -11,8 +11,10 @@ import {
 	resolveEntry
 } from '../sync/index.ts';
 import { configAliases, importVite } from '../config/file.ts';
-import type { Config } from '../types/config.ts';
+import type { Config, Framework } from '../types/config.ts';
+import type { Identity } from '../types/identity.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
+import { adopt, own } from '../shared/identity.ts';
 import { configureDev } from './dev.ts';
 import { namespace } from './ids.ts';
 import * as e from './messages.ts';
@@ -23,7 +25,8 @@ import { createRemotePlugin } from './remote.ts';
 import { buildPlugin } from './build.ts';
 import { configurePreview } from './preview.ts';
 
-export type { Config } from '../types/config.ts';
+export type { Config, Framework } from '../types/config.ts';
+export type { Identity, Links } from '../types/identity.ts';
 
 function resolveCors(
 	cors: CorsOptions | boolean | undefined,
@@ -42,11 +45,13 @@ function resolveCors(
 
 function definitions(
 	config: ValidatedConfig,
+	identity: Identity,
 	dev: boolean,
 	worker: boolean,
 	globalName: string
 ): Record<string, string> {
 	const values: Record<string, unknown> = {
+		__VIGLA_IDENTITY__: identity,
 		__VIGLA_APP_DIR__: config.appDir,
 		__VIGLA_APP_VERSION__: config.version.name,
 		__VIGLA_APP_VERSION_CHECKS_ENABLED__: config.output.bundleStrategy !== 'inline',
@@ -77,7 +82,23 @@ function definitions(
 	};
 }
 
-export async function kit(input: Config = {}, factory: PluginFactory = vigla): Promise<Plugin[]> {
+export function createKit<O extends object>(
+	identity: Identity,
+	factory: PluginFactory<O>
+): Framework<O> {
+	return (input = {} as Config<O>) => {
+		adopt(identity);
+		return plugins(input as Config, factory as PluginFactory<object>, identity);
+	};
+}
+
+export const kit: Framework<Options> = createKit(own, vigla);
+
+async function plugins(
+	input: Config,
+	factory: PluginFactory<object>,
+	identity: Identity
+): Promise<Plugin[]> {
 	const split = splitConfig(input);
 	const validated = validateConfig(split.config);
 	const options: Partial<Options> = { ...split.plugin, configFile: false };
@@ -163,7 +184,7 @@ export async function kit(input: Config = {}, factory: PluginFactory = vigla): P
 					appType: 'custom',
 					base: config.paths.base || '/',
 					publicDir: config.files.assets,
-					define: definitions(config, dev, !!worker, globalName),
+					define: definitions(config, identity, dev, !!worker, globalName),
 					resolve: { alias: configAliases(config, root) },
 					environments: {
 						client: {

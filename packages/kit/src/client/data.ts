@@ -10,6 +10,7 @@ import { readNdjson } from './stream.ts';
 import { reserved_query_parameter } from './errors.ts';
 import type { State } from './state.ts';
 import type { Transport } from './transport.ts';
+import { identity } from '../shared/identity.ts';
 
 interface Deferred {
 	resolve(value: unknown): void;
@@ -118,17 +119,18 @@ export async function fetchData(
 	transport: Transport,
 	state: State
 ): Promise<DataResponse | DataRedirectNode> {
+	const reserved = `x-${identity.name}-`;
 	for (const key of url.searchParams.keys())
-		if (key.startsWith('x-sveltekit-')) reserved_query_parameter({ key });
+		if (key.startsWith(reserved)) reserved_query_parameter({ key });
 	const dataUrl = new URL(url);
 	dataUrl.pathname = addDataSuffix(url.pathname);
-	if (url.pathname.endsWith('/')) dataUrl.searchParams.set('x-sveltekit-trailing-slash', '1');
+	if (url.pathname.endsWith('/')) dataUrl.searchParams.set(`${reserved}trailing-slash`, '1');
 	dataUrl.searchParams.set(
-		'x-sveltekit-invalidated',
+		`${reserved}invalidated`,
 		invalid.map((value) => Number(value)).join('')
 	);
 	const response = await fetch(dataUrl);
-	state.notify(response.headers.get('x-sveltekit-version'));
+	state.notify(response.headers.get(`${reserved}version`));
 	if (!response.ok) {
 		let body: App.Error = {
 			status: response.status,

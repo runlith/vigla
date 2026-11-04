@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { PrerenderPolicy } from '../types/config.ts';
 import type { BuildContext, Analysis } from './types.ts';
 import * as e from './messages.ts';
+import { identity } from '../shared/identity.ts';
 import type {
 	AnalysisJob,
 	FallbackJob,
@@ -18,6 +19,7 @@ import type {
 
 function platform(context: BuildContext): WorkerPlatform {
 	return {
+		identity,
 		directory: `${context.config.outDir}/output`,
 		assets: context.config.files.assets,
 		origin: context.config.paths.origin || 'http://prerender.invalid',

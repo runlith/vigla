@@ -5,6 +5,7 @@ import { validate, handleIssues, type EnvironmentIssues } from '../shared/env.ts
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { EnvVarConfig } from '../types/env.ts';
 import { resolveEntry } from './files.ts';
+import { installation } from './package.ts';
 import * as e from './errors.ts';
 
 export interface Environment {
@@ -64,7 +65,7 @@ export async function loadEnvironment(
 		mode,
 		server: { middlewareMode: true, watch: null },
 		resolve: { alias: configAliases(config, root) },
-		ssr: { noExternal: ['@sveltejs/kit', '@vigla/kit'] },
+		ssr: { noExternal: [installation(root).name, '@vigla/kit'] },
 		plugins: [
 			{
 				name: 'kit:env-discovery',

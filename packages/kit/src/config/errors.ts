@@ -1,4 +1,5 @@
 import { throwDiagnostic } from '../shared/diagnostics.ts';
+import { identity } from '../shared/identity.ts';
 
 interface KeyPath {
 	keypath: string;
@@ -16,7 +17,7 @@ interface Unexpected extends KeyPath {
 export function config_not_object(): never {
 	return throwDiagnostic(
 		'config_not_object',
-		'The SvelteKit options from the Vite config must be an object',
+		`The ${identity.product} options from the Vite config must be an object`,
 		config_not_object
 	);
 }
@@ -114,7 +115,7 @@ export function config_extension_invalid({ extension }: { extension: string }): 
 export function config_invalid_adapter({ keypath }: KeyPath): never {
 	return throwDiagnostic(
 		'config_invalid_adapter',
-		`The SvelteKit Vite plugin \`${keypath}\` should be an object with an \`adapt\` method`,
+		`The ${identity.product} Vite plugin \`${keypath}\` should be an object with an \`adapt\` method`,
 		config_invalid_adapter
 	);
 }
@@ -264,7 +265,7 @@ export function config_server_resolution_bundle_strategy(): never {
 export function config_csp_trusted_types_missing(): never {
 	return throwDiagnostic(
 		'config_csp_trusted_types_missing',
-		"The `csp.directives['trusted-types']` option must include 'sveltekit-trusted-url' when `serviceWorker.register` is `true`",
+		`The \`csp.directives['trusted-types']\` option must include '${identity.name}-trusted-url' when \`serviceWorker.register\` is \`true\``,
 		config_csp_trusted_types_missing
 	);
 }

@@ -1,5 +1,6 @@
 import { BROWSER, DEV } from 'esm-env';
-import { throwDiagnostic, verbose } from './diagnostics.ts';
+import { throwCode, throwDiagnostic, verbose } from './diagnostics.ts';
+import { documentationLink, identity } from './identity.ts';
 
 interface StatusMessage {
 	status: string;
@@ -44,7 +45,7 @@ export function invalid_error_status(values: StatusMessage): never {
 			`HTTP error status codes must be between 400 and 599 — ${values.status} is invalid`,
 			invalid_error_status
 		);
-	throw new Error('https://svelte.dev/e/kit/invalid_error_status');
+	throwCode('invalid_error_status');
 }
 export function invalid_redirect_status(values: StatusMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -53,7 +54,7 @@ export function invalid_redirect_status(values: StatusMessage): never {
 			`Redirect status codes must be between 300 and 308 — ${values.status} is invalid`,
 			invalid_redirect_status
 		);
-	throw new Error('https://svelte.dev/e/kit/invalid_redirect_status');
+	throwCode('invalid_redirect_status');
 }
 export function redirect_external_not_allowed(values: LocationMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -62,7 +63,7 @@ export function redirect_external_not_allowed(values: LocationMessage): never {
 			`Cannot redirect to external URL \`${values.location}\`. To redirect to an external URL, pass \`{ external: true }\` or an allowlist of permitted origins as the third argument to \`redirect\``,
 			redirect_external_not_allowed
 		);
-	throw new Error('https://svelte.dev/e/kit/redirect_external_not_allowed');
+	throwCode('redirect_external_not_allowed');
 }
 export function redirect_external_javascript(values: LocationMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -71,7 +72,7 @@ export function redirect_external_javascript(values: LocationMessage): never {
 			`Cannot redirect to \`${values.location}\` with \`{ external: true }\`. The \`javascript:\` and \`data:\` protocols must be explicitly listed in the \`external\` allowlist`,
 			redirect_external_javascript
 		);
-	throw new Error('https://svelte.dev/e/kit/redirect_external_javascript');
+	throwCode('redirect_external_javascript');
 }
 export function redirect_external_not_in_allowlist(values: LocationMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -80,7 +81,7 @@ export function redirect_external_not_in_allowlist(values: LocationMessage): nev
 			`Cannot redirect to \`${values.location}\`: URL origin is not included in the \`external\` allowlist`,
 			redirect_external_not_in_allowlist
 		);
-	throw new Error('https://svelte.dev/e/kit/redirect_external_not_in_allowlist');
+	throwCode('redirect_external_not_in_allowlist');
 }
 export function redirect_external_option_invalid(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -89,16 +90,7 @@ export function redirect_external_option_invalid(): never {
 			'`redirect` `options.external` must be `true` or an array of allowed origins',
 			redirect_external_option_invalid
 		);
-	throw new Error('https://svelte.dev/e/kit/redirect_external_option_invalid');
-}
-export function app_stores_removed(): never {
-	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
-			'app_stores_removed',
-			'`$app/stores` has been removed in favour of `$app/state`',
-			app_stores_removed
-		);
-	throw new Error('https://svelte.dev/e/kit/app_stores_removed');
+	throwCode('redirect_external_option_invalid');
 }
 export function service_worker_module_outside_worker(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -107,16 +99,16 @@ export function service_worker_module_outside_worker(): never {
 			'The `$app/service-worker` module can only be imported into a service worker',
 			service_worker_module_outside_worker
 		);
-	throw new Error('https://svelte.dev/e/kit/service_worker_module_outside_worker');
+	throwCode('service_worker_module_outside_worker');
 }
 export function match_in_service_worker(): never {
 	if (DEV || (!BROWSER && verbose))
 		throwDiagnostic(
 			'match_in_service_worker',
-			'Cannot use `match(...)` inside a service worker, as it depends on the SvelteKit client instance',
+			`Cannot use \`match(...)\` inside a service worker, as it depends on the ${identity.product} client instance`,
 			match_in_service_worker
 		);
-	throw new Error('https://svelte.dev/e/kit/match_in_service_worker');
+	throwCode('match_in_service_worker');
 }
 export function resolve_params_missing(values: RouteMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -125,7 +117,7 @@ export function resolve_params_missing(values: RouteMessage): never {
 			`Missing params for dynamic route ID \`${values.id}\``,
 			resolve_params_missing
 		);
-	throw new Error('https://svelte.dev/e/kit/resolve_params_missing');
+	throwCode('resolve_params_missing');
 }
 export function url_hash_unavailable(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -134,7 +126,7 @@ export function url_hash_unavailable(): never {
 			'Cannot access `event.url.hash`. Consider using `page.url.hash` inside a component instead',
 			url_hash_unavailable
 		);
-	throw new Error('https://svelte.dev/e/kit/url_hash_unavailable');
+	throwCode('url_hash_unavailable');
 }
 export function form_field_unbound(values: NameMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -143,7 +135,7 @@ export function form_field_unbound(values: NameMessage): never {
 			`Form contained a field that wasn't created with \`form.fields.as(...)\`: \`${values.name}\``,
 			form_field_unbound
 		);
-	throw new Error('https://svelte.dev/e/kit/form_field_unbound');
+	throwCode('form_field_unbound');
 }
 export function form_field_duplicate(values: DuplicateField): never {
 	if (DEV || (!BROWSER && verbose))
@@ -152,16 +144,16 @@ export function form_field_duplicate(values: DuplicateField): never {
 			`Form cannot contain duplicated keys — \`${values.name}\` has ${values.count} values`,
 			form_field_duplicate
 		);
-	throw new Error('https://svelte.dev/e/kit/form_field_duplicate');
+	throwCode('form_field_duplicate');
 }
 export function form_field_invalid_name(values: NameMessage): never {
 	if (DEV || (!BROWSER && verbose))
 		throwDiagnostic(
 			'form_field_invalid_name',
-			`Invalid field name \`${values.name}\`: field names are written in JS object notation, so keys that would need quoting are not supported. See https://svelte.dev/docs/kit/remote-functions#form-Fields`,
+			`Invalid field name \`${values.name}\`: field names are written in JS object notation, so keys that would need quoting are not supported.${documentationLink('formFields')}`,
 			form_field_invalid_name
 		);
-	throw new Error('https://svelte.dev/e/kit/form_field_invalid_name');
+	throwCode('form_field_invalid_name');
 }
 export function form_field_forbidden_key(values: KeyMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -170,7 +162,7 @@ export function form_field_forbidden_key(values: KeyMessage): never {
 			`Invalid key \`${values.key}\`: This key is not allowed to prevent prototype pollution.`,
 			form_field_forbidden_key
 		);
-	throw new Error('https://svelte.dev/e/kit/form_field_forbidden_key');
+	throwCode('form_field_forbidden_key');
 }
 export function form_field_array_conflict(values: KeyMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -179,7 +171,7 @@ export function form_field_array_conflict(values: KeyMessage): never {
 			`Invalid array key \`${values.key}\``,
 			form_field_array_conflict
 		);
-	throw new Error('https://svelte.dev/e/kit/form_field_array_conflict');
+	throwCode('form_field_array_conflict');
 }
 export function remote_argument_unsupported(values: TypeMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -188,7 +180,7 @@ export function remote_argument_unsupported(values: TypeMessage): never {
 			`${values.type} are not valid remote function arguments`,
 			remote_argument_unsupported
 		);
-	throw new Error('https://svelte.dev/e/kit/remote_argument_unsupported');
+	throwCode('remote_argument_unsupported');
 }
 export function form_input_missing_value(values: TypeMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -197,7 +189,7 @@ export function form_input_missing_value(values: TypeMessage): never {
 			`${values.type} inputs must have a value`,
 			form_input_missing_value
 		);
-	throw new Error('https://svelte.dev/e/kit/form_input_missing_value');
+	throwCode('form_input_missing_value');
 }
 export function load_invalid_response(values: LoadMessage): never {
 	if (DEV || (!BROWSER && verbose))
@@ -206,7 +198,7 @@ export function load_invalid_response(values: LoadMessage): never {
 			`a \`load\` function ${values.location} returned ${values.type}, but must return a plain object at the top level (i.e. \`return {...}\`)`,
 			load_invalid_response
 		);
-	throw new Error('https://svelte.dev/e/kit/load_invalid_response');
+	throwCode('load_invalid_response');
 }
 export function param_matcher_async(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -215,7 +207,7 @@ export function param_matcher_async(): never {
 			'Async param matchers are not supported',
 			param_matcher_async
 		);
-	throw new Error('https://svelte.dev/e/kit/param_matcher_async');
+	throwCode('param_matcher_async');
 }
 export function param_matcher_result_invalid(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -224,7 +216,7 @@ export function param_matcher_result_invalid(): never {
 			'Param matcher must return a string, number, boolean, or bigint',
 			param_matcher_result_invalid
 		);
-	throw new Error('https://svelte.dev/e/kit/param_matcher_result_invalid');
+	throwCode('param_matcher_result_invalid');
 }
 export function param_definition_invalid(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -233,7 +225,7 @@ export function param_definition_invalid(): never {
 			'Invalid param definition',
 			param_definition_invalid
 		);
-	throw new Error('https://svelte.dev/e/kit/param_definition_invalid');
+	throwCode('param_definition_invalid');
 }
 export function route_param_missing(values: RouteParam): never {
 	if (DEV || (!BROWSER && verbose))
@@ -242,7 +234,7 @@ export function route_param_missing(values: RouteParam): never {
 			`Missing parameter \`${values.name}\` in route \`${values.id}\``,
 			route_param_missing
 		);
-	throw new Error('https://svelte.dev/e/kit/route_param_missing');
+	throwCode('route_param_missing');
 }
 export function route_param_slash(values: RouteParam): never {
 	if (DEV || (!BROWSER && verbose))
@@ -251,7 +243,7 @@ export function route_param_slash(values: RouteParam): never {
 			`Parameter \`${values.name}\` in route \`${values.id}\` cannot start or end with a slash — this would cause an invalid route like \`foo/bar\``,
 			route_param_slash
 		);
-	throw new Error('https://svelte.dev/e/kit/route_param_slash');
+	throwCode('route_param_slash');
 }
 export function route_param_value_invalid(values: RouteParam): never {
 	if (DEV || (!BROWSER && verbose))
@@ -260,7 +252,7 @@ export function route_param_value_invalid(values: RouteParam): never {
 			`Parameter \`${values.name}\` in route \`${values.id}\` must be a string, number, boolean, or bigint`,
 			route_param_value_invalid
 		);
-	throw new Error('https://svelte.dev/e/kit/route_param_value_invalid');
+	throwCode('route_param_value_invalid');
 }
 export function invalid_export(values: ExportMessage): never {
 	if (DEV || (!BROWSER && verbose)) {
@@ -271,7 +263,7 @@ export function invalid_export(values: ExportMessage): never {
 			invalid_export
 		);
 	}
-	throw new Error('https://svelte.dev/e/kit/invalid_export');
+	throwCode('invalid_export');
 }
 export function invalid_export_location(values: ExportLocation): never {
 	if (DEV || (!BROWSER && verbose)) {
@@ -282,7 +274,7 @@ export function invalid_export_location(values: ExportLocation): never {
 			invalid_export_location
 		);
 	}
-	throw new Error('https://svelte.dev/e/kit/invalid_export_location');
+	throwCode('invalid_export_location');
 }
 export function router_hash_page_options(values: HashOptions): never {
 	if (DEV || (!BROWSER && verbose))
@@ -291,5 +283,5 @@ export function router_hash_page_options(values: HashOptions): never {
 			`Page options are ignored when \`router.type === 'hash'\` (\`${values.source}\` has ${values.options})`,
 			router_hash_page_options
 		);
-	throw new Error('https://svelte.dev/e/kit/router_hash_page_options');
+	throwCode('router_hash_page_options');
 }

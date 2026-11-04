@@ -62,7 +62,7 @@ export default function adapter(options: Options = {}): Adapter {
 			);
 			writeFileSync(
 				path.join(out, 'index.js'),
-				`import { listen } from './runtime.js';\nimport { handler } from './handler.js';\nimport { env } from './env.js';\nexport const path = env.get('SOCKET_PATH');\nexport const host = env.get('HOST', '0.0.0.0');\nexport const port = env.get('PORT', '3000');\nexport const server = listen(handler, env);\n`
+				`import { listen } from './runtime.js';\nimport { handler } from './handler.js';\nimport { env } from './env.js';\nexport const path = env.get('SOCKET_PATH');\nexport const host = env.get('HOST', '0.0.0.0');\nexport const port = env.get('PORT', '3000');\nexport const server = listen(handler, env, ${JSON.stringify(`${builder.identity.name}:shutdown`)});\n`
 			);
 			if (builder.hasServerInstrumentationFile()) {
 				builder.instrument({

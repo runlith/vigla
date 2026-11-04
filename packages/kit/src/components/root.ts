@@ -1,4 +1,5 @@
 import type { ComponentUnit } from 'vigla/compiler';
+import { identity } from '../shared/identity.ts';
 import {
 	binding,
 	boundary,
@@ -81,7 +82,7 @@ export function root(): ComponentUnit {
 				source,
 				'div',
 				[
-					literal(source, 'id', 'svelte-announcer'),
+					literal(source, 'id', identity.announcer),
 					literal(source, 'aria-live', 'assertive'),
 					literal(source, 'aria-atomic', 'true'),
 					literal(source, 'style', announcer)

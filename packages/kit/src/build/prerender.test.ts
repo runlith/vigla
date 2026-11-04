@@ -16,6 +16,7 @@ import type {
 	ServerRoute
 } from '../types/internal/server.ts';
 import { redirect } from '../entries/index.ts';
+import { own } from '../shared/identity.ts';
 import { resolveConfig, validateConfig } from '../config/index.ts';
 import { parseRoute } from '../shared/routing/index.ts';
 import { encodeArgument } from '../shared/remote.ts';
@@ -108,6 +109,7 @@ async function app(fixture: Fixture): Promise<Runtime> {
 async function job(runtime: Runtime, name: string): Promise<PrerenderJob> {
 	return {
 		kind: 'prerender',
+		identity: own,
 		root: directory,
 		mode: 'production',
 		directory: path.join(directory, name),
@@ -209,7 +211,7 @@ test('a reached page with actions rejects prerendering through its HTTP error po
 		hooks: {
 			handleError({ error }) {
 				expect(error).toMatchObject({
-					name: 'SvelteKit error',
+					name: 'Kit error',
 					message: expect.stringContaining('prerender_actions')
 				});
 				return { message: String(error) };
@@ -241,7 +243,7 @@ test('fetched route metadata reaches Builder without promoting auto or unidentif
 				const response = await fetch(request);
 				if (new URL(request.url).pathname !== '/unidentified') return response;
 				const headers = new Headers(response.headers);
-				headers.delete('x-sveltekit-routeid');
+				headers.delete('x-vigla-routeid');
 				return new Response(response.body, { status: response.status, headers });
 			}
 		}
@@ -259,12 +261,12 @@ test('fetched route metadata reaches Builder without promoting auto or unidentif
 			const [implicit, auto, unidentified, asset] = responses;
 			return {
 				value: [
-					implicit.headers.get('x-sveltekit-prerender'),
-					auto.headers.get('x-sveltekit-prerender'),
-					unidentified.headers.get('x-sveltekit-prerender'),
-					unidentified.headers.get('x-sveltekit-routeid'),
-					asset.headers.get('x-sveltekit-prerender'),
-					asset.headers.get('x-sveltekit-routeid')
+					implicit.headers.get('x-vigla-prerender'),
+					auto.headers.get('x-vigla-prerender'),
+					unidentified.headers.get('x-vigla-prerender'),
+					unidentified.headers.get('x-vigla-routeid'),
+					asset.headers.get('x-vigla-prerender'),
+					asset.headers.get('x-vigla-routeid')
 				]
 					.map(String)
 					.join(':')

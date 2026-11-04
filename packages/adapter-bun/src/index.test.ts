@@ -41,6 +41,7 @@ function fixture(root: string): Builder {
 		} as unknown as Builder['config'],
 		routes: [],
 		manifest: {} as Builder['manifest'],
+		identity: { name: 'vigla' } as Builder['identity'],
 		mimeTypes: { '.txt': 'text/plain', '.html': 'text/html', '.js': 'text/javascript' },
 		prerendered: {
 			pages: new Map([['/base/page/', { file: 'page/index.html' }]]),
@@ -262,7 +263,7 @@ test('the shipped Bun listener applies environment precedence and stops an event
 		expect(response.headers.get('x-accel-buffering')).toBe('no');
 		const reader = response.body!.getReader();
 		await reader.read();
-		const stopped = once(process, 'sveltekit:shutdown');
+		const stopped = once(process, 'vigla:shutdown');
 		process.emit('SIGTERM');
 		expect(await stopped).toEqual(['SIGTERM']);
 		expect(server!.pendingRequests).toBe(0);

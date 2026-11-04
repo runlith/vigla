@@ -9,8 +9,8 @@ import {
 } from 'node:fs';
 import { parseArgs, styleText } from 'node:util';
 
-const help = `
-  Usage: svelte-kit <command> [options]
+const help = (command: string) => `
+  Usage: ${command} <command> [options]
 
   Commands:
     sync                   Synchronise generated type definitions
@@ -59,7 +59,7 @@ async function sync(file: string | undefined, mode: string): Promise<void> {
 	}
 }
 
-function parse(args: string[]) {
+function parse(args: string[], usage: string) {
 	try {
 		return parseArgs({
 			args,
@@ -74,22 +74,23 @@ function parse(args: string[]) {
 		});
 	} catch (error) {
 		console.error(styleText(['bold', 'red'], `> ${(error as Error).message}`));
-		console.log(help);
+		console.log(usage);
 		process.exit(1);
 	}
 }
 
-export async function cli(args: string[], version: string): Promise<void> {
-	const { values, positionals } = parse(args);
+export async function cli(args: string[], version: string, command: string): Promise<void> {
+	const usage = help(command);
+	const { values, positionals } = parse(args, usage);
 	if (values.version) {
 		console.log(version);
 	} else if (values.help || positionals.length === 0) {
-		console.log(help);
+		console.log(usage);
 	} else if (positionals[0] === 'sync') {
 		await sync(values.config, values.mode);
 	} else {
 		console.error(styleText(['bold', 'red'], `> Unknown command: ${positionals[0]}`));
-		console.log(help);
+		console.log(usage);
 		process.exitCode = 1;
 	}
 }

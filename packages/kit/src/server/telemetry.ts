@@ -2,6 +2,7 @@ import type { Attributes, Span, SpanContext } from '@opentelemetry/api';
 import { HttpError, Redirect } from '../shared/outcomes.ts';
 import type { SpanRecorder } from '../types/internal/server.ts';
 import * as errors from './errors.ts';
+import { identity } from '../shared/identity.ts';
 
 const emptyContext: SpanContext = {
 	traceId: '00000000000000000000000000000000',
@@ -67,38 +68,40 @@ export class Tracer implements SpanRecorder {
 	async span<T>(name: string, attributes: Attributes, fn: (span: Span) => Promise<T>): Promise<T> {
 		const api = this.#api;
 		if (!api) return fn(noopSpan);
-		return api.trace.getTracer('sveltekit').startActiveSpan(name, { attributes }, async (span) => {
-			try {
-				return await fn(span);
-			} catch (error) {
-				if (error instanceof Redirect)
-					span.setAttributes({
-						[`${name}.result.type`]: 'redirect',
-						[`${name}.result.status`]: error.status,
-						[`${name}.result.location`]: error.location
-					});
-				else if (error instanceof HttpError) {
-					span.setAttributes({
-						[`${name}.result.type`]: 'known_error',
-						[`${name}.result.status`]: error.status,
-						[`${name}.result.message`]: error.body.message
-					});
-					if (error.status >= 500) {
-						span.recordException({ name: 'HttpError', message: error.body.message });
-						span.setStatus({ code: api.SpanStatusCode.ERROR, message: error.body.message });
+		return api.trace
+			.getTracer(identity.name)
+			.startActiveSpan(name, { attributes }, async (span) => {
+				try {
+					return await fn(span);
+				} catch (error) {
+					if (error instanceof Redirect)
+						span.setAttributes({
+							[`${name}.result.type`]: 'redirect',
+							[`${name}.result.status`]: error.status,
+							[`${name}.result.location`]: error.location
+						});
+					else if (error instanceof HttpError) {
+						span.setAttributes({
+							[`${name}.result.type`]: 'known_error',
+							[`${name}.result.status`]: error.status,
+							[`${name}.result.message`]: error.body.message
+						});
+						if (error.status >= 500) {
+							span.recordException({ name: 'HttpError', message: error.body.message });
+							span.setStatus({ code: api.SpanStatusCode.ERROR, message: error.body.message });
+						}
+					} else {
+						span.setAttribute(`${name}.result.type`, 'unknown_error');
+						if (error instanceof Error) span.recordException(error);
+						span.setStatus({
+							code: api.SpanStatusCode.ERROR,
+							...(error instanceof Error ? { message: error.message } : {})
+						});
 					}
-				} else {
-					span.setAttribute(`${name}.result.type`, 'unknown_error');
-					if (error instanceof Error) span.recordException(error);
-					span.setStatus({
-						code: api.SpanStatusCode.ERROR,
-						...(error instanceof Error ? { message: error.message } : {})
-					});
+					throw error;
+				} finally {
+					span.end();
 				}
-				throw error;
-			} finally {
-				span.end();
-			}
-		});
+			});
 	}
 }

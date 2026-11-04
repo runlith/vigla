@@ -463,7 +463,7 @@ export function buildPlugin(
 				inputs[
 					node.component
 						? named('pages', component(index))
-						: `entries/fallbacks/${index === 1 ? 'error' : 'layout'}.svelte`
+						: `entries/fallbacks/${index === 1 ? 'error' : 'layout'}`
 				] = component(index);
 				for (const file of [node.universal, node.server])
 					if (file) {

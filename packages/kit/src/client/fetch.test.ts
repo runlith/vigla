@@ -21,7 +21,7 @@ test('hashed POST replays survive cache hits and a canonical global mutation evi
 	};
 	const script = document.createElement('script');
 	script.type = 'application/json';
-	script.setAttribute('data-sveltekit-fetched', '');
+	script.setAttribute('data-vigla-fetched', '');
 	script.setAttribute('data-url', '/api');
 	script.setAttribute('data-hash', hashRequest(init.headers, init.body));
 	script.setAttribute('data-ttl', '60');
@@ -38,7 +38,7 @@ test('hashed POST replays survive cache hits and a canonical global mutation evi
 test('empty Request headers select an unhashed replay and null response bodies remain null', async () => {
 	const script = document.createElement('script');
 	script.type = 'application/json';
-	script.setAttribute('data-sveltekit-fetched', '');
+	script.setAttribute('data-vigla-fetched', '');
 	script.setAttribute('data-url', '/empty');
 	script.textContent = JSON.stringify({ body: null, status: 204 });
 	document.body.append(script);
@@ -57,7 +57,7 @@ test('a replayed response retains its TTL after delayed admission and expires af
 	vi.stubGlobal('fetch', async () => new Response('live'));
 	const script = document.createElement('script');
 	script.type = 'application/json';
-	script.setAttribute('data-sveltekit-fetched', '');
+	script.setAttribute('data-vigla-fetched', '');
 	script.setAttribute('data-url', '/ttl');
 	script.setAttribute('data-ttl', '7');
 	script.textContent = JSON.stringify({ body: 'cached', status: 200 });

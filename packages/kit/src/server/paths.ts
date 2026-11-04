@@ -6,6 +6,7 @@ import { addDataSuffix } from '../shared/pathname.ts';
 import type { RouteMatch } from '../types/paths.ts';
 import { resolve_params_missing } from '../shared/errors.ts';
 import { asset_leading_slash } from '../shared/warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 let configured: ServerPaths = { base: '', assets: '', relative: true };
 export let base = '';
@@ -82,7 +83,7 @@ export function documentPaths(pathname: string, source: ServerPaths): DocumentPa
 	return {
 		base,
 		assets:
-			!source.assets || (source.assets.startsWith('/') && source.assets !== '/_svelte_kit_assets')
+			!source.assets || (source.assets.startsWith('/') && source.assets !== identity.assets)
 				? base
 				: source.assets
 	};

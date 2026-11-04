@@ -1,11 +1,12 @@
 import type { ServerOptions } from '../types/internal/server.ts';
 import * as errors from './errors.ts';
 import * as warnings from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 export function versionHeader(options: ServerOptions): Record<string, string> {
 	return options.output.bundleStrategy === 'inline'
 		? {}
-		: { 'x-sveltekit-version': options.version.name };
+		: { [`x-${identity.name}-version`]: options.version.name };
 }
 
 const directives = new Set([

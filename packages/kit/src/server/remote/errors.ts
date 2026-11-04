@@ -1,4 +1,5 @@
 import { throwDiagnostic } from '../../shared/diagnostics.ts';
+import { documentationLink } from '../../shared/identity.ts';
 
 export function invalidValidator(): never {
 	return throwDiagnostic(
@@ -80,7 +81,7 @@ export function liveInvalid(name: string): never {
 export function formFailure(): never {
 	return throwDiagnostic(
 		'remote_form_fail',
-		'`fail(...)` is for form actions. A remote `form` handler should call `invalid(...)` instead. See https://svelte.dev/docs/kit/remote-functions#form-Programmatic-validation',
+		`\`fail(...)\` is for form actions. A remote \`form\` handler should call \`invalid(...)\` instead.${documentationLink('formValidation')}`,
 		formFailure
 	);
 }

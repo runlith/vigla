@@ -21,6 +21,7 @@ import { streamText } from './stream.ts';
 import { routeObject } from './routing.ts';
 import * as errors from './errors.ts';
 import * as warnings from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 export interface PageDocument {
 	branch: LoadedNode[];
@@ -48,7 +49,7 @@ export async function renderDocument(
 	const { options, manifest } = server;
 	const prerender = !!state.prerendering || state.prerenderDefault === true;
 	if (prerender && options.appTemplateContainsNonce)
-		errors.prerender_template_nonce({ tag: '%sveltekit.nonce%' });
+		errors.prerender_template_nonce({ tag: `%${identity.name}.nonce%` });
 	const csp = new Csp(options.csp, prerender, options.dev);
 	const data = Object.assign({}, ...document.branch.map((branch) => branch.data));
 	const page: Page<Record<string, ParamValue>> = {
@@ -134,7 +135,7 @@ export async function renderDocument(
 			);
 	const head: string[] = [rendered.head];
 	let body = rendered.body;
-	const headers = new Headers({ 'content-type': 'text/html', 'x-sveltekit-page': 'true' });
+	const headers = new Headers({ 'content-type': 'text/html', [`x-${identity.name}-page`]: 'true' });
 	const imports = new Set(manifest.client?.imports ?? []);
 	const styles = new Set(manifest.client?.stylesheets ?? []);
 	const fonts = new Map((manifest.client?.fonts ?? []).map((font) => [font.file, font]));
@@ -169,7 +170,7 @@ export async function renderDocument(
 		: [...inlined.values()].join('\n');
 	if (css) {
 		await csp.style(css);
-		const attributes = `${options.dev ? ' data-sveltekit' : ''}${csp.styleNonce ? ` nonce="${csp.nonce}"` : ''}`;
+		const attributes = `${options.dev ? ` data-${identity.name}` : ''}${csp.styleNonce ? ` nonce="${csp.nonce}"` : ''}`;
 		head.push(`<style${attributes}>${css}</style>`);
 	}
 	for (const font of fonts.values()) {
@@ -251,7 +252,7 @@ export async function renderDocument(
 				: `const element=document.currentScript.parentElement;const appPromise=${prepare}.then(()=>import(${escapeJson(clientPath(client.start, paths))}));${namespace}.ready=appPromise.then(app=>{app.init?.(${namespace});});${namespace}.ready.then(async()=>{const app=await appPromise;return app.start(element,${hydrated});});`;
 		const worker = options.serviceWorker;
 		const registration = worker
-			? `if('serviceWorker' in navigator){const script_url = '${scriptString(clientPath(worker.file, paths))}';const policy=globalThis.window?.trustedTypes?.createPolicy('sveltekit-trusted-url',{createScriptURL(url){return url;}});const sanitised=policy?.createScriptURL(script_url)??script_url;addEventListener('load',function(){navigator.serviceWorker.register(sanitised, ${escapeJson({ ...worker.options, type: 'module' })});});}`
+			? `if('serviceWorker' in navigator){const script_url = '${scriptString(clientPath(worker.file, paths))}';const policy=globalThis.window?.trustedTypes?.createPolicy('${identity.name}-trusted-url',{createScriptURL(url){return url;}});const sanitised=policy?.createScriptURL(script_url)??script_url;addEventListener('load',function(){navigator.serviceWorker.register(sanitised, ${escapeJson({ ...worker.options, type: 'module' })});});}`
 			: '';
 		const script = `{globalThis.${namespace}={${properties.join(',')}};${boot}${registration}}`;
 		await csp.script(script);

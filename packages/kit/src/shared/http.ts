@@ -1,3 +1,5 @@
+import { identity } from './identity.ts';
+
 export const methods = [
 	'GET',
 	'POST',
@@ -60,13 +62,13 @@ export function isForm(request: Request): boolean {
 		'application/x-www-form-urlencoded',
 		'multipart/form-data',
 		'text/plain',
-		'application/x-sveltekit-formdata'
+		`application/x-${identity.name}-formdata`
 	);
 }
 
 export function isEndpoint(request: Request): boolean {
 	if (!['GET', 'HEAD', 'POST'].includes(request.method)) return true;
-	if (request.method === 'POST' && request.headers.get('x-sveltekit-action') === 'true')
+	if (request.method === 'POST' && request.headers.get(`x-${identity.name}-action`) === 'true')
 		return false;
 	return negotiate(request.headers.get('accept') ?? '*/*', ['*', 'text/html']) !== 'text/html';
 }

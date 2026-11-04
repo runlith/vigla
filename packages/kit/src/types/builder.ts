@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite';
 import type { GetRequest, SetResponse } from './node.ts';
 import type { Config } from './config.ts';
+import type { Identity } from './identity.ts';
 import type { MaybePromise } from './value.ts';
 
 export interface AdapterSupportInput {
@@ -130,6 +131,7 @@ export interface InstrumentOptions {
 	module?: InstrumentModule;
 }
 export interface Builder {
+	identity: Identity;
 	log: Logger;
 	rimraf(directory: string): void;
 	mkdirp(directory: string): void;

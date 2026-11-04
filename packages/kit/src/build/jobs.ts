@@ -1,4 +1,5 @@
 import type { Analysis } from './types.ts';
+import type { Identity } from '../types/identity.ts';
 import type { Prerendered, PrerenderOption } from '../types/builder.ts';
 import type {
 	PrerenderHttpError,
@@ -9,6 +10,7 @@ import type {
 } from '../types/config.ts';
 
 export interface WorkerPlatform {
+	identity: Identity;
 	directory: string;
 	assets: string;
 	origin: string;

@@ -11,6 +11,7 @@ import type {
 	ValidationError
 } from './outcomes.ts';
 
+export type { Identity, Links } from './identity.ts';
 export type {
 	Adapter,
 	AdapterViteConfig,

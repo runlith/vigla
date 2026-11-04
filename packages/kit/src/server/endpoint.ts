@@ -4,6 +4,7 @@ import { Redirect } from '../shared/outcomes.ts';
 import type { Server } from './index.ts';
 import { runRequest } from './scope.ts';
 import * as errors from './errors.ts';
+import { identity } from '../shared/identity.ts';
 
 const bodyMethods = ['POST', 'PUT', 'PATCH', 'DELETE', 'QUERY'] as const;
 
@@ -47,7 +48,7 @@ export async function endpointResponse(
 	}
 	try {
 		const response = await server.tracer.span(
-			'sveltekit.endpoint',
+			`${identity.name}.endpoint`,
 			{ 'http.route': event.route.id ?? 'unknown', 'http.method': method },
 			async (span) => {
 				const traced = { ...event, tracing: { ...event.tracing, current: span } };
@@ -60,13 +61,13 @@ export async function endpointResponse(
 			errors.endpoint_invalid_response({ path: event.url.pathname });
 		if (!state.prerendering || (state.prerendering.insideReroute && !prerender)) return response;
 		const headers = new Headers(response.headers);
-		headers.set('x-sveltekit-prerender', String(prerender));
+		headers.set(`x-${identity.name}-prerender`, String(prerender));
 		const result = new Response(
 			state.prerendering.insideReroute ? response.clone().body : response.body,
 			{ status: response.status, statusText: response.statusText, headers }
 		);
 		if (state.prerendering.insideReroute) {
-			result.headers.set('x-sveltekit-routeid', encodeURI(event.route.id!));
+			result.headers.set(`x-${identity.name}-routeid`, encodeURI(event.route.id!));
 			state.prerendering.dependencies.set(event.url.pathname, { response: result, body: null });
 			return response;
 		}

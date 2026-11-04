@@ -9,6 +9,7 @@ import { manifestSource, serverAssets } from './manifest.ts';
 import * as e from './messages.ts';
 import type { BuildContext } from './types.ts';
 import { renderFallback } from './worker.ts';
+import { identity } from '../shared/identity.ts';
 
 export function createLogger(verbose = true): Logger {
 	const log = (message: string) => console.log(message);
@@ -60,6 +61,7 @@ export function createBuilder(context: BuildContext): Builder {
 	};
 	const serverDirectory = path.join(output, 'server');
 	const builder: Builder = {
+		identity,
 		config,
 		log: context.log,
 		routes,

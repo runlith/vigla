@@ -1,4 +1,5 @@
 import { throwDiagnostic } from '../shared/diagnostics.ts';
+import { identity } from '../shared/identity.ts';
 
 interface RouteId {
 	id: string;
@@ -159,7 +160,7 @@ export function route_layout_segment_missing({
 export function routes_not_found(): never {
 	return throwDiagnostic(
 		'routes_not_found',
-		'No routes found. If you are using a custom routes directory, make sure it is specified in your SvelteKit Vite plugin options',
+		`No routes found. If you are using a custom routes directory, make sure it is specified in your ${identity.product} Vite plugin options`,
 		routes_not_found
 	);
 }

@@ -44,6 +44,7 @@
 			"default": "./src/vite/index.ts"
 		},
 		"./internal/env": "./src/entries/internal/env.ts",
+		"./internal/identity": "./src/entries/internal/identity.ts",
 		"./internal/node": "./src/node/static.ts",
 		"./cli": "./src/sync/cli.ts"
 	},

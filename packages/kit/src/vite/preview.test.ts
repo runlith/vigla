@@ -22,9 +22,9 @@ beforeAll(async () => {
 	);
 	mkdirSync(path.join(root, 'node_modules/@sveltejs'), { recursive: true });
 	symlinkSync(packageDirectory, path.join(root, 'node_modules/@sveltejs/kit'), 'dir');
-	write('src/app.html', '<html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>');
+	write('src/app.html', '<html><head>%vigla.head%</head><body>%vigla.body%</body></html>');
 	write('src/routes/+server.js', 'export function GET() { return new Response("fixture"); }');
-	const output = '.svelte-kit/output/';
+	const output = '.vigla/output/';
 	write(output + 'package.json', '{"type":"module"}');
 	write(output + 'client/load/foo.json', '"static file"');
 	write(output + 'client/_app/immutable/asset.txt', 'immutable asset');

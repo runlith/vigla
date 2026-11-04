@@ -4,6 +4,7 @@ import type { ComponentInstance } from '../types/internal/client.ts';
 import type { ScrollPosition, SnapshotOptions } from '../types/navigation.ts';
 import { snapshot_duplicate_id } from './errors.ts';
 import type { Transport } from './transport.ts';
+import { identity } from '../shared/identity.ts';
 
 interface Registration {
 	snapshot: SnapshotOptions<any>;
@@ -28,7 +29,7 @@ export class Restoration {
 
 	constructor(key: string, hash: boolean, transport?: Transport) {
 		this.#transport = transport;
-		this.#key = `sveltekit:snapshot:${key}`;
+		this.#key = `${identity.name}:snapshot:${key}`;
 		this.#hash = hash;
 		try {
 			this.#entries = JSON.parse(sessionStorage.getItem(this.#key) ?? '{}');

@@ -4,6 +4,7 @@ import type { Config } from '../types/config.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import { experimental, parseOptions, schema } from './schema.ts';
 import * as e from './errors.ts';
+import { identity } from '../shared/identity.ts';
 
 export interface SplitConfig {
 	config: Config;
@@ -32,6 +33,7 @@ export function validateConfig(input: unknown = {}): ValidatedConfig {
 	try {
 		if (!input || typeof input !== 'object' || Array.isArray(input)) e.config_not_object();
 		const config = parseOptions(input, 'config') as ValidatedConfig;
+		config.outDir ??= identity.outDir;
 		const files = config.files;
 		files.hooks.client ??= join(files.src, 'hooks.client');
 		files.hooks.server ??= join(files.src, 'hooks.server');
@@ -51,7 +53,7 @@ export function validateConfig(input: unknown = {}): ValidatedConfig {
 		return config;
 	} catch (error) {
 		console.log(`\n${error instanceof Error ? error.message : String(error)}\n`);
-		const failure = new Error('Failed to load SvelteKit options from Vite config');
+		const failure = new Error(`Failed to load ${identity.product} options from Vite config`);
 		failure.stack = '';
 		throw failure;
 	}
@@ -93,7 +95,7 @@ export function resolveConfig(config: ValidatedConfig, root: string): ValidatedC
 		directives['require-trusted-types-for']?.includes('script') &&
 		resolved.serviceWorker.register &&
 		hasEntry(resolved.files.serviceWorker, resolved.moduleExtensions) &&
-		!directives['trusted-types']?.includes('sveltekit-trusted-url')
+		!directives['trusted-types']?.includes(`${identity.name}-trusted-url`)
 	)
 		e.config_csp_trusted_types_missing();
 	return resolved;
@@ -102,14 +104,15 @@ export function resolveConfig(config: ValidatedConfig, root: string): ValidatedC
 export function loadErrorPage(config: ValidatedConfig): string {
 	if (existsSync(config.files.errorTemplate))
 		return readFileSync(config.files.errorTemplate, 'utf8');
-	return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%sveltekit.error.message%</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,sans-serif}.error{display:flex;align-items:center;gap:1rem}.status{font-size:3rem;font-weight:200}.message{border-left:1px solid #ccc;padding-left:1rem}.message h1{font-size:1em;font-weight:400;margin:0}</style></head><body><div class="error"><span class="status">%sveltekit.status%</span><div class="message"><h1>%sveltekit.error.message%</h1></div></div></body></html>';
+	const name = identity.name;
+	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%${name}.error.message%</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,sans-serif}.error{display:flex;align-items:center;gap:1rem}.status{font-size:3rem;font-weight:200}.message{border-left:1px solid #ccc;padding-left:1rem}.message h1{font-size:1em;font-weight:400;margin:0}</style></head><body><div class="error"><span class="status">%${name}.status%</span><div class="message"><h1>%${name}.error.message%</h1></div></div></body></html>`;
 }
 
 export function loadTemplate(root: string, config: ValidatedConfig): string {
 	const file = relative(root, config.files.appTemplate);
 	if (!existsSync(config.files.appTemplate)) e.app_template_missing({ file });
 	const template = readFileSync(config.files.appTemplate, 'utf8');
-	for (const tag of ['%sveltekit.head%', '%sveltekit.body%']) {
+	for (const tag of [`%${identity.name}.head%`, `%${identity.name}.body%`]) {
 		if (!template.includes(tag)) e.app_template_tag_missing({ file, tag });
 	}
 	return template;

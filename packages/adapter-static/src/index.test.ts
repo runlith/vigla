@@ -29,6 +29,7 @@ function fixture(root: string): Builder {
 		} as unknown as Builder['config'],
 		routes: [{ id: '/dynamic', prerender: false } as RouteDefinition],
 		manifest: {} as Builder['manifest'],
+		identity: { name: 'vigla' } as Builder['identity'],
 		mimeTypes: {},
 		prerendered: {
 			pages: new Map([['/page/', { file: 'page/index.html' }]]),

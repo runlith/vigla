@@ -2,6 +2,7 @@ import path from 'node:path';
 import { uneval } from 'devalue';
 import { loadErrorPage, loadTemplate } from '../config/index.ts';
 import { escapeHtml } from '../shared/escape.ts';
+import { identity } from '../shared/identity.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { PageNode } from '../types/internal/routes.ts';
 import type { Project } from './project.ts';
@@ -54,7 +55,7 @@ export function format_response(status, request) { const url = new URL(request.u
 function templateExpression(template: string, expressions: Record<string, string>): string {
 	const parts: string[] = [];
 	let offset = 0;
-	for (const match of template.matchAll(/%sveltekit\.([^%]+)%/g)) {
+	for (const match of template.matchAll(new RegExp(`%${identity.name}\\.([^%]+)%`, 'g'))) {
 		const token = match[1]!;
 		const expression =
 			expressions[token] ??
@@ -90,7 +91,7 @@ import error from ${JSON.stringify(ids.errorTemplate)};
 import { setEnv } from ${JSON.stringify(ids.env)};
 export const options = {
 root, format: ${uneval(format)}, global: ${JSON.stringify(project.global)},
-appTemplateContainsNonce: ${template.includes('%sveltekit.nonce%')},
+appTemplateContainsNonce: ${template.includes(`%${identity.name}.nonce%`)},
 csp: ${uneval(config.csp)},
 csrf: ${uneval({ checkOrigin: !config.csrf.trustedOrigins.includes('*'), trustedOrigins: config.csrf.trustedOrigins })},
 paths: ${uneval(config.paths)}, env: { set: setEnv },

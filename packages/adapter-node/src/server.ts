@@ -5,7 +5,7 @@ import { format } from 'node:url';
 import type { Handler } from './handler.ts';
 import { Environment } from './env.ts';
 
-export function listen(handler: Handler, env: Environment): Server {
+export function listen(handler: Handler, env: Environment, shutdownEvent: string): Server {
 	const socket = env.get('SOCKET_PATH');
 	const host = env.get('HOST', '0.0.0.0')!;
 	const port = env.get('PORT', '3000')!;
@@ -54,7 +54,7 @@ export function listen(handler: Handler, env: Environment): Server {
 		server.close((error) => {
 			clearTimeout(deadline);
 			if (!error)
-				(process.emit as (event: string, reason: string) => boolean)('sveltekit:shutdown', reason);
+				(process.emit as (event: string, reason: string) => boolean)(shutdownEvent, reason);
 		});
 	};
 	const terminate = () => stop('SIGTERM');

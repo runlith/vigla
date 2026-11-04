@@ -2,6 +2,7 @@ import { hashRequest } from '../shared/hash.ts';
 import { decodeBase64 } from './stream.ts';
 import { DEV } from 'esm-env';
 import { window_fetch_in_load } from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 interface Cached {
 	body: BodyInit | null;
@@ -88,7 +89,7 @@ export class FetchCache {
 		const key = JSON.stringify([requested, digest]);
 		if (this.initial && replayable) {
 			const script = [
-				...document.querySelectorAll<HTMLScriptElement>('script[data-sveltekit-fetched]')
+				...document.querySelectorAll<HTMLScriptElement>(`script[data-${identity.name}-fetched]`)
 			].find(
 				(script) =>
 					script.getAttribute('data-url') === requested &&

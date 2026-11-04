@@ -15,7 +15,7 @@ it('selects a weighted representation and lets enhanced actions override negotia
 		isEndpoint(
 			new Request('http://app/', {
 				method: 'POST',
-				headers: { accept: 'application/json', 'x-sveltekit-action': 'true' }
+				headers: { accept: 'application/json', 'x-vigla-action': 'true' }
 			})
 		)
 	).toBe(false);

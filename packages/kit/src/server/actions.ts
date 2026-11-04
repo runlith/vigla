@@ -8,6 +8,7 @@ import { runRequest } from './scope.ts';
 import { versionHeader } from './headers.ts';
 import * as errors from './errors.ts';
 import { handleFormPost } from './remote/handler.ts';
+import { identity } from '../shared/identity.ts';
 
 export type ActionResult =
 	| { type: 'success' | 'failure'; status: number; location: string; data: unknown }
@@ -65,8 +66,8 @@ export async function runAction(
 				`Form actions expect form-encoded data — received ${event.request.headers.get('content-type')}`
 			);
 		const data = await server.tracer.span(
-			'sveltekit.form_action',
-			{ 'sveltekit.form_action.name': name, 'http.route': event.route.id ?? 'unknown' },
+			`${identity.name}.form_action`,
+			{ [`${identity.name}.form_action.name`]: name, 'http.route': event.route.id ?? 'unknown' },
 			async (span) => {
 				const traced = { ...event, tracing: { ...event.tracing, current: span } };
 				return runRequest({ ...store, event: traced }, () => actions[name]!(traced));

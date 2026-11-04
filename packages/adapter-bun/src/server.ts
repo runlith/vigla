@@ -2,7 +2,7 @@ import { statSync, unlinkSync } from 'node:fs';
 import type { Server } from 'bun';
 import type { Application } from './handler.ts';
 
-export function listen(app: Application): Server<undefined> {
+export function listen(app: Application, shutdownEvent: string): Server<undefined> {
 	if (Bun.semver.order(Bun.version, '1.4.0') < 0)
 		throw new Error(`adapter-bun requires Bun 1.4 or newer; found ${Bun.version}`);
 	const { env } = app;
@@ -48,7 +48,7 @@ export function listen(app: Application): Server<undefined> {
 		if (!drained) await server.stop(true);
 		process.off('SIGTERM', terminate);
 		process.off('SIGINT', interrupt);
-		(process.emit as (event: string, reason: string) => boolean)('sveltekit:shutdown', reason);
+		(process.emit as (event: string, reason: string) => boolean)(shutdownEvent, reason);
 	};
 	const terminate = () => {
 		void stop('SIGTERM');

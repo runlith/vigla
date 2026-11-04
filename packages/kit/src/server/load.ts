@@ -9,6 +9,7 @@ import { runRequest } from './scope.ts';
 import { replayFetch } from './replay.ts';
 import { restrictSearch } from './url.ts';
 import * as warnings from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 export interface LoadedNode {
 	depth: number;
@@ -124,11 +125,11 @@ export async function serverLoad(
 		}
 	};
 	const result: unknown = await server.tracer.span(
-		'sveltekit.load',
+		`${identity.name}.load`,
 		{
-			'sveltekit.load.node_id': node.server_id || 'unknown',
-			'sveltekit.load.node_type': nodeType(node.server_id),
-			'sveltekit.load.environment': 'server',
+			[`${identity.name}.load.node_id`]: node.server_id || 'unknown',
+			[`${identity.name}.load.node_type`]: nodeType(node.server_id),
+			[`${identity.name}.load.environment`]: 'server',
 			'http.route': event.route.id ?? 'unknown'
 		},
 		async (span) => {
@@ -157,11 +158,11 @@ export async function universalLoad(
 	if (!node.universal?.load) return serverData?.data ?? null;
 	const { event } = store;
 	const result: unknown = await server.tracer.span(
-		'sveltekit.load',
+		`${identity.name}.load`,
 		{
-			'sveltekit.load.node_id': node.universal_id || 'unknown',
-			'sveltekit.load.node_type': nodeType(node.universal_id),
-			'sveltekit.load.environment': 'server',
+			[`${identity.name}.load.node_id`]: node.universal_id || 'unknown',
+			[`${identity.name}.load.node_type`]: nodeType(node.universal_id),
+			[`${identity.name}.load.environment`]: 'server',
 			'http.route': event.route.id ?? 'unknown'
 		},
 		async (span) =>

@@ -11,6 +11,7 @@ import { Query, type QueryFlight, type QueryKind } from './query.ts';
 import { LiveQuery } from './live.ts';
 import { Forms } from './form.ts';
 import { Command } from './command.ts';
+import { identity } from '../../shared/identity.ts';
 
 export type QueryType = QueryKind | 'query_live';
 type Resource = Query<any> | LiveQuery<any>;
@@ -342,10 +343,11 @@ export class Remotes {
 		return (this.#persistent ??= (async () => {
 			if (typeof caches === 'undefined') return;
 			try {
-				const name = `sveltekit:${DEV ? Date.now() : payload.version}`;
+				const prefix = `${identity.name}:`;
+				const name = `${prefix}${DEV ? Date.now() : payload.version}`;
 				const cache = await caches.open(name);
 				for (const key of await caches.keys())
-					if (key.startsWith('sveltekit:') && key !== name) await caches.delete(key);
+					if (key.startsWith(prefix) && key !== name) await caches.delete(key);
 				return cache;
 			} catch {
 				return;

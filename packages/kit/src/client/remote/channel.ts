@@ -5,6 +5,7 @@ import type { Client } from '../client.ts';
 import { payload } from '../payload.ts';
 import { readStream } from '../stream.ts';
 import type { QueryFlight } from './query.ts';
+import { identity } from '../../shared/identity.ts';
 
 function object(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -64,7 +65,10 @@ export class Channel {
 		return untrack(() => {
 			const url = this.client.state.navigation.current?.to?.url ?? this.client.state.page.url;
 			const current = url.protocol === 'a:' ? new URL(location.href) : url;
-			return { 'x-sveltekit-pathname': current.pathname, 'x-sveltekit-search': current.search };
+			return {
+				[`x-${identity.name}-pathname`]: current.pathname,
+				[`x-${identity.name}-search`]: current.search
+			};
 		});
 	}
 
@@ -96,7 +100,7 @@ export class Channel {
 			? AbortSignal.any([init.signal, this.#controller.signal])
 			: this.#controller.signal;
 		const result = await fetch(url, { ...init, signal });
-		this.client.state.notify(result.headers.get('x-sveltekit-version'));
+		this.client.state.notify(result.headers.get(`x-${identity.name}-version`));
 		if (!result.ok) {
 			const body: unknown = await result.json().catch(() => undefined);
 			throw new HttpError(

@@ -1,4 +1,5 @@
 import type { Transport } from './transport.ts';
+import { identity } from '../shared/identity.ts';
 
 export interface Metadata {
 	historyIndex: number;
@@ -12,7 +13,7 @@ export interface SavedState {
 	serialized: string;
 	value: App.PageState;
 }
-export const metadataKey = 'sveltekit:metadata';
+export const metadataKey = `${identity.name}:metadata`;
 
 export class History {
 	index: number;

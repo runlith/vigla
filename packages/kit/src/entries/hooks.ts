@@ -1,6 +1,7 @@
 import type { Handle, ResolveOptions } from '../types/hooks.ts';
 import type { RequestEvent } from '../types/request.ts';
 import { findRequest, runRequest } from '../server/scope.ts';
+import { identity } from '../shared/identity.ts';
 
 export type {
 	CaughtError,
@@ -52,7 +53,7 @@ export function sequence(...handlers: Handle[]): Handle {
 				});
 			if (!store) return call(event);
 			return store.tracer.span(
-				`sveltekit.handle.sequenced.${handler.name || index}`,
+				`${identity.name}.handle.sequenced.${handler.name || index}`,
 				{},
 				async (span) => {
 					const traced = { ...event, tracing: { ...event.tracing, current: span } };

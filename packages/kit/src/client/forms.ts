@@ -10,6 +10,7 @@ import { HttpError, FrameworkError } from '../shared/outcomes.ts';
 import { client } from './client.ts';
 import { enhance_file_without_enctype, enhance_invalid_method } from './errors.ts';
 import { enhance_invalidate_all_deprecated } from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 export function deserialize<
 	Success extends Record<string, unknown> | undefined = Record<string, any>,
@@ -83,7 +84,10 @@ export function enhance<
 		const formData = input.formData;
 		let result: ActionResult;
 		try {
-			const headers = new Headers({ accept: 'application/json', 'x-sveltekit-action': 'true' });
+			const headers = new Headers({
+				accept: 'application/json',
+				[`x-${identity.name}-action`]: 'true'
+			});
 			let body: FormData | URLSearchParams = formData;
 			if (enctype !== 'multipart/form-data') {
 				headers.set(
@@ -103,7 +107,7 @@ export function enhance<
 				signal: controller.signal,
 				cache: 'no-store'
 			});
-			runtime.state.notify(response.headers.get('x-sveltekit-version'));
+			runtime.state.notify(response.headers.get(`x-${identity.name}-version`));
 			const text = await response.text();
 			let parsed: any;
 			try {

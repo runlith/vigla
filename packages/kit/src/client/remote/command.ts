@@ -2,7 +2,7 @@ import { cell, untrack } from 'vigla';
 import { DEV } from 'esm-env';
 import type { RemoteCommand, UpdatingPromise } from '../../types/remote.ts';
 import { encodeCommand } from '../../shared/remote.ts';
-import { throwDiagnostic } from '../../shared/diagnostics.ts';
+import { throwCode, throwDiagnostic } from '../../shared/diagnostics.ts';
 import { client } from '../client.ts';
 import type { Remotes } from './cache.ts';
 import { updating } from './updates.ts';
@@ -47,7 +47,7 @@ export class Command {
 						'Cannot redirect from a command. Return a result and call goto() instead',
 						this.invoke
 					);
-				throw new Error('https://svelte.dev/e/kit/remote_command_redirect');
+				throwCode('remote_command_redirect');
 			}
 			remote.failMissing(updates?.refreshes);
 			return result._;

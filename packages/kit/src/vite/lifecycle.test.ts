@@ -29,7 +29,7 @@ beforeAll(() => {
 		`import { kit } from '@sveltejs/kit/vite';
 		export default { plugins: [kit()], test: { include: ['runtime.test.js'] } };`
 	);
-	write('src/app.html', '<html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>');
+	write('src/app.html', '<html><head>%vigla.head%</head><body>%vigla.body%</body></html>');
 	write(
 		'src/env.js',
 		`import { defineEnvVars } from '@sveltejs/kit/env';

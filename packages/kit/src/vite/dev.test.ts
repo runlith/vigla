@@ -35,7 +35,7 @@ beforeAll(async () => {
 		path.join(root, 'node_modules/vite'),
 		'dir'
 	);
-	write('src/app.html', '<html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>');
+	write('src/app.html', '<html><head>%vigla.head%</head><body>%vigla.body%</body></html>');
 	write(
 		'src/hooks.server.js',
 		'export function handleError({ error }) { return { message: error.message, stack: error.stack }; }'
@@ -171,7 +171,7 @@ test('dev read streams imported project and filesystem URLs with their asset siz
 });
 
 test('generated route-node URLs are served from the application output directory', async () => {
-	const response = await fetch(origin + '/.svelte-kit/generated/dev/client/nodes/2.js');
+	const response = await fetch(origin + '/.vigla/generated/dev/client/nodes/2.js');
 	expect(response.status, await response.clone().text()).toBe(200);
 	expect(response.headers.get('content-type')).toContain('javascript');
 	expect(await response.text()).toContain('universal');

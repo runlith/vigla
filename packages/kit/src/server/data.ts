@@ -17,6 +17,7 @@ import { handleError } from './failure.ts';
 import { Chunks, streamText } from './stream.ts';
 import { versionHeader } from './headers.ts';
 import * as errors from './errors.ts';
+import { identity } from '../shared/identity.ts';
 
 export function serializedUses(uses: Uses): SerializedUses {
 	const value: SerializedUses = {};
@@ -208,7 +209,7 @@ export async function dataResponse(
 		const { data, chunks } = new DataSerializer(server, store, false).serialize(nodes);
 		return new Response(chunks ? streamText(data, chunks) : data, {
 			headers: {
-				'content-type': chunks ? 'text/sveltekit-data' : 'application/json',
+				'content-type': chunks ? `text/${identity.name}-data` : 'application/json',
 				'cache-control': 'private, no-store',
 				...versionHeader(server.options)
 			}

@@ -4,4 +4,4 @@
 
 ## link_option_replaced
 
-> `data-sveltekit-%name%="true"` has been replaced with `data-sveltekit-reset="false"`
+> `data-%identity%-%name%="true"` has been replaced with `data-%identity%-reset="false"`

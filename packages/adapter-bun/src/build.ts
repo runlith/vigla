@@ -138,7 +138,7 @@ export async function build(builder: Builder, options: Options): Promise<void> {
 	const entry = path.join(stage, 'index.js');
 	writeFileSync(
 		entry,
-		`import { app } from './handler.js';\nimport { listen } from './runtime.js';\nexport const server = listen(app);\n`
+		`import { app } from './handler.js';\nimport { listen } from './runtime.js';\nexport const server = listen(app, ${JSON.stringify(`${builder.identity.name}:shutdown`)});\n`
 	);
 	if (builder.hasServerInstrumentationFile())
 		builder.instrument({

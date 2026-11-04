@@ -3,6 +3,7 @@ import type { Options, PluginFactory } from '@vigla/vite-plugin';
 import type { Plugin } from 'vite';
 import type { Adapter } from './builder.ts';
 import type { CspConfig } from './csp.ts';
+import type { Identity } from './identity.ts';
 
 export interface CsrfConfig {
 	checkOrigin?: boolean;
@@ -93,11 +94,15 @@ export interface VersionConfig {
 	name?: string;
 	pollInterval?: number;
 }
-export type ExperimentalConfig = Options['experimental'] & {
+export type ExperimentalConfig<O extends object = Options> = (O extends {
+	experimental?: infer E;
+}
+	? NonNullable<E>
+	: {}) & {
 	remoteFunctions?: boolean;
 	forkPreloads?: boolean;
 };
-export interface Config extends Omit<Options, 'experimental'> {
+export interface FrameworkConfig {
 	adapter?: Adapter;
 	alias?: Record<string, string>;
 	appDir?: string;
@@ -105,7 +110,6 @@ export interface Config extends Omit<Options, 'experimental'> {
 	csrf?: CsrfConfig;
 	embedded?: boolean;
 	env?: EnvironmentConfig;
-	experimental?: ExperimentalConfig;
 	files?: ProjectFiles;
 	inlineStyleThreshold?: number;
 	moduleExtensions?: string[];
@@ -119,4 +123,12 @@ export interface Config extends Omit<Options, 'experimental'> {
 	typescript?: TypescriptConfig;
 	version?: VersionConfig;
 }
-export declare function kit(config?: Config, factory?: PluginFactory): Promise<Plugin[]>;
+export type Config<O extends object = Options> = Omit<O, 'experimental' | keyof FrameworkConfig> &
+	FrameworkConfig & { experimental?: ExperimentalConfig<O> };
+export type Framework<O extends object = Options> = (config?: Config<O>) => Promise<Plugin[]>;
+export type { Identity, Links } from './identity.ts';
+export declare function createKit<O extends object>(
+	identity: Identity,
+	factory: PluginFactory<O>
+): Framework<O>;
+export declare const kit: Framework;

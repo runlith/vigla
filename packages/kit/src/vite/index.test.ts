@@ -30,7 +30,7 @@ beforeAll(async () => {
 	);
 	mkdirSync(path.join(root, 'node_modules/@sveltejs'), { recursive: true });
 	symlinkSync(packageDirectory, path.join(root, 'node_modules/@sveltejs/kit'), 'dir');
-	write('src/app.html', '<html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>');
+	write('src/app.html', '<html><head>%vigla.head%</head><body>%vigla.body%</body></html>');
 	write('.env', 'PUBLIC_NUMBER=7\nPRIVATE_TOKEN=local-test-private\nsetEnv=present\n');
 	write(
 		'src/env.ts',

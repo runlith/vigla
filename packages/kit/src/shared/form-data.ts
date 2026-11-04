@@ -3,6 +3,7 @@ import type { BinaryFormMeta } from '../types/internal/remote.ts';
 import { HttpError } from './outcomes.ts';
 import { coerceFormValue, parseFormKey, setNestedValue } from './form-fields.ts';
 import * as errors from './errors.ts';
+import { identity } from './identity.ts';
 
 export type { BinaryFormMeta } from '../types/internal/remote.ts';
 
@@ -11,7 +12,7 @@ export interface DecodedForm {
 	meta: BinaryFormMeta;
 	formData: FormData | null;
 }
-export const BINARY_FORM_CONTENT_TYPE = 'application/x-sveltekit-formdata';
+export const BINARY_FORM_CONTENT_TYPE = `application/x-${identity.name}-formdata`;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 

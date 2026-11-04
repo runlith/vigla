@@ -30,6 +30,7 @@ import { Restoration } from './restore.ts';
 import { listen } from './links.ts';
 import * as errors from './errors.ts';
 import { goto_replace_state_deprecated } from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 interface Transition extends GotoOptions {
 	type?: NavigationType;
@@ -196,7 +197,7 @@ export class Client {
 				hydrating
 			);
 			this.current = result;
-			if (DEV) document.querySelector('style[data-sveltekit]')?.remove();
+			if (DEV) document.querySelector(`style[data-${identity.name}]`)?.remove();
 			apply();
 			this.pages.fetches.initial = false;
 			await this.view.settle();

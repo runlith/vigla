@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
 import type { Connect, EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
 import { createReadableStream, getRequest, setResponse } from '../node/index.ts';
+import { identity } from '../shared/identity.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
 import type { ConfiguredServer, ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { outsideBase, serveAsset } from './assets.ts';
@@ -351,7 +352,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						env: project.environment.values,
 						read,
 						scope,
-						assets: project.config.paths.assets ? '/_svelte_kit_assets' : project.config.paths.base,
+						assets: project.config.paths.assets ? identity.assets : project.config.paths.base,
 						fix_stack_trace: fixStack
 					});
 					const ready = instance

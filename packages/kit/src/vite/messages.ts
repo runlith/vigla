@@ -1,4 +1,5 @@
 import { throwDiagnostic, warnDiagnostic } from '../shared/diagnostics.ts';
+import { identity } from '../shared/identity.ts';
 
 interface FileMessage {
 	file: string;
@@ -96,6 +97,6 @@ export function transform_index_html_unsupported({ plugins }: PluginsMessage): v
 export function vite_config_overridden({ options }: ConfigMessage): void {
 	warnDiagnostic(
 		'vite_config_overridden',
-		`The following Vite config options will be overridden by SvelteKit:\n${options}`
+		`The following Vite config options will be overridden by ${identity.product}:\n${options}`
 	);
 }

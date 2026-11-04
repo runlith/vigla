@@ -35,6 +35,7 @@ import { FrameworkError } from './failure.ts';
 import { appEvent } from './hooks.ts';
 import { renderDocument } from './document.ts';
 import { restrictSearch } from './url.ts';
+import { identity } from '../shared/identity.ts';
 
 const subresources = new Set([
 	'audio',
@@ -93,20 +94,20 @@ export async function respond(
 	if (data) {
 		url.pathname =
 			stripDataSuffix(url.pathname) +
-				(url.searchParams.get('x-sveltekit-trailing-slash') === '1' ? '/' : '') || '/';
-		url.searchParams.delete('x-sveltekit-trailing-slash');
+				(url.searchParams.get(`x-${identity.name}-trailing-slash`) === '1' ? '/' : '') || '/';
+		url.searchParams.delete(`x-${identity.name}-trailing-slash`);
 		const mask =
-			url.searchParams.get('x-sveltekit-invalidated') ??
-			request.headers.get('x-sveltekit-invalidated');
+			url.searchParams.get(`x-${identity.name}-invalidated`) ??
+			request.headers.get(`x-${identity.name}-invalidated`);
 		invalidated = mask?.split('').map((value) => value === '1');
-		url.searchParams.delete('x-sveltekit-invalidated');
+		url.searchParams.delete(`x-${identity.name}-invalidated`);
 	} else if (resolution) url.pathname = stripResolutionSuffix(url.pathname) || '/';
-	else if (remote && request.headers.has('x-sveltekit-pathname')) {
-		url.pathname = request.headers.get('x-sveltekit-pathname')!;
-		url.search = request.headers.get('x-sveltekit-search') ?? '';
+	else if (remote && request.headers.has(`x-${identity.name}-pathname`)) {
+		url.pathname = request.headers.get(`x-${identity.name}-pathname`)!;
+		url.search = request.headers.get(`x-${identity.name}-search`) ?? '';
 	}
 	for (const key of url.searchParams.keys())
-		if (key.startsWith('x-sveltekit-'))
+		if (key.startsWith(`x-${identity.name}-`))
 			return new Response(`Cannot use reserved query parameter "${key}"`, { status: 400 });
 	const headers = new ResponseHeaders(server.options.dev);
 	const jar = new CookieJar(request, url, server.options.dev, server.cookiePaths);
@@ -161,8 +162,12 @@ export async function respond(
 			return finish(await shell(scope.store));
 		}
 		let path = url.pathname;
-		const rerouting = !remote || request.headers.has('x-sveltekit-pathname');
-		if (rerouting && server.hooks.reroute && !path.includes(`/${server.manifest.app_dir}/routes/`)) {
+		const rerouting = !remote || request.headers.has(`x-${identity.name}-pathname`);
+		if (
+			rerouting &&
+			server.hooks.reroute &&
+			!path.includes(`/${server.manifest.app_dir}/routes/`)
+		) {
 			const before = state.prerendering?.insideReroute;
 			try {
 				if (state.prerendering) state.prerendering.insideReroute = true;
@@ -226,7 +231,7 @@ export async function respond(
 				})
 			);
 		const match =
-			remote && !request.headers.has('x-sveltekit-pathname')
+			remote && !request.headers.has(`x-${identity.name}-pathname`)
 				? null
 				: findRoute(path, server.manifest.routes, await server.manifest.matchers());
 		route = match?.route;
@@ -291,7 +296,7 @@ export async function respond(
 						status: 308,
 						headers: {
 							location: relativePathname(url.pathname, normalized) + search,
-							'x-sveltekit-normalize': '1'
+							[`x-${identity.name}-normalize`]: '1'
 						}
 					});
 				}
@@ -334,7 +339,7 @@ export async function respond(
 			resolveOptions = {}
 		): Promise<Response> =>
 			server.tracer.span(
-				'sveltekit.resolve',
+				`${identity.name}.resolve`,
 				{ 'http.route': resolvedEvent.route.id ?? 'unknown' },
 				async (span) => {
 					const response = await resolveRequest(
@@ -349,13 +354,13 @@ export async function respond(
 				}
 			);
 		const response = await server.tracer.span(
-			'sveltekit.handle.root',
+			`${identity.name}.handle.root`,
 			{
 				'http.route': event.route.id ?? 'unknown',
 				'http.method': request.method,
 				'http.url': url.href,
-				'sveltekit.is_data_request': data,
-				'sveltekit.is_sub_request': !!parent
+				[`${identity.name}.is_data_request`]: data,
+				[`${identity.name}.is_sub_request`]: !!parent
 			},
 			async (span) => {
 				event.tracing = { enabled: server.options.tracing.server, root: span, current: span };
@@ -409,7 +414,7 @@ export async function respond(
 	async function notFound(store: RequestStore): Promise<Response> {
 		if (parent?.state.error) {
 			const headers = new Headers(request.headers);
-			headers.set('x-sveltekit-error', 'true');
+			headers.set(`x-${identity.name}-error`, 'true');
 			return fetch(request, { headers, redirect: 'manual' });
 		}
 		if (state.depth === 0) {
@@ -451,9 +456,9 @@ export async function respond(
 				.some((name) => name.trim().toLowerCase() === 'accept')
 		)
 			result.append('vary', 'Accept');
-		if (state.rerouted) result.set('x-sveltekit-rerouted-url', state.rerouted);
+		if (state.rerouted) result.set(`x-${identity.name}-rerouted-url`, state.rerouted);
 		if (state.prerendering && event.route.id)
-			result.set('x-sveltekit-routeid', encodeURI(event.route.id));
+			result.set(`x-${identity.name}-routeid`, encodeURI(event.route.id));
 		const etag = result.get('etag');
 		if (etag && request.headers.get('if-none-match')?.replace(/^W\//, '') === etag) {
 			void response.body?.cancel().catch(() => {});

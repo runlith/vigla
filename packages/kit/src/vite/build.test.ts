@@ -78,7 +78,7 @@ beforeAll(async () => {
 	);
 	write(
 		'src/app.html',
-		'<!doctype html><html><head>%sveltekit.head%</head><body>%sveltekit.body%</body></html>'
+		'<!doctype html><html><head>%vigla.head%</head><body>%vigla.body%</body></html>'
 	);
 	write(
 		'src/routes/+page.server.js',
@@ -159,7 +159,7 @@ afterAll(async () => {
 });
 
 test('the app builder emits Kit deployment artifacts and calls the adapter after prerendering', async () => {
-	const output = path.join(root, '.svelte-kit/output');
+	const output = path.join(root, '.vigla/output');
 	for (const file of [
 		'server/index.js',
 		'server/manifest.js',
@@ -211,7 +211,7 @@ test('preview serves prerendered output and the remaining built Server without e
 		private: 'server-only-value'
 	});
 	expect(await (await fetch(origin + '/asset.txt')).text()).toBe('built asset');
-	const directory = path.join(root, '.svelte-kit/output/server');
+	const directory = path.join(root, '.vigla/output/server');
 	const module = (await import(
 		pathToFileURL(path.join(directory, 'index.js')).href
 	)) as ServerModule;
@@ -222,7 +222,7 @@ test('preview serves prerendered output and the remaining built Server without e
 		private: 'updated-private'
 	});
 	server.set_env({ PUBLIC_BUILD: 'rendered-public-value', PRIVATE_BUILD: 'server-only-value' });
-	const client = path.join(root, '.svelte-kit/output/client');
+	const client = path.join(root, '.vigla/output/client');
 	for (const file of walk(client).filter((file) => file.endsWith('.js')))
 		expect(readFileSync(path.join(client, file), 'utf8')).not.toContain('server-only-value');
 });
@@ -240,7 +240,7 @@ test.each(['single', 'inline'] as const)(
 			build: { minify: false, assetsInlineLimit: 0 }
 		});
 		await builder.buildApp();
-		const output = path.join(root, '.svelte-kit/output');
+		const output = path.join(root, '.vigla/output');
 		const { manifest } = (await import(
 			pathToFileURL(path.join(output, 'server/manifest-full.js')).href + '?' + strategy
 		)) as { manifest: ServerManifest };

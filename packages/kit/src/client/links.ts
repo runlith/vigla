@@ -2,6 +2,7 @@ import { DEV } from 'esm-env';
 import type { Client } from './client.ts';
 import type { Metadata } from './history.ts';
 import { preload_data_failed, link_option_invalid, link_option_replaced } from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 interface Options {
 	code: number;
@@ -53,7 +54,7 @@ function options(element: Element): Options {
 	const values: Record<string, string> = {};
 	for (let node: Element | null = element; node; node = parent(node)) {
 		for (const [name, accepted] of Object.entries(valid)) {
-			const value = node.getAttribute(`data-sveltekit-${name}`);
+			const value = node.getAttribute(`data-${identity.name}-${name}`);
 			if (value === null || name in values) continue;
 			if (accepted.includes(value)) values[name] = value;
 			else if (DEV && !warned.has(node)) {
@@ -66,7 +67,7 @@ function options(element: Element): Options {
 		}
 		if (DEV && !warned.has(node)) {
 			for (const name of ['noscroll', 'keepfocus'])
-				if (node.hasAttribute(`data-sveltekit-${name}`)) {
+				if (node.hasAttribute(`data-${identity.name}-${name}`)) {
 					warned.add(node);
 					link_option_replaced({ name });
 				}
@@ -340,9 +341,9 @@ export function listen(client: Client): Listeners {
 				attributes: true,
 				attributeFilter: [
 					'href',
-					'data-sveltekit-preload-code',
-					'data-sveltekit-preload-data',
-					'data-sveltekit-reload'
+					`data-${identity.name}-preload-code`,
+					`data-${identity.name}-preload-data`,
+					`data-${identity.name}-reload`
 				]
 			});
 			scan(container);

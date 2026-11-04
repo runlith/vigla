@@ -61,6 +61,7 @@ function fixture(root: string): Builder {
 		},
 		routes: [],
 		manifest: {} as Builder['manifest'],
+		identity: { name: 'vigla' } as Builder['identity'],
 		mimeTypes: { '.txt': 'text/plain', '.html': 'text/html', '.js': 'text/javascript' },
 		rimraf: (directory) => rmSync(directory, { recursive: true, force: true }),
 		mkdirp: (directory) => {
@@ -296,7 +297,7 @@ test('the shipped listener reports its assigned IPv6 port and force-closes a str
 		assert.equal(events.headers.get('x-accel-buffering'), 'no');
 		const reader = events.body!.getReader();
 		await reader.read();
-		const stopped = once(process, 'sveltekit:shutdown');
+		const stopped = once(process, 'vigla:shutdown');
 		process.emit('SIGTERM');
 		assert.deepEqual(await stopped, ['SIGTERM']);
 		await assert.rejects(reader.read());

@@ -1,4 +1,5 @@
 import { warnDiagnostic } from '../shared/diagnostics.ts';
+import { identity } from '../shared/identity.ts';
 
 interface Route {
 	id: string;
@@ -63,7 +64,7 @@ export function link_option_invalid(values: Link): void {
 export function link_option_replaced(values: { name: string }): void {
 	warnDiagnostic(
 		'link_option_replaced',
-		`\`data-sveltekit-${values.name}="true"\` has been replaced with \`data-sveltekit-reset="false"\``
+		`\`data-${identity.name}-${values.name}="true"\` has been replaced with \`data-${identity.name}-reset="false"\``
 	);
 }
 export function enhance_invalidate_all_deprecated(): void {

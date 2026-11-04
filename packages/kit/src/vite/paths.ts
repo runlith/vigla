@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
+import { identity } from '../shared/identity.ts';
 
 export const packageDirectory = fileURLToPath(new URL('../../', import.meta.url));
 export const codeDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -104,8 +105,7 @@ export function isRemoteModule(id: string): boolean {
 		const file = path.join(directory, 'package.json');
 		if (existsSync(file)) {
 			const manifest = JSON.parse(readFileSync(file, 'utf8')) as PackageManifest;
-			if (manifest.peerDependencies?.['@sveltejs/kit'] || manifest.peerDependencies?.['@vigla/kit'])
-				return true;
+			if (identity.packages.some((name) => manifest.peerDependencies?.[name])) return true;
 		}
 		const parent = path.dirname(directory);
 		if (parent === directory) break;

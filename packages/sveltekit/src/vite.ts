@@ -1,9 +1,7 @@
-import { kit, type Config } from '@vigla/kit/vite';
-import { svelte } from '@vigla/vite-plugin-svelte';
-import type { Plugin } from 'vite';
+import { createKit, type Framework } from '@vigla/kit/vite';
+import { svelte, type Options } from '@vigla/vite-plugin-svelte';
+import { identity } from './identity.ts';
 
 export type * from '@vigla/kit/vite';
 
-export function sveltekit(config?: Config): Promise<Plugin[]> {
-	return kit(config, svelte);
-}
+export const sveltekit: Framework<Options> = createKit(identity, svelte);

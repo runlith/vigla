@@ -32,7 +32,7 @@ test('fills defaults from files.src and resolves them against the Vite root with
 	expect(resolved.files.routes).toBe(join(root, 'source/routes'));
 	expect(resolved.files.hooks.server).toBe(join(root, 'source/hooks.server'));
 	expect(resolved.files.assets).toBe(join(root, 'public'));
-	expect(resolved.outDir).toBe(join(root, '.svelte-kit'));
+	expect(resolved.outDir).toBe(join(root, '.vigla'));
 	expect(resolved.env.dir).toBe(root);
 	expect(resolved.paths).toEqual({ base: '', assets: '', origin: undefined, relative: true });
 	expect(resolved.output.bundleStrategy).toBe('split');
@@ -146,9 +146,7 @@ test.each([
 		.spyOn(console, 'log')
 		.mockImplementation((message) => messages.push(String(message)));
 	try {
-		expect(() => validateConfig(input)).toThrow(
-			'Failed to load SvelteKit options from Vite config'
-		);
+		expect(() => validateConfig(input)).toThrow('Failed to load Kit options from Vite config');
 		expect(messages.join('\n')).toContain(code);
 		expect(messages.join('\n')).toContain(keypath);
 	} finally {
@@ -211,11 +209,11 @@ test('loads the app template and diagnoses its missing placeholders', () => {
 	const root = project();
 	const config = resolveConfig(validateConfig({ files: { src: 'source' } }), root);
 	expect(() => loadTemplate(root, config)).toThrow('app_template_missing');
-	writeFileSync(config.files.appTemplate, '%sveltekit.head%');
+	writeFileSync(config.files.appTemplate, '%vigla.head%');
 	expect(() => loadTemplate(root, config)).toThrow('app_template_tag_missing');
-	writeFileSync(config.files.appTemplate, '%sveltekit.head%|%sveltekit.body%');
-	expect(loadTemplate(root, config)).toBe('%sveltekit.head%|%sveltekit.body%');
-	expect(loadErrorPage(config)).toContain('%sveltekit.error.message%');
+	writeFileSync(config.files.appTemplate, '%vigla.head%|%vigla.body%');
+	expect(loadTemplate(root, config)).toBe('%vigla.head%|%vigla.body%');
+	expect(loadErrorPage(config)).toContain('%vigla.error.message%');
 	writeFileSync(config.files.errorTemplate, 'custom error');
 	expect(loadErrorPage(config)).toBe('custom error');
 });

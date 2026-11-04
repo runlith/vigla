@@ -11,6 +11,7 @@ import type { PrerenderedAsset, PrerenderedPage, PrerenderedRedirect } from '../
 import type { ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { outsideBase } from './assets.ts';
 import type { Project } from './project.ts';
+import { identity } from '../shared/identity.ts';
 
 const scope = new AsyncLocalStorage();
 
@@ -36,9 +37,7 @@ export async function configurePreview(
 		manifest: ServerManifest;
 	};
 	const remotePrefix = `/${manifest.app_path}/remote/`;
-	const assetsPrefix = project.config.paths.assets
-		? '/_svelte_kit_assets'
-		: project.config.paths.base;
+	const assetsPrefix = project.config.paths.assets ? identity.assets : project.config.paths.base;
 	const read = (root: string, file: string) => {
 		const absolute = path.resolve(root, file);
 		return absolute.startsWith(root + path.sep) && existsSync(absolute)

@@ -301,7 +301,7 @@ test('navigation can be cancelled or awaited, publishes navigating and finishes 
 test('hydration reruns universal load with replayed server fetch and decoded action data', async () => {
 	const response = document.createElement('script');
 	response.type = 'application/json';
-	response.setAttribute('data-sveltekit-fetched', '');
+	response.setAttribute('data-vigla-fetched', '');
 	response.setAttribute('data-url', '/api');
 	response.textContent = JSON.stringify({
 		body: '{"value":4}',
@@ -389,10 +389,7 @@ test('NDJSON and form data codecs create state under the tab owner', async () =>
 	app.decoders.Context = (value) => ({ value, owner: getOwner(), context: getContext(key) });
 	vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
 		const url = new URL(input instanceof Request ? input.url : input, location.href);
-		if (
-			url.pathname !== '/one/__data.json' ||
-			url.searchParams.get('x-sveltekit-invalidated') !== '01'
-		)
+		if (url.pathname !== '/one/__data.json' || url.searchParams.get('x-vigla-invalidated') !== '01')
 			return new Response(null, { status: 404 });
 		return new Response(
 			JSON.stringify({ type: 'data', nodes: [null, { type: 'data', data: encoded, uses: {} }] })
@@ -432,7 +429,7 @@ test('enhanced actions preserve native submitter data, update form status and no
 				location: '/one',
 				data: JSON.stringify([{ submitted: 1 }, body.get('name') + ':' + body.get('submit')])
 			}),
-			{ status: 422, headers: { 'x-sveltekit-version': 'two' } }
+			{ status: 422, headers: { 'x-vigla-version': 'two' } }
 		);
 	});
 	const enhancement = enhance(form);
@@ -494,8 +491,8 @@ test('inherited link preloading transfers its data and reset false preserves foc
 	};
 	await start(app, document.querySelector('main')!);
 	const section = document.createElement('section');
-	section.setAttribute('data-sveltekit-preload-data', 'hover');
-	section.setAttribute('data-sveltekit-reset', 'false');
+	section.setAttribute('data-vigla-preload-data', 'hover');
+	section.setAttribute('data-vigla-reset', 'false');
 	section.innerHTML = '<input><a href="/two">two</a>';
 	document.body.append(section);
 	const input = section.querySelector('input')!;
@@ -796,13 +793,13 @@ test('native fragment entries update page.url and traverse without navigation li
 	await start(app, document.querySelector('main')!);
 	const link = document.createElement('a');
 	link.href = '#section';
-	link.setAttribute('data-sveltekit-reload', '');
+	link.setAttribute('data-vigla-reload', '');
 	document.body.append(link);
-	const index = history.state['sveltekit:metadata'].historyIndex;
+	const index = history.state['vigla:metadata'].historyIndex;
 	link.click();
 	await vi.waitFor(() => {
 		expect(location.hash).toBe('#section');
-		expect(history.state['sveltekit:metadata'].historyIndex).toBe(index + 1);
+		expect(history.state['vigla:metadata'].historyIndex).toBe(index + 1);
 		expect(page.url.hash).toBe('#section');
 	});
 	history.back();

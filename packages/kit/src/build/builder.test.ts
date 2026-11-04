@@ -17,7 +17,7 @@ beforeAll(() => {
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
 function context(name: string): BuildContext {
 	const root = path.join(directory, name);
-	const config = resolveConfig(validateConfig({ outDir: '.svelte-kit' }), root);
+	const config = resolveConfig(validateConfig({ outDir: '.vigla' }), root);
 	return {
 		root,
 		config,

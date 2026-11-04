@@ -13,6 +13,7 @@ import type { PolicyReporter, PrerenderJob, PrerenderResult } from './jobs.ts';
 import { Queue } from './queue.ts';
 import { reader, type Runtime } from './runtime.ts';
 import * as e from './messages.ts';
+import { identity } from '../shared/identity.ts';
 
 export async function renderShell(
 	runtime: Runtime,
@@ -98,7 +99,7 @@ export async function prerender(
 		referenceType: 'linked' | 'fetched' = 'linked'
 	): Promise<void> {
 		const pathname = decodeURI(url.pathname);
-		const encoded = response.headers.get('x-sveltekit-routeid');
+		const encoded = response.headers.get(`x-${identity.name}-routeid`);
 		const id = encoded ? decodeURI(encoded) : null;
 		if (expected && id !== expected)
 			await report({
@@ -120,7 +121,7 @@ export async function prerender(
 			}
 			const resolved = new URL(location, url);
 			enqueue(resolved.href, pathname);
-			if (response.headers.has('x-sveltekit-normalize')) return;
+			if (response.headers.has(`x-${identity.name}-normalize`)) return;
 			enqueueData(url, pathname, id);
 			if (!result.prerendered.paths.includes(pathname)) result.prerendered.paths.push(pathname);
 			result.prerendered.redirects.set(pathname, {
@@ -229,8 +230,8 @@ export async function prerender(
 		await save(url, response, new Uint8Array(await response.arrayBuffer()), referrer, expected);
 		for (const [href, dependency] of dependencies) {
 			const destination = new URL(href, url);
-			const prerender = dependency.response.headers.get('x-sveltekit-prerender');
-			const encoded = dependency.response.headers.get('x-sveltekit-routeid');
+			const prerender = dependency.response.headers.get(`x-${identity.name}-prerender`);
+			const encoded = dependency.response.headers.get(`x-${identity.name}-routeid`);
 			if (prerender && encoded !== null) {
 				const id = decodeURI(encoded);
 				if (result.prerenderMap.get(id) !== 'auto')

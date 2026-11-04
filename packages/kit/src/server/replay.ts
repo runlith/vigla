@@ -3,6 +3,7 @@ import type { Server } from './index.ts';
 import { base64, hashRequest } from '../shared/hash.ts';
 import { escapeHtml, escapeJson } from '../shared/escape.ts';
 import * as errors from './errors.ts';
+import { identity } from '../shared/identity.ts';
 
 export function replayFetch(server: Server, store: RequestStore, csr: boolean): typeof fetch {
 	const execute: typeof fetch = async (input, init) => {
@@ -71,7 +72,7 @@ export function replayFetch(server: Server, store: RequestStore, csr: boolean): 
 							const value = target.get(name);
 							if (
 								value &&
-								!name.toLowerCase().startsWith('x-sveltekit-') &&
+								!name.toLowerCase().startsWith(`x-${identity.name}-`) &&
 								!state.resolveOptions.filterSerializedResponseHeaders?.(name.toLowerCase(), value)
 							)
 								errors.load_response_header_not_serialized({
@@ -151,7 +152,7 @@ export function serializeFetched(
 	);
 	const attributes = [
 		'type="application/json"',
-		'data-sveltekit-fetched',
+		`data-${identity.name}-fetched`,
 		`data-url="${escapeHtml(fetched.url, true)}"`
 	];
 	if (fetched.is_b64) attributes.push('data-b64');

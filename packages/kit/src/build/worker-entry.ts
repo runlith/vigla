@@ -1,4 +1,5 @@
 import { enableVerboseErrors } from '../shared/diagnostics.ts';
+import { adopt } from '../shared/identity.ts';
 import { analyse } from './analysis.ts';
 import type { PolicyIssue, PolicyReply, WorkerJob, WorkerMessage } from './jobs.ts';
 import { prerender, renderShell } from './prerender.ts';
@@ -21,6 +22,7 @@ process.on('message', (message: WorkerJob | PolicyReply) => {
 process.on('disconnect', () => process.exit(1));
 process.once('message', async (job: WorkerJob) => {
 	let message: WorkerMessage;
+	adopt(job.identity);
 	try {
 		const emulator = job.kind === 'prerender' ? await loadEmulator(job) : undefined;
 		const runtime = await loadRuntime(job, job.kind !== 'analyse');

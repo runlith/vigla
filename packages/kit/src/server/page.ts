@@ -11,6 +11,7 @@ import { actionResponse, runAction, wantsActionJson, type ActionResult } from '.
 import { FrameworkError, handleError } from './failure.ts';
 import * as errors from './errors.ts';
 import * as warnings from './warnings.ts';
+import { identity } from '../shared/identity.ts';
 
 export interface PageSettings {
 	ssr: boolean;
@@ -113,7 +114,7 @@ async function renderPage(
 			csr: settings.csr
 		});
 		if (state.prerendering)
-			response.headers.set('x-sveltekit-prerender', String(settings.prerender));
+			response.headers.set(`x-${identity.name}-prerender`, String(settings.prerender));
 		return response;
 	} catch (error) {
 		return errorResponse(server, store, error, route, branch, nodes.length - 1);
@@ -132,7 +133,7 @@ export async function errorResponse(
 		return new Response(null, { status: failure.status, headers: { location: failure.location } });
 	const body = await handleError(store, failure);
 	const { event, state } = store;
-	if (!state.error && !event.request.headers.has('x-sveltekit-error')) {
+	if (!state.error && !event.request.headers.has(`x-${identity.name}-error`)) {
 		state.error = true;
 		try {
 			const candidates = route?.page?.errors ?? [1];
