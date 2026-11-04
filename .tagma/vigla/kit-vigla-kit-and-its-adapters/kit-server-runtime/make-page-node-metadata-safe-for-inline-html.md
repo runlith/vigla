@@ -6,7 +6,7 @@ tags: ["task"]
 fields:
   {
     "holder": "tagma:01a184d8-1b37-7bfc-8899-05d6b3ce2282",
-    "status": "in_work"
+    "status": "done"
   }
 edges:
   - kind: discovered-from
@@ -17,4 +17,4 @@ sources:
   - kind: file
     ref: packages/kit/src/server/data.ts
 ---
-Serialize the complete HTML page-node envelope and embedded transport decoder names safely while preserving decoded metadata and the non-HTML data wire. Implementation landed in f7b9cb2c7f with public Server.respond red-to-green checks for tracked query keys and codec names; all 52 affected server/remote cases and Kit typechecking passed. The remaining check is the frozen tracked-query browser scenario on a freshly prepared and authorized production artifact: its earlier timeout did not reach the protection assertion. No browser protection pass is established yet. The implementation ran after an external Terra model change; attribution and recognition of that scoped model exception await the operator, so no further team-initiated work is assigned to that worker.
+Serialize the complete HTML page-node envelope and embedded transport decoder names safely while preserving decoded metadata and the non-HTML data wire. Implementation landed in f7b9cb2c7f with public Server.respond red-to-green checks for tracked query keys and codec names; all 52 affected server/remote cases and Kit typechecking passed. The browser protection is established by basics' `XSS > no xss via tracked search parameters`, recorded in all twelve variants — dev and build, with and without JavaScript, server route resolution and cross-platform — and passing on 2026-11-04 at 4d3de82a. The implementation ran after an external Terra model change; attribution and recognition of that scoped model exception await the operator.
