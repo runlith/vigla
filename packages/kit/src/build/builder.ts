@@ -111,9 +111,6 @@ export function createBuilder(context: BuildContext): Builder {
 					`export const env = ${uneval(analysis.environment)};`
 				);
 		},
-		generateManifest() {
-			return e.adapter_generate_manifest_removed();
-		},
 		generateServerInstance(destination, options = {}) {
 			const directory = options.serverDirectory ?? serverDirectory;
 			const relative = specifier(path.dirname(destination), directory);

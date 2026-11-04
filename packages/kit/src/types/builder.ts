@@ -90,18 +90,6 @@ export type ValidatedConfig = RecursiveRequired<Omit<Config, 'preprocess' | 'ada
 	adapter: Adapter & { vite?: AdapterViteConfig };
 	preprocess: Config['preprocess'];
 };
-export interface ManifestOptions {
-	relativePath: string;
-	routes?: RouteDefinition[];
-}
-export interface AdapterEntryOutput {
-	generateManifest(options: ManifestOptions): string;
-}
-export interface AdapterEntry {
-	id: string;
-	filter(route: RouteDefinition): boolean;
-	complete(entry: AdapterEntryOutput): MaybePromise<void>;
-}
 export interface ServerInstanceOptions {
 	routes?: RouteDefinition[];
 	serverDirectory?: string;
@@ -140,11 +128,9 @@ export interface Builder {
 	routes: RouteDefinition[];
 	manifest: typeof import('$app/manifest');
 	mimeTypes: Record<string, string>;
-	createEntries?: (group: (route: RouteDefinition) => AdapterEntry) => Promise<void>;
 	findServerAssets(routes: RouteDefinition[]): string[];
 	generateFallback(destination: string): Promise<void>;
 	generateEnvModule(): void;
-	generateManifest?: (options: ManifestOptions) => string;
 	getBuildDirectory(name: string): string;
 	getClientDirectory(): string;
 	getServerDirectory(): string;

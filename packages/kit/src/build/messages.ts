@@ -26,13 +26,6 @@ export class BuildMessages {
 	constructor(d: Diagnostics) {
 		this.d = d;
 	}
-	adapter_generate_manifest_removed(): never {
-		this.d.raise(
-			'adapter_generate_manifest_removed',
-			'`builder.generateManifest` has been removed. Use `builder.generateServerInstance` instead.',
-			this.adapter_generate_manifest_removed
-		);
-	}
 	adapter_instrumentation_file_missing({ kind, file }: InstrumentationMessage): never {
 		this.d.raise(
 			'adapter_instrumentation_file_missing',

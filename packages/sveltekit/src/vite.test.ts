@@ -39,6 +39,24 @@ test.each([
 	}
 });
 
+test("the configured adapter's builder keeps Kit's members and raises upstream's removed generateManifest", async () => {
+	let received: { generateManifest(): string; getAppPath(): string } | undefined;
+	const plugins = await sveltekit({
+		adapter: {
+			name: 'retired',
+			adapt(builder) {
+				received = builder as never;
+			}
+		}
+	});
+	const setup = plugins.find((plugin) => plugin.name === 'kit:setup')!;
+	await setup.api.options.adapter.adapt({ getAppPath: () => '_app' });
+	expect(received!.getAppPath()).toBe('_app');
+	expect(() => received!.generateManifest()).toThrow(
+		'adapter_generate_manifest_removed\nThe `generateManifest` adapter API has been removed'
+	);
+});
+
 test('deprecated options warn under SvelteKit and still configure the app', async () => {
 	const messages: string[] = [];
 	const warn = vi
