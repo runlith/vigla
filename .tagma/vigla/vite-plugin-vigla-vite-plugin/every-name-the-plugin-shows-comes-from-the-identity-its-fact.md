@@ -5,7 +5,13 @@ ord: 10
 tags: ["explanation"]
 sources:
   - kind: file
+    ref: packages/vite-plugin-svelte/src/history.ts
+  - kind: file
     ref: packages/vite-plugin-svelte/src/index.ts
+  - kind: file
+    ref: packages/vite-plugin-svelte/src/messages.ts
+  - kind: file
+    ref: packages/vite-plugin-svelte/src/names.ts
   - kind: file
     ref: packages/vite-plugin/src/identity.ts
   - kind: file
@@ -13,13 +19,7 @@ sources:
   - kind: file
     ref: packages/vite-plugin/src/log.ts
   - kind: file
-    ref: packages/vite-plugin-svelte/src/names.ts
-  - kind: file
-    ref: packages/vite-plugin-svelte/src/history.ts
-  - kind: file
     ref: packages/vite-plugin/src/messages.ts
-  - kind: file
-    ref: packages/vite-plugin-svelte/src/messages.ts
 ---
 `createPlugin(naming)` makes a plugin factory under one identity, generic over the options it accepts (`PluginFactory<O>`, `Options` by default). The identity's `name` gives the marker plugin, every internal plugin, the runtime-scan module id, the log prefix and debug namespace, the `plugin` field of the dev overlay's config-change error and the plugin named in the controlled-options warning; the factory carries it as `marker`. Its `names` give everything else the plugin shows: the option names `prebundleLibraries` and `experimental.disableResolveWarnings`, the HMR warnings event, the style query flag, the module meta key, the optimizer's metadata file, the packages treated as shipping no sources, and the documentation links. An entry left out is the plugin's own; a link left out is omitted from its message, and the plugin carries no link of its own.
 

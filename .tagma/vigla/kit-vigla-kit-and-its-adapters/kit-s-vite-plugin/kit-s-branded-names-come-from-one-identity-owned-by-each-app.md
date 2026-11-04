@@ -8,21 +8,21 @@ edges:
     to: 01a1a3ed-6688-7f72-8a35-40a5ff420c2e
 sources:
   - kind: file
+    ref: packages/kit/src/build/worker-entry.ts
+  - kind: file
+    ref: packages/kit/src/entries/internal/identity.ts
+  - kind: file
+    ref: packages/kit/src/shared/diagnostics.ts
+  - kind: file
     ref: packages/kit/src/shared/identity.ts
   - kind: file
     ref: packages/kit/src/types/identity.ts
   - kind: file
     ref: packages/kit/src/vite/index.ts
   - kind: file
-    ref: packages/kit/src/build/worker-entry.ts
-  - kind: file
-    ref: packages/sveltekit/src/identity.ts
-  - kind: file
     ref: packages/kit/src/vite/modules.ts
   - kind: file
-    ref: packages/kit/src/entries/internal/identity.ts
-  - kind: file
-    ref: packages/kit/src/shared/diagnostics.ts
+    ref: packages/sveltekit/src/identity.ts
 ---
 Kit's code is the same under its own names and SvelteKit's because every branded name of its visible contract — link attributes, template placeholders, headers and reserved query parameters, content types, output directory, dev assets path, announcer, trusted-types policy, tracer and span names, storage keys, the adapters' shutdown event, diagnostic envelopes and links, product, plugin and command names — is derived from one `Identity` value, which also carries the link options a product has replaced, so Kit warns about another product's retired attributes without knowing them. Internal names (defines, globals, chunks, synthetic ids) are Kit's own under both and are not part of it.
 
