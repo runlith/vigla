@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, expect, test, vi } from 'vitest';
+import { beforeEach, expect, test } from 'vitest';
 import { stringify } from 'devalue';
 import { Restoration } from './restore.ts';
 

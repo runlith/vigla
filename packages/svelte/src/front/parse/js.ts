@@ -1,6 +1,5 @@
 import * as acorn from 'acorn';
 import { tsPlugin } from '@sveltejs/acorn-typescript';
-import type * as ES from 'estree';
 import type { JSComment, Located } from '../ast.ts';
 import { fail } from '../diagnostics.ts';
 import type { Locator } from '../locate.ts';

@@ -6,7 +6,6 @@ import type { Component } from 'vigla/server';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { RemoteData, RemoteExport, RemoteResponse } from '../../types/internal/remote.ts';
 import type {
-	RequestStore,
 	RootProps,
 	ServerHooks,
 	ServerManifest,

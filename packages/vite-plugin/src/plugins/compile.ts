@@ -7,7 +7,7 @@ import type { Identity } from '../identity.ts';
 import { logCompilerWarnings } from '../warnings.ts';
 
 export function compile(api: PluginAPI, identity: Identity): Plugin {
-	const { name, log, names } = identity;
+	const { name, names } = identity;
 	const plugin: Plugin = {
 		name: `${name}:compile`,
 		configResolved() {

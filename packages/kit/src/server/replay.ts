@@ -1,11 +1,10 @@
 import type { Fetched, RequestStore } from '../types/internal/server.ts';
-import type { Server } from './index.ts';
 import { base64, hashRequest } from '../shared/hash.ts';
 import { escapeHtml, escapeJson } from '../shared/escape.ts';
 import * as errors from './errors.ts';
 import { identity } from '../shared/identity.ts';
 
-export function replayFetch(server: Server, store: RequestStore, csr: boolean): typeof fetch {
+export function replayFetch(store: RequestStore, csr: boolean): typeof fetch {
 	const execute: typeof fetch = async (input, init) => {
 		const { event, state } = store;
 		const url = new URL(input instanceof Request ? input.url : input, event.url);

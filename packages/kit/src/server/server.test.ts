@@ -8,7 +8,6 @@ import type { ServerInitOptions } from '../types/request.ts';
 import type { DataNode, EncodedDataResponse } from '../types/internal/data.ts';
 import type {
 	PageNode,
-	RequestStore,
 	RootProps,
 	ServerHooks,
 	ServerManifest,
@@ -364,7 +363,7 @@ it('preserves per-request async contexts across interleaved servers and disposes
 	const app = manifest();
 	app.routes = [
 		route('/[id]', async () => ({
-			GET: async (event) => {
+			GET: async () => {
 				await Promise.resolve();
 				const owner = getRequestOwner();
 				return Response.json({

@@ -172,7 +172,7 @@ export async function universalLoad(
 					params: event.params,
 					data: serverData?.data ?? null,
 					route: event.route,
-					fetch: replayFetch(server, store, csr),
+					fetch: replayFetch(store, csr),
 					setHeaders: event.setHeaders,
 					depends() {},
 					parent,
