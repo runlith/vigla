@@ -174,6 +174,7 @@ export async function preResolveOptions(
 function enforceOptionsForHmr(
 	options: ResolvedOptions,
 	viteConfig: ResolvedConfig,
+	frontEnds: readonly FrontEnd[],
 	{ names, log }: Identity
 ): void {
 	const compilerOptions = options.compilerOptions;
@@ -183,13 +184,20 @@ function enforceOptionsForHmr(
 		);
 		compilerOptions.hmr = false;
 	}
-	if (options.isServe && compilerOptions.hmr && options.emitCss && compilerOptions.cssHash) {
+	const extension = frontEnds[0]?.components[0];
+	if (
+		extension &&
+		options.isServe &&
+		compilerOptions.hmr &&
+		options.emitCss &&
+		compilerOptions.cssHash
+	) {
 		let usesFilename = false;
 		let usesCss = false;
 		compilerOptions.cssHash({
 			get filename() {
 				usesFilename = true;
-				return 'Foo.component';
+				return `Foo${extension}`;
 			},
 			get css() {
 				usesCss = true;
@@ -236,6 +244,7 @@ function removeIgnoredOptions(options: ResolvedOptions, { name, log }: Identity)
 export function resolveOptions(
 	preResolved: PreResolvedOptions,
 	viteConfig: ResolvedConfig,
+	frontEnds: readonly FrontEnd[],
 	identity: Identity
 ): ResolvedOptions {
 	const defaults = {
@@ -254,7 +263,7 @@ export function resolveOptions(
 	const { log } = identity;
 	removeIgnoredOptions(merged, identity);
 	identity.history.config?.(viteConfig, log);
-	enforceOptionsForHmr(merged, viteConfig, identity);
+	enforceOptionsForHmr(merged, viteConfig, frontEnds, identity);
 	enforceOptionsForProduction(merged, log);
 	return merged;
 }

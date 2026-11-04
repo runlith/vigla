@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { findDepPkgJsonPath } from 'vitefu';
-import { createServer, normalizePath, optimizeDeps } from 'vite';
+import { createServer, normalizePath, optimizeDeps, resolveConfig } from 'vite';
 import { expect, onTestFinished, test } from 'vitest';
 import { vigla, type PluginAPI } from './index.ts';
 
@@ -162,6 +162,55 @@ export async function preprocess(source) { return { code: source }; }
 	} finally {
 		await server.close();
 	}
+});
+
+test("probes a custom cssHash with a filename of the discovered front end's component extension", async () => {
+	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
+	onTestFinished(() => rm(root, { recursive: true, force: true }));
+	const frontend = join(root, 'node_modules', 'text-frontend');
+	await mkdir(frontend, { recursive: true });
+	await writeFile(
+		join(root, 'package.json'),
+		JSON.stringify({ type: 'module', dependencies: { 'text-frontend': '1.0.0' } })
+	);
+	await writeFile(
+		join(frontend, 'package.json'),
+		JSON.stringify({
+			name: 'text-frontend',
+			version: '1.0.0',
+			type: 'module',
+			exports: { './compiler': './compiler.js', './package.json': './package.json' },
+			vigla: {
+				frontEnd: {
+					compiler: './compiler',
+					components: ['.text'],
+					modules: { infixes: ['.text.'], extensions: ['.js'] },
+					condition: 'text',
+					config: 'text.config'
+				}
+			}
+		})
+	);
+	await writeFile(join(frontend, 'compiler.js'), 'export function compile() {}');
+	const filenames: string[] = [];
+	await resolveConfig(
+		{
+			root,
+			configFile: false,
+			logLevel: 'silent',
+			plugins: vigla({
+				configFile: false,
+				compilerOptions: {
+					cssHash: ({ filename }: { filename: string }) => {
+						filenames.push(filename);
+						return 'hash';
+					}
+				}
+			})
+		},
+		'serve'
+	);
+	expect(filenames).toEqual(['Foo.text']);
 });
 
 test('leaves ordinary JavaScript and dependencies alone when no front end is installed', async () => {

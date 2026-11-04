@@ -40,7 +40,7 @@ export function configure(api: PluginAPI, identity: Identity, inline?: RawOption
 		configResolved: {
 			order: 'pre',
 			handler(config) {
-				api.options = resolveOptions(preResolved, config, identity);
+				api.options = resolveOptions(preResolved, config, api.frontEnds, identity);
 				api.moduleOptions = {
 					...preResolved.compilerOptions,
 					dev: api.options.compilerOptions.dev
