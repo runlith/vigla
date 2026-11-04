@@ -5,7 +5,6 @@ import MagicString from 'magic-string';
 import type { ESTree, Rolldown } from 'vite';
 import { write } from '../build/index.ts';
 import type { Project } from './project.ts';
-import { diagnosticText } from '../shared/diagnostics.ts';
 
 interface OutputModule {
 	file: string;
@@ -43,7 +42,7 @@ export async function pruneRemotes(project: Project): Promise<void> {
 	const modules = new Map<string, OutputModule>();
 	const changed = new Set<OutputModule>();
 	const replaced = new Set<ESTree.VariableDeclarator>();
-	const message = diagnosticText(
+	const message = project.diagnostics.text(
 		'remote_prerender_not_dynamic',
 		'Unexpectedly called `prerender` function. Did you forget to set `{ dynamic: true }`?'
 	);

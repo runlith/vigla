@@ -19,6 +19,7 @@ import { packageDirectory } from './paths.ts';
 import type { Project } from './project.ts';
 import { createRemotePlugin } from './remote.ts';
 import { pruneRemotes } from './remote-build.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
 import { own } from '../shared/identity.ts';
 
 const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'kit-remote-build-')));
@@ -57,7 +58,8 @@ export { saved as two } from './two/data.remote.js';
 		root,
 		name: '@vigla/kit',
 		api,
-		config: { experimental: { remoteFunctions: true } }
+		config: { experimental: { remoteFunctions: true } },
+		diagnostics: diagnostics(own)
 	} as Project;
 	const remote = createRemotePlugin(() => project, own);
 	const directory = path.join(root, 'output/server');
