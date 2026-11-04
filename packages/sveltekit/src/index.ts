@@ -1,33 +1,19 @@
-/// <reference path="../types/history.d.ts" preserve="true" />
 import { DEV } from 'esm-env';
-import type {
-	Builder as KitBuilder,
-	error as kitError,
-	redirect as kitRedirect,
-	RouteDefinition
-} from '@vigla/kit';
+import type { redirect as kitRedirect } from '@vigla/kit';
 import { outcomes } from '@vigla/kit/internal/identity';
 import { warnDiagnostic } from './history/diagnostics.ts';
 import { identity } from './identity.ts';
+import type { ErrorFunction, ErrorProperties, LegacyErrorBody } from './types/index.ts';
 
 export * from '@vigla/kit';
+export type {
+	AdapterEntry,
+	Builder,
+	ErrorFunction,
+	ErrorProperties,
+	LegacyErrorBody
+} from './types/index.ts';
 export const VERSION = '3.1.0';
-
-export type ErrorProperties = Omit<App.Error, 'status' | 'message'>;
-export type LegacyErrorBody = Omit<App.Error, 'status'> & { status?: App.Error['status'] };
-export type ErrorFunction = typeof kitError & ((status: number, body: LegacyErrorBody) => never);
-
-export interface AdapterEntry {
-	id: string;
-	filter(route: RouteDefinition): boolean;
-	complete(entry: {
-		generateManifest(options: { relativePath: string }): string;
-	}): void | Promise<void>;
-}
-export interface Builder extends KitBuilder {
-	createEntries?: (fn: (route: RouteDefinition) => AdapterEntry) => Promise<void>;
-	generateManifest?: (options: { relativePath: string; routes?: RouteDefinition[] }) => string;
-}
 
 type Raise = (status: number, message?: string, properties?: ErrorProperties) => never;
 

@@ -19,17 +19,29 @@
 	},
 	"exports": {
 		"./package.json": "./package.json",
-		".": "./src/index.ts",
+		".": {
+			"types": "./src/types/index.ts",
+			"default": "./src/index.ts"
+		},
 		"./internal/env": "./src/internal/env.ts",
 		"./internal/server": "./src/internal/server.ts",
 		"./internal/client": "./src/internal/client.ts",
 		"./internal/payload": "./src/internal/payload.ts",
 		"./internal/restore": "./src/internal/restore.ts",
-		"./adapter": "./src/adapter.ts",
+		"./adapter": {
+			"types": "./src/types/adapter.ts",
+			"default": "./src/adapter.ts"
+		},
 		"./node": "./src/node.ts",
-		"./hooks": "./src/hooks.ts",
+		"./hooks": {
+			"types": "./src/types/hooks.ts",
+			"default": "./src/hooks.ts"
+		},
 		"./env": "./src/env.ts",
-		"./params": "./src/params.ts",
+		"./params": {
+			"types": "./src/types/params.ts",
+			"default": "./src/params.ts"
+		},
 		"./vite": "./src/vite.ts"
 	},
 	"dependencies": {
