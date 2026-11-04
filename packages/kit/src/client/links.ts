@@ -169,7 +169,7 @@ export function listen(client: Client): Listeners {
 			link.url.href.includes('#') &&
 			!link.options.replace
 		) {
-			client.restoration.capture(client.history.index, client.view.components);
+			client.restoration.capture(client.history, client.view.components);
 			if (link.url.href === location.href) {
 				event.preventDefault();
 				client.restoration.scroll(link.url, true);
@@ -226,7 +226,7 @@ export function listen(client: Client): Listeners {
 			(hash ||
 				(client.navigated &&
 					(metadata.pageUrl === undefined || metadata.pageUrl === location.href)));
-		client.restoration.capture(client.history.index, client.view.components);
+		client.restoration.capture(client.history, client.view.components);
 		client.history.accept(metadata);
 		void client
 			.navigate(new URL(location.href), {
@@ -243,11 +243,11 @@ export function listen(client: Client): Listeners {
 	listener(window, 'hashchange', () => {
 		if (!fragment) return;
 		client.history.fragment(new URL(location.href), fragment.source, fragment.reset);
-		client.restoration.clear(client.history.index);
+		client.restoration.clear(client.history);
 		fragment = undefined;
 	});
 	listener(window, 'beforeunload', (event) => {
-		client.restoration.capture(client.history.index, client.view.components);
+		client.restoration.capture(client.history, client.view.components);
 		client.restoration.persist();
 		if (
 			!client.unloading &&
@@ -260,7 +260,7 @@ export function listen(client: Client): Listeners {
 		}
 	});
 	listener(window, 'pagehide', () => {
-		client.restoration.capture(client.history.index, client.view.components);
+		client.restoration.capture(client.history, client.view.components);
 		client.restoration.persist();
 	});
 	listener(window, 'focus', () => {

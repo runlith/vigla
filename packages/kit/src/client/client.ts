@@ -92,11 +92,7 @@ export class Client {
 			bindState(this.state);
 		});
 		this.history = new History(this.transport);
-		this.restoration = new Restoration(
-			payload.app_path ?? payload.base ?? '',
-			this.routes.hash,
-			this.transport
-		);
+		this.restoration = new Restoration(this.routes.hash, this.transport);
 		this.pages = new Pages(
 			app,
 			this.owner,
@@ -207,7 +203,7 @@ export class Client {
 			const navigation = this.navigation(url, 'enter', {}, result) as NavigationEnter;
 			navigation.to!.scroll = { x: window.scrollX, y: window.scrollY };
 			this.lifecycle.finish(navigation);
-			this.restoration.restore(this.history.index, this.view.components);
+			this.restoration.restore(this.history, this.view.components);
 			this.started = true;
 			this.updating = false;
 			this.owner.run(() => this.state.poll());
@@ -286,9 +282,9 @@ export class Client {
 		if (!intent) errors.navigation_route_missing({ caller, url: url.href });
 		const saved = this.history.encode(state);
 		const registrations = this.restoration.registrations();
-		if (!replace) this.restoration.capture(this.history.index, this.view.components);
+		if (!replace) this.restoration.capture(this.history, this.view.components);
 		this.history.write(url, saved, replace, true, false, this.current?.url, false);
-		this.restoration.clear(this.history.index, !replace);
+		this.restoration.clear(this.history, !replace);
 		this.navigated = true;
 		this.state.update({
 			state: saved.value,
@@ -412,7 +408,7 @@ export class Client {
 				return;
 			}
 			this.updating = true;
-			if (!options.popped) this.restoration.capture(this.history.index, this.view.components);
+			if (!options.popped) this.restoration.capture(this.history, this.view.components);
 			const registrations = this.restoration.registrations();
 			const reset = options.reset ?? !options.shallow;
 			this.restoration.blur(reset);
@@ -427,7 +423,7 @@ export class Client {
 					previous?.url,
 					reset
 				);
-			if (!options.popped) this.restoration.clear(this.history.index, !options.replace);
+			if (!options.popped) this.restoration.clear(this.history, !options.replace);
 			this.navigated = true;
 			const shallow = (options.popped ? options.popped.pageUrl !== undefined : options.shallow)
 				? { params: intent.params, route: { id: intent.route.id }, url }
@@ -462,7 +458,7 @@ export class Client {
 			if (navigation.to) navigation.to.scroll = { x: window.scrollX, y: window.scrollY };
 			for (const callback of after) callback();
 			if (!quiet) this.lifecycle.finish(navigation);
-			if (options.popped) this.restoration.restore(this.history.index, this.view.components);
+			if (options.popped) this.restoration.restore(this.history, this.view.components);
 			else if (reset) this.restoration.reset(registrations);
 		} catch (error) {
 			completion.reject(error);

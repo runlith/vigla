@@ -15,7 +15,12 @@ export interface SavedState {
 }
 export const metadataKey = `${identity.name}:metadata`;
 
-export class History {
+export interface HistoryEntry {
+	index: number;
+	navigation: number;
+}
+
+export class History implements HistoryEntry {
 	index: number;
 	navigation: number;
 	reset: number;
