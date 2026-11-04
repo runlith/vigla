@@ -29,12 +29,12 @@ edges:
 
 **What moves where.**
 - `@vigla/vite-plugin` exports `vigla()`; its Vite marker plugin is named `vigla`. `@vigla/vite-plugin-svelte` exports `svelte()` — the same plugins with the marker named `vite-plugin-svelte`, which third-party Vite plugins and SvelteKit look up — plus `vitePreprocess` and `loadSvelteConfig`, which exist only for `.svelte` sources and `svelte.config.js`.
-- `@vigla/kit` takes the compiler plugin factory it composes as a parameter of its Vite plugin instead of importing `svelte()`, and finds the marker by either name. `@vigla/sveltekit` re-exports every entry of `@vigla/kit` under `@sveltejs/kit`'s export keys, owns the `svelte-kit` bin and `sveltekit()`, which passes `svelte()`.
+- `@vigla/kit` takes the compiler plugin factory it composes as a parameter of its Vite plugin instead of importing `svelte()`, and finds the marker by either name. `@vigla/sveltekit` re-exports every entry of `@vigla/kit` under `@sveltejs/kit`'s export keys, owns the `svelte-kit` bin and `sveltekit()`, which passes `svelte()`, and carries SvelteKit's names and history, as [[ff420c2e]] sets out.
 - Wherever Kit emits imports of itself into an application or resolves its own install, it uses the name the application installed — `@sveltejs/kit` under the alias — because under a strict install `@vigla/kit` is only a dependency of the compatibility package.
 - The harness parts install the compatibility packages under the upstream names; `release` packs all nine packages with their workspace ranges pinned.
 
 **Acceptance.**
-- `pack` produces the ten packages above at the versions above, and every `@vigla/*` dependency is pinned to a sibling's version.
+- `pack` produces the nine packages above at the versions above, and every `@vigla/*` dependency is pinned to a sibling's version.
 - An application installed from the packed tarballs under the upstream aliases, with a strict install, builds and serves: Kit's `basics` aliased build and `svelte-check` as recorded for milestone 1, and the tagma.dev landing (`apps/tagma/site` in runlith) built and prerendered.
 - A plain Vite app using `vigla()` from `@vigla/vite-plugin` with the `@vigla/svelte` front end builds.
 - The recorded harness entries of the vite-plugin and Kit parts stay green; the run that proves it is the operator's to allow.
