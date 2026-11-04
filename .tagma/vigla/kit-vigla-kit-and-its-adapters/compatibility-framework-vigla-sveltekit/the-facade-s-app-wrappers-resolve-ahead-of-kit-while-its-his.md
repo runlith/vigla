@@ -12,6 +12,6 @@ sources:
   - kind: file
     ref: packages/sveltekit/src/vite.ts
 ---
-Kit resolves its own `$app/*` modules in a `pre` plugin, so the plugin putting `$app/navigation`, `$app/paths` and `$app/forms` behind the facade's wrappers is `pre` too and listed first; it hands each wrapper's own import of the same id on to Kit, which is how the wrapper reaches Kit's module.
+Kit resolves its own `$app/*` modules in a `pre` plugin, so the plugin putting `$app/navigation`, `$app/paths` and `$app/forms` behind the facade's wrappers is `pre` too and listed first; it hands each wrapper's own import of the same id on to Kit, which is how the wrapper reaches Kit's module. The same plugin catches the absolute import of the app's `hooks.server` and `hooks.client` files that Kit's generated modules make, recognising them by the hook paths of the resolved configuration Kit's `kit:setup` plugin exposes as `api.options`, so it follows a configured `files.hooks` without re-deriving Kit's defaults.
 
 The plugin resolving `$app/environment`, `$app/stores` and `$env/*` must not move to `pre`: Kit's server-only guard learns which files are `$env/*/private` by resolving through the later plugins, and a `pre` history plugin ahead of it would answer first, letting browser code import `$env/static/private`.
