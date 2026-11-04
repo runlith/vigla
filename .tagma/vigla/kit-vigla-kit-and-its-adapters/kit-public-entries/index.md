@@ -112,4 +112,4 @@ sources:
   - kind: file
     ref: packages/kit/vitest.config.ts
 ---
-What an app imports from Kit: `@sveltejs/kit` and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` and `$env/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit 3.1's public names; the behaviour lives in those runtimes.
+What an app imports from Kit: `@vigla/kit` (`@sveltejs/kit` through the facade) and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit's public names; the behaviour lives in those runtimes. `internal/identity` is the facade's alone: through it the facade's entries adopt SvelteKit's identity.

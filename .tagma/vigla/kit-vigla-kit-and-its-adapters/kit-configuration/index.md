@@ -35,4 +35,4 @@ sources:
   - kind: dir
     ref: packages/kit/src/config
 ---
-Kit 3's configuration as `sveltekit(config)` receives it in `vite.config`: the defaults, the validation whose errors name the offending key path, and the resolved form every build step reads, with paths settled against the Vite root. File-backed callers use the app's Vite to run its configuration hooks before consuming the resolved options.
+Kit's configuration as `kit(config)` or `sveltekit(config)` receives it in `vite.config`: the defaults, the output directory's among them taken from the identity, the validation whose errors name the offending key path, and the resolved form every build step reads, with paths settled against the Vite root. Options SvelteKit retired are not Kit's: the facade reports them before Kit validates. File-backed callers use the app's Vite to run its configuration hooks before consuming the resolved options.

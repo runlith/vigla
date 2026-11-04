@@ -29,4 +29,4 @@ sources:
   - kind: dir
     ref: packages/kit/src/build
 ---
-What happens after Vite has bundled an app: analysing the built server nodes for page options, endpoint methods and remote exports, writing the server and client manifests, prerendering by crawling the app through its own built `Server`, generating the SPA fallback, and the `Builder` an adapter receives to turn `.svelte-kit/output` into a deployment. Running the bundlers is the Vite plugin's; what a platform does with the output is its adapter's.
+What happens after Vite has bundled an app: analysing the built server nodes for page options, endpoint methods and remote exports, writing the server and client manifests, prerendering by crawling the app through its own built `Server`, generating the SPA fallback, and the `Builder` an adapter receives to turn the output directory's `output` into a deployment; the Builder carries the app's identity, by which an adapter names what it shows, such as its shutdown event. Running the bundlers is the Vite plugin's; what a platform does with the output is its adapter's.
