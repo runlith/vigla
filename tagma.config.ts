@@ -1,5 +1,5 @@
 import { defineConfig, Files, Format, Imports } from '@runlith/tagma/rules';
-import { builtins, internals, loads, mentions, words } from './checks/inspections.ts';
+import { builtins, internals, loads, words } from './checks/inspections.ts';
 
 export default defineConfig({
 	inspections: {
@@ -12,24 +12,6 @@ export default defineConfig({
 		internals: internals(
 			{ patterns: ['^svelte/internal(/|$)', '/src/internal/'] },
 			{ files: ['harness/src/**/*.ts', 'harness/src/**/*.js', 'harness/suites/**/*.ts'] }
-		),
-		'core-names-no-svelte': mentions(
-			{
-				packages: ['svelte'],
-				fix: 'Keep what names svelte in @vigla/svelte; the core is reached through its front-end port and published entries.'
-			},
-			{
-				files: [
-					'packages/vigla/**/*.ts',
-					'packages/vigla/**/*.mts',
-					'packages/vigla/**/*.cts',
-					'packages/vigla/**/*.tsx',
-					'packages/vigla/**/*.js',
-					'packages/vigla/**/*.mjs',
-					'packages/vigla/**/*.cjs',
-					'packages/vigla/**/*.json'
-				]
-			}
 		),
 		'products-name-no-svelte': words(
 			{

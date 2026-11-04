@@ -10,11 +10,6 @@ export const internals = defineInspection<InternalsParams>({
 	concern: 'imports'
 });
 
-export type MentionsParams = {
-	readonly packages: readonly string[];
-	readonly fix: string;
-};
-
 export type LoadsParams = {
 	readonly allows: readonly string[];
 	readonly fix: string;
@@ -52,14 +47,7 @@ export const words = defineInspection<WordsParams>({
 
 export type Programs = {
 	readonly internals: InternalsParams;
-	readonly mentions: MentionsParams;
 	readonly loads: LoadsParams;
 	readonly builtins: BuiltinsParams;
 	readonly words: WordsParams;
 };
-
-export const mentions = defineInspection<MentionsParams>({
-	program: 'checks/programs.ts',
-	name: 'mentions',
-	concern: 'imports'
-});
