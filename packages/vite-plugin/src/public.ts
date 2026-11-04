@@ -23,7 +23,7 @@ export interface CompileModuleOptions {
 
 export interface ExperimentalOptions {
 	sendWarningsToBrowser?: boolean;
-	disableSvelteResolveWarnings?: boolean;
+	disableResolveWarnings?: boolean;
 	compileModule?: CompileModuleOptions;
 }
 
@@ -32,7 +32,7 @@ export interface PluginOptions {
 	exclude?: Arrayable<string | RegExp>;
 	emitCss?: boolean;
 	disableDependencyReinclusion?: boolean | string[];
-	prebundleSvelteLibraries?: boolean;
+	prebundleLibraries?: boolean;
 	inspector?: boolean | object;
 	dynamicCompileOptions?: DynamicCompileOptions;
 	experimental?: ExperimentalOptions;

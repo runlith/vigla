@@ -6,7 +6,8 @@ import { toRollupError } from '../error.ts';
 import type { Identity } from '../identity.ts';
 import { logCompilerWarnings } from '../warnings.ts';
 
-export function compile(api: PluginAPI, { name, log }: Identity): Plugin {
+export function compile(api: PluginAPI, identity: Identity): Plugin {
+	const { name, log, names } = identity;
 	const plugin: Plugin = {
 		name: `${name}:compile`,
 		configResolved() {
@@ -24,21 +25,21 @@ export function compile(api: PluginAPI, { name, log }: Identity): Plugin {
 						code,
 						api.options,
 						this.environment,
-						log,
+						identity,
 						this.getCombinedSourcemap() as unknown as object
 					);
 				} catch (error) {
 					throw toRollupError(error as CompileError, api.options);
 				}
 				if (compiled.compiled.warnings) {
-					logCompilerWarnings(request, compiled.compiled.warnings, api.options, log);
+					logCompilerWarnings(request, compiled.compiled.warnings, api.options, identity);
 				}
 				return {
 					code: compiled.compiled.js.code,
 					map: compiled.compiled.js.map as never,
 					moduleType: 'js',
 					meta: {
-						svelte: { css: compiled.compiled.css }
+						[names.metaKey]: { css: compiled.compiled.css }
 					}
 				};
 			}

@@ -10,15 +10,15 @@ import {
 	resolveOptions,
 	validateInlineOptions,
 	viteRoot,
-	type PreResolvedOptions
+	type PreResolvedOptions,
+	type RawOptions
 } from '../options.ts';
-import type { Options } from '../public.ts';
 import { configureStyles } from '../preprocess.ts';
 import { buildExtraViteConfig, ensureEnvironmentResolve } from '../vite-config.ts';
 
-export function configure(api: PluginAPI, identity: Identity, inline?: Partial<Options>): Plugin {
+export function configure(api: PluginAPI, identity: Identity, inline?: RawOptions): Plugin {
 	const { log } = identity;
-	validateInlineOptions(inline, log);
+	validateInlineOptions(inline, identity);
 	let preResolved: PreResolvedOptions;
 	return {
 		name: `${identity.name}:config`,
@@ -30,9 +30,9 @@ export function configure(api: PluginAPI, identity: Identity, inline?: Partial<O
 				if (process.env.DEBUG) log.setLevel('debug');
 				else if (config.logLevel) log.setLevel(config.logLevel);
 				api.frontEnds = await frontEnds(viteRoot(config));
-				preResolved = await preResolveOptions(inline, config, env, api.frontEnds, log);
+				preResolved = await preResolveOptions(inline, config, env, api.frontEnds, identity);
 				await configureStyles(arraify(preResolved.preprocess), config);
-				const extra = await buildExtraViteConfig(preResolved, config, api.frontEnds, log);
+				const extra = await buildExtraViteConfig(preResolved, config, api.frontEnds, identity);
 				log.debug('additional vite config', extra, 'config');
 				return extra;
 			}
@@ -45,8 +45,8 @@ export function configure(api: PluginAPI, identity: Identity, inline?: Partial<O
 					...preResolved.compilerOptions,
 					dev: api.options.compilerOptions.dev
 				};
-				api.filter = buildIdFilter(api.options, api.frontEnds);
-				api.idParser = buildIdParser(api.options, api.frontEnds, log);
+				api.filter = buildIdFilter(api.options, api.frontEnds, identity);
+				api.idParser = buildIdParser(api.options, api.frontEnds, identity);
 				log.debug('resolved options', api.options, 'config');
 			}
 		},

@@ -2,14 +2,14 @@ import fs from 'node:fs';
 import type { Plugin } from 'vite';
 import type { PluginAPI } from '../api.ts';
 import type { Css } from '../compiler.ts';
-import { virtualStyle } from '../id.ts';
 import type { Identity } from '../identity.ts';
 
-interface CssMeta {
-	svelte?: { css?: Css | null };
-}
+type CssMeta = Record<string, { css?: Css | null } | undefined>;
 
-export function loadCompiledCss(api: PluginAPI, { name, log }: Identity): Plugin {
+export function loadCompiledCss(
+	api: PluginAPI,
+	{ name, log, names, virtualStyle }: Identity
+): Plugin {
 	let cached = false;
 	const kept = new Map<string, Css>();
 	const filter = { id: virtualStyle };
@@ -32,7 +32,8 @@ export function loadCompiledCss(api: PluginAPI, { name, log }: Identity): Plugin
 				const request = api.idParser(id, ssr);
 				if (!request) return undefined;
 				const meta = (moduleId: string) =>
-					(this.getModuleInfo(moduleId)?.meta as CssMeta | undefined)?.svelte?.css ?? undefined;
+					(this.getModuleInfo(moduleId)?.meta as CssMeta | undefined)?.[names.metaKey]?.css ??
+					undefined;
 				let css = meta(request.filename);
 				if (!css) {
 					const resolved = await this.resolve(request.filename);

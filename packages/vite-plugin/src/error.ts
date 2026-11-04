@@ -1,5 +1,6 @@
 import type { Rollup } from 'vite';
 import type { CompileError, PreprocessorGroup } from './compiler.ts';
+import type { Links } from './identity.ts';
 import { buildExtendedLogMessage } from './log.ts';
 import { arraify, type ResolvedOptions } from './options.ts';
 
@@ -35,7 +36,8 @@ function fixableByCssPreprocessor(code: string | undefined): boolean {
 export function enhanceCompileError(
 	error: CompileError,
 	source: string,
-	preprocess: PreprocessorGroup | PreprocessorGroup[] | undefined
+	preprocess: PreprocessorGroup | PreprocessorGroup[] | undefined,
+	links: Links
 ): CompileError {
 	const groups = arraify(preprocess);
 	const notes: string[] = [];
@@ -52,7 +54,7 @@ export function enhanceCompileError(
 			) {
 				const lang = match[1]?.match(/lang="(.+?)"/)?.[1] ?? 'style';
 				notes.push(
-					`Did you forget to add a ${lang} preprocessor? See https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/preprocess.md for more information.`
+					`Did you forget to add a ${lang} preprocessor?${links.preprocess ? ` See ${links.preprocess} for more information.` : ''}`
 				);
 			}
 		}

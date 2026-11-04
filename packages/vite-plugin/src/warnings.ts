@@ -1,5 +1,6 @@
 import type { Warning } from './compiler.ts';
 import type { ModuleRequest } from './id.ts';
+import type { Identity } from './identity.ts';
 import { buildExtendedLogMessage, type Log } from './log.ts';
 import type { ResolvedOptions } from './options.ts';
 
@@ -34,7 +35,7 @@ export function logCompilerWarnings(
 	request: ModuleRequest,
 	warnings: Warning[],
 	options: ResolvedOptions,
-	log: Log
+	{ log, names }: Identity
 ): void {
 	const { emitCss, onwarn, isBuild } = options;
 	const viaSocket = !isBuild && options.experimental?.sendWarningsToBrowser;
@@ -52,8 +53,8 @@ export function logCompilerWarnings(
 		else warn(warning);
 	}
 	if (!viaSocket) return;
-	log.debug(`sending svelte:warnings message for ${request.normalizedFilename}`);
-	options.server?.ws?.send('svelte:warnings', {
+	log.debug(`sending ${names.warningsEvent} message for ${request.normalizedFilename}`);
+	options.server?.ws?.send(names.warningsEvent, {
 		id: request.id,
 		filename: request.filename,
 		normalizedFilename: request.normalizedFilename,

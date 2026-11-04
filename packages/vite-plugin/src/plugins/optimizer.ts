@@ -15,7 +15,7 @@ import type { CompileError, CompileOptions } from '../compiler.ts';
 import { dynamicOptions } from '../compile.ts';
 import { toRollupError } from '../error.ts';
 import type { FrontEnd } from '../front-end.ts';
-import type { Identity } from '../identity.ts';
+import type { Identity, Names } from '../identity.ts';
 import type { Log } from '../log.ts';
 import { arraify, type ResolvedOptions } from '../options.ts';
 import { preprocessWith } from './preprocess.ts';
@@ -158,13 +158,17 @@ function optimizerPlugin(
 	return plugin;
 }
 
-async function metadataChanged(cacheDir: string, options: ResolvedOptions): Promise<boolean> {
+async function metadataChanged(
+	cacheDir: string,
+	options: ResolvedOptions,
+	{ metadataFile }: Names
+): Promise<boolean> {
 	const metadata: Record<string, unknown> = {};
 	for (const key of sensitive) metadata[key] = options[key];
 	const current = JSON.stringify(metadata, (_, value) =>
 		typeof value === 'function' ? value.toString() : value
 	);
-	const file = path.resolve(cacheDir, '_svelte_metadata.json');
+	const file = path.resolve(cacheDir, metadataFile);
 	let existing: string | undefined;
 	try {
 		existing = await fs.readFile(file, 'utf8');
@@ -250,8 +254,8 @@ export function setupOptimizer(api: PluginAPI, identity: Identity): Plugin {
 			viteConfig = config;
 		},
 		async buildStart() {
-			if (api.frontEnds.length === 0 || !api.options.prebundleSvelteLibraries) return;
-			if (await metadataChanged(viteConfig.cacheDir, api.options))
+			if (api.frontEnds.length === 0 || !api.options.prebundleLibraries) return;
+			if (await metadataChanged(viteConfig.cacheDir, api.options, identity.names))
 				viteConfig.optimizeDeps.force = true;
 		}
 	};

@@ -11,9 +11,11 @@ import {
 import type { CompileOptions } from './compiler.ts';
 import { loadConfigFile } from './config-file.ts';
 import type { FrontEnd } from './front-end.ts';
-import type { Identity } from './identity.ts';
+import { ownNames, type Identity, type Names } from './identity.ts';
 import type { Log } from './log.ts';
 import type { Config, Options } from './public.ts';
+
+export type RawOptions = Partial<Options>;
 
 export interface PreResolvedOptions extends Options {
 	root: string;
@@ -22,7 +24,7 @@ export interface PreResolvedOptions extends Options {
 	isDebug: boolean;
 	extensions: string[];
 	emitCss: boolean;
-	prebundleSvelteLibraries: boolean;
+	prebundleLibraries: boolean;
 }
 
 export interface ResolvedOptions extends PreResolvedOptions {
@@ -31,30 +33,53 @@ export interface ResolvedOptions extends PreResolvedOptions {
 	server?: ViteDevServer;
 }
 
-const FAQ = 'https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/faq.md';
-const cssHashLink = `${FAQ}#why-should-csshash-be-calculated-from-filename-during-dev`;
-const transformLink =
-	'https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/advanced-usage.md#transform-svelte-files-with-vite-plugins';
-
-const pluginOptions = new Set([
-	'include',
-	'exclude',
-	'emitCss',
-	'disableDependencyReinclusion',
-	'prebundleSvelteLibraries',
-	'inspector',
-	'dynamicCompileOptions',
-	'experimental'
-]);
 const rootOptions = new Set(['extensions', 'compilerOptions', 'preprocess', 'onwarn']);
-const inlineOptions = new Set(['configFile', ...pluginOptions, ...rootOptions]);
+
+function pluginOptions(names: Names): Set<string> {
+	return new Set([
+		'include',
+		'exclude',
+		'emitCss',
+		'disableDependencyReinclusion',
+		names.prebundle,
+		'inspector',
+		'dynamicCompileOptions',
+		'experimental'
+	]);
+}
+
+function toOwnNames(source: Record<string, unknown>, names: Names): Record<string, unknown> {
+	const result = { ...source };
+	if (names.prebundle !== ownNames.prebundle && names.prebundle in result) {
+		result[ownNames.prebundle] = result[names.prebundle];
+		delete result[names.prebundle];
+	}
+	const experimental = result.experimental as Record<string, unknown> | undefined;
+	if (
+		names.resolveWarnings !== ownNames.resolveWarnings &&
+		experimental != null &&
+		names.resolveWarnings in experimental
+	) {
+		const renamed = {
+			...experimental,
+			[ownNames.resolveWarnings]: experimental[names.resolveWarnings]
+		};
+		delete renamed[names.resolveWarnings];
+		result.experimental = renamed;
+	}
+	return result;
+}
 
 export function arraify<T>(value: T | T[] | null | undefined): T[] {
 	return value == null ? [] : Array.isArray(value) ? value : [value];
 }
 
-export function validateInlineOptions(options: Partial<Options> | undefined, log: Log): void {
-	const invalid = Object.keys(options ?? {}).filter((key) => !inlineOptions.has(key));
+export function validateInlineOptions(
+	options: RawOptions | undefined,
+	{ names, log }: Identity
+): void {
+	const accepted = new Set(['configFile', ...pluginOptions(names), ...rootOptions]);
+	const invalid = Object.keys(options ?? {}).filter((key) => !accepted.has(key));
 	if (invalid.length > 0) {
 		log.warn(
 			`invalid plugin ${invalid.length === 1 ? 'option' : 'options'} ${invalid.map((key) => `\`${key}\``).join(', ')} in inline config`
@@ -64,16 +89,17 @@ export function validateInlineOptions(options: Partial<Options> | undefined, log
 
 function convertPluginOptions(
 	config: (Partial<Config> & { configFile?: string }) | undefined,
-	log: Log
-): Partial<Options> | undefined {
+	{ names, log }: Identity
+): RawOptions | undefined {
 	if (!config) return undefined;
-	const misplaced = Object.keys(config).filter((key) => pluginOptions.has(key));
+	const pluginKeys = pluginOptions(names);
+	const misplaced = Object.keys(config).filter((key) => pluginKeys.has(key));
 	if (misplaced.length > 0) {
 		throw new Error(
 			`Invalid options in config file. Move the following options into 'vitePlugin:{...}': ${misplaced.join(', ')}`
 		);
 	}
-	if (!config.vitePlugin) return config as Partial<Options>;
+	if (!config.vitePlugin) return config as RawOptions;
 	const plugin = config.vitePlugin as Record<string, unknown>;
 	const keys = Object.keys(plugin);
 	const atRoot = keys.filter((key) => rootOptions.has(key));
@@ -88,7 +114,7 @@ function convertPluginOptions(
 			`Invalid duplicate options in config file under vitePlugin:{...}', they are defined in root too and must only exist once: ${duplicate.join(', ')}`
 		);
 	}
-	const unknown = keys.filter((key) => !pluginOptions.has(key));
+	const unknown = keys.filter((key) => !pluginKeys.has(key));
 	if (unknown.length > 0) {
 		log.warn(
 			`ignoring unknown plugin options in config file under vitePlugin:{...}: ${unknown.join(', ')}`
@@ -97,7 +123,7 @@ function convertPluginOptions(
 	}
 	const result: Record<string, unknown> = { ...config, ...plugin };
 	delete result.vitePlugin;
-	return result as Partial<Options>;
+	return result as RawOptions;
 }
 
 function mergeConfigs<T>(...configs: (object | undefined)[]): T {
@@ -114,23 +140,24 @@ export function viteRoot(config: UserConfig): string {
 }
 
 export async function preResolveOptions(
-	inline: Partial<Options> | undefined,
+	inline: RawOptions | undefined,
 	viteUserConfig: UserConfig,
 	viteEnv: ConfigEnv,
 	frontEnds: readonly FrontEnd[],
-	log: Log
+	identity: Identity
 ): Promise<PreResolvedOptions> {
+	const { names, history, log } = identity;
 	const root = viteRoot(viteUserConfig);
 	const isBuild = viteEnv.command === 'build';
 	const defaults = {
 		extensions: [...new Set(frontEnds.flatMap((frontEnd) => frontEnd.components))],
 		emitCss: true,
-		prebundleSvelteLibraries: !isBuild
+		[names.prebundle]: !isBuild
 	};
 	const stems = frontEnds.map((frontEnd) => frontEnd.config);
 	const loaded = convertPluginOptions(
 		await loadConfigFile({ ...viteUserConfig, root }, inline, stems, log),
-		log
+		identity
 	);
 	const extra = {
 		root,
@@ -138,15 +165,16 @@ export async function preResolveOptions(
 		isServe: viteEnv.command === 'serve',
 		isDebug: process.env.DEBUG != null
 	};
-	const merged = mergeConfigs<PreResolvedOptions>(defaults, loaded, inline ?? {}, extra);
+	const merged = mergeConfigs<Record<string, unknown>>(defaults, loaded, inline ?? {}, extra);
 	if (loaded?.configFile) merged.configFile = loaded.configFile;
-	return merged;
+	history.options?.(merged, log);
+	return toOwnNames(merged, names) as unknown as PreResolvedOptions;
 }
 
 function enforceOptionsForHmr(
 	options: ResolvedOptions,
 	viteConfig: ResolvedConfig,
-	log: Log
+	{ names, log }: Identity
 ): void {
 	const compilerOptions = options.compilerOptions;
 	if (compilerOptions.hmr && viteConfig.server?.hmr === false) {
@@ -161,7 +189,7 @@ function enforceOptionsForHmr(
 		compilerOptions.cssHash({
 			get filename() {
 				usesFilename = true;
-				return 'Foo.svelte';
+				return 'Foo.component';
 			},
 			get css() {
 				usesCss = true;
@@ -171,8 +199,9 @@ function enforceOptionsForHmr(
 			hash: (input) => input
 		});
 		if (!usesFilename || usesCss) {
+			const link = names.links.cssHash;
 			log.warn(
-				`The custom compilerOptions.cssHash in your config can degrade your DX. See ${cssHashLink} for more information.`
+				`The custom compilerOptions.cssHash in your config can degrade your DX.${link ? ` See ${link} for more information.` : ''}`
 			);
 		}
 	}
@@ -204,33 +233,6 @@ function removeIgnoredOptions(options: ResolvedOptions, { name, log }: Identity)
 	for (const key of passed) delete options.compilerOptions[key];
 }
 
-function handleDeprecatedOptions(options: ResolvedOptions, log: Log): void {
-	const experimental = options.experimental as Record<string, unknown> | undefined;
-	if (!experimental) return;
-	const own = options as unknown as Record<string, unknown>;
-	for (const promoted of ['prebundleSvelteLibraries', 'inspector', 'dynamicCompileOptions']) {
-		if (!experimental[promoted]) continue;
-		own[promoted] = experimental[promoted];
-		delete experimental[promoted];
-		log.warn(
-			`Option "experimental.${promoted}" is no longer experimental and has moved to "${promoted}". Please update your config.`
-		);
-	}
-}
-
-function logRemovedPluginApi(config: ResolvedConfig, log: Log): void {
-	const using = config.plugins.filter(
-		(plugin) => (plugin?.api as { sveltePreprocess?: unknown } | undefined)?.sveltePreprocess
-	);
-	if (using.length === 0) return;
-	log.error.once(
-		`The following vite plugins use the removed 'plugin.api.sveltePreprocess' api: ${using.map((plugin) => plugin.name).join(', ')}
-				These preprocessors are no longer added to your config and if your application depends on them it breaks.
-				Update the plugins or contact their maintainers. See ${transformLink} for more information.
-				`.replace(/\t+/g, '\t')
-	);
-}
-
 export function resolveOptions(
 	preResolved: PreResolvedOptions,
 	viteConfig: ResolvedConfig,
@@ -251,9 +253,8 @@ export function resolveOptions(
 	const merged = mergeConfigs<ResolvedOptions>(defaults, preResolved, extra);
 	const { log } = identity;
 	removeIgnoredOptions(merged, identity);
-	handleDeprecatedOptions(merged, log);
-	logRemovedPluginApi(viteConfig, log);
-	enforceOptionsForHmr(merged, viteConfig, log);
+	identity.history.config?.(viteConfig, log);
+	enforceOptionsForHmr(merged, viteConfig, identity);
 	enforceOptionsForProduction(merged, log);
 	return merged;
 }

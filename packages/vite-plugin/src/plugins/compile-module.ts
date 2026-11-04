@@ -7,7 +7,8 @@ import { buildModuleIdFilter, buildModuleIdParser, type ModuleIdParser } from '.
 import type { Identity } from '../identity.ts';
 import { logCompilerWarnings } from '../warnings.ts';
 
-export function compileModule(api: PluginAPI, { name, log }: Identity): Plugin {
+export function compileModule(api: PluginAPI, identity: Identity): Plugin {
+	const { name, log } = identity;
 	let idParser: ModuleIdParser;
 	const plugin: Plugin = {
 		name: `${name}:compile-module`,
@@ -16,7 +17,7 @@ export function compileModule(api: PluginAPI, { name, log }: Identity): Plugin {
 			Object.assign(plugin.transform as object, {
 				filter: buildModuleIdFilter(api.options, api.frontEnds)
 			});
-			idParser = buildModuleIdParser(api.options, api.frontEnds, log);
+			idParser = buildModuleIdParser(api.options, api.frontEnds, identity);
 		},
 		transform: {
 			async handler(code, id) {
@@ -52,7 +53,7 @@ export function compileModule(api: PluginAPI, { name, log }: Identity): Plugin {
 				}
 				try {
 					const result = request.frontEnd.compiler.compileModule(code, final);
-					logCompilerWarnings(request, result.warnings, api.options, log);
+					logCompilerWarnings(request, result.warnings, api.options, identity);
 					return { code: result.js.code, map: result.js.map as never };
 				} catch (error) {
 					throw toRollupError(error as CompileError, api.options);

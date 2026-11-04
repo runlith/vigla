@@ -91,6 +91,79 @@ export async function preprocess(source) { return { code: source }; }
 	}
 });
 
+test('shows its own names for component styles, the warnings event and options', async () => {
+	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
+	onTestFinished(() => rm(root, { recursive: true, force: true }));
+	const frontend = join(root, 'node_modules', 'text-frontend');
+	await mkdir(frontend, { recursive: true });
+	await writeFile(
+		join(root, 'package.json'),
+		JSON.stringify({ type: 'module', dependencies: { 'text-frontend': '1.0.0' } })
+	);
+	await writeFile(
+		join(frontend, 'package.json'),
+		JSON.stringify({
+			name: 'text-frontend',
+			version: '1.0.0',
+			type: 'module',
+			exports: { './compiler': './compiler.js', './package.json': './package.json' },
+			vigla: {
+				frontEnd: {
+					compiler: './compiler',
+					components: ['.text'],
+					modules: { infixes: ['.text.'], extensions: ['.js'] },
+					condition: 'text',
+					config: 'text.config'
+				}
+			}
+		})
+	);
+	await writeFile(
+		join(frontend, 'compiler.js'),
+		`export function compile() {
+	return {
+		js: { code: 'export default 1', map: null },
+		css: { code: '.a{color:red}', map: null, hasGlobal: true },
+		warnings: [{ code: 'note', message: 'noted', filename: 'a.text' }]
+	};
+}
+export { compile as compileModule };
+export async function preprocess(source) { return { code: source }; }
+`
+	);
+	await writeFile(join(root, 'a.text'), 'a');
+	const server = await createServer({
+		root,
+		configFile: false,
+		logLevel: 'silent',
+		plugins: vigla({
+			configFile: false,
+			prebundleLibraries: false,
+			experimental: { sendWarningsToBrowser: true, disableResolveWarnings: true }
+		}),
+		optimizeDeps: { noDiscovery: true },
+		server: { hmr: false, middlewareMode: true, watch: null }
+	});
+	try {
+		const events: string[] = [];
+		const send = server.ws.send.bind(server.ws);
+		server.ws.send = ((event: unknown) => {
+			if (typeof event === 'string') events.push(event);
+			return send(event as never);
+		}) as typeof server.ws.send;
+		const api = server.config.plugins.find((plugin) => plugin.name === 'vigla')?.api as PluginAPI;
+		expect(api.options.prebundleLibraries).toBe(false);
+		expect(api.options.experimental?.disableResolveWarnings).toBe(true);
+		const component = await server.transformRequest('/a.text');
+		const style = component?.code.match(/"([^"]+\?vigla&type=style&lang\.css)"/)?.[1];
+		expect(style).toBeDefined();
+		expect((await server.transformRequest(style!))?.code).toContain('.a{color:red}');
+		expect(events).toContain('vigla:warnings');
+	} finally {
+		await server.close();
+	}
+});
+
 test('leaves ordinary JavaScript and dependencies alone when no front end is installed', async () => {
 	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-'));
 	onTestFinished(() => rm(root, { recursive: true, force: true }));

@@ -2,7 +2,6 @@ import path from 'node:path';
 import type { EnvironmentModuleNode, Plugin, ViteDevServer } from 'vite';
 import type { PluginAPI } from '../api.ts';
 import { configNames } from '../config-file.ts';
-import { virtualStyle } from '../id.ts';
 import type { Identity } from '../identity.ts';
 import type { Log } from '../log.ts';
 
@@ -71,7 +70,7 @@ function watchConfig(api: PluginAPI, { name, log }: Identity, server: ViteDevSer
 }
 
 export function hotUpdate(api: PluginAPI, identity: Identity): Plugin {
-	const { log } = identity;
+	const { log, virtualStyle } = identity;
 	const results = new Map<string | null, string>();
 	const plugin: Plugin = {
 		name: `${identity.name}:hot-update`,

@@ -3,6 +3,7 @@ import type { Environment } from 'vite';
 import type { CompileError, CompileOptions, CompileResult } from './compiler.ts';
 import { enhanceCompileError } from './error.ts';
 import type { ComponentRequest } from './id.ts';
+import type { Identity } from './identity.ts';
 import type { Log } from './log.ts';
 import { mapToRelative } from './maps.ts';
 import type { ResolvedOptions } from './options.ts';
@@ -45,7 +46,7 @@ export async function compileComponent(
 	code: string,
 	options: ResolvedOptions,
 	environment: Environment,
-	log: Log,
+	{ log, names }: Identity,
 	sourcemap?: object
 ): Promise<Compiled> {
 	const { filename, normalizedFilename, cssId, ssr, raw, frontEnd } = request;
@@ -78,7 +79,7 @@ export async function compileComponent(
 			);
 		}
 	} catch (error) {
-		enhanceCompileError(error as CompileError, code, options.preprocess);
+		enhanceCompileError(error as CompileError, code, options.preprocess, names.links);
 		throw error;
 	}
 	if (compiled.css?.map && sourcemap) {

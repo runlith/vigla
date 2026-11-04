@@ -3,10 +3,8 @@ import process from 'node:process';
 import { normalizePath } from 'vite';
 import type { CompileOptions } from './compiler.ts';
 import type { FrontEnd } from './front-end.ts';
-import type { Log } from './log.ts';
+import { styleQuery, type Identity } from './identity.ts';
 import { arraify, type ResolvedOptions } from './options.ts';
-
-export const virtualStyle = /[?&]svelte&type=style&lang.css$/;
 
 const fsPrefix = '/@fs/';
 const windows = process.platform === 'win32';
@@ -17,7 +15,6 @@ export interface RequestQuery {
 	url?: boolean;
 	raw?: boolean;
 	direct?: boolean;
-	svelte?: boolean;
 	type?: string;
 	sourcemap?: boolean;
 	compilerOptions?: Partial<CompileOptions>;
@@ -59,14 +56,14 @@ function split(id: string): { filename: string; rawQuery: string } {
 	return { filename, rawQuery };
 }
 
-function parseQuery(rawQuery: string, log: Log): RequestQuery {
+function parseQuery(rawQuery: string, { names, log }: Identity): RequestQuery {
 	const query: Record<string, unknown> = Object.fromEntries(new URLSearchParams(rawQuery));
 	for (const key in query) if (query[key] === '') query[key] = true;
 	const given = query.compilerOptions;
 	if (typeof given === 'string') {
 		if (!((query.raw || query.direct) && typesWithCompilerOptions.includes(String(query.type)))) {
 			throw new Error(
-				`Invalid compilerOptions in query ${rawQuery}. CompilerOptions are only supported for raw or direct queries with type in "${typesWithCompilerOptions.join(', ')}" e.g. '?svelte&raw&type=script&compilerOptions={"generate":"server","dev":false}`
+				`Invalid compilerOptions in query ${rawQuery}. CompilerOptions are only supported for raw or direct queries with type in "${typesWithCompilerOptions.join(', ')}" e.g. '?${names.styleFlag}&raw&type=script&compilerOptions={"generate":"server","dev":false}`
 			);
 		}
 		try {
@@ -95,13 +92,13 @@ function existsInRoot(filename: string, root: string): boolean {
 	return !filename.startsWith(fsPrefix) && fs.existsSync(root + filename);
 }
 
-function styleId(filename: string, root: string): string {
+function styleId(filename: string, root: string, identity: Identity): string {
 	let path = filename;
 	if (existsInRoot(filename, root)) path = root + filename;
 	else if (filename.startsWith(fsPrefix)) {
 		path = windows ? filename.slice(fsPrefix.length) : filename.slice(fsPrefix.length - 1);
 	}
-	return `${path}?svelte&type=style&lang.css`;
+	return `${path}${styleQuery(identity.names)}`;
 }
 
 function escape(text: string): string {
@@ -134,7 +131,11 @@ function componentPatterns(options: ResolvedOptions, frontEnds: readonly FrontEn
 	);
 }
 
-export function buildIdFilter(options: ResolvedOptions, frontEnds: readonly FrontEnd[]): IdFilter {
+export function buildIdFilter(
+	options: ResolvedOptions,
+	frontEnds: readonly FrontEnd[],
+	{ virtualStyle }: Identity
+): IdFilter {
 	return {
 		id: {
 			include:
@@ -149,21 +150,21 @@ export function buildIdFilter(options: ResolvedOptions, frontEnds: readonly Fron
 export function buildIdParser(
 	options: ResolvedOptions,
 	frontEnds: readonly FrontEnd[],
-	log: Log
+	identity: Identity
 ): IdParser {
 	if (frontEnds.length === 0) return () => undefined;
 	const root = normalizePath(options.root);
 	const claim = claims(componentPatterns(options, frontEnds), frontEnds);
 	return (id, ssr, timestamp = Date.now()) => {
 		const { filename, rawQuery } = split(id);
-		const query = parseQuery(rawQuery, log);
+		const query = parseQuery(rawQuery, identity);
 		const rawOrDirect = !!(query.raw || query.direct);
-		if (query.url || (!query.svelte && rawOrDirect)) return undefined;
+		if (query.url || (!query[identity.names.styleFlag] && rawOrDirect)) return undefined;
 		return {
 			id,
 			filename,
 			normalizedFilename: normalize(filename, root),
-			cssId: styleId(filename, root),
+			cssId: styleId(filename, root, identity),
 			query,
 			timestamp,
 			ssr,
@@ -202,14 +203,14 @@ export function buildModuleIdFilter(
 export function buildModuleIdParser(
 	options: ResolvedOptions,
 	frontEnds: readonly FrontEnd[],
-	log: Log
+	identity: Identity
 ): ModuleIdParser {
 	if (frontEnds.length === 0) return () => undefined;
 	const root = normalizePath(options.root);
 	const claim = claims(modulePatterns(options, frontEnds), frontEnds);
 	return (id, ssr, timestamp = Date.now()) => {
 		const { filename, rawQuery } = split(id);
-		const query = parseQuery(rawQuery, log);
+		const query = parseQuery(rawQuery, identity);
 		if (query.url || query.raw || query.direct) return undefined;
 		return {
 			id,
