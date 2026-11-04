@@ -3583,7 +3583,7 @@
     },
     "utils/error.spec.js > add_deprecated_handle_error_properties > adds non-enumerable accessors that warn and return the fallback values": {
       "status": "covered",
-      "reason": "drives Kit's internal `src/utils/error.js` code; covered by the `kit-shared` module"
+      "reason": "drives Kit's internal `src/utils/error.js` code; covered by the `sveltekit` module"
     },
     "utils/error.spec.js > get_status > returns 500 for non-errors": {
       "status": "covered",

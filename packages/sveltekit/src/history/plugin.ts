@@ -15,6 +15,7 @@ const wrapped = new Map(
 		fileURLToPath(new URL(`./app/${name}${extension}`, import.meta.url))
 	])
 );
+const handleErrorWrapper = fileURLToPath(new URL(`./app/hooks${extension}`, import.meta.url));
 
 function removedModule(id: string, aliases: Record<string, string>): void {
 	const name = id.startsWith('$lib') ? '$lib' : '$service-worker';
@@ -72,13 +73,36 @@ function legacy(kind: string, visibility: string, dev: boolean): string {
 	return `${exports}\n${warning}`;
 }
 
-export function appModules(): Plugin {
+export interface HookFiles {
+	server: string;
+	client: string;
+}
+
+function posix(file: string): string {
+	return file.replaceAll('\\', '/');
+}
+
+function stem(file: string): string {
+	return posix(file.slice(0, file.length - path.extname(file).length));
+}
+
+export function appModules(hookFiles: () => HookFiles): Plugin {
+	const hooks = `${prefix}hooks:`;
 	return {
 		name: `${identity.name}:history-app`,
 		enforce: 'pre',
 		resolveId(id, importer) {
 			const wrapper = wrapped.get(id);
 			if (wrapper && importer?.split('?')[0] !== wrapper) return wrapper;
+			if (importer?.startsWith(hooks) || !path.isAbsolute(id)) return;
+			const files = hookFiles();
+			const file = stem(id.split('?')[0]!);
+			if (file === posix(files.server) || file === posix(files.client)) return hooks + id;
+		},
+		load(id) {
+			if (!id.startsWith(hooks)) return;
+			const file = JSON.stringify(id.slice(hooks.length));
+			return `import * as hooks from ${file};\nimport { retiredProperties } from ${JSON.stringify(handleErrorWrapper)};\nexport * from ${file};\nexport const handleError = retiredProperties(hooks.handleError);`;
 		}
 	};
 }

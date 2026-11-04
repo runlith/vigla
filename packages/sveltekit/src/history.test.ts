@@ -40,6 +40,11 @@ beforeAll(async () => {
 		`import { PUBLIC_NUMBER } from '$env/static/public'; import { env } from '$env/dynamic/private'; import { browser } from '$app/environment'; export function GET() { return Response.json({ number: PUBLIC_NUMBER, token: env.PRIVATE_TOKEN, browser }); }`
 	);
 	write(
+		'src/hooks.server.js',
+		`export function handleError(input) { return { message: [input.kind, input.status, input.message, Object.keys(input).join('|')].join(',') }; }`
+	);
+	write('src/routes/fail/+server.js', `export function GET() { throw new Error('boom'); }`);
+	write(
 		'src/routes/asset/+server.js',
 		`import { asset } from '$app/paths'; export function GET() { return Response.json([asset('/a.png'), asset('a.png')]); }`
 	);
@@ -82,6 +87,18 @@ test('retired modules resolve onto the app environment and stay server-only', as
 	await expect(client.transformRequest(imported)).rejects.toThrow(
 		'Cannot import `$env/static/private` into code that runs in the browser'
 	);
+});
+
+test("handleError's input keeps the retired status and message as warning, non-enumerable accessors", async () => {
+	const response = await fetch(origin + '/fail', { headers: { accept: 'application/json' } });
+	expect(response.status).toBe(500);
+	expect((await response.json()).message).toBe('unknown,500,Internal Error,kind|error|event');
+	for (const code of ['handle_error_status_deprecated', 'handle_error_message_deprecated'])
+		expect(console.warn).toHaveBeenCalledWith(
+			expect.stringContaining(`[sveltekit] ${code}`),
+			'font-weight: bold',
+			'font-weight: normal'
+		);
 });
 
 test('retired call forms of app functions are converted to current ones with a warning', async () => {
