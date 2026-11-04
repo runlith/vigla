@@ -32,17 +32,18 @@ export async function goto(url: string | URL, options: RetiredGotoOptions = {}):
 				'The `goto(..., { noScroll: true, keepFocus: true })` options have been replaced by `reset: false`',
 				goto
 			);
-		if ('invalidateAll' in options)
-			warnOnce(
-				'goto_invalidate_all_deprecated',
-				`The \`goto(..., { invalidateAll: ${String(invalidateAll)} })\` option has been deprecated in favour of \`refreshAll\``
-			);
 	}
-	return navigate(url, {
+	const navigation = navigate(url, {
 		...current,
 		replace: current.replace ?? replaceState,
 		refreshAll: current.refreshAll ?? invalidateAll
 	});
+	if (!DEV || !('invalidateAll' in options) || current.shallow) return navigation;
+	await navigation;
+	warnOnce(
+		'goto_invalidate_all_deprecated',
+		`The \`goto(..., { invalidateAll: ${String(invalidateAll)} })\` option has been deprecated in favour of \`refreshAll\``
+	);
 }
 
 export async function pushState(url: string | URL, state: App.PageState): Promise<void> {

@@ -17,5 +17,5 @@ export function enhance<
 	return { destroy() {} };
 }
 export function applyAction(_result: ActionResult): never {
-	return server_api_unavailable({ name: 'applyAction' });
+	return server_api_unavailable({ name: 'applyAction(...)' });
 }

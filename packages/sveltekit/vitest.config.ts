@@ -11,7 +11,11 @@ export default defineConfig({
 			{
 				resolve: {
 					conditions: ['browser'],
-					alias: { '$app/forms': kit('forms'), '$app/state': kit('state') }
+					alias: {
+						'$app/forms': kit('forms'),
+						'$app/navigation': kit('navigation'),
+						'$app/state': kit('state')
+					}
 				},
 				ssr: { resolve: { conditions: ['browser'] } },
 				test: { name: 'client', root, environment: 'jsdom', include: ['src/**/*.client.test.ts'] }

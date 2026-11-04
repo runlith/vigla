@@ -52,5 +52,5 @@ export const navigating = {
 };
 export const updated: Updated = {
 	current: false,
-	check: () => server_api_unavailable({ name: 'updated.check' })
+	check: () => server_api_unavailable({ name: 'updated.check()' })
 };

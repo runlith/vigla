@@ -78,7 +78,8 @@ beforeAll(async () => {
 		'src/routes/+server.js': `import { PUBLIC_NUMBER } from '$env/static/public'; import { env } from '$env/dynamic/private'; import { browser } from '$app/environment'; export function GET() { return Response.json({ number: PUBLIC_NUMBER, token: env.PRIVATE_TOKEN, browser }); }`,
 		'src/hooks.server.js': handleError,
 		'src/routes/asset/+server.js': `import { asset } from '$app/paths'; export function GET() { return Response.json([asset('/a.png'), asset('a.png')]); }`,
-		'src/client.js': `import { PRIVATE_TOKEN } from '$env/static/private'; export { PRIVATE_TOKEN };`
+		'src/client.js': `import { PRIVATE_TOKEN } from '$env/static/private'; export { PRIVATE_TOKEN };`,
+		'src/routes/navigation/+server.js': `import { goto, pushState, replaceState } from '$app/navigation'; export function GET() { return Response.json([() => goto('/', { invalidateAll: true }), () => pushState('/', {}), () => replaceState('/', {})].map((call) => { try { call(); return 'returned'; } catch (error) { return error.message.split('\\n')[1]; } })); }`
 	});
 }, 30_000);
 
@@ -132,6 +133,14 @@ test.each([
 	},
 	30_000
 );
+
+test('navigation functions throw upstream server diagnostics synchronously during SSR', async () => {
+	expect(await (await fetch(app.origin + '/navigation')).json()).toEqual([
+		'Cannot call `goto(...)` on the server',
+		'Cannot call `pushState(...)` on the server',
+		'Cannot call `replaceState(...)` on the server'
+	]);
+});
 
 test('retired call forms of app functions are converted to current ones with a warning', async () => {
 	const [retired, current] = await (await fetch(app.origin + '/asset')).json();

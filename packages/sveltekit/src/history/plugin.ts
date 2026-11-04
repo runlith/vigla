@@ -9,12 +9,15 @@ const prefix = `\0${identity.name}:`;
 const docs = 'https://svelte.dev/docs/kit/';
 const legacyEnvironment = /^\$env\/(static|dynamic)\/(public|private)$/;
 const extension = path.extname(fileURLToPath(import.meta.url));
+const wrapper = (name: string) =>
+	fileURLToPath(new URL(`./app/${name}${extension}`, import.meta.url));
 const wrapped = new Map(
 	['navigation', 'paths', 'forms'].map((name) => [
 		`$app/${name}`,
-		fileURLToPath(new URL(`./app/${name}${extension}`, import.meta.url))
+		{ client: wrapper(name), server: wrapper(name === 'navigation' ? 'navigation.server' : name) }
 	])
 );
+const wrappers = new Set([...wrapped.values()].flatMap(({ client, server }) => [client, server]));
 const handleErrorWrapper = fileURLToPath(new URL(`./app/hooks${extension}`, import.meta.url));
 
 function removedModule(id: string, aliases: Record<string, string>): void {
@@ -81,8 +84,9 @@ export function appModules(entries: () => HookEntries): Plugin {
 		name: `${identity.name}:history-app`,
 		enforce: 'pre',
 		resolveId(id, importer) {
-			const wrapper = wrapped.get(id);
-			if (wrapper && importer?.split('?')[0] !== wrapper) return wrapper;
+			const target = wrapped.get(id);
+			if (target && !wrappers.has(importer?.split('?')[0] ?? ''))
+				return this.environment.config.consumer === 'server' ? target.server : target.client;
 			if (importer?.startsWith(hooks) || !path.isAbsolute(id)) return;
 			const { server, client } = entries();
 			if (id === server || id === client) return hooks + id;
