@@ -9,8 +9,6 @@ export {
 	preloadCode,
 	preloadData,
 	disableScrollHandling,
-	pushState,
-	replaceState,
 	snapshot
 } from '../../../client/navigation.ts';
 export type {

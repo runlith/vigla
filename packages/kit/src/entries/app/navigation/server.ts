@@ -33,9 +33,3 @@ export function preloadCode(_id: string): never {
 export function preloadData(_href: string): never {
 	return server_api_unavailable({ name: 'preloadData' });
 }
-export function pushState(_url: string | URL, _state: App.PageState): never {
-	return server_api_unavailable({ name: 'pushState' });
-}
-export function replaceState(_url: string | URL, _state: App.PageState): never {
-	return server_api_unavailable({ name: 'replaceState' });
-}

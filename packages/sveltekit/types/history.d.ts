@@ -6,4 +6,6 @@ declare module '$app/navigation' {
 			invalidateAll?: boolean;
 		}
 	): Promise<void>;
+	export function pushState(url: string | URL, state: App.PageState): Promise<void>;
+	export function replaceState(url: string | URL, state: App.PageState): Promise<void>;
 }

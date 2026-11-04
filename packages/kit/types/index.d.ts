@@ -101,8 +101,6 @@ declare module '$app/navigation' {
 	export function refreshAll(): Promise<void>;
 	export function preloadData(href: string): Promise<PreloadResult>;
 	export function preloadCode(id: RouteId): Promise<void>;
-	export function pushState(url: string | URL, state: App.PageState): Promise<void>;
-	export function replaceState(url: string | URL, state: App.PageState): Promise<void>;
 }
 
 declare module '$app/paths' {

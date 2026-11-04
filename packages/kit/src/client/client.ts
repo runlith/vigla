@@ -9,7 +9,8 @@ import type {
 	NavigationEnter,
 	NavigationType,
 	OnNavigate,
-	PreloadResult
+	PreloadResult,
+	ShallowCaller
 } from '../types/navigation.ts';
 import type { RouteMatch } from '../types/paths.ts';
 import { escapeHtml } from '../shared/escape.ts';
@@ -277,19 +278,12 @@ export class Client {
 		});
 	}
 
-	async shallow(value: string | URL, state: App.PageState, replace: boolean): Promise<void> {
+	async shallow(value: string | URL, state: App.PageState, caller: ShallowCaller): Promise<void> {
+		const replace = caller === 'replaceState';
 		const url = this.url(value);
-		if (this.routes.outside(url))
-			errors.navigation_external_url({
-				caller: replace ? 'replaceState' : 'pushState',
-				url: String(value)
-			});
+		if (this.routes.outside(url)) errors.navigation_external_url({ caller, url: String(value) });
 		const intent = await this.intent(url);
-		if (!intent)
-			errors.navigation_route_missing({
-				caller: replace ? 'replaceState' : 'pushState',
-				url: url.href
-			});
+		if (!intent) errors.navigation_route_missing({ caller, url: url.href });
 		const saved = this.history.encode(state);
 		const registrations = this.restoration.registrations();
 		if (!replace) this.restoration.capture(this.history.index, this.view.components);

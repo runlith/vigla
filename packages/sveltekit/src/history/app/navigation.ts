@@ -1,10 +1,6 @@
 import { DEV } from 'esm-env';
-import {
-	goto as navigate,
-	pushState as push,
-	replaceState as replace,
-	type GotoOptions
-} from '$app/navigation';
+import { goto as navigate, type GotoOptions } from '$app/navigation';
+import { shallow } from '@vigla/kit/internal/shallow';
 import { throwDiagnostic, warnDiagnostic } from '../diagnostics.ts';
 
 export * from '$app/navigation';
@@ -51,20 +47,20 @@ export async function goto(url: string | URL, options: RetiredGotoOptions = {}):
 	});
 }
 
-export function pushState(url: string | URL, state: App.PageState): Promise<void> {
+export async function pushState(url: string | URL, state: App.PageState): Promise<void> {
 	if (DEV)
 		warnOnce(
 			'push_state_deprecated',
 			'`pushState(...)` is deprecated. Use `goto(url, { state, shallow: true })` instead.'
 		);
-	return push(url, state);
+	return shallow('pushState', url, state);
 }
 
-export function replaceState(url: string | URL, state: App.PageState): Promise<void> {
+export async function replaceState(url: string | URL, state: App.PageState): Promise<void> {
 	if (DEV)
 		warnOnce(
 			'replace_state_deprecated',
 			'`replaceState(...)` is deprecated. Use `goto(url, { state, shallow: true, replace: true })` instead.'
 		);
-	return replace(url, state);
+	return shallow('replaceState', url, state);
 }

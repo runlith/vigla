@@ -26,6 +26,7 @@ export interface GotoOptions {
 	state?: App.PageState;
 	persistState?: boolean;
 }
+export type ShallowCaller = 'pushState' | 'replaceState';
 export type NavigationType = 'enter' | 'form' | 'leave' | 'link' | 'goto' | 'popstate';
 export interface NavigationBase {
 	type: NavigationType;

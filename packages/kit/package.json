@@ -45,6 +45,11 @@
 		},
 		"./internal/env": "./src/entries/internal/env.ts",
 		"./internal/identity": "./src/entries/internal/identity.ts",
+		"./internal/shallow": {
+			"workerd": "./src/entries/internal/shallow/server.ts",
+			"browser": "./src/entries/internal/shallow/client.ts",
+			"default": "./src/entries/internal/shallow/server.ts"
+		},
 		"./internal/node": "./src/node/static.ts",
 		"./cli": "./src/sync/cli.ts"
 	},

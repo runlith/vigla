@@ -27,10 +27,9 @@ import {
 	afterNavigate,
 	onNavigate,
 	snapshot,
-	refreshAll,
-	pushState,
-	replaceState
+	refreshAll
 } from '../entries/app/navigation/client.ts';
+import { shallow } from './navigation.ts';
 import { page, navigating, updated } from '../entries/app/state/client.ts';
 import { applyAction, deserialize, enhance } from '../entries/app/forms/client.ts';
 import { resolve, asset } from '../entries/app/paths/client.ts';
@@ -712,10 +711,10 @@ test('legacy shallow state is detached and does not run navigation callbacks', a
 	};
 	await start(app, document.querySelector('main')!);
 	const state = { nested: { count: 0 } };
-	await pushState('/two', state);
+	await shallow('pushState', '/two', state);
 	state.nested.count++;
 	expect(page.state).toEqual({ nested: { count: 0 } });
-	await replaceState('/three', { done: true });
+	await shallow('replaceState', '/three', { done: true });
 	expect(page.url.pathname).toBe('/one');
 	expect(page.shallow?.url.pathname).toBe('/three');
 	expect(events).toEqual(['enter']);

@@ -1,11 +1,12 @@
 import { onDestroy } from 'vigla';
-
+import { DEV } from 'esm-env';
 import type {
 	AfterNavigate,
 	BeforeNavigate,
 	GotoOptions,
 	Invalidation,
 	NavigationCallback,
+	ShallowCaller,
 	SnapshotOptions
 } from '../types/navigation.ts';
 import { client } from './client.ts';
@@ -51,15 +52,14 @@ export function disableScrollHandling(): void {
 	if (!runtime.updating) scroll_handling_outside_navigation();
 	runtime.restoration.disableScroll();
 }
-export function pushState(url: string | URL, state: App.PageState): Promise<void> {
-	const runtime = client('pushState');
-	if (!runtime.started) navigation_before_start({ caller: 'pushState' });
-	return runtime.shallow(url, state, false);
-}
-export function replaceState(url: string | URL, state: App.PageState): Promise<void> {
-	const runtime = client('replaceState');
-	if (!runtime.started) navigation_before_start({ caller: 'replaceState' });
-	return runtime.shallow(url, state, true);
+export function shallow(
+	caller: ShallowCaller,
+	url: string | URL,
+	state: App.PageState
+): Promise<void> {
+	const runtime = client(caller);
+	if (DEV && !runtime.started) navigation_before_start({ caller });
+	return runtime.shallow(url, state, caller);
 }
 export function snapshot<T>(options: SnapshotOptions<T>): void {
 	const runtime = client('snapshot');
