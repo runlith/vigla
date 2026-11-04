@@ -5,7 +5,8 @@ import type {
 	InternalsParams,
 	LoadsParams,
 	MentionsParams,
-	Programs
+	Programs,
+	WordsParams
 } from './inspections.ts';
 
 const specifier = /(?:\bfrom|\bimport\s*\(|\bimport|\brequire\s*\()\s*(['"`])([^'"`]+)\1/g;
@@ -353,7 +354,44 @@ async function builtinsOf(side: Side, params: BuiltinsParams): Promise<Reading> 
 	return { findings };
 }
 
+function escaped(word: string): string {
+	return word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function wordsOf(side: Side, params: WordsParams): Promise<Reading> {
+	const pattern = new RegExp(
+		`[\\w$@.:%/-]*(?:${params.words.map(escaped).join('|')})[\\w$@.:%/-]*`,
+		'gi'
+	);
+	const lowered = params.words.map((word) => word.toLowerCase());
+	const findings: Finding[] = [];
+	for (const path of side.paths) {
+		if (params.tests.some((infix) => path.includes(infix))) continue;
+		const text = await side.read(path);
+		if (text === null) continue;
+		let line = 1;
+		let scanned = 0;
+		for (const match of text.matchAll(pattern)) {
+			for (; scanned < match.index; scanned++) if (text[scanned] === '\n') line += 1;
+			const token = match[0];
+			const word = params.words[lowered.findIndex((item) => token.toLowerCase().includes(item))];
+			findings.push({
+				fingerprint: `names ${word} @ ${path}`,
+				path,
+				line,
+				message: `names ${token}`,
+				fix: params.fix
+			});
+		}
+	}
+	return { findings };
+}
+
 export default defineProgram<Programs>({
+	words: async ({ params, tree, base }) =>
+		base === null
+			? { tree: await wordsOf(tree, params) }
+			: { tree: await wordsOf(tree, params), base: await wordsOf(base, params) },
 	builtins: async ({ params, tree, base }) =>
 		base === null
 			? { tree: await builtinsOf(tree, params) }

@@ -1,5 +1,5 @@
 import { defineConfig, Files, Format, Imports } from '@runlith/tagma/rules';
-import { builtins, internals, loads, mentions } from './checks/inspections.ts';
+import { builtins, internals, loads, mentions, words } from './checks/inspections.ts';
 
 export default defineConfig({
 	inspections: {
@@ -28,6 +28,21 @@ export default defineConfig({
 					'packages/vigla/**/*.mjs',
 					'packages/vigla/**/*.cjs',
 					'packages/vigla/**/*.json'
+				]
+			}
+		),
+		'products-name-no-svelte': words(
+			{
+				words: ['svelte'],
+				tests: ['.test.', '.spec.'],
+				fix: 'Give the thing its own name here; a name of Svelte or SvelteKit is supplied by the compatibility package that needs it — @vigla/svelte, @vigla/vite-plugin-svelte or @vigla/sveltekit.'
+			},
+			{
+				files: [
+					'packages/vigla/**/*.{ts,mts,cts,tsx,js,mjs,cjs,json,md}',
+					'packages/vite-plugin/**/*.{ts,mts,cts,tsx,js,mjs,cjs,json,md}',
+					'packages/kit/**/*.{ts,mts,cts,tsx,js,mjs,cjs,json,md}',
+					'packages/adapter-*/**/*.{ts,mts,cts,tsx,js,mjs,cjs,json,md}'
 				]
 			}
 		),
