@@ -53,6 +53,14 @@ function anchor(event: Event, container: Element): Element | null {
 function options(element: Element): Options {
 	const values: Record<string, string> = {};
 	for (let node: Element | null = element; node; node = parent(node)) {
+		if (DEV && !warned.has(node)) {
+			for (const [name, replacement] of Object.entries(identity.replacedLinkOptions ?? {}))
+				if (node.hasAttribute(`data-${identity.name}-${name}`)) {
+					warned.add(node);
+					link_option_replaced({ name, replacement });
+					break;
+				}
+		}
 		for (const [name, accepted] of Object.entries(valid)) {
 			const value = node.getAttribute(`data-${identity.name}-${name}`);
 			if (value === null || name in values) continue;
@@ -64,13 +72,6 @@ function options(element: Element): Options {
 					options: accepted.map((value) => JSON.stringify(value)).join(', ')
 				});
 			}
-		}
-		if (DEV && !warned.has(node)) {
-			for (const name of ['noscroll', 'keepfocus'])
-				if (node.hasAttribute(`data-${identity.name}-${name}`)) {
-					warned.add(node);
-					link_option_replaced({ name });
-				}
 		}
 	}
 	return {

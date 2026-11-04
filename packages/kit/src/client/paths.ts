@@ -8,8 +8,6 @@ import type { ResolveArgs, RouteMatch } from '../types/paths.ts';
 import type { ParamValue } from '../types/params.ts';
 import { resolveRoute } from '../shared/routing/index.ts';
 import { resolve_params_missing } from '../shared/errors.ts';
-import { asset_leading_slash } from '../shared/warnings.ts';
-import { DEV } from 'esm-env';
 import { base, assets, hashRouting } from './payload.ts';
 
 export { base, assets, appDir as app_dir } from './payload.ts';
@@ -20,12 +18,7 @@ export function setMatcher(value: typeof matcher): void {
 }
 
 export function asset(file: AssetPath): string {
-	let path: string = file;
-	if (path.startsWith('/')) {
-		if (DEV) asset_leading_slash({ path, fixed: path.slice(1) });
-		path = path.slice(1);
-	}
-	return `${assets || base}/${path}`;
+	return `${assets || base}/${file}`;
 }
 
 export function resolve<T extends RouteIdWithSearchOrHash | PathnameWithSearchOrHash>(

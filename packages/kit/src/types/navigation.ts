@@ -19,12 +19,10 @@ export interface NavigationTarget<
 export type Invalidation = string | URL | ((url: URL) => boolean);
 export interface GotoOptions {
 	replace?: boolean;
-	replaceState?: boolean;
 	shallow?: boolean;
 	reset?: boolean;
 	refreshAll?: boolean;
 	invalidate?: Invalidation[];
-	invalidateAll?: boolean;
 	state?: App.PageState;
 	persistState?: boolean;
 }

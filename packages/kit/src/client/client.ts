@@ -29,7 +29,6 @@ import { History, type Metadata } from './history.ts';
 import { Restoration } from './restore.ts';
 import { listen } from './links.ts';
 import * as errors from './errors.ts';
-import { goto_replace_state_deprecated } from './warnings.ts';
 import { identity } from '../shared/identity.ts';
 
 interface Transition extends GotoOptions {
@@ -65,7 +64,6 @@ export class Client {
 	readonly #target: HTMLElement;
 	readonly #consumeHydration: boolean;
 	#token = 0;
-	#warnedReplace = false;
 	#invalidation = 0;
 	#batch: Promise<void> | null = null;
 	#changes: Changes = { all: false, dependencies: [] };
@@ -306,14 +304,9 @@ export class Client {
 	}
 
 	async goto(value: string | URL, options: GotoOptions = {}): Promise<void> {
-		if ('noScroll' in options || 'keepFocus' in options) errors.goto_options_removed();
 		const url = this.url(value);
 		if (this.routes.outside(url))
 			errors.navigation_external_url({ caller: 'goto', url: String(value) });
-		if (DEV && options.replaceState !== undefined && !this.#warnedReplace) {
-			this.#warnedReplace = true;
-			goto_replace_state_deprecated({ value: String(options.replaceState) });
-		}
 		await this.ready.promise;
 		if (!(await this.intent(url)))
 			errors.navigation_route_missing({ caller: 'goto', url: url.href });
@@ -352,7 +345,7 @@ export class Client {
 		});
 		try {
 			const changes: Changes = {
-				all: options.refreshAll ?? options.invalidateAll ?? false,
+				all: options.refreshAll ?? false,
 				dependencies: (options.invalidate ?? []).map((value) => this.predicate(value))
 			};
 			const finishRemotes = changes.all ? this.remote.prepare() : undefined;
@@ -434,14 +427,13 @@ export class Client {
 				this.history.write(
 					options.shallow ? url : result.url,
 					saved!,
-					options.replace ?? options.replaceState ?? false,
+					options.replace ?? false,
 					!!options.shallow,
 					!!options.persistState,
 					previous?.url,
 					reset
 				);
-			if (!options.popped)
-				this.restoration.clear(this.history.index, !(options.replace ?? options.replaceState));
+			if (!options.popped) this.restoration.clear(this.history.index, !options.replace);
 			this.navigated = true;
 			const shallow = (options.popped ? options.popped.pageUrl !== undefined : options.shallow)
 				? { params: intent.params, route: { id: intent.route.id }, url }

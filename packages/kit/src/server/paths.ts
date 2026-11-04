@@ -5,7 +5,6 @@ import { decodePathname } from '../shared/url.ts';
 import { addDataSuffix } from '../shared/pathname.ts';
 import type { RouteMatch } from '../types/paths.ts';
 import { resolve_params_missing } from '../shared/errors.ts';
-import { asset_leading_slash } from '../shared/warnings.ts';
 import { identity } from '../shared/identity.ts';
 
 let configured: ServerPaths = { base: '', assets: '', relative: true };
@@ -26,10 +25,6 @@ export function appDirectory(): string {
 	return findRequest()?.manifest.app_dir ?? app_dir;
 }
 export function asset(file: string): string {
-	if (file.startsWith('/')) {
-		asset_leading_slash({ path: file, fixed: file.slice(1) });
-		file = file.slice(1);
-	}
 	return paths().assets && paths().assets !== paths().base
 		? `${paths().assets}/${file}`
 		: resolve(file);

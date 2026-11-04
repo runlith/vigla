@@ -6,7 +6,6 @@ export interface ErrorBody {
 }
 
 export type ErrorProperties = Omit<App.Error, keyof ErrorBody>;
-export type LegacyErrorBody = Omit<App.Error, 'status'> & { status?: App.Error['status'] };
 export type ErrorOverrides = ErrorProperties & Partial<ErrorBody>;
 export type ErrorReturn = ErrorOverrides | (ErrorBody extends App.Error ? void : never);
 
@@ -17,7 +16,6 @@ export interface ErrorFunction {
 		message: string,
 		properties: keyof ErrorProperties extends never ? never : ErrorProperties
 	): never;
-	(status: number, properties: LegacyErrorBody): never;
 }
 
 export interface HttpError {

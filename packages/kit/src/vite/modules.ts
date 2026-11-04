@@ -18,6 +18,7 @@ import {
 	posix
 } from './paths.ts';
 import type { Project } from './project.ts';
+import { identity } from '../shared/identity.ts';
 import { errorTemplate, serverEntry, serverManifest, serverOptions } from './server.ts';
 
 export function scanVirtualModules(): Rolldown.Plugin {
@@ -102,6 +103,8 @@ export function virtualModules(
 				return environmentConfig(environment, name, project.vite.command === 'serve');
 			if (id === ids.workerEnv)
 				return workerEnvironment(environment, config, name, project.vite.command === 'serve');
+			if (id === ids.workerIdentity)
+				return `globalThis.__VIGLA_IDENTITY__ = ${JSON.stringify(identity)};`;
 			if (id === ids.publicEnv)
 				return environmentModule(environment, 'public', client, project.vite.command === 'serve');
 			if (id === ids.privateEnv)
@@ -128,8 +131,15 @@ export function virtualModules(
 			const config = getConfig();
 			const file = id.split('?')[0]!;
 			if (!file.startsWith(config.files.serviceWorker)) return;
-			if (file === resolveEntry(config.files.serviceWorker, config.moduleExtensions))
-				return { code: `import ${JSON.stringify(ids.workerEnv)};\n${code}`, map: null };
+			if (file !== resolveEntry(config.files.serviceWorker, config.moduleExtensions)) return;
+			const imports =
+				getProject().vite.command === 'serve'
+					? [ids.workerIdentity, ids.workerEnv]
+					: [ids.workerEnv];
+			return {
+				code: `${imports.map((id) => `import ${JSON.stringify(id)};\n`).join('')}${code}`,
+				map: null
+			};
 		}
 	};
 }

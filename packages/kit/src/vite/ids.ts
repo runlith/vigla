@@ -23,6 +23,7 @@ export const ids = {
 	error: `${virtualDirectory}components/error.js`,
 	env: `${virtualDirectory}env/config.js`,
 	workerEnv: `${virtualDirectory}env/service-worker.js`,
+	workerIdentity: `${virtualDirectory}env/service-worker-identity.js`,
 	publicEnv: `${virtualDirectory}env/public.js`,
 	privateEnv: `${virtualDirectory}env/private.js`
 };

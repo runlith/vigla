@@ -9,7 +9,6 @@ import type {
 import { HttpError, FrameworkError } from '../shared/outcomes.ts';
 import { client } from './client.ts';
 import { enhance_file_without_enctype, enhance_invalid_method } from './errors.ts';
-import { enhance_invalidate_all_deprecated } from './warnings.ts';
 import { identity } from '../shared/identity.ts';
 
 export function deserialize<
@@ -38,8 +37,7 @@ export function enhance<
 	if (DEV && clone().method !== 'post') enhance_invalid_method();
 
 	async function update(result: ActionResult, options: FormUpdateOptions = {}): Promise<void> {
-		if (DEV && options.invalidateAll !== undefined) enhance_invalidate_all_deprecated();
-		const refresh = options.refreshAll ?? options.invalidateAll ?? result.type === 'success';
+		const refresh = options.refreshAll ?? result.type === 'success';
 		if (result.type === 'success' && options.reset !== false)
 			HTMLFormElement.prototype.reset.call(form);
 		const destination =

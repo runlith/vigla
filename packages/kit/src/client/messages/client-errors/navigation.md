@@ -10,10 +10,6 @@
 
 > Cannot use `%caller%` with a URL that does not resolve to a route within the app. Use `window.location = "%url%"` instead
 
-## goto_options_removed
-
-> The `goto(..., { noScroll: true, keepFocus: true })` options have been replaced by `reset: false`
-
 ## redirect_loop
 
 > Redirect loop while navigating to `%url%`

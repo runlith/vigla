@@ -16,5 +16,6 @@ export const identity: Identity = {
 		formFields: `${docs}remote-functions#form-Fields`,
 		formValidation: `${docs}remote-functions#form-Programmatic-validation`,
 		prerender: `${docs}@sveltejs-kit-vite#prerender`
-	}
+	},
+	replacedLinkOptions: { keepfocus: 'reset="false"', noscroll: 'reset="false"' }
 };

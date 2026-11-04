@@ -5,13 +5,11 @@ import type {
 	ErrorFunction,
 	ErrorProperties,
 	HttpError as HttpErrorContract,
-	LegacyErrorBody,
 	RedirectOptions,
 	RedirectStatus
 } from '../types/outcomes.ts';
 import { HttpError, Redirect, ActionFailure, ValidationError } from '../shared/outcomes.ts';
 import { invalid_error_status, invalid_redirect_status } from '../shared/errors.ts';
-import { error_body_deprecated } from '../shared/warnings.ts';
 import { validateRedirect } from '../shared/redirect.ts';
 
 export type {
@@ -46,17 +44,11 @@ export const VERSION = '0.1.0';
 
 export const error: ErrorFunction = (
 	status: number,
-	message?: string | LegacyErrorBody,
+	message?: string,
 	properties?: ErrorProperties
 ): never => {
 	if ((!BROWSER || DEV) && (isNaN(status) || status < 400 || status > 599))
 		invalid_error_status({ status: String(status) });
-	if (message !== undefined && typeof message !== 'string') {
-		if (DEV) error_body_deprecated();
-		const { message: text, ...rest } = message;
-		message = text;
-		properties = rest;
-	}
 	throw new HttpError({ ...properties, status, message: message ?? `Error: ${status}` });
 };
 

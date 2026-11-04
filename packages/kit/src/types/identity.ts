@@ -15,4 +15,5 @@ export interface Identity {
 	packages: string[];
 	diagnostics?: string;
 	links?: Links;
+	replacedLinkOptions?: Record<string, string>;
 }

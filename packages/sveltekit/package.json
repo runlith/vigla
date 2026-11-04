@@ -33,7 +33,8 @@
 	},
 	"dependencies": {
 		"@vigla/kit": "workspace:*",
-		"@vigla/vite-plugin-svelte": "workspace:*"
+		"@vigla/vite-plugin-svelte": "workspace:*",
+		"esm-env": "^1.2.2"
 	},
 	"peerDependencies": {
 		"svelte": "^5.57.1",

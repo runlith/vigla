@@ -101,6 +101,7 @@
       "dependencies": {
         "@vigla/kit": "workspace:*",
         "@vigla/vite-plugin-svelte": "workspace:*",
+        "esm-env": "^1.2.2",
       },
       "devDependencies": {
         "@types/node": "22.20.1",

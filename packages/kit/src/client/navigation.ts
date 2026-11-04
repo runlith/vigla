@@ -1,6 +1,4 @@
 import { onDestroy } from 'vigla';
-import { DEV } from 'esm-env';
-import { push_state_deprecated, replace_state_deprecated } from './warnings.ts';
 
 import type {
 	AfterNavigate,
@@ -17,9 +15,6 @@ import {
 	scroll_handling_outside_navigation,
 	snapshot_id_missing
 } from './errors.ts';
-
-let warnedPush = false;
-let warnedReplace = false;
 
 export function goto(url: string | URL, options?: GotoOptions): Promise<void> {
 	return client('goto').goto(url, options);
@@ -57,19 +52,11 @@ export function disableScrollHandling(): void {
 	runtime.restoration.disableScroll();
 }
 export function pushState(url: string | URL, state: App.PageState): Promise<void> {
-	if (DEV && !warnedPush) {
-		warnedPush = true;
-		push_state_deprecated();
-	}
 	const runtime = client('pushState');
 	if (!runtime.started) navigation_before_start({ caller: 'pushState' });
 	return runtime.shallow(url, state, false);
 }
 export function replaceState(url: string | URL, state: App.PageState): Promise<void> {
-	if (DEV && !warnedReplace) {
-		warnedReplace = true;
-		replace_state_deprecated();
-	}
 	const runtime = client('replaceState');
 	if (!runtime.started) navigation_before_start({ caller: 'replaceState' });
 	return runtime.shallow(url, state, true);

@@ -12,7 +12,6 @@ export interface FormUpdateOptions {
 	reset?: boolean;
 	refreshAll?: boolean;
 	navigate?: boolean;
-	invalidateAll?: boolean;
 }
 export interface SubmitInput {
 	action: URL;

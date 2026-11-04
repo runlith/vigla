@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 import { identity } from '../identity.ts';
 import { diagnosticText, throwDiagnostic, warningSource } from './diagnostics.ts';
@@ -7,6 +8,13 @@ import { diagnosticText, throwDiagnostic, warningSource } from './diagnostics.ts
 const prefix = `\0${identity.name}:`;
 const docs = 'https://svelte.dev/docs/kit/';
 const legacyEnvironment = /^\$env\/(static|dynamic)\/(public|private)$/;
+const extension = path.extname(fileURLToPath(import.meta.url));
+const wrapped = new Map(
+	['navigation', 'paths', 'forms'].map((name) => [
+		`$app/${name}`,
+		fileURLToPath(new URL(`./app/${name}${extension}`, import.meta.url))
+	])
+);
 
 function removedModule(id: string, aliases: Record<string, string>): void {
 	const name = id.startsWith('$lib') ? '$lib' : '$service-worker';
@@ -62,6 +70,17 @@ function legacy(kind: string, visibility: string, dev: boolean): string {
 			)
 		: '';
 	return `${exports}\n${warning}`;
+}
+
+export function appModules(): Plugin {
+	return {
+		name: `${identity.name}:history-app`,
+		enforce: 'pre',
+		resolveId(id, importer) {
+			const wrapper = wrapped.get(id);
+			if (wrapper && importer?.split('?')[0] !== wrapper) return wrapper;
+		}
+	};
 }
 
 export function history(config: { alias?: Record<string, string> } = {}): Plugin {

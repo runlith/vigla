@@ -40,6 +40,10 @@ beforeAll(async () => {
 		`import { PUBLIC_NUMBER } from '$env/static/public'; import { env } from '$env/dynamic/private'; import { browser } from '$app/environment'; export function GET() { return Response.json({ number: PUBLIC_NUMBER, token: env.PRIVATE_TOKEN, browser }); }`
 	);
 	write(
+		'src/routes/asset/+server.js',
+		`import { asset } from '$app/paths'; export function GET() { return Response.json([asset('/a.png'), asset('a.png')]); }`
+	);
+	write(
 		'src/client.js',
 		`import { PRIVATE_TOKEN } from '$env/static/private'; export { PRIVATE_TOKEN };`
 	);
@@ -77,5 +81,15 @@ test('retired modules resolve onto the app environment and stay server-only', as
 	const imported = /from "([^"]+)"/.exec(code)![1]!.replace('/@id/__x00__', '\0');
 	await expect(client.transformRequest(imported)).rejects.toThrow(
 		'Cannot import `$env/static/private` into code that runs in the browser'
+	);
+});
+
+test('retired call forms of app functions are converted to current ones with a warning', async () => {
+	const [retired, current] = await (await fetch(origin + '/asset')).json();
+	expect(retired).toBe(current);
+	expect(console.warn).toHaveBeenCalledWith(
+		expect.stringContaining("`asset('/a.png')` should now be `asset('a.png')`"),
+		'font-weight: bold',
+		'font-weight: normal'
 	);
 });

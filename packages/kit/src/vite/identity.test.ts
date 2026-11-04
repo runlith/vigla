@@ -47,6 +47,7 @@ test('an app composed by createKit renders and answers under the identity it was
 		'src/routes/+page.view.js',
 		'export default function Page(output) { output.push("<p>rendered</p>"); }'
 	);
+	write('src/service-worker.js', 'self.addEventListener("fetch", () => {});');
 	const plugin = createKit({ ...own, name: 'other', outDir: '.other' }, vigla);
 	const vite = await importVite(root);
 	server = await vite.createServer({
@@ -69,4 +70,11 @@ test('an app composed by createKit renders and answers under the identity it was
 	expect(html).not.toContain('%other.');
 	expect(existsSync(path.join(root, '.other'))).toBe(true);
 	expect(existsSync(path.join(root, '.vigla'))).toBe(false);
+
+	const load = async (url: string) => (await fetch(new URL(url, response.url))).text();
+	const entry = /import '([^']+)'/.exec(await load('/service-worker.js'))![1]!;
+	const first = /import "([^"]+)"/.exec(await load(entry))![1]!;
+	const evaluated: { __VIGLA_IDENTITY__?: { name: string } } = {};
+	new Function('globalThis', await load(first))(evaluated);
+	expect(evaluated.__VIGLA_IDENTITY__?.name).toBe('other');
 }, 30_000);

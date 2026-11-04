@@ -4,4 +4,4 @@
 
 ## link_option_replaced
 
-> `data-%identity%-%name%="true"` has been replaced with `data-%identity%-reset="false"`
+> `data-%identity%-%name%="true"` has been replaced with `data-%identity%-%replacement%`

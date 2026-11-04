@@ -44,15 +44,6 @@ export function navigation_route_missing(values: Destination): never {
 		);
 	throwCode('navigation_route_missing');
 }
-export function goto_options_removed(): never {
-	if (DEV)
-		throwDiagnostic(
-			'goto_options_removed',
-			'The `goto(..., { noScroll: true, keepFocus: true })` options have been replaced by `reset: false`',
-			goto_options_removed
-		);
-	throwCode('goto_options_removed');
-}
 export function redirect_loop(values: Url): never {
 	if (DEV)
 		throwDiagnostic(

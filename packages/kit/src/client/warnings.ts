@@ -13,25 +13,10 @@ interface Preload {
 	message: string;
 }
 
-export function push_state_deprecated(): void {
-	warnDiagnostic('push_state_deprecated', 'Use goto with shallow: true instead of pushState');
-}
-export function replace_state_deprecated(): void {
-	warnDiagnostic(
-		'replace_state_deprecated',
-		'Use goto with shallow: true and replace: true instead of replaceState'
-	);
-}
 export function window_fetch_in_load(values: { url: string }): void {
 	warnDiagnostic(
 		'window_fetch_in_load',
 		`Use the fetch provided to load instead of window.fetch for ${values.url}`
-	);
-}
-export function goto_replace_state_deprecated(values: { value: string }): void {
-	warnDiagnostic(
-		'goto_replace_state_deprecated',
-		`The replaceState: ${values.value} option is deprecated; use replace instead`
 	);
 }
 export function preload_route_is_pathname(values: Route): void {
@@ -61,15 +46,9 @@ export function link_option_invalid(values: Link): void {
 		`Unexpected value for \`${values.name}\` — should be one of ${values.options}`
 	);
 }
-export function link_option_replaced(values: { name: string }): void {
+export function link_option_replaced(values: { name: string; replacement: string }): void {
 	warnDiagnostic(
 		'link_option_replaced',
-		`\`data-${identity.name}-${values.name}="true"\` has been replaced with \`data-${identity.name}-reset="false"\``
-	);
-}
-export function enhance_invalidate_all_deprecated(): void {
-	warnDiagnostic(
-		'enhance_invalidate_all_deprecated',
-		'The `update({ invalidateAll })` option has been deprecated in favour of `update({ refreshAll })`'
+		`\`data-${identity.name}-${values.name}="true"\` has been replaced with \`data-${identity.name}-${values.replacement}\``
 	);
 }
