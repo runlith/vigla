@@ -37,8 +37,6 @@ export function enhance<
 	form: HTMLFormElement,
 	submit: SubmitFunction<Success, Failure> = () => {}
 ): ReturnType<typeof enhanceForm> {
-	return enhanceForm<Success, Failure>(form, ((input) => {
-		const callback = submit(input);
-		return callback instanceof Promise ? callback.then(wrap) : wrap(callback);
-	}) as SubmitFunction<Success, Failure>);
+	return enhanceForm<Success, Failure>(form, (async (input) =>
+		wrap(await submit(input))) as SubmitFunction<Success, Failure>);
 }
