@@ -1,11 +1,6 @@
-import { cell, hydrate, mount, unmount, settled, type Owner } from 'vigla';
+import { cell, hydrate, mount, unmount, settled, type Exports, type Owner } from 'vigla';
 import { errorGuards } from '../shared/render.ts';
-import type {
-	ClientApp,
-	ComponentInstance,
-	RenderNode,
-	RootProps
-} from '../types/internal/client.ts';
+import type { ClientApp, RenderNode, RootProps } from '../types/internal/client.ts';
 import type { Component } from 'vigla';
 import type { Loaded } from './load.ts';
 import type { State } from './state.ts';
@@ -45,7 +40,7 @@ class Tree implements RenderNode {
 }
 
 export class View {
-	readonly components: ComponentInstance[] = [];
+	readonly components: Exports[] = [];
 	readonly #trees: Tree[] = [];
 	#branches: Loaded['branch'] = [];
 	readonly #root = cell<RenderNode>(null!);

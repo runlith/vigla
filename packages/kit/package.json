@@ -45,6 +45,7 @@
 		},
 		"./internal/env": "./src/entries/internal/env.ts",
 		"./internal/identity": "./src/entries/internal/identity.ts",
+		"./internal/restore": "./src/entries/internal/restore.ts",
 		"./internal/shallow": {
 			"workerd": "./src/entries/internal/shallow/server.ts",
 			"browser": "./src/entries/internal/shallow/client.ts",

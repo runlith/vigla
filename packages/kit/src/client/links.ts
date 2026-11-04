@@ -169,7 +169,7 @@ export function listen(client: Client): Listeners {
 			link.url.href.includes('#') &&
 			!link.options.replace
 		) {
-			client.restoration.capture(client.history, client.view.components);
+			client.restoration.capture(client.history);
 			if (link.url.href === location.href) {
 				event.preventDefault();
 				client.restoration.scroll(link.url, true);
@@ -226,7 +226,8 @@ export function listen(client: Client): Listeners {
 			(hash ||
 				(client.navigated &&
 					(metadata.pageUrl === undefined || metadata.pageUrl === location.href)));
-		client.restoration.capture(client.history, client.view.components);
+		if (!shallow) client.restorer?.capture(client.history.navigation, client.view.components);
+		client.restoration.capture(client.history);
 		client.history.accept(metadata);
 		void client
 			.navigate(new URL(location.href), {
@@ -247,8 +248,7 @@ export function listen(client: Client): Listeners {
 		fragment = undefined;
 	});
 	listener(window, 'beforeunload', (event) => {
-		client.restoration.capture(client.history, client.view.components);
-		client.restoration.persist();
+		client.persist();
 		if (
 			!client.unloading &&
 			!client.lifecycle.allow(
@@ -259,10 +259,7 @@ export function listen(client: Client): Listeners {
 			event.returnValue = '';
 		}
 	});
-	listener(window, 'pagehide', () => {
-		client.restoration.capture(client.history, client.view.components);
-		client.restoration.persist();
-	});
+	listener(window, 'pagehide', () => client.persist());
 	listener(window, 'focus', () => {
 		if (document.visibilityState === 'visible') void client.state.check();
 	});

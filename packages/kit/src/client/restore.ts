@@ -1,6 +1,5 @@
 import { parse, stringify } from 'devalue';
 import { getOwner, type Owner } from 'vigla';
-import type { ComponentInstance } from '../types/internal/client.ts';
 import type { ScrollPosition, SnapshotOptions } from '../types/navigation.ts';
 import { snapshot_duplicate_id } from './errors.ts';
 import type { Transport } from './transport.ts';
@@ -14,7 +13,6 @@ interface Registration {
 
 const keys = {
 	info: `${identity.name}:history-info`,
-	snapshots: `${identity.name}:snapshot`,
 	registered: `${identity.name}:navigation-snapshot`
 };
 
@@ -47,7 +45,6 @@ function prune(records: Records<unknown>, index: number, onward: boolean): void 
 export class Restoration {
 	#auto = true;
 	readonly #info: Records<{ scroll?: ScrollPosition; resetIndex?: number }>;
-	readonly #snapshots: Records<unknown[]>;
 	readonly #registered: Records<Record<string, string>>;
 	readonly #hash: boolean;
 	readonly #transport: Transport | undefined;
@@ -57,7 +54,6 @@ export class Restoration {
 		this.#transport = transport;
 		this.#hash = hash;
 		this.#info = read(keys.info);
-		this.#snapshots = read(keys.snapshots);
 		this.#registered = read(keys.registered);
 	}
 
@@ -73,15 +69,11 @@ export class Restoration {
 		return this.#transport ? this.#transport.parse(value) : parse(value);
 	}
 
-	capture(entry: HistoryEntry, components: ComponentInstance[]): void {
+	capture(entry: HistoryEntry): void {
 		this.#info[entry.index] = {
 			...this.#info[entry.index],
 			scroll: { x: window.scrollX, y: window.scrollY }
 		};
-		if (components.some((component) => component?.snapshot))
-			this.#snapshots[entry.navigation] = components.map((component) =>
-				component?.snapshot?.capture()
-			);
 		if (this.#registrations.size)
 			this.#registered[entry.index] = Object.fromEntries(
 				[...this.#registrations].map(([id, registration]) => [
@@ -95,17 +87,13 @@ export class Restoration {
 	clear(entry: HistoryEntry, onward = true): void {
 		prune(this.#info, entry.index, onward);
 		prune(this.#registered, entry.index, onward);
-		if (onward) prune(this.#snapshots, entry.navigation + 1, true);
 	}
 
 	position(index: number): ScrollPosition | null {
 		return this.#info[index]?.scroll ?? null;
 	}
 
-	restore(entry: HistoryEntry, components: ComponentInstance[]): void {
-		this.#snapshots[entry.navigation]?.forEach((value, depth) => {
-			components[depth]?.snapshot?.restore(value);
-		});
+	restore(entry: HistoryEntry): void {
 		const saved = this.#registered[entry.index];
 		for (const [id, registration] of this.#registrations) {
 			if (saved && Object.hasOwn(saved, id))
@@ -134,7 +122,6 @@ export class Restoration {
 
 	persist(): void {
 		write(keys.info, this.#info);
-		write(keys.snapshots, this.#snapshots);
 		write(keys.registered, this.#registered);
 	}
 

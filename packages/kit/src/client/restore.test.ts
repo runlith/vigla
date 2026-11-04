@@ -45,21 +45,9 @@ test('history scroll has priority and disableScroll is consumed even without a r
 	expect([window.scrollX, window.scrollY]).toEqual([2, 3]);
 });
 
-test("history records persist as upstream's three session-storage records under the identity", () => {
-	let value = '';
+test("scroll and registered snapshots persist as upstream's session-storage records under the identity", () => {
 	let registered: unknown;
-	const components = [
-		{
-			snapshot: {
-				capture: () => value,
-				restore: (next: unknown) => {
-					value = String(next);
-				}
-			}
-		}
-	];
 	sessionStorage.setItem('vigla:history-info', JSON.stringify({ 4: { scroll: { x: 7, y: 8 } } }));
-	sessionStorage.setItem('vigla:snapshot', JSON.stringify({ 2: ['draft'] }));
 	sessionStorage.setItem(
 		'vigla:navigation-snapshot',
 		JSON.stringify({ 4: { form: stringify('kept') } })
@@ -70,36 +58,17 @@ test("history records persist as upstream's three session-storage records under 
 		{ capture: () => 'next', restore: (next) => (registered = next) },
 		4
 	);
-	restoration.restore({ index: 4, navigation: 2 }, components);
-	expect([value, registered]).toEqual(['draft', 'kept']);
+	restoration.restore({ index: 4, navigation: 2 });
+	expect(registered).toBe('kept');
 	expect(restoration.position(4)).toEqual({ x: 7, y: 8 });
-	value = 'edited';
 	window.scrollTo(1, 2);
-	restoration.capture({ index: 5, navigation: 2 }, components);
+	restoration.capture({ index: 5, navigation: 2 });
 	restoration.persist();
 	expect(JSON.parse(sessionStorage.getItem('vigla:history-info')!)[5]).toEqual({
 		scroll: { x: 1, y: 2 }
 	});
-	expect(JSON.parse(sessionStorage.getItem('vigla:snapshot')!)).toEqual({ 2: ['edited'] });
 	expect(JSON.parse(sessionStorage.getItem('vigla:navigation-snapshot')!)[5]).toEqual({
 		form: stringify('next')
 	});
-});
-
-test('a captured void snapshot still invokes its restore callback', () => {
-	let restored = 0;
-	const components = [
-		{
-			snapshot: {
-				capture: () => {},
-				restore: () => {
-					restored++;
-				}
-			}
-		}
-	];
-	const restoration = new Restoration(false);
-	restoration.capture({ index: 1, navigation: 1 }, components);
-	restoration.restore({ index: 1, navigation: 1 }, components);
-	expect(restored).toBe(1);
+	expect(sessionStorage.getItem('vigla:snapshot')).toBeNull();
 });

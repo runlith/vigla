@@ -37,14 +37,17 @@ function serverLoad(node: PageNode, root: string): boolean {
 }
 
 export function clientApp(project: Project): string {
-	const { config, tree, root, format } = project;
+	const { config, tree, root, format, name } = project;
 	const loads = tree.nodes.map(
 		(node, index) => project.build?.analysis.nodes[index]?.hasServerLoad ?? serverLoad(node, root)
 	);
 	const lines: string[] = [];
 	if (project.vite.command === 'build' && config.output.bundleStrategy !== 'split')
 		lines.push(`import ${JSON.stringify(ids.bootstrap)};`);
-	lines.push(`export { default as root } from ${JSON.stringify(ids.root)};`);
+	lines.push(
+		`export { default as root } from ${JSON.stringify(ids.root)};`,
+		`export { restorer } from ${JSON.stringify(name + '/internal/restore')};`
+	);
 	for (const side of ['client', 'universal'] as const) {
 		const file = tree.hooks[side];
 		lines.push(

@@ -1,6 +1,6 @@
 import { createContext, onDestroy, openHydration, root, untrack, type Owner } from 'vigla';
 import { DEV } from 'esm-env';
-import type { ClientApp, Hydration } from '../types/internal/client.ts';
+import type { ClientApp, Hydration, Restorer } from '../types/internal/client.ts';
 import type { ActionResult } from '../types/forms.ts';
 import type {
 	GotoOptions,
@@ -50,6 +50,7 @@ export class Client {
 	readonly lifecycle = new Lifecycle();
 	readonly actions = new Actions(this);
 	readonly restoration: Restoration;
+	readonly restorer: Restorer | undefined;
 	readonly history: History;
 	readonly pages: Pages;
 	readonly view: View;
@@ -94,6 +95,7 @@ export class Client {
 		});
 		this.history = new History(this.transport);
 		this.restoration = new Restoration(this.routes.hash, this.transport);
+		this.restorer = app.restorer?.();
 		this.pages = new Pages(
 			app,
 			this.owner,
@@ -206,7 +208,8 @@ export class Client {
 			const navigation = this.navigation(url, 'enter', {}, result) as NavigationEnter;
 			navigation.to!.scroll = { x: window.scrollX, y: window.scrollY };
 			this.lifecycle.finish(navigation);
-			this.restoration.restore(this.history, this.view.components);
+			this.restorer?.restore(this.history.navigation, this.view.components);
+			this.restoration.restore(this.history);
 			this.started = true;
 			this.updating = false;
 			this.owner.run(() => this.state.poll());
@@ -268,6 +271,13 @@ export class Client {
 		return true;
 	}
 
+	persist(): void {
+		this.restoration.capture(this.history);
+		this.restoration.persist();
+		this.restorer?.capture(this.history.navigation, this.view.components);
+		this.restorer?.persist();
+	}
+
 	updateUrl(url: URL): void {
 		this.#token++;
 		if (this.current) this.current = { ...this.current, url };
@@ -285,9 +295,10 @@ export class Client {
 		if (!intent) errors.navigation_route_missing({ caller, url: url.href });
 		const saved = this.history.encode(state);
 		const registrations = this.restoration.registrations();
-		if (!replace) this.restoration.capture(this.history, this.view.components);
+		if (!replace) this.restoration.capture(this.history);
 		this.history.write(url, saved, replace, true, false, this.current?.url, false);
 		this.restoration.clear(this.history, !replace);
+		if (!replace) this.restorer?.prune(this.history.navigation);
 		this.navigated = true;
 		this.state.update({
 			state: saved.value,
@@ -411,7 +422,10 @@ export class Client {
 				return;
 			}
 			this.updating = true;
-			if (!options.popped) this.restoration.capture(this.history, this.view.components);
+			if (!options.popped) {
+				if (!options.shallow) this.restorer?.capture(this.history.navigation, this.view.components);
+				this.restoration.capture(this.history);
+			}
 			const registrations = this.restoration.registrations();
 			const reset = options.reset ?? !options.shallow;
 			this.restoration.blur(reset);
@@ -426,7 +440,10 @@ export class Client {
 					previous?.url,
 					reset
 				);
-			if (!options.popped) this.restoration.clear(this.history, !options.replace);
+			if (!options.popped) {
+				this.restoration.clear(this.history, !options.replace);
+				if (!options.replace) this.restorer?.prune(this.history.navigation);
+			}
 			this.navigated = true;
 			const shallow = (options.popped ? options.popped.pageUrl !== undefined : options.shallow)
 				? { params: intent.params, route: { id: intent.route.id }, url }
@@ -461,8 +478,10 @@ export class Client {
 			if (navigation.to) navigation.to.scroll = { x: window.scrollX, y: window.scrollY };
 			for (const callback of after) callback();
 			if (!quiet) this.lifecycle.finish(navigation);
-			if (options.popped) this.restoration.restore(this.history, this.view.components);
-			else if (reset) this.restoration.reset(registrations);
+			if (options.popped) {
+				if (!options.shallow) this.restorer?.restore(this.history.navigation, this.view.components);
+				this.restoration.restore(this.history);
+			} else if (reset) this.restoration.reset(registrations);
 		} catch (error) {
 			completion.reject(error);
 			const html = await this.#errorPage(error, url);

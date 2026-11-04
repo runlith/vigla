@@ -1,7 +1,7 @@
 import type { Component, Exports } from 'vigla';
 import type { Format } from 'vigla/compiler';
 import type { ClientInit, HandleClientError, Reroute, Transport } from '../hooks.ts';
-import type { Load, Snapshot } from '../request.ts';
+import type { Load } from '../request.ts';
 import type { Page } from '../state.ts';
 import type { ParamMatcher, ParamValue } from '../params.ts';
 import type { DataNode, TrailingSlash } from './data.ts';
@@ -52,13 +52,16 @@ export interface RenderNode {
 	child: RenderNode | null;
 }
 
-export interface ComponentInstance extends Exports {
-	snapshot?: Snapshot;
+export interface Restorer {
+	capture(navigation: number, components: Exports[]): void;
+	restore(navigation: number, components: Exports[]): void;
+	prune(navigation: number): void;
+	persist(): void;
 }
 
 export interface RootProps extends Record<string, unknown> {
 	page: Page<MatchedParams>;
-	components: ComponentInstance[];
+	components: Exports[];
 	onerror: (error: unknown, reset: () => void) => void;
 	tree: RenderNode;
 	form: Record<string, any> | null;
@@ -91,6 +94,7 @@ export interface ClientApp {
 	matchers: Record<string, ParamMatcher>;
 	hooks: ClientHooks;
 	root: Component<RootProps, any>;
+	restorer?: () => Restorer;
 	format?: Format;
 	clientRouting?: boolean;
 	versionChecks?: boolean;

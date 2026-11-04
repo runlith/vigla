@@ -24,6 +24,7 @@
 		"./internal/server": "./src/internal/server.ts",
 		"./internal/client": "./src/internal/client.ts",
 		"./internal/payload": "./src/internal/payload.ts",
+		"./internal/restore": "./src/internal/restore.ts",
 		"./adapter": "./src/adapter.ts",
 		"./node": "./src/node.ts",
 		"./hooks": "./src/hooks.ts",
