@@ -1,6 +1,7 @@
 {
   "conversions": {
     "async/src/routes/remote/dev/preload/+page.svelte": "`export let` replaced by `$props()`",
+    "async/test/server.test.js": "the production client output is checked for the diagnostic's code rather than upstream's literal URL: a production diagnostic's message is its link, which Vigla's client builds from the app's identity at runtime",
     "basics/src/routes/+layout.svelte": "`export let` replaced by `$props()`; `<slot>` replaced by `children`",
     "basics/src/routes/+page.svelte": "`export let` replaced by `$props()`",
     "basics/src/routes/accessibility/+layout.svelte": "`<slot>` replaced by `children`",
@@ -325,14 +326,38 @@
       }
     },
     "async/test/client.test.js > remote functions > remote query responses are not cacheable": "contract",
-    "async/test/server.test.js > remote functions > .as('hidden', value) is correctly received on the server": "contract",
-    "async/test/server.test.js > remote functions > doesn't duplicate remote modules in the generated manifest": "contract",
-    "async/test/server.test.js > remote functions > doesn't write bundle to disk when treeshaking prerendered remote functions": "contract",
-    "async/test/server.test.js > remote functions > form doesn't refresh queries when not a remote request": "contract",
-    "async/test/server.test.js > remote functions > non-dynamic prerendered remote functions are treeshaken": "contract",
-    "async/test/server.test.js > remote functions > non-dynamic prerendered remote functions with colliding basenames are treeshaken": "contract",
-    "async/test/server.test.js > remote functions > production client output excludes remote diagnostic text and build dependencies": "contract",
-    "async/test/server.test.js > remote functions > treeshaken prerendered remote functions explain how to call them at runtime": "contract",
+    "async/test/server.test.js > remote functions > .as('hidden', value) is correctly received on the server": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
+    "async/test/server.test.js > remote functions > doesn't duplicate remote modules in the generated manifest": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
+    "async/test/server.test.js > remote functions > doesn't write bundle to disk when treeshaking prerendered remote functions": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
+    "async/test/server.test.js > remote functions > form doesn't refresh queries when not a remote request": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
+    "async/test/server.test.js > remote functions > non-dynamic prerendered remote functions are treeshaken": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
+    "async/test/server.test.js > remote functions > non-dynamic prerendered remote functions with colliding basenames are treeshaken": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
+    "async/test/server.test.js > remote functions > production client output excludes remote diagnostic text and build dependencies": {
+      "status": "converted",
+      "reason": "checks the client bundle for the production diagnostic's code: its message, the link, is built from the app's identity at runtime, so the full URL is no literal there"
+    },
+    "async/test/server.test.js > remote functions > treeshaken prerendered remote functions explain how to call them at runtime": {
+      "status": "converted",
+      "reason": "unchanged; its spec checks the production client output for a diagnostic's code rather than its literal URL"
+    },
     "async/test/test.js > remote functions > .as(type, value) renders correct values": "contract",
     "async/test/test.js > remote functions > awaiting multiple queries inside $derived does not fail mutation validation": "contract",
     "async/test/test.js > remote functions > enhanced form state > form enhance submit returns boolean": "contract",
