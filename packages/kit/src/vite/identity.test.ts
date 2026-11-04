@@ -26,7 +26,7 @@ afterAll(async () => {
 	if (root) rmSync(root, { recursive: true, force: true });
 });
 
-test('an app composed by createKit renders and answers under the identity it was created with', async () => {
+test('an app composed by createKit keeps the identity it was created with beside another identity', async () => {
 	root = realpathSync(mkdtempSync(path.join(tmpdir(), 'kit-identity-')));
 	const write = (file: string, content: string) => {
 		const destination = path.join(root!, file);
@@ -48,13 +48,19 @@ test('an app composed by createKit renders and answers under the identity it was
 		'export default function Page(output) { output.push("<p>rendered</p>"); }'
 	);
 	write('src/service-worker.js', 'self.addEventListener("fetch", () => {});');
-	const plugin = createKit({ ...own, name: 'other', outDir: '.other' }, vigla);
+	const plugins = await createKit(
+		{ ...own, name: 'other', outDir: '.other' },
+		vigla
+	)({
+		extensions: ['.view.js']
+	});
+	await createKit(own, vigla)({ extensions: ['.view.js'] });
 	const vite = await importVite(root);
 	server = await vite.createServer({
 		root,
 		configFile: false,
 		logLevel: 'silent',
-		plugins: await plugin({ extensions: ['.view.js'] }),
+		plugins,
 		server: { port: 0 },
 		optimizeDeps: { noDiscovery: true, include: [] }
 	});

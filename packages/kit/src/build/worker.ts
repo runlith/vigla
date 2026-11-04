@@ -3,8 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PrerenderPolicy } from '../types/config.ts';
 import type { BuildContext, Analysis } from './types.ts';
-import * as e from './messages.ts';
-import { identity } from '../shared/identity.ts';
+import { BuildMessages } from './messages.ts';
 import type {
 	AnalysisJob,
 	FallbackJob,
@@ -19,7 +18,7 @@ import type {
 
 function platform(context: BuildContext): WorkerPlatform {
 	return {
-		identity,
+		identity: context.identity,
 		directory: `${context.config.outDir}/output`,
 		assets: context.config.files.assets,
 		origin: context.config.paths.origin || 'http://prerender.invalid',
@@ -42,7 +41,9 @@ async function applyPolicy<T extends { message: string }>(
 		return;
 	}
 	throw new Error(
-		policy === 'fail' ? details.message : `${details.message}\n${e.prerender_policy_hint(name)}`
+		policy === 'fail'
+			? details.message
+			: `${details.message}\n${new BuildMessages(context.diagnostics).prerender_policy_hint(name)}`
 	);
 }
 async function policy(issue: PolicyIssue, context: BuildContext): Promise<void> {

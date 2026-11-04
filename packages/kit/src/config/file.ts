@@ -3,10 +3,13 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Alias, ResolvedConfig } from 'vite';
 import type { ValidatedConfig } from '../types/builder.ts';
+import type { Identity } from '../types/identity.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
 import { resolveConfig, validateConfig } from './index.ts';
 
 export interface FileConfig {
 	config: ValidatedConfig;
+	identity: Identity;
 	vite: ResolvedConfig;
 	api: typeof import('vite');
 }
@@ -18,15 +21,21 @@ export async function importVite(root: string): Promise<typeof import('vite')> {
 
 export async function loadConfig(
 	root: string,
+	fallback: Identity,
 	file?: string,
 	mode = process.env.MODE ?? 'production'
 ): Promise<FileConfig> {
 	const api = await importVite(root);
 	const vite = await api.resolveConfig({ root, configFile: file }, 'build', mode);
-	const options: ValidatedConfig | undefined = vite.plugins.find(
-		(plugin) => plugin.name === 'kit:setup'
-	)?.api.options;
-	return { api, vite, config: options ?? resolveConfig(validateConfig({}), vite.root) };
+	const setup = vite.plugins.find((plugin) => plugin.name === 'kit:setup')?.api;
+	if (setup) return { api, vite, config: setup.options, identity: setup.identity };
+	const d = diagnostics(fallback);
+	return {
+		api,
+		vite,
+		config: resolveConfig(validateConfig({}, d), vite.root, d),
+		identity: fallback
+	};
 }
 
 export function configAliases(config: ValidatedConfig, root: string): Alias[] {

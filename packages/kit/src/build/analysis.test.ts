@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import type { ServerManifest } from '../types/internal/server.ts';
 import { analyse } from './analysis.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
+import { own } from '../shared/identity.ts';
+
+const d = diagnostics(own);
 
 test('analysis retains automatic prerender and action metadata for request-time validation', async () => {
 	const manifest: ServerManifest = {
@@ -33,7 +37,7 @@ test('analysis retains automatic prerender and action metadata for request-time 
 			}
 		]
 	};
-	const metadata = (await analyse(manifest, false)).routes.get('/actions');
+	const metadata = (await analyse(manifest, false, d)).routes.get('/actions');
 	expect(metadata).toMatchObject({
 		prerender: 'auto',
 		methods: ['GET', 'POST'],

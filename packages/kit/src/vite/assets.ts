@@ -3,7 +3,6 @@ import { serveFile } from '../node/static.ts';
 import { escapeHtml } from '../shared/escape.ts';
 import { negotiate } from '../shared/http.ts';
 import type { Project } from './project.ts';
-import { identity } from '../shared/identity.ts';
 
 export function serveAsset(
 	project: Project,
@@ -11,7 +10,7 @@ export function serveAsset(
 	response: ServerResponse,
 	pathname: string
 ): boolean {
-	const prefix = project.config.paths.assets ? identity.assets : project.config.paths.base;
+	const prefix = project.config.paths.assets ? project.identity.assets : project.config.paths.base;
 	if (!pathname.startsWith(prefix + '/')) return false;
 	return serveFile({
 		directory: project.config.files.assets,

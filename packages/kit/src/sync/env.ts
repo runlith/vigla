@@ -6,7 +6,8 @@ import type { ValidatedConfig } from '../types/builder.ts';
 import type { EnvVarConfig } from '../types/env.ts';
 import { resolveEntry } from './files.ts';
 import { installation } from './package.ts';
-import * as e from './errors.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
+import { SyncErrors } from './errors.ts';
 
 export interface Environment {
 	variables: Record<string, EnvVarConfig<any>>;
@@ -30,7 +31,7 @@ export function isRunnable(
 	return !!runner && typeof runner.import === 'function';
 }
 
-export function validateEnvironment(environment: Environment): void {
+export function validateEnvironment(environment: Environment, d: Diagnostics): void {
 	const issues: EnvironmentIssues = {};
 	for (const name of Object.keys(environment.variables)) {
 		environment.validated[name] = validate(
@@ -40,15 +41,17 @@ export function validateEnvironment(environment: Environment): void {
 			issues
 		);
 	}
-	handleIssues(issues);
+	handleIssues(issues, d);
 }
 
 export async function loadEnvironment(
 	config: ValidatedConfig,
 	root: string,
 	mode: string,
-	vite: typeof import('vite')
+	vite: typeof import('vite'),
+	d: Diagnostics
 ): Promise<Environment> {
+	const e: SyncErrors = new SyncErrors(d);
 	const file = resolveEntry(path.join(config.files.src, 'env'), config.moduleExtensions);
 	const result: Environment = {
 		variables: {},

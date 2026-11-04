@@ -9,6 +9,10 @@ import {
 	splitConfig,
 	validateConfig
 } from './index.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
+import { own } from '../shared/identity.ts';
+
+const d = diagnostics(own);
 
 const directories: string[] = [];
 function project(): string {
@@ -23,11 +27,14 @@ afterEach(() => {
 
 test('fills defaults from files.src and resolves them against the Vite root without mutation', () => {
 	const root = project();
-	const config = validateConfig({
-		files: { src: 'source', assets: 'public' },
-		version: { name: 'fixed' }
-	});
-	const resolved = resolveConfig(config, root);
+	const config = validateConfig(
+		{
+			files: { src: 'source', assets: 'public' },
+			version: { name: 'fixed' }
+		},
+		d
+	);
+	const resolved = resolveConfig(config, root, d);
 	expect(config.files.routes).toBe('source/routes');
 	expect(resolved.files.routes).toBe(join(root, 'source/routes'));
 	expect(resolved.files.hooks.server).toBe(join(root, 'source/hooks.server'));
@@ -43,12 +50,15 @@ test('fills defaults from files.src and resolves them against the Vite root with
 
 test('separates plugin options and the shared experimental namespace', () => {
 	expect(
-		splitConfig({
-			appDir: 'app',
-			compilerOptions: { dev: true },
-			experimental: { remoteFunctions: false, forkPreloads: true },
-			inspector: true
-		} as any)
+		splitConfig(
+			{
+				appDir: 'app',
+				compilerOptions: { dev: true },
+				experimental: { remoteFunctions: false, forkPreloads: true },
+				inspector: true
+			} as any,
+			d
+		)
 	).toEqual({
 		config: {
 			appDir: 'app',
@@ -57,7 +67,7 @@ test('separates plugin options and the shared experimental namespace', () => {
 		},
 		plugin: { inspector: true }
 	});
-	expect(splitConfig({ experimental: { unknown: true } } as any)).toEqual({
+	expect(splitConfig({ experimental: { unknown: true } } as any, d)).toEqual({
 		config: {},
 		plugin: { experimental: { unknown: true } }
 	});
@@ -118,7 +128,7 @@ test.each([
 		.spyOn(console, 'log')
 		.mockImplementation((message) => messages.push(String(message)));
 	try {
-		expect(() => validateConfig(input)).toThrow('Failed to load Kit options from Vite config');
+		expect(() => validateConfig(input, d)).toThrow('Failed to load Kit options from Vite config');
 		expect(messages.join('\n')).toContain(code);
 		expect(messages.join('\n')).toContain(keypath);
 	} finally {
@@ -130,8 +140,8 @@ test('validates all prerender concurrency boundaries', () => {
 	const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 	try {
 		for (const concurrency of [-1, 1.5, Infinity, NaN])
-			expect(() => validateConfig({ prerender: { concurrency } })).toThrow();
-		expect(validateConfig({ prerender: { concurrency: 2 } }).prerender.concurrency).toBe(2);
+			expect(() => validateConfig({ prerender: { concurrency } }, d)).toThrow();
+		expect(validateConfig({ prerender: { concurrency: 2 } }, d).prerender.concurrency).toBe(2);
 	} finally {
 		log.mockRestore();
 	}
@@ -143,31 +153,34 @@ test('keeps adapter plugin configuration on the validated adapter', () => {
 		adapt() {},
 		vite: ({ config }: any) => ({ plugins: [{ name: config.appDir }] })
 	};
-	const config = validateConfig({ appDir: 'custom', adapter });
+	const config = validateConfig({ appDir: 'custom', adapter }, d);
 	expect(config.adapter.vite).toEqual({ plugins: [{ name: 'custom' }] });
 	expect(typeof adapter.vite).toBe('function');
 });
 
 test('requires trusted URL policy only when an enforced service worker exists', () => {
 	const root = project();
-	const config = validateConfig({
-		files: { src: 'source' },
-		csp: { directives: { 'require-trusted-types-for': ['script'] } }
-	});
-	expect(resolveConfig(config, root).serviceWorker.register).toBe(true);
+	const config = validateConfig(
+		{
+			files: { src: 'source' },
+			csp: { directives: { 'require-trusted-types-for': ['script'] } }
+		},
+		d
+	);
+	expect(resolveConfig(config, root, d).serviceWorker.register).toBe(true);
 	writeFileSync(join(root, 'source/service-worker.ts'), 'export {};');
-	expect(() => resolveConfig(config, root)).toThrow('config_csp_trusted_types_missing');
+	expect(() => resolveConfig(config, root, d)).toThrow('config_csp_trusted_types_missing');
 });
 
 test('loads the app template and diagnoses its missing placeholders', () => {
 	const root = project();
-	const config = resolveConfig(validateConfig({ files: { src: 'source' } }), root);
-	expect(() => loadTemplate(root, config)).toThrow('app_template_missing');
+	const config = resolveConfig(validateConfig({ files: { src: 'source' } }, d), root, d);
+	expect(() => loadTemplate(root, config, d)).toThrow('app_template_missing');
 	writeFileSync(config.files.appTemplate, '%vigla.head%');
-	expect(() => loadTemplate(root, config)).toThrow('app_template_tag_missing');
+	expect(() => loadTemplate(root, config, d)).toThrow('app_template_tag_missing');
 	writeFileSync(config.files.appTemplate, '%vigla.head%|%vigla.body%');
-	expect(loadTemplate(root, config)).toBe('%vigla.head%|%vigla.body%');
-	expect(loadErrorPage(config)).toContain('%vigla.error.message%');
+	expect(loadTemplate(root, config, d)).toBe('%vigla.head%|%vigla.body%');
+	expect(loadErrorPage(config, d)).toContain('%vigla.error.message%');
 	writeFileSync(config.files.errorTemplate, 'custom error');
-	expect(loadErrorPage(config)).toBe('custom error');
+	expect(loadErrorPage(config, d)).toBe('custom error');
 });

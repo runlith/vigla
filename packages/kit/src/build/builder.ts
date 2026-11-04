@@ -6,10 +6,9 @@ import type { Builder, Logger, RouteDefinition } from '../types/builder.ts';
 import { compress, copy, remove, specifier, walk, write } from './files.ts';
 import { initializer, instrument } from './instrument.ts';
 import { manifestSource, serverAssets } from './manifest.ts';
-import * as e from './messages.ts';
+import { BuildMessages } from './messages.ts';
 import type { BuildContext } from './types.ts';
 import { renderFallback } from './worker.ts';
-import { identity } from '../shared/identity.ts';
 
 export function createLogger(verbose = true): Logger {
 	const log = (message: string) => console.log(message);
@@ -29,6 +28,7 @@ export function createLogger(verbose = true): Logger {
 
 export function createBuilder(context: BuildContext): Builder {
 	const { config, tree, analysis, artifacts, prerendered } = context;
+	const e: BuildMessages = new BuildMessages(context.diagnostics);
 	const output = path.join(config.outDir, 'output');
 	const routes: RouteDefinition[] = tree.routes
 		.filter((route) => route.page || route.endpoint)
@@ -61,7 +61,7 @@ export function createBuilder(context: BuildContext): Builder {
 	};
 	const serverDirectory = path.join(output, 'server');
 	const builder: Builder = {
-		identity,
+		identity: context.identity,
 		config,
 		log: context.log,
 		routes,
@@ -154,7 +154,9 @@ export function createBuilder(context: BuildContext): Builder {
 		hasServerInstrumentationFile() {
 			return existsSync(path.join(serverDirectory, 'instrumentation.server.js'));
 		},
-		instrument
+		instrument(options) {
+			instrument(options, e);
+		}
 	};
 	return builder;
 }

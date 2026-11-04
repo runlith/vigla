@@ -1,8 +1,8 @@
 import { decodeEscape, invalidParam, routeSegments } from '../shared/routing/index.ts';
 import type { Route } from '../types/internal/routes.ts';
-import * as e from './errors.ts';
+import type { SyncErrors } from './errors.ts';
 
-export function validateRoute(id: string): void {
+export function validateRoute(id: string, e: SyncErrors): void {
 	const literal = id.replace(
 		/\[([ux])\+([^\]]+)\]/gi,
 		(whole: string, kind: string, code: string) => {
@@ -24,7 +24,7 @@ export function validateRoute(id: string): void {
 	if (param !== undefined) e.route_param_invalid({ id, param });
 }
 
-export function validateConflicts(routes: readonly Route[]): void {
+export function validateConflicts(routes: readonly Route[], e: SyncErrors): void {
 	const seen = new Map<string, string>();
 	for (const route of routes) {
 		if (route.leaf === null && !route.endpoint) continue;

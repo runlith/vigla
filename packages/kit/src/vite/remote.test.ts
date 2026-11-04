@@ -14,6 +14,7 @@ import { hash } from '../shared/hash.ts';
 import type { Project } from './project.ts';
 import { packageDirectory } from './paths.ts';
 import { createRemotePlugin } from './remote.ts';
+import { own } from '../shared/identity.ts';
 
 const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'kit-remote-')));
 const remoteFile = path.join(root, 'items.remote.js');
@@ -40,8 +41,8 @@ afterAll(async () => {
 });
 
 test('dev registers server exports and exposes only remote stubs to clients', async () => {
-	const project = { root, name: '@vigla/kit' } as Project;
-	const remote = createRemotePlugin(() => project);
+	const project = { root, name: '@vigla/kit', identity: own } as Project;
+	const remote = createRemotePlugin(() => project, own);
 	const server = await createServer({
 		root,
 		configFile: false,
@@ -80,7 +81,7 @@ test('server builds publish remote chunks and client builds use analysed kinds',
 			}
 		}
 	} as unknown as Project;
-	const remote = createRemotePlugin(() => project);
+	const remote = createRemotePlugin(() => project, own);
 	const result = (await build({
 		root,
 		configFile: false,
@@ -115,7 +116,7 @@ test('server builds publish remote chunks and client builds use analysed kinds',
 });
 
 test('Kit runtime modules are not treated as app remote functions', async () => {
-	const remote = createRemotePlugin(() => ({ root, name: '@vigla/kit' }) as Project);
+	const remote = createRemotePlugin(() => ({ root, name: '@vigla/kit' }) as Project, own);
 	const result = (await build({
 		root,
 		configFile: false,
@@ -151,7 +152,7 @@ test('dependency optimization externalizes remote modules', async () => {
 		path.join(directory, 'data.remote.js'),
 		`import 'server-only-secret'; export const load = 'server secret';`
 	);
-	const remote = createRemotePlugin(() => ({ root, name: '@vigla/kit' }) as Project);
+	const remote = createRemotePlugin(() => ({ root, name: '@vigla/kit' }) as Project, own);
 	const config = await resolveConfig(
 		{
 			root,

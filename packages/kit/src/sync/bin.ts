@@ -6,4 +6,4 @@ import { cli } from './cli.ts';
 const { version } = JSON.parse(
 	readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
 );
-await cli(process.argv.slice(2), version, own.command);
+await cli(process.argv.slice(2), version, own);

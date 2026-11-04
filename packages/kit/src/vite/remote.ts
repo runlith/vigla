@@ -2,6 +2,7 @@ import path from 'node:path';
 import type { Plugin, Rolldown, ViteDevServer } from 'vite';
 import type { RemoteMetadata } from '../build/index.ts';
 import { hash } from '../shared/hash.ts';
+import type { Identity } from '../types/identity.ts';
 import type { RemoteExport, RemoteInternals } from '../types/internal/remote.ts';
 import { isRunnable } from '../sync/index.ts';
 import { fileUrl, isRemoteModule, posix, remotePattern } from './paths.ts';
@@ -21,7 +22,11 @@ export interface RemoteIntegration {
 const prefix = '\0kit:remote:';
 const kinds = new Set(['query', 'query_batch', 'query_live', 'command', 'form', 'prerender']);
 
-export function createRemotePlugin(getProject: () => Project): RemoteIntegration {
+export function createRemotePlugin(
+	getProject: () => Project,
+	identity: Identity
+): RemoteIntegration {
+	const isRemote = (id: string) => isRemoteModule(id, identity.packages);
 	const entries = new Map<string, RemoteEntry>();
 	const references = new Map<string, string>();
 	let server: ViteDevServer | undefined;
@@ -33,7 +38,7 @@ export function createRemotePlugin(getProject: () => Project): RemoteIntegration
 			async handler(id, importer) {
 				const resolved = await this.resolve(id, importer, { skipSelf: true });
 				if (!resolved) return { id, external: true };
-				if (!isRemoteModule(resolved.id)) return;
+				if (!isRemote(resolved.id)) return;
 				return { id: fileUrl(resolved.id), external: 'absolute' };
 			}
 		}
@@ -64,7 +69,7 @@ export function createRemotePlugin(getProject: () => Project): RemoteIntegration
 			return `import * as functions from ${JSON.stringify(entry.file)}; export default functions;`;
 		},
 		async transform(code, id) {
-			if (!isRemoteModule(id)) return;
+			if (!isRemote(id)) return;
 			const project = getProject();
 			const file = posix(path.relative(project.root, id));
 			const key = hash(file);

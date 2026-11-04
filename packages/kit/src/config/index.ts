@@ -2,16 +2,17 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import type { Config } from '../types/config.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
-import { experimental, parseOptions, schema } from './schema.ts';
-import * as e from './errors.ts';
-import { identity } from '../shared/identity.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
+import { configSchema } from './schema.ts';
+import { ConfigErrors } from './errors.ts';
 
 export interface SplitConfig {
 	config: Config;
 	plugin: Record<string, unknown>;
 }
 
-export function splitConfig(input: Config): SplitConfig {
+export function splitConfig(input: Config, d: Diagnostics): SplitConfig {
+	const { schema, experimental } = configSchema(new ConfigErrors(d));
 	const config: Record<string, unknown> = {};
 	const plugin: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(input)) {
@@ -29,11 +30,12 @@ export function splitConfig(input: Config): SplitConfig {
 	return { config: config as Config, plugin };
 }
 
-export function validateConfig(input: unknown = {}): ValidatedConfig {
+export function validateConfig(input: unknown, d: Diagnostics): ValidatedConfig {
+	const e: ConfigErrors = new ConfigErrors(d);
 	try {
 		if (!input || typeof input !== 'object' || Array.isArray(input)) e.config_not_object();
-		const config = parseOptions(input, 'config') as ValidatedConfig;
-		config.outDir ??= identity.outDir;
+		const config = configSchema(e).parseOptions(input, 'config') as ValidatedConfig;
+		config.outDir ??= d.identity.outDir;
 		const files = config.files;
 		files.hooks.client ??= join(files.src, 'hooks.client');
 		files.hooks.server ??= join(files.src, 'hooks.server');
@@ -53,7 +55,7 @@ export function validateConfig(input: unknown = {}): ValidatedConfig {
 		return config;
 	} catch (error) {
 		console.log(`\n${error instanceof Error ? error.message : String(error)}\n`);
-		const failure = new Error(`Failed to load ${identity.product} options from Vite config`);
+		const failure = new Error(`Failed to load ${d.identity.product} options from Vite config`);
 		failure.stack = '';
 		throw failure;
 	}
@@ -68,7 +70,11 @@ function hasEntry(file: string, extensions: readonly string[]): boolean {
 	return candidates.some((candidate) => existsSync(candidate) && statSync(candidate).isFile());
 }
 
-export function resolveConfig(config: ValidatedConfig, root: string): ValidatedConfig {
+export function resolveConfig(
+	config: ValidatedConfig,
+	root: string,
+	d: Diagnostics
+): ValidatedConfig {
 	const files = config.files;
 	const resolved: ValidatedConfig = {
 		...config,
@@ -95,24 +101,25 @@ export function resolveConfig(config: ValidatedConfig, root: string): ValidatedC
 		directives['require-trusted-types-for']?.includes('script') &&
 		resolved.serviceWorker.register &&
 		hasEntry(resolved.files.serviceWorker, resolved.moduleExtensions) &&
-		!directives['trusted-types']?.includes(`${identity.name}-trusted-url`)
+		!directives['trusted-types']?.includes(`${d.identity.name}-trusted-url`)
 	)
-		e.config_csp_trusted_types_missing();
+		new ConfigErrors(d).config_csp_trusted_types_missing();
 	return resolved;
 }
 
-export function loadErrorPage(config: ValidatedConfig): string {
+export function loadErrorPage(config: ValidatedConfig, d: Diagnostics): string {
 	if (existsSync(config.files.errorTemplate))
 		return readFileSync(config.files.errorTemplate, 'utf8');
-	const name = identity.name;
+	const name = d.identity.name;
 	return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>%${name}.error.message%</title><style>body{display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:system-ui,sans-serif}.error{display:flex;align-items:center;gap:1rem}.status{font-size:3rem;font-weight:200}.message{border-left:1px solid #ccc;padding-left:1rem}.message h1{font-size:1em;font-weight:400;margin:0}</style></head><body><div class="error"><span class="status">%${name}.status%</span><div class="message"><h1>%${name}.error.message%</h1></div></div></body></html>`;
 }
 
-export function loadTemplate(root: string, config: ValidatedConfig): string {
+export function loadTemplate(root: string, config: ValidatedConfig, d: Diagnostics): string {
+	const e: ConfigErrors = new ConfigErrors(d);
 	const file = relative(root, config.files.appTemplate);
 	if (!existsSync(config.files.appTemplate)) e.app_template_missing({ file });
 	const template = readFileSync(config.files.appTemplate, 'utf8');
-	for (const tag of [`%${identity.name}.head%`, `%${identity.name}.body%`]) {
+	for (const tag of [`%${d.identity.name}.head%`, `%${d.identity.name}.body%`]) {
 		if (!template.includes(tag)) e.app_template_tag_missing({ file, tag });
 	}
 	return template;

@@ -3,7 +3,8 @@ import { invalid_export } from '../shared/errors.ts';
 import type { HttpMethod, PrerenderOption } from '../types/builder.ts';
 import type { PageNode, ServerManifest } from '../types/internal/server.ts';
 import type { Analysis, RemoteMetadata, RouteMetadata } from './types.ts';
-import * as e from './messages.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
+import { BuildMessages } from './messages.ts';
 
 const endpointMethods: HttpMethod[] = [
 	'GET',
@@ -18,14 +19,18 @@ const endpointMethods: HttpMethod[] = [
 const bodyMethods: HttpMethod[] = ['POST', 'PUT', 'PATCH', 'DELETE', 'QUERY'];
 const common = ['load', 'ssr', 'csr', 'prerender', 'trailingSlash', 'config'];
 
-function exportsOf(module: object | undefined, valid: string[], file?: string): void {
-	if (!module) return;
-	for (const key of Object.keys(module))
-		if (!key.startsWith('_') && !valid.includes(key))
-			invalid_export({ key, exports: valid.join(', '), file });
-}
-
-export async function analyse(manifest: ServerManifest, hash: boolean): Promise<Analysis> {
+export async function analyse(
+	manifest: ServerManifest,
+	hash: boolean,
+	d: Diagnostics
+): Promise<Analysis> {
+	const e: BuildMessages = new BuildMessages(d);
+	const exportsOf = (module: object | undefined, valid: string[], file?: string): void => {
+		if (!module) return;
+		for (const key of Object.keys(module))
+			if (!key.startsWith('_') && !valid.includes(key))
+				invalid_export({ key, exports: valid.join(', '), file }, d);
+	};
 	const result: Analysis = { nodes: [], routes: new Map(), remotes: new Map(), environment: {} };
 	const nodes = await Promise.all(manifest.nodes.map((load) => load()));
 	for (const node of nodes) {

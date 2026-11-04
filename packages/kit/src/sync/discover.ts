@@ -4,11 +4,12 @@ import { lookup } from '../shared/mime.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { PageNode, Route, RouteTree } from '../types/internal/routes.ts';
 import { parseRoute, sortRoutes } from '../shared/routing/index.ts';
-import * as w from './warnings.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
+import { SyncWarnings } from './warnings.ts';
 import { filesUnder, relativeFile, resolveEntry } from './files.ts';
 import { applyOptions, readOptions } from './options.ts';
 import { validateConflicts, validateRoute } from './route-paths.ts';
-import * as e from './errors.ts';
+import { SyncErrors } from './errors.ts';
 
 interface PendingRoute {
 	route: Route;
@@ -23,7 +24,9 @@ function node(depth: number): PageNode {
 	return { depth, parent: null, options: null };
 }
 
-export function discover(config: ValidatedConfig, root: string): RouteTree {
+export function discover(config: ValidatedConfig, root: string, d: Diagnostics): RouteTree {
+	const e: SyncErrors = new SyncErrors(d);
+	const w: SyncWarnings = new SyncWarnings(d);
 	const pending: PendingRoute[] = [];
 	const resets = new Map<PageNode, string>();
 	const walk = (
@@ -33,7 +36,7 @@ export function discover(config: ValidatedConfig, root: string): RouteTree {
 		parent: string | null,
 		ancestors: Set<string>
 	): void => {
-		validateRoute(id);
+		validateRoute(id, e);
 		const route: Route = {
 			id,
 			parent,
@@ -198,7 +201,7 @@ export function discover(config: ValidatedConfig, root: string): RouteTree {
 			(route) =>
 				route.layout !== null || route.error !== null || route.leaf !== null || route.endpoint
 		);
-	validateConflicts(routes);
+	validateConflicts(routes, e);
 	applyOptions(nodes, root);
 	for (const route of routes) {
 		if (!route.endpoint) continue;

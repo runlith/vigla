@@ -1,6 +1,13 @@
 import { BROWSER, DEV } from 'esm-env';
-import { throwCode, throwDiagnostic, verbose } from './diagnostics.ts';
-import { documentationLink, identity } from './identity.ts';
+import {
+	documentationLink,
+	runtime,
+	throwCode,
+	throwDiagnostic,
+	verbose,
+	type Diagnostics
+} from './diagnostics.ts';
+import { identity } from './identity.ts';
 
 interface StatusMessage {
 	status: string;
@@ -38,59 +45,59 @@ interface HashOptions {
 	options: string;
 }
 
-export function invalid_error_status(values: StatusMessage): never {
+export function invalid_error_status(values: StatusMessage, d: Diagnostics = runtime): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
+		d.raise(
 			'invalid_error_status',
 			`HTTP error status codes must be between 400 and 599 — ${values.status} is invalid`,
 			invalid_error_status
 		);
-	throwCode('invalid_error_status');
+	d.raiseCode('invalid_error_status');
 }
-export function invalid_redirect_status(values: StatusMessage): never {
+export function invalid_redirect_status(values: StatusMessage, d: Diagnostics = runtime): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
+		d.raise(
 			'invalid_redirect_status',
 			`Redirect status codes must be between 300 and 308 — ${values.status} is invalid`,
 			invalid_redirect_status
 		);
-	throwCode('invalid_redirect_status');
+	d.raiseCode('invalid_redirect_status');
 }
-export function redirect_external_not_allowed(values: LocationMessage): never {
+export function redirect_external_not_allowed(values: LocationMessage, d: Diagnostics): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
+		d.raise(
 			'redirect_external_not_allowed',
 			`Cannot redirect to external URL \`${values.location}\`. To redirect to an external URL, pass \`{ external: true }\` or an allowlist of permitted origins as the third argument to \`redirect\``,
 			redirect_external_not_allowed
 		);
-	throwCode('redirect_external_not_allowed');
+	d.raiseCode('redirect_external_not_allowed');
 }
-export function redirect_external_javascript(values: LocationMessage): never {
+export function redirect_external_javascript(values: LocationMessage, d: Diagnostics): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
+		d.raise(
 			'redirect_external_javascript',
 			`Cannot redirect to \`${values.location}\` with \`{ external: true }\`. The \`javascript:\` and \`data:\` protocols must be explicitly listed in the \`external\` allowlist`,
 			redirect_external_javascript
 		);
-	throwCode('redirect_external_javascript');
+	d.raiseCode('redirect_external_javascript');
 }
-export function redirect_external_not_in_allowlist(values: LocationMessage): never {
+export function redirect_external_not_in_allowlist(values: LocationMessage, d: Diagnostics): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
+		d.raise(
 			'redirect_external_not_in_allowlist',
 			`Cannot redirect to \`${values.location}\`: URL origin is not included in the \`external\` allowlist`,
 			redirect_external_not_in_allowlist
 		);
-	throwCode('redirect_external_not_in_allowlist');
+	d.raiseCode('redirect_external_not_in_allowlist');
 }
-export function redirect_external_option_invalid(): never {
+export function redirect_external_option_invalid(d: Diagnostics): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
+		d.raise(
 			'redirect_external_option_invalid',
 			'`redirect` `options.external` must be `true` or an array of allowed origins',
 			redirect_external_option_invalid
 		);
-	throwCode('redirect_external_option_invalid');
+	d.raiseCode('redirect_external_option_invalid');
 }
 export function service_worker_module_outside_worker(): never {
 	if (DEV || (!BROWSER && verbose))
@@ -218,14 +225,10 @@ export function param_matcher_result_invalid(): never {
 		);
 	throwCode('param_matcher_result_invalid');
 }
-export function param_definition_invalid(): never {
+export function param_definition_invalid(d: Diagnostics = runtime): never {
 	if (DEV || (!BROWSER && verbose))
-		throwDiagnostic(
-			'param_definition_invalid',
-			'Invalid param definition',
-			param_definition_invalid
-		);
-	throwCode('param_definition_invalid');
+		d.raise('param_definition_invalid', 'Invalid param definition', param_definition_invalid);
+	d.raiseCode('param_definition_invalid');
 }
 export function route_param_missing(values: RouteParam): never {
 	if (DEV || (!BROWSER && verbose))
@@ -254,16 +257,16 @@ export function route_param_value_invalid(values: RouteParam): never {
 		);
 	throwCode('route_param_value_invalid');
 }
-export function invalid_export(values: ExportMessage): never {
+export function invalid_export(values: ExportMessage, d: Diagnostics = runtime): never {
 	if (DEV || (!BROWSER && verbose)) {
 		const source = values.file === undefined ? '' : ` in \`${values.file}\``;
-		throwDiagnostic(
+		d.raise(
 			'invalid_export',
 			`Invalid export \`${values.key}\`${source} (valid exports are ${values.exports}, or anything with a \`'_'\` prefix)`,
 			invalid_export
 		);
 	}
-	throwCode('invalid_export');
+	d.raiseCode('invalid_export');
 }
 export function invalid_export_location(values: ExportLocation): never {
 	if (DEV || (!BROWSER && verbose)) {

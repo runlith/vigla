@@ -1,10 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { ValidatedConfig } from '../types/builder.ts';
-import * as configErrors from '../config/errors.ts';
-import { warnDiagnostic } from '../shared/diagnostics.ts';
+import { ConfigErrors } from '../config/errors.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
 import { filesUnder, posix, relativeFile, writeChanged } from './files.ts';
-import * as errors from './errors.ts';
+import { SyncErrors } from './errors.ts';
 
 interface CompilerOptions {
 	paths?: Record<string, string[]>;
@@ -35,7 +35,7 @@ const recommended = {
 	noEmit: true
 };
 
-function parseConfig(file: string): ProjectConfig {
+function parseConfig(file: string, errors: SyncErrors): ProjectConfig {
 	const source = readFileSync(file, 'utf8');
 	let clean = '';
 	let state: 'string' | 'line' | 'block' | null = null;
@@ -123,11 +123,16 @@ function matches(globs: string[], name: string): boolean {
 	return globs.some((glob) => pattern(glob).test(name));
 }
 
-function pathAliases(config: ValidatedConfig, root: string): Record<string, string[]> {
+function pathAliases(
+	config: ValidatedConfig,
+	root: string,
+	d: Diagnostics
+): Record<string, string[]> {
+	const e: ConfigErrors = new ConfigErrors(d);
 	const paths: Record<string, string[]> = {};
 	for (const [key, value] of Object.entries(config.alias)) {
-		if (!/^.+?(?:\/\*)?$/.test(key)) configErrors.config_alias_key_invalid({ key });
-		if (!/^.+?(?:\/\*|\.\w+)?$/.test(value)) configErrors.config_alias_value_invalid({ value });
+		if (!/^.+?(?:\/\*)?$/.test(key)) e.config_alias_key_invalid({ key });
+		if (!/^.+?(?:\/\*|\.\w+)?$/.test(value)) e.config_alias_value_invalid({ value });
 		const target = resolve(root, value.replace(/\/\*$/, ''));
 		paths[key] = [target + (key.endsWith('/*') ? '/*' : '')];
 		if (!key.endsWith('/*') && !/\.\w+$/.test(value) && !Object.hasOwn(config.alias, key + '/*'))
@@ -136,21 +141,21 @@ function pathAliases(config: ValidatedConfig, root: string): Record<string, stri
 	return paths;
 }
 
-function tsconfig_extends_missing(file: string, example: ProjectConfig): void {
-	warnDiagnostic(
+function tsconfig_extends_missing(d: Diagnostics, file: string, example: ProjectConfig): void {
+	d.warn(
 		'tsconfig_extends_missing',
 		`${file} should extend the generated configuration:\n${JSON.stringify(example, null, 2)}`
 	);
 }
-function tsconfig_invalid(file: string, issues: string[]): void {
-	warnDiagnostic(
+function tsconfig_invalid(d: Diagnostics, file: string, issues: string[]): void {
+	d.warn(
 		'tsconfig_invalid',
 		`${file} has invalid configuration:\n${issues.map((issue) => `- ${issue}`).join('\n')}`
 	);
 }
 
-export function writeTsconfig(config: ValidatedConfig, root: string): void {
-	const paths = pathAliases(config, root);
+export function writeTsconfig(config: ValidatedConfig, root: string, d: Diagnostics): void {
+	const paths = pathAliases(config, root, d);
 	const types = ['$app/types'];
 	const compilerOptions: CompilerOptions = {
 		paths,
@@ -201,10 +206,10 @@ export function writeTsconfig(config: ValidatedConfig, root: string): void {
 			.map((name) => join(directory, name))
 			.find(existsSync);
 		if (!file) return;
-		const parsed = parseConfig(file);
+		const parsed = parseConfig(file, new SyncErrors(d));
 		const bases = typeof parsed.extends === 'string' ? [parsed.extends] : (parsed.extends ?? []);
 		if (!bases.includes(id)) {
-			tsconfig_extends_missing(relativeFile(root, file), example);
+			tsconfig_extends_missing(d, relativeFile(root, file), example);
 			return;
 		}
 		const options = { ...base.compilerOptions, ...parsed.compilerOptions };
@@ -242,7 +247,7 @@ export function writeTsconfig(config: ValidatedConfig, root: string): void {
 		for (const key of Object.keys(required))
 			if (options[key] !== true)
 				issues.push(`${JSON.stringify(key)} was overwritten. It should be true`);
-		if (issues.length) tsconfig_invalid(relativeFile(root, file), issues);
+		if (issues.length) tsconfig_invalid(d, relativeFile(root, file), issues);
 	};
 	validate(
 		root,

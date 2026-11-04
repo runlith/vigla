@@ -5,6 +5,8 @@ import type {
 	PrerenderOption,
 	ValidatedConfig
 } from '../types/builder.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
+import type { Identity } from '../types/identity.ts';
 import type { Route, RouteTree } from '../types/internal/routes.ts';
 import type { ClientBuild, FontDependency, Style } from '../types/internal/server.ts';
 
@@ -69,6 +71,8 @@ export interface Analysis {
 }
 
 export interface BuildContext {
+	identity: Identity;
+	diagnostics: Diagnostics;
 	config: ValidatedConfig;
 	root: string;
 	mode: string;

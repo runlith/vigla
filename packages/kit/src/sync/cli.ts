@@ -8,6 +8,7 @@ import {
 	writeFileSync
 } from 'node:fs';
 import { parseArgs, styleText } from 'node:util';
+import type { Identity } from '../types/identity.ts';
 
 const help = (command: string) => `
   Usage: ${command} <command> [options]
@@ -32,7 +33,7 @@ function reportError(failure: unknown): void {
 	process.exitCode = 1;
 }
 
-async function sync(file: string | undefined, mode: string): Promise<void> {
+async function sync(file: string | undefined, mode: string, fallback: Identity): Promise<void> {
 	const directory = 'node_modules/$app';
 	const tsconfig = `${directory}/tsconfig.json`;
 	const hadDirectory = existsSync(directory);
@@ -43,11 +44,13 @@ async function sync(file: string | undefined, mode: string): Promise<void> {
 			writeFileSync(tsconfig, '{}');
 		}
 		const { loadConfig } = await import('../config/file.ts');
-		const { config, vite, api } = await loadConfig(process.cwd(), file);
+		const { config, vite, api, identity } = await loadConfig(process.cwd(), fallback, file);
 		const { createSync, loadEnvironment } = await import('./index.ts');
-		const generated = createSync(config, vite.root);
+		const { diagnostics } = await import('../shared/diagnostics.ts');
+		const d = diagnostics(identity);
+		const generated = createSync(config, vite.root, d);
 		await generated.initial(mode);
-		const environment = await loadEnvironment(config, vite.root, mode, api);
+		const environment = await loadEnvironment(config, vite.root, mode, api, d);
 		generated.writeEnvironment(environment.file, environment.variables);
 	} catch (error) {
 		reportError(error);
@@ -79,15 +82,15 @@ function parse(args: string[], usage: string) {
 	}
 }
 
-export async function cli(args: string[], version: string, command: string): Promise<void> {
-	const usage = help(command);
+export async function cli(args: string[], version: string, identity: Identity): Promise<void> {
+	const usage = help(identity.command);
 	const { values, positionals } = parse(args, usage);
 	if (values.version) {
 		console.log(version);
 	} else if (values.help || positionals.length === 0) {
 		console.log(usage);
 	} else if (positionals[0] === 'sync') {
-		await sync(values.config, values.mode);
+		await sync(values.config, values.mode, identity);
 	} else {
 		console.error(styleText(['bold', 'red'], `> Unknown command: ${positionals[0]}`));
 		console.log(usage);

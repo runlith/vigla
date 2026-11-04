@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import type { Diagnostics } from '../shared/diagnostics.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { EnvVarConfig } from '../types/env.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
@@ -13,7 +14,7 @@ export { installation, type Installation } from './package.ts';
 export { analyseOptions } from './options.ts';
 export { loadEnvironment, validateEnvironment, isRunnable, type Environment } from './env.ts';
 export { resolveEntry } from './files.ts';
-export { vite_ssr_environment_not_runnable } from './errors.ts';
+export { SyncErrors } from './errors.ts';
 
 export interface Sync {
 	initial(mode: string): Promise<RouteTree>;
@@ -22,13 +23,13 @@ export interface Sync {
 	writeEnvironment(entry: string | null, variables: Record<string, EnvVarConfig<any>> | null): void;
 }
 
-export function createSync(config: ValidatedConfig, root: string): Sync {
+export function createSync(config: ValidatedConfig, root: string, d: Diagnostics): Sync {
 	const { name } = installation(root);
 	let entry: string | null = null;
 	let variables: Record<string, EnvVarConfig<any>> | null = null;
 	const sync = async (): Promise<RouteTree> => {
-		const tree = discover(config, root);
-		writeTsconfig(config, root);
+		const tree = discover(config, root, d);
+		writeTsconfig(config, root, d);
 		writeAppTypes(config, tree, root, name);
 		writeRouteTypes(config, tree, root, name);
 		writeEnvironment(root, name, entry, variables);

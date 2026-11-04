@@ -15,6 +15,10 @@ import { dirname, join, resolve } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { resolveConfig, validateConfig } from '../config/index.ts';
 import { createSync } from './index.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
+import { own } from '../shared/identity.ts';
+
+const d = diagnostics(own);
 
 const roots: string[] = [];
 const packageRoot = resolve(import.meta.dirname, '../..');
@@ -32,14 +36,15 @@ function project(files: Record<string, string>, alias = '@sveltejs/kit') {
 	mkdirSync(join(root, 'node_modules', dirname(alias)), { recursive: true });
 	symlinkSync(packageRoot, join(root, 'node_modules', alias), 'dir');
 	const config = resolveConfig(
-		validateConfig({ extensions: ['.view'], outDir: 'generated' }),
-		root
+		validateConfig({ extensions: ['.view'], outDir: 'generated' }, d),
+		root,
+		d
 	);
 	return {
 		root,
 		put,
 		config,
-		sync: createSync(config, root),
+		sync: createSync(config, root, d),
 		read: (file: string) => readFileSync(join(root, file), 'utf8')
 	};
 }

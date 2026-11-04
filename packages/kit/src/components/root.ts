@@ -1,5 +1,4 @@
 import type { ComponentUnit } from 'vigla/compiler';
-import { identity } from '../shared/identity.ts';
 import {
 	binding,
 	boundary,
@@ -33,7 +32,7 @@ afterNavigate(() => {
 	}
 });`;
 
-export function root(): ComponentUnit {
+export function root(announcerId: string): ComponentUnit {
 	const source = new Source();
 	const instance = source.program(script);
 	const node = (leaf: boolean) =>
@@ -82,7 +81,7 @@ export function root(): ComponentUnit {
 				source,
 				'div',
 				[
-					literal(source, 'id', identity.announcer),
+					literal(source, 'id', announcerId),
 					literal(source, 'aria-live', 'assertive'),
 					literal(source, 'aria-atomic', 'true'),
 					literal(source, 'style', announcer)

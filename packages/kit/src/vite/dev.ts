@@ -3,7 +3,6 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import path from 'node:path';
 import type { Connect, EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
 import { createReadableStream, getRequest, setResponse } from '../node/index.ts';
-import { identity } from '../shared/identity.ts';
 import type { RouteTree } from '../types/internal/routes.ts';
 import type { ConfiguredServer, ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { outsideBase, serveAsset } from './assets.ts';
@@ -12,10 +11,10 @@ import {
 	validateEnvironment,
 	isRunnable,
 	resolveEntry,
-	vite_ssr_environment_not_runnable
+	SyncErrors
 } from '../sync/index.ts';
 import { clientDirectory, ids, virtualDirectory } from './ids.ts';
-import * as e from './messages.ts';
+import { ViteMessages } from './messages.ts';
 import { fileUrl, moduleUrl, posix } from './paths.ts';
 import type { Project } from './project.ts';
 import { importsUniversal } from './server.ts';
@@ -39,7 +38,8 @@ interface RunningServer {
 async function validateMatchers(
 	tree: RouteTree,
 	root: string,
-	environment: RunnableDevEnvironment
+	environment: RunnableDevEnvironment,
+	e: ViteMessages
 ): Promise<void> {
 	const names = new Set(
 		tree.routes.flatMap((route) =>
@@ -91,8 +91,10 @@ async function styles(
 }
 
 export async function configureDev(server: ViteDevServer, project: Project): Promise<() => void> {
+	const e: ViteMessages = new ViteMessages(project.diagnostics);
+	const syncErrors: SyncErrors = new SyncErrors(project.diagnostics);
 	const environment = server.environments.ssr;
-	if (!isRunnable(environment)) vite_ssr_environment_not_runnable();
+	if (!isRunnable(environment)) syncErrors.vite_ssr_environment_not_runnable();
 	const fixStack = (error: Error) => {
 		if (error.stack) Reflect.set(error, 'stack', error.stack.replaceAll('\0', ''));
 		return error;
@@ -158,7 +160,8 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						config,
 						project.root,
 						server.config.mode,
-						project.api
+						project.api,
+						project.diagnostics
 					);
 					project.environment = environment;
 				}
@@ -296,7 +299,7 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						project.config.env.dir,
 						''
 					);
-					validateEnvironment(project.environment);
+					validateEnvironment(project.environment, project.diagnostics);
 				}
 				const instrumentation = resolveEntry(
 					path.join(project.config.files.src, 'instrumentation.server'),
@@ -352,12 +355,14 @@ export async function configureDev(server: ViteDevServer, project: Project): Pro
 						env: project.environment.values,
 						read,
 						scope,
-						assets: project.config.paths.assets ? identity.assets : project.config.paths.base,
+						assets: project.config.paths.assets
+							? project.identity.assets
+							: project.config.paths.base,
 						fix_stack_trace: fixStack
 					});
 					const ready = instance
 						.init()
-						.then(() => validateMatchers(tree, project.root, environment));
+						.then(() => validateMatchers(tree, project.root, environment, e));
 					current = { module: loaded, instance, ready };
 				}
 				const active = current!;

@@ -25,7 +25,8 @@ import { ids, nodeId } from './ids.ts';
 import { resolveEntry } from '../sync/index.ts';
 import { codeDirectory, codeFile, posix } from './paths.ts';
 import type { Project } from './project.ts';
-import * as e from './messages.ts';
+import { ViteMessages } from './messages.ts';
+import type { Diagnostics } from '../shared/diagnostics.ts';
 
 function json(file: string): Manifest {
 	return JSON.parse(readFileSync(file, 'utf8'));
@@ -34,7 +35,10 @@ const clientModules = ['forms', 'navigation', 'state'].map((name) => ({
 	name: `$app/${name}`,
 	directory: posix(path.join(codeDirectory, 'entries/app', name)) + '/'
 }));
-function refuseClientModules(output: Awaited<ReturnType<ViteBuilder['build']>>): void {
+function refuseClientModules(
+	output: Awaited<ReturnType<ViteBuilder['build']>>,
+	e: ViteMessages
+): void {
 	const used = new Set<string>();
 	for (const result of Array.isArray(output) ? output : 'output' in output ? [output] : [])
 		for (const chunk of result.output)
@@ -278,6 +282,8 @@ function manifestCode(code: string, context: BuildContext): string {
 }
 function fresh(project: Project): BuildContext {
 	return {
+		identity: project.identity,
+		diagnostics: project.diagnostics,
 		config: project.config,
 		root: project.root,
 		mode: project.vite.mode,
@@ -315,14 +321,16 @@ function fresh(project: Project): BuildContext {
 
 export function buildPlugin(
 	validated: ValidatedConfig,
-	getProject: () => Promise<Project>
+	getProject: () => Promise<Project>,
+	d: Diagnostics
 ): Plugin {
+	const e: ViteMessages = new ViteMessages(d);
 	return {
 		name: 'kit:build',
 		apply: 'build',
 		config(user) {
 			const root = path.resolve(user.root ?? process.cwd());
-			const config = resolveConfig(validated, root);
+			const config = resolveConfig(validated, root, d);
 			const output = path.join(config.outDir, 'output');
 			const immutable = config.appDir + '/immutable';
 			const inline = config.output.bundleStrategy === 'inline';
@@ -560,7 +568,7 @@ export function buildPlugin(
 				serviceWorker.config.experimental.renderBuiltUrl = (filename) => ({
 					runtime: `new URL(${JSON.stringify(filename)}, location.href).pathname`
 				});
-				refuseClientModules(await builder.build(serviceWorker));
+				refuseClientModules(await builder.build(serviceWorker), e);
 				context.artifacts.serviceWorker = 'service-worker.js';
 			}
 			full();

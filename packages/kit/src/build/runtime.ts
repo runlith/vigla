@@ -44,7 +44,7 @@ export function reader(directory: string): Read {
 
 export async function loadEmulator(job: PrerenderJob): Promise<Emulator | undefined> {
 	if (!job.configFile) return;
-	const { config } = await loadConfig(job.root, job.configFile, job.mode);
+	const { config } = await loadConfig(job.root, job.identity, job.configFile, job.mode);
 	return config.adapter?.emulate?.();
 }
 

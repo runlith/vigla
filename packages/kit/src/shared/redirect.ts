@@ -1,4 +1,5 @@
 import type { RedirectOptions } from '../types/outcomes.ts';
+import type { Diagnostics } from './diagnostics.ts';
 import {
 	redirect_external_javascript,
 	redirect_external_not_allowed,
@@ -20,6 +21,7 @@ export function matchesOrigin(location: string, allowed: string): boolean {
 }
 
 export function validateRedirect(
+	d: Diagnostics,
 	location: string,
 	options?: RedirectOptions,
 	origin?: string
@@ -27,19 +29,19 @@ export function validateRedirect(
 	if (matchesOrigin(location, origin ?? base)) return;
 	const external = options?.external;
 	const values = { location: JSON.stringify(location) };
-	if (!external) redirect_external_not_allowed(values);
+	if (!external) redirect_external_not_allowed(values, d);
 	if (external === true) {
 		let protocol: string | undefined;
 		try {
 			protocol = new URL(location, base).protocol;
 		} catch {}
-		if (protocol === 'javascript:' || protocol === 'data:') redirect_external_javascript(values);
+		if (protocol === 'javascript:' || protocol === 'data:') redirect_external_javascript(values, d);
 		return;
 	}
 	if (Array.isArray(external)) {
 		if (!external.some((allowed) => matchesOrigin(location, allowed)))
-			redirect_external_not_in_allowlist(values);
+			redirect_external_not_in_allowlist(values, d);
 		return;
 	}
-	redirect_external_option_invalid();
+	redirect_external_option_invalid(d);
 }

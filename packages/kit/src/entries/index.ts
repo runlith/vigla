@@ -1,16 +1,8 @@
-import { BROWSER, DEV } from 'esm-env';
-import { getOrigin } from '#internal/origin';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-import type {
-	ErrorFunction,
-	ErrorProperties,
-	HttpError as HttpErrorContract,
-	RedirectOptions,
-	RedirectStatus
-} from '../types/outcomes.ts';
+import type { ErrorFunction, HttpError as HttpErrorContract } from '../types/outcomes.ts';
 import { HttpError, Redirect, ActionFailure, ValidationError } from '../shared/outcomes.ts';
-import { invalid_error_status, invalid_redirect_status } from '../shared/errors.ts';
-import { validateRedirect } from '../shared/redirect.ts';
+import { identity } from '../shared/identity.ts';
+import { outcomes, type RedirectFunction } from './outcomes.ts';
 
 export type {
 	ActionFailure,
@@ -42,28 +34,15 @@ export type {
 export { normalizeUrl } from '../shared/pathname.ts';
 export const VERSION = '0.1.0';
 
-export const error: ErrorFunction = (
-	status: number,
-	message?: string,
-	properties?: ErrorProperties
-): never => {
-	if ((!BROWSER || DEV) && (isNaN(status) || status < 400 || status > 599))
-		invalid_error_status({ status: String(status) });
-	throw new HttpError({ ...properties, status, message: message ?? `Error: ${status}` });
-};
+const bound = outcomes(identity);
+export const error: ErrorFunction = bound.error;
+export const redirect: RedirectFunction = bound.redirect;
 
 export function isHttpError<Status extends number>(
 	value: unknown,
 	status?: Status
 ): value is HttpErrorContract & { status: Status extends undefined ? never : Status } {
 	return value instanceof HttpError && (!status || value.status === status);
-}
-export function redirect(status: number, location: string | URL, options?: RedirectOptions): never {
-	if ((!BROWSER || DEV) && (isNaN(status) || status < 300 || status > 308))
-		invalid_redirect_status({ status: String(status) });
-	const href = location.toString();
-	validateRedirect(href, options, getOrigin());
-	throw new Redirect(status as RedirectStatus, href);
 }
 export function isRedirect(value: unknown): value is Redirect {
 	return value instanceof Redirect;

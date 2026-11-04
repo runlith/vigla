@@ -12,13 +12,13 @@ import { walk, write } from './files.ts';
 import type { PolicyReporter, PrerenderJob, PrerenderResult } from './jobs.ts';
 import { Queue } from './queue.ts';
 import { reader, type Runtime } from './runtime.ts';
-import * as e from './messages.ts';
-import { identity } from '../shared/identity.ts';
+import type { BuildMessages } from './messages.ts';
 
 export async function renderShell(
 	runtime: Runtime,
 	origin: string,
-	assets: string
+	assets: string,
+	e: BuildMessages
 ): Promise<string> {
 	await runtime.init();
 	const response = await runtime.server.respond(new Request(origin + '/[fallback]'), {
@@ -35,8 +35,10 @@ export async function renderShell(
 export async function prerender(
 	job: PrerenderJob,
 	runtime: Runtime,
-	report: PolicyReporter
+	report: PolicyReporter,
+	e: BuildMessages
 ): Promise<PrerenderResult> {
+	const { name } = job.identity;
 	const result: PrerenderResult = {
 		prerendered: { pages: new Map(), assets: new Map(), redirects: new Map(), paths: [] },
 		prerenderMap: new Map(
@@ -47,7 +49,7 @@ export async function prerender(
 	if (job.hash) {
 		write(
 			path.join(target, 'pages/index.html'),
-			await renderShell(runtime, job.origin, job.assets)
+			await renderShell(runtime, job.origin, job.assets, e)
 		);
 		result.prerendered.pages.set(job.base + '/', { file: 'index.html' });
 		result.prerendered.paths.push(job.base + '/');
@@ -99,7 +101,7 @@ export async function prerender(
 		referenceType: 'linked' | 'fetched' = 'linked'
 	): Promise<void> {
 		const pathname = decodeURI(url.pathname);
-		const encoded = response.headers.get(`x-${identity.name}-routeid`);
+		const encoded = response.headers.get(`x-${name}-routeid`);
 		const id = encoded ? decodeURI(encoded) : null;
 		if (expected && id !== expected)
 			await report({
@@ -121,7 +123,7 @@ export async function prerender(
 			}
 			const resolved = new URL(location, url);
 			enqueue(resolved.href, pathname);
-			if (response.headers.has(`x-${identity.name}-normalize`)) return;
+			if (response.headers.has(`x-${name}-normalize`)) return;
 			enqueueData(url, pathname, id);
 			if (!result.prerendered.paths.includes(pathname)) result.prerendered.paths.push(pathname);
 			result.prerendered.redirects.set(pathname, {
@@ -230,8 +232,8 @@ export async function prerender(
 		await save(url, response, new Uint8Array(await response.arrayBuffer()), referrer, expected);
 		for (const [href, dependency] of dependencies) {
 			const destination = new URL(href, url);
-			const prerender = dependency.response.headers.get(`x-${identity.name}-prerender`);
-			const encoded = dependency.response.headers.get(`x-${identity.name}-routeid`);
+			const prerender = dependency.response.headers.get(`x-${name}-prerender`);
+			const encoded = dependency.response.headers.get(`x-${name}-routeid`);
 			if (prerender && encoded !== null) {
 				const id = decodeURI(encoded);
 				if (result.prerenderMap.get(id) !== 'auto')

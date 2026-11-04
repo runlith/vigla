@@ -1,7 +1,7 @@
-import { enableVerboseErrors } from '../shared/diagnostics.ts';
-import { adopt } from '../shared/identity.ts';
+import { diagnostics, enableVerboseErrors } from '../shared/diagnostics.ts';
 import { analyse } from './analysis.ts';
 import type { PolicyIssue, PolicyReply, WorkerJob, WorkerMessage } from './jobs.ts';
+import { BuildMessages } from './messages.ts';
 import { prerender, renderShell } from './prerender.ts';
 import { loadEmulator, loadRuntime } from './runtime.ts';
 
@@ -22,18 +22,19 @@ process.on('message', (message: WorkerJob | PolicyReply) => {
 process.on('disconnect', () => process.exit(1));
 process.once('message', async (job: WorkerJob) => {
 	let message: WorkerMessage;
-	adopt(job.identity);
+	const d = diagnostics(job.identity);
+	const e = new BuildMessages(d);
 	try {
 		const emulator = job.kind === 'prerender' ? await loadEmulator(job) : undefined;
 		const runtime = await loadRuntime(job, job.kind !== 'analyse');
 		runtime.emulator = emulator;
 		if (job.kind === 'analyse') {
-			const value = await analyse(runtime.manifest, job.hash);
+			const value = await analyse(runtime.manifest, job.hash, d);
 			value.environment = runtime.environment.rendered;
 			message = { kind: 'result', value };
 		} else if (job.kind === 'fallback')
-			message = { kind: 'result', value: await renderShell(runtime, job.origin, job.assets) };
-		else message = { kind: 'result', value: await prerender(job, runtime, report) };
+			message = { kind: 'result', value: await renderShell(runtime, job.origin, job.assets, e) };
+		else message = { kind: 'result', value: await prerender(job, runtime, report, e) };
 	} catch (cause) {
 		const error = cause instanceof Error ? cause : new Error(String(cause));
 		message = { kind: 'error', error: { message: error.message, stack: error.stack } };

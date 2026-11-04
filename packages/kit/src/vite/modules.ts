@@ -6,7 +6,7 @@ import { compileComponent, componentNames } from '../components/index.ts';
 import { clientApp, clientNode } from './client.ts';
 import { environmentConfig, environmentModule, workerEnvironment } from './env.ts';
 import { clientDirectory, ids, virtualDirectory } from './ids.ts';
-import * as e from './messages.ts';
+import type { ViteMessages } from './messages.ts';
 import {
 	appModules,
 	fileUrl,
@@ -18,7 +18,6 @@ import {
 	posix
 } from './paths.ts';
 import type { Project } from './project.ts';
-import { identity } from '../shared/identity.ts';
 import { errorTemplate, serverEntry, serverManifest, serverOptions } from './server.ts';
 
 export function scanVirtualModules(): Rolldown.Plugin {
@@ -98,13 +97,13 @@ export function virtualModules(
 			if (id === ids.server) return serverEntry(name, project.vite.command === 'serve');
 			if (id === ids.manifest) return serverManifest(project);
 			if (id === ids.options) return serverOptions(project);
-			if (id === ids.errorTemplate) return errorTemplate(config);
+			if (id === ids.errorTemplate) return errorTemplate(project);
 			if (id === ids.env)
 				return environmentConfig(environment, name, project.vite.command === 'serve');
 			if (id === ids.workerEnv)
 				return workerEnvironment(environment, config, name, project.vite.command === 'serve');
 			if (id === ids.workerIdentity)
-				return `globalThis.__VIGLA_IDENTITY__ = ${JSON.stringify(identity)};`;
+				return `globalThis.__VIGLA_IDENTITY__ = ${JSON.stringify(project.identity)};`;
 			if (id === ids.publicEnv)
 				return environmentModule(environment, 'public', client, project.vite.command === 'serve');
 			if (id === ids.privateEnv)
@@ -121,6 +120,7 @@ export function virtualModules(
 				const compiled = compileComponent(name, {
 					generate: client ? 'client' : 'server',
 					dev: project.vite.command === 'serve',
+					announcer: project.identity.announcer,
 					format
 				});
 				return { code: compiled.code, map: JSON.stringify(compiled.map) };
@@ -144,7 +144,7 @@ export function virtualModules(
 	};
 }
 
-export function serverGuard(getConfig: () => ValidatedConfig): Plugin {
+export function serverGuard(getConfig: () => ValidatedConfig, e: ViteMessages): Plugin {
 	let root: string;
 	const importers = new Map<string, Set<string>>();
 	const special = new Map<string, string>();

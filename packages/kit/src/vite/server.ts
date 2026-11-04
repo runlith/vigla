@@ -2,8 +2,6 @@ import path from 'node:path';
 import { uneval } from 'devalue';
 import { loadErrorPage, loadTemplate } from '../config/index.ts';
 import { escapeHtml } from '../shared/escape.ts';
-import { identity } from '../shared/identity.ts';
-import type { ValidatedConfig } from '../types/builder.ts';
 import type { PageNode } from '../types/internal/routes.ts';
 import type { Project } from './project.ts';
 import { ids, nodeId } from './ids.ts';
@@ -52,10 +50,14 @@ respond(request, options) { return this.server.respond(request, options); }
 export function format_response(status, request) { const url = new URL(request.url); return status + ' ' + request.method + ' ' + url.href.slice(url.origin.length); }`;
 }
 
-function templateExpression(template: string, expressions: Record<string, string>): string {
+function templateExpression(
+	name: string,
+	template: string,
+	expressions: Record<string, string>
+): string {
 	const parts: string[] = [];
 	let offset = 0;
-	for (const match of template.matchAll(new RegExp(`%${identity.name}\\.([^%]+)%`, 'g'))) {
+	for (const match of template.matchAll(new RegExp(`%${name}\\.([^%]+)%`, 'g'))) {
 		const token = match[1]!;
 		const expression =
 			expressions[token] ??
@@ -68,15 +70,16 @@ function templateExpression(template: string, expressions: Record<string, string
 	return parts.join(' + ');
 }
 
-export function errorTemplate(config: ValidatedConfig): string {
-	return `export default ({ status, message }) => ${templateExpression(loadErrorPage(config), { status: 'status', 'error.message': 'message' })};`;
+export function errorTemplate(project: Project): string {
+	const { config, diagnostics, identity } = project;
+	return `export default ({ status, message }) => ${templateExpression(identity.name, loadErrorPage(config, diagnostics), { status: 'status', 'error.message': 'message' })};`;
 }
 
 export function serverOptions(project: Project): string {
 	const { config, tree, root, format } = project;
 	const dev = project.vite.command === 'serve';
-	const template = loadTemplate(root, config);
-	const app = templateExpression(template, {
+	const template = loadTemplate(root, config, project.diagnostics);
+	const app = templateExpression(project.identity.name, template, {
 		head: dev
 			? `head + ${JSON.stringify(`<script type="module" src="${config.paths.base}/@vite/client"></script>`)}`
 			: 'head',
@@ -91,7 +94,7 @@ import error from ${JSON.stringify(ids.errorTemplate)};
 import { setEnv } from ${JSON.stringify(ids.env)};
 export const options = {
 root, format: ${uneval(format)}, global: ${JSON.stringify(project.global)},
-appTemplateContainsNonce: ${template.includes(`%${identity.name}.nonce%`)},
+appTemplateContainsNonce: ${template.includes(`%${project.identity.name}.nonce%`)},
 csp: ${uneval(config.csp)},
 csrf: ${uneval({ checkOrigin: !config.csrf.trustedOrigins.includes('*'), trustedOrigins: config.csrf.trustedOrigins })},
 paths: ${uneval(config.paths)}, env: { set: setEnv },

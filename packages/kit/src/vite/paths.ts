@@ -2,7 +2,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-import { identity } from '../shared/identity.ts';
 
 export const packageDirectory = fileURLToPath(new URL('../../', import.meta.url));
 export const codeDirectory = fileURLToPath(new URL('../', import.meta.url));
@@ -104,7 +103,7 @@ export function isServerOnly(id: string, dirs: ProjectDirectories): boolean {
 	);
 }
 
-export function isRemoteModule(id: string): boolean {
+export function isRemoteModule(id: string, packages: readonly string[]): boolean {
 	id = posix(id);
 	if (!remotePattern.test(id)) return false;
 	if (id.startsWith(sourceDirectory)) return false;
@@ -114,7 +113,7 @@ export function isRemoteModule(id: string): boolean {
 		const file = path.join(directory, 'package.json');
 		if (existsSync(file)) {
 			const manifest = JSON.parse(readFileSync(file, 'utf8')) as PackageManifest;
-			if (identity.packages.some((name) => manifest.peerDependencies?.[name])) return true;
+			if (packages.some((name) => manifest.peerDependencies?.[name])) return true;
 		}
 		const parent = path.dirname(directory);
 		if (parent === directory) break;

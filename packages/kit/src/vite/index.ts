@@ -13,10 +13,11 @@ import { configAliases, importVite } from '../config/file.ts';
 import type { Config, Framework } from '../types/config.ts';
 import type { Identity } from '../types/identity.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
-import { adopt, own } from '../shared/identity.ts';
+import { own } from '../shared/identity.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
 import { configureDev } from './dev.ts';
 import { namespace } from './ids.ts';
-import * as e from './messages.ts';
+import { ViteMessages } from './messages.ts';
 import { scanVirtualModules, serverGuard, virtualModules } from './modules.ts';
 import { importAliases, posix, packageDirectory, usesHtmlHook } from './paths.ts';
 import type { Project } from './project.ts';
@@ -30,7 +31,7 @@ export type { Identity, Links } from '../types/identity.ts';
 function resolveCors(
 	cors: CorsOptions | boolean | undefined,
 	key: 'server.cors' | 'preview.cors',
-	warn: boolean
+	warn: ViteMessages | null
 ): CorsOptions | undefined {
 	if (cors === undefined) return key === 'server.cors' ? { preflightContinue: true } : undefined;
 	if (cors === false) return undefined;
@@ -38,7 +39,7 @@ function resolveCors(
 		if (cors.preflightContinue === undefined) return { preflightContinue: true };
 		if (cors.preflightContinue) return undefined;
 	}
-	if (warn) e.cors_preflight_continue({ key });
+	warn?.cors_preflight_continue({ key });
 	return undefined;
 }
 
@@ -85,10 +86,8 @@ export function createKit<O extends object>(
 	identity: Identity,
 	factory: PluginFactory<O>
 ): Framework<O> {
-	return (input = {} as Config<O>) => {
-		adopt(identity);
-		return plugins(input as Config, factory as PluginFactory<object>, identity);
-	};
+	return (input = {} as Config<O>) =>
+		plugins(input as Config, factory as PluginFactory<object>, identity);
 }
 
 export const kit: Framework<Options> = createKit(own, vigla);
@@ -98,8 +97,10 @@ async function plugins(
 	factory: PluginFactory<object>,
 	identity: Identity
 ): Promise<Plugin[]> {
-	const split = splitConfig(input);
-	const validated = validateConfig(split.config);
+	const d = diagnostics(identity);
+	const e: ViteMessages = new ViteMessages(d);
+	const split = splitConfig(input, d);
+	const validated = validateConfig(split.config, d);
 	const options: Partial<Options> = { ...split.plugin, configFile: false };
 	if (input.compilerOptions !== undefined) options.compilerOptions = input.compilerOptions;
 	if (input.preprocess !== undefined) options.preprocess = input.preprocess;
@@ -115,13 +116,13 @@ async function plugins(
 	let globalName: string;
 	let resolved: ResolvedConfig;
 	let initialisation: Promise<Project> | undefined;
-	const remote = createRemotePlugin(() => project);
+	const remote = createRemotePlugin(() => project, identity);
 	function initialise(): Promise<Project> {
 		return (initialisation ??= (async () => {
-			const sync = createSync(config, root);
+			const sync = createSync(config, root, d);
 			const tree = await sync.initial(resolved.mode);
-			const environment = await loadEnvironment(config, root, resolved.mode, runtime);
-			if (resolved.command === 'build') validateEnvironment(environment);
+			const environment = await loadEnvironment(config, root, resolved.mode, runtime, d);
+			if (resolved.command === 'build') validateEnvironment(environment, d);
 			sync.writeEnvironment(environment.file, environment.variables);
 			const firstFormat = api.frontEnds[0]?.compiler.format;
 			const sameFormat = api.frontEnds.every(
@@ -131,6 +132,8 @@ async function plugins(
 					compiler.format?.cssWrapper === firstFormat?.cssWrapper
 			);
 			project = {
+				identity,
+				diagnostics: d,
 				root,
 				name,
 				global: globalName,
@@ -152,6 +155,7 @@ async function plugins(
 		enforce: 'pre',
 		api: {
 			options: validated,
+			identity,
 			hooks: (): Record<'server' | 'client', string | null> => {
 				const hooks = project?.tree.hooks;
 				const absolute = (file: string | null | undefined) =>
@@ -165,7 +169,7 @@ async function plugins(
 				root = posix(path.resolve(user.root ?? process.cwd()));
 				runtime = await importVite(root);
 				({ name, path: dependency } = installation(root));
-				config = resolveConfig(validated, root);
+				config = resolveConfig(validated, root, d);
 				setup.api.options = config;
 				const dev = env.command === 'serve';
 				globalName = namespace(config.version.name, dev);
@@ -204,7 +208,7 @@ async function plugins(
 						}
 					},
 					server: {
-						cors: resolveCors(user.server?.cors, 'server.cors', dev),
+						cors: resolveCors(user.server?.cors, 'server.cors', dev ? e : null),
 						fs: { allow: [...allow] },
 						watch: {
 							ignored: [
@@ -215,7 +219,7 @@ async function plugins(
 						sourcemapIgnoreList: (file) =>
 							file.includes('node_modules') || file.includes(config.outDir)
 					},
-					preview: { cors: resolveCors(user.preview?.cors, 'preview.cors', dev) },
+					preview: { cors: resolveCors(user.preview?.cors, 'preview.cors', dev ? e : null) },
 					optimizeDeps: {
 						rolldownOptions: { plugins: [scanVirtualModules(), remote.scan] },
 						entries: [
@@ -269,12 +273,12 @@ async function plugins(
 	return [
 		...compiler,
 		setup,
-		serverGuard(() => config),
+		serverGuard(() => config, e),
 		virtualModules(
 			() => config,
 			() => project
 		),
 		...remote.plugins,
-		buildPlugin(validated, initialise)
+		buildPlugin(validated, initialise, d)
 	];
 }

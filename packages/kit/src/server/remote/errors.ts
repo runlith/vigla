@@ -1,5 +1,4 @@
-import { throwDiagnostic } from '../../shared/diagnostics.ts';
-import { documentationLink } from '../../shared/identity.ts';
+import { documentationLink, throwDiagnostic } from '../../shared/diagnostics.ts';
 
 export function invalidValidator(): never {
 	return throwDiagnostic(

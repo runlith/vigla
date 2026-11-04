@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { EnvVarConfig } from '../types/env.ts';
-import { throwDiagnostic } from './diagnostics.ts';
+import { runtime, type Diagnostics } from './diagnostics.ts';
 
 export type EnvironmentIssues = Record<string, StandardSchemaV1.Issue[]>;
 export type EnvironmentVariables = Record<string, EnvVarConfig<any> | undefined>;
@@ -43,7 +43,7 @@ export function validate(
 	return result.value;
 }
 
-export function handleIssues(issues: EnvironmentIssues): void {
+export function handleIssues(issues: EnvironmentIssues, d: Diagnostics = runtime): void {
 	const entries = Object.entries(issues);
 	if (!entries.length) return;
 	const list = entries
@@ -53,7 +53,7 @@ export function handleIssues(issues: EnvironmentIssues): void {
 		)
 		.join('\n\n');
 	try {
-		throwDiagnostic('env_invalid', `Invalid environment variables:\n\n${list}\n`, handleIssues);
+		d.raise('env_invalid', `Invalid environment variables:\n\n${list}\n`, handleIssues);
 	} catch (error) {
 		if (error instanceof Error) error.stack = `${error.name}: ${error.message}`;
 		throw error;

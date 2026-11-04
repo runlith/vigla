@@ -4,6 +4,10 @@ import { dirname, join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { resolveConfig, validateConfig } from '../config/index.ts';
 import { discover } from './discover.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
+import { own } from '../shared/identity.ts';
+
+const d = diagnostics(own);
 
 const roots: string[] = [];
 function project(files: Record<string, string> = {}) {
@@ -14,8 +18,8 @@ function project(files: Record<string, string> = {}) {
 		mkdirSync(dirname(file), { recursive: true });
 		writeFileSync(file, content);
 	}
-	const config = resolveConfig(validateConfig({ extensions: ['.view'] }), root);
-	return { root, config, tree: () => discover(config, root) };
+	const config = resolveConfig(validateConfig({ extensions: ['.view'] }, d), root, d);
+	return { root, config, tree: () => discover(config, root, d) };
 }
 afterEach(() => {
 	for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });

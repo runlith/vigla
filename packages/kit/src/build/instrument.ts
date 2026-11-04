@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import type { InitializerOptions, InstrumentOptions } from '../types/builder.ts';
 import { copy, posix, specifier, write } from './files.ts';
-import * as e from './messages.ts';
+import type { BuildMessages } from './messages.ts';
 
 export function initializer(options: InitializerOptions, server: string): string {
 	const provider = path.join(options.outputDirectory, '__env.js');
@@ -20,7 +20,7 @@ export function initializer(options: InitializerOptions, server: string): string
 	return file;
 }
 
-export function instrument(options: InstrumentOptions): void {
+export function instrument(options: InstrumentOptions, e: BuildMessages): void {
 	for (const [kind, file] of [
 		['Instrumentation file', options.instrumentation],
 		['Entrypoint file', options.entrypoint],

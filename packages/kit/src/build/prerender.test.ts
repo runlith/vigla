@@ -27,6 +27,11 @@ import type { BuildContext } from './types.ts';
 import { prerender } from './prerender.ts';
 import type { PolicyReporter, PrerenderJob } from './jobs.ts';
 import { loadEmulator, type Runtime } from './runtime.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
+import { BuildMessages } from './messages.ts';
+
+const d = diagnostics(own);
+const e = new BuildMessages(d);
 
 const directory = mkdtempSync(path.join(os.tmpdir(), 'kit-prerender-'));
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
@@ -116,7 +121,7 @@ async function job(runtime: Runtime, name: string): Promise<PrerenderJob> {
 		assets: directory,
 		origin: 'https://app.test',
 		environment: {},
-		analysis: await analyse(runtime.manifest, false),
+		analysis: await analyse(runtime.manifest, false, d),
 		base: runtime.options.paths.base,
 		hash: false,
 		entries: ['*'],
@@ -153,7 +158,7 @@ test('remote inputs produce static data without any prerendered pages, preservin
 		hooks: { transport }
 	});
 	const input = await job(runtime, 'inputs');
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	const values = [
 		['hash/count', 1],
 		[`hash/read/${encodeArgument('中文', transport)}`, '中文'],
@@ -180,7 +185,7 @@ test('page-discovered arguments share a crawl value, static output and hydration
 		load: async () => ({ value: await read('unlisted') })
 	});
 	const input = await job(runtime, 'discovered');
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	expect(reads).toBe(1);
 	const payload = encodeArgument('unlisted');
 	const remotePath = `/_app/remote/hash/read/${payload}`;
@@ -225,13 +230,18 @@ test('a reached page with actions rejects prerendering through its HTTP error po
 	input.entries = ['/a'];
 	const failure = new Error('prerender rejected');
 	await expect(
-		prerender(input, runtime, async (issue) => {
-			expect(issue).toMatchObject({
-				kind: 'handleHttpError',
-				details: { status: 500, path: '/a' }
-			});
-			throw failure;
-		})
+		prerender(
+			input,
+			runtime,
+			async (issue) => {
+				expect(issue).toMatchObject({
+					kind: 'handleHttpError',
+					details: { status: 500, path: '/a' }
+				});
+				throw failure;
+			},
+			e
+		)
 	).rejects.toBe(failure);
 });
 
@@ -296,10 +306,10 @@ test('fetched route metadata reaches Builder without promoting auto or unidentif
 	runtime.manifest.mime_types['.txt'] = 'text/plain';
 	writeFileSync(path.join(directory, 'asset.txt'), 'asset');
 	const input = await job(runtime, 'dependency-promotion');
-	const config = resolveConfig(validateConfig({ outDir: input.directory }), directory);
+	const config = resolveConfig(validateConfig({ outDir: input.directory }, d), directory, d);
 	input.directory = path.join(config.outDir, 'output');
 	input.entries = ['/page'];
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	for (const [file, body] of [
 		['implicit/value.json', '{"answer":42}'],
 		['auto/value.json', 'auto'],
@@ -320,6 +330,8 @@ test('fetched route metadata reaches Builder without promoting auto or unidentif
 	expect(result.prerenderMap.has('/asset.txt')).toBe(false);
 	expect(result.prerenderMap.has('/implicit/value.json')).toBe(false);
 	const context: BuildContext = {
+		identity: own,
+		diagnostics: d,
 		root: directory,
 		config,
 		mode: input.mode,
@@ -392,7 +404,7 @@ test('reroute-fetched prerendered endpoints without entries retain their body an
 	];
 	const input = await job(runtime, 'reroute-endpoint');
 	input.entries = ['/alias'];
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	expect(result.prerendered.assets.get('/api/value')).toEqual({ type: 'text/plain' });
 	expect(
 		readFileSync(path.join(input.directory, 'prerendered/dependencies/api/value'), 'utf8')
@@ -421,7 +433,7 @@ test('`*` seeds escaped static routes and redirect metadata carries the resolved
 	});
 	runtime.manifest.routes = ['/hello[x+20]world', '/nested/old', '/nested/next'].map(route);
 	const input = await job(runtime, 'escaped-redirect');
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	expect(result.prerendered.pages.has('/hello world')).toBe(true);
 	expect(result.prerendered.redirects.get('/nested/old')).toEqual({
 		status: 307,
@@ -453,7 +465,7 @@ test("a fetched endpoint's cache-control does not replace its page's meta", asyn
 	];
 	const input = await job(runtime, 'cache-meta');
 	input.entries = ['/a'];
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	const html = readFileSync(
 		path.join(input.directory, 'prerendered/pages', result.prerendered.pages.get('/a')!.file),
 		'utf8'
@@ -470,7 +482,7 @@ test('an input generator failure rejects prerendering without turning it into an
 		}
 	});
 	const runtime = await app({ functions: { read } });
-	await expect(prerender(await job(runtime, 'generator-error'), runtime, fail)).rejects.toBe(
+	await expect(prerender(await job(runtime, 'generator-error'), runtime, fail, e)).rejects.toBe(
 		failure
 	);
 });
@@ -491,13 +503,18 @@ test.each(['prerender', 'query'] as const)(
 		});
 		const input = await job(runtime, `${kind}-error`);
 		await expect(
-			prerender(input, runtime, async (issue) => {
-				expect(issue).toMatchObject({
-					kind: 'handleHttpError',
-					details: { status: 500, path: kind === 'prerender' ? '/_app/remote/hash/read' : '/a' }
-				});
-				throw new Error('prerender rejected');
-			})
+			prerender(
+				input,
+				runtime,
+				async (issue) => {
+					expect(issue).toMatchObject({
+						kind: 'handleHttpError',
+						details: { status: 500, path: kind === 'prerender' ? '/_app/remote/hash/read' : '/a' }
+					});
+					throw new Error('prerender rejected');
+				},
+				e
+			)
 		).rejects.toThrow('prerender rejected');
 	}
 );
@@ -530,7 +547,7 @@ return { platform({ prerender }) { return { value: () => (prerender ? 'built' : 
 } } } }] };`
 	);
 	runtime.emulator = await loadEmulator(input);
-	const result = await prerender(input, runtime, fail);
+	const result = await prerender(input, runtime, fail, e);
 	const values = [...result.prerendered.pages.values()].map(
 		({ file }) =>
 			readFileSync(path.join(input.directory, 'prerendered/pages', file), 'utf8').match(

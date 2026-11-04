@@ -9,6 +9,10 @@ import type { ServerManifest } from '../types/internal/server.ts';
 import { createBuilder, createLogger } from './builder.ts';
 import { specifier, write } from './files.ts';
 import type { BuildContext } from './types.ts';
+import { diagnostics } from '../shared/diagnostics.ts';
+import { own } from '../shared/identity.ts';
+
+const d = diagnostics(own);
 
 let directory: string;
 beforeAll(() => {
@@ -17,8 +21,10 @@ beforeAll(() => {
 afterAll(() => rmSync(directory, { recursive: true, force: true }));
 function context(name: string): BuildContext {
 	const root = path.join(directory, name);
-	const config = resolveConfig(validateConfig({ outDir: '.vigla' }), root);
+	const config = resolveConfig(validateConfig({ outDir: '.vigla' }, d), root, d);
 	return {
+		identity: own,
+		diagnostics: d,
 		root,
 		config,
 		mode: 'production',
