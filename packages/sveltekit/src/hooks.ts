@@ -1,5 +1,5 @@
 import type { sequence as kitSequence } from '@vigla/kit/hooks';
-import { sequencer } from '@vigla/kit/internal/identity';
+import { sequencer } from '@vigla/kit/internal/sequence';
 import { throwDiagnostic } from './history/diagnostics.ts';
 import { identity } from './identity.ts';
 
