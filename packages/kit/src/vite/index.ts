@@ -47,33 +47,33 @@ function definitions(
 	globalName: string
 ): Record<string, string> {
 	const values: Record<string, unknown> = {
-		__SVELTEKIT_APP_DIR__: config.appDir,
-		__SVELTEKIT_APP_VERSION__: config.version.name,
-		__SVELTEKIT_APP_VERSION_CHECKS_ENABLED__: config.output.bundleStrategy !== 'inline',
-		__SVELTEKIT_APP_VERSION_POLL_INTERVAL__: dev ? 0 : config.version.pollInterval,
-		__SVELTEKIT_EMBEDDED__: config.embedded,
-		__SVELTEKIT_FORK_PRELOADS__: config.experimental.forkPreloads,
-		__SVELTEKIT_PATHS_ASSETS__: config.paths.assets,
-		__SVELTEKIT_PATHS_BASE__: config.paths.base,
-		__SVELTEKIT_PATHS_ORIGIN__: config.paths.origin,
-		__SVELTEKIT_PATHS_RELATIVE__: config.paths.relative,
-		__SVELTEKIT_CLIENT_ROUTING__: config.router.resolution === 'client',
-		__SVELTEKIT_HASH_ROUTING__: config.router.type === 'hash',
-		__SVELTEKIT_SERVER_TRACING_ENABLED__: config.tracing.server,
-		__SVELTEKIT_SUPPORTS_ASYNC__: true,
-		__SVELTEKIT_DEV__: dev,
-		__SVELTEKIT_GLOBAL_NAME__: globalName,
-		__SVELTEKIT_CSRF_CHECK_ORIGIN__: !config.csrf.trustedOrigins.includes('*'),
-		__SVELTEKIT_LINK_HEADER_PRELOAD__: config.output.linkHeaderPreload,
-		__SVELTEKIT_SERVICE_WORKER__: config.serviceWorker.register && worker,
-		__SVELTEKIT_HAS_SERVER_LOAD__: true,
-		__SVELTEKIT_HAS_UNIVERSAL_LOAD__: true
+		__VIGLA_APP_DIR__: config.appDir,
+		__VIGLA_APP_VERSION__: config.version.name,
+		__VIGLA_APP_VERSION_CHECKS_ENABLED__: config.output.bundleStrategy !== 'inline',
+		__VIGLA_APP_VERSION_POLL_INTERVAL__: dev ? 0 : config.version.pollInterval,
+		__VIGLA_EMBEDDED__: config.embedded,
+		__VIGLA_FORK_PRELOADS__: config.experimental.forkPreloads,
+		__VIGLA_PATHS_ASSETS__: config.paths.assets,
+		__VIGLA_PATHS_BASE__: config.paths.base,
+		__VIGLA_PATHS_ORIGIN__: config.paths.origin,
+		__VIGLA_PATHS_RELATIVE__: config.paths.relative,
+		__VIGLA_CLIENT_ROUTING__: config.router.resolution === 'client',
+		__VIGLA_HASH_ROUTING__: config.router.type === 'hash',
+		__VIGLA_SERVER_TRACING_ENABLED__: config.tracing.server,
+		__VIGLA_SUPPORTS_ASYNC__: true,
+		__VIGLA_DEV__: dev,
+		__VIGLA_GLOBAL_NAME__: globalName,
+		__VIGLA_CSRF_CHECK_ORIGIN__: !config.csrf.trustedOrigins.includes('*'),
+		__VIGLA_LINK_HEADER_PRELOAD__: config.output.linkHeaderPreload,
+		__VIGLA_SERVICE_WORKER__: config.serviceWorker.register && worker,
+		__VIGLA_HAS_SERVER_LOAD__: true,
+		__VIGLA_HAS_UNIVERSAL_LOAD__: true
 	};
 	return {
 		...Object.fromEntries(
 			Object.entries(values).map(([key, value]) => [key, JSON.stringify(value) ?? 'undefined'])
 		),
-		__SVELTEKIT_PAYLOAD__: `globalThis.${globalName}`
+		__VIGLA_PAYLOAD__: `globalThis.${globalName}`
 	};
 }
 

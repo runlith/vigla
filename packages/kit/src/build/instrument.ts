@@ -5,9 +5,9 @@ import { copy, posix, specifier, write } from './files.ts';
 import * as e from './messages.ts';
 
 export function initializer(options: InitializerOptions, server: string): string {
-	const provider = path.join(options.outputDirectory, '__sveltekit_env.js');
+	const provider = path.join(options.outputDirectory, '__env.js');
 	write(provider, options.environment ?? 'export default process.env;');
-	const file = path.join(options.outputDirectory, '__sveltekit_env_init.js');
+	const file = path.join(options.outputDirectory, '__env_init.js');
 	const environment = specifier(path.dirname(file), provider);
 	const target = specifier(
 		path.dirname(file),

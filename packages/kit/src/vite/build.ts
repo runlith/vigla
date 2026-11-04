@@ -224,7 +224,7 @@ async function buildClient(
 	const inlined = new Set(inline ? [initial.file, `${initial.file}.map`, ...inlineStyles] : []);
 	const inlineScript = inline
 		? clientSources.get(initial.file)!.replace(/\n\/\/# sourceMappingURL=\S+\s*$/, '\n') +
-			`;globalThis.${project.global}.app=__sveltekit_bundle;`
+			`;globalThis.${project.global}.app=__vigla_bundle;`
 		: '';
 	context.manifest.immutable.push(
 		...immutableFiles(clientManifest, project.config.appDir, inlined)
@@ -273,8 +273,8 @@ function replaceManifest(
 }
 function manifestCode(code: string, context: BuildContext): string {
 	return code
-		.replaceAll('__SVELTEKIT_MANIFEST_IMMUTABLE__', JSON.stringify(context.manifest.immutable))
-		.replaceAll('__SVELTEKIT_MANIFEST_PRERENDERED__', JSON.stringify(context.manifest.prerendered));
+		.replaceAll('__VIGLA_MANIFEST_IMMUTABLE__', JSON.stringify(context.manifest.immutable))
+		.replaceAll('__VIGLA_MANIFEST_PRERENDERED__', JSON.stringify(context.manifest.prerendered));
 }
 function fresh(project: Project): BuildContext {
 	return {
@@ -381,15 +381,15 @@ export function buildPlugin(
 								preserveEntrySignatures: 'strict',
 								output: {
 									format: inline ? 'iife' : 'es',
-									name: '__sveltekit_bundle',
+									name: '__vigla_bundle',
 									entryFileNames: `${immutable}/[name].[hash].js`,
 									chunkFileNames: (chunk) =>
-										chunk.name === 'sveltekit-manifest'
+										chunk.name === 'app-manifest'
 											? `${config.appDir}/manifest.js`
 											: `${immutable}/chunks/[hash].js`,
 									assetFileNames: `${immutable}/assets/[name].[hash][extname]`,
 									codeSplitting: split
-										? { groups: [{ name: 'sveltekit-manifest', test: ids.appManifest }] }
+										? { groups: [{ name: 'app-manifest', test: ids.appManifest }] }
 										: false
 								}
 							}

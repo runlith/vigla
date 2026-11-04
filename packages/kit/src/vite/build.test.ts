@@ -185,7 +185,7 @@ test('the app builder emits Kit deployment artifacts and calls the adapter after
 	const worker = readFileSync(path.join(output, 'client/service-worker.js'), 'utf8');
 	expect(worker).toContain('"entry/7"');
 	expect(worker).toContain('_app/immutable/');
-	expect(worker).not.toContain('__SVELTEKIT_MANIFEST_');
+	expect(worker).not.toContain('__VIGLA_MANIFEST_');
 	await adapted.generateFallback(path.join(output, 'fallback.html'));
 	const fallback = readFileSync(path.join(output, 'fallback.html'), 'utf8');
 	expect(fallback).toContain('<script');

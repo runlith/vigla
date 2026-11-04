@@ -68,7 +68,7 @@ function manifest(): ServerManifest {
 }
 function options(hooks: ServerHooks = {}): ServerOptions {
 	return {
-		global: '__sveltekit_contract',
+		global: '__vigla_contract',
 		root,
 		getHooks: async () => hooks,
 		templates: {
@@ -778,8 +778,8 @@ it('serializes universal fetch replay safely and uses the generated boot global'
 	const html = await response.text();
 	expect(html).toContain('data-sveltekit-fetched data-url="/resource" data-ttl="17"');
 	expect(html).toContain('\\u003c/script>');
-	expect(html).toContain('globalThis.__sveltekit_contract=');
-	expect(html).toContain('kit.init(__sveltekit_contract)');
+	expect(html).toContain('globalThis.__vigla_contract=');
+	expect(html).toContain('kit.init(__vigla_contract)');
 	expect(response.headers.get('content-security-policy')).toMatch(/script-src 'self' 'nonce-/);
 	expect(response.headers.get('etag')).toBeTruthy();
 });
@@ -1597,7 +1597,7 @@ it('decodes inline transport hydration with script-closing tracked query keys', 
 		uses_env_dynamic_public: false,
 		inline: {
 			style: undefined,
-			script: `let loaded; globalThis.__sveltekit_contract.app = {
+			script: `let loaded; globalThis.__vigla_contract.app = {
 				init() {},
 				start(target, hydrate) {
 					loaded = { decode: (name, value) => ({ name, x: value[0] }) };
@@ -1784,7 +1784,7 @@ it('embeds service worker registration and its options in CSP-authorized documen
 	app.nodes[2] = async () => node(2, { ssr: false });
 	app.routes = [route('/', null, true)];
 	const config = options();
-	app.client.inline = { script: '__sveltekit_contract.app={init(){},start(){}}', style: undefined };
+	app.client.inline = { script: '__vigla_contract.app={init(){},start(){}}', style: undefined };
 	config.serviceWorker = { file: 'service-worker.js', options: { updateViaCache: 'imports' } };
 	config.csp = { mode: 'hash', directives: { 'default-src': ['self'] } };
 	const server = await start(app, config);

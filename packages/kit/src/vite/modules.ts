@@ -66,8 +66,7 @@ export function virtualModules(
 			if (id.startsWith(nodes)) return path.posix.normalize(id);
 			const url = moduleUrl(clientDirectory(config, vite), vite.root) + '/nodes/';
 			if (id.startsWith(url)) return nodes + id.slice(url.length);
-			if (id === '$app/manifest' || id === '<sveltekit:generated>/app-manifest.js')
-				return ids.appManifest;
+			if (id === '$app/manifest') return ids.appManifest;
 			if (id === '$app/env/public') return ids.publicEnv;
 			if (id === '$app/env/private') return ids.privateEnv;
 			if (/^\$env\/(static|dynamic)\/(public|private)$/.test(id))
@@ -103,7 +102,7 @@ export function virtualModules(
 			const placeholders =
 				project.vite.command === 'build' && this.environment.name !== 'serviceWorker';
 			if (id === ids.appManifest)
-				return `export const immutable = ${placeholders ? '__SVELTEKIT_MANIFEST_IMMUTABLE__' : JSON.stringify(project.build?.manifest.immutable ?? [])}, prerendered = ${placeholders ? '__SVELTEKIT_MANIFEST_PRERENDERED__' : JSON.stringify(project.build?.manifest.prerendered ?? [])}; export const assets = ${JSON.stringify(tree.assets.map((asset) => ({ path: asset.file })))}; export const routes = ${JSON.stringify(tree.routes.filter((route) => route.page || route.endpoint).map((route) => ({ id: route.id, page: !!route.page, endpoint: !!route.endpoint })))};`;
+				return `export const immutable = ${placeholders ? '__VIGLA_MANIFEST_IMMUTABLE__' : JSON.stringify(project.build?.manifest.immutable ?? [])}, prerendered = ${placeholders ? '__VIGLA_MANIFEST_PRERENDERED__' : JSON.stringify(project.build?.manifest.prerendered ?? [])}; export const assets = ${JSON.stringify(tree.assets.map((asset) => ({ path: asset.file })))}; export const routes = ${JSON.stringify(tree.routes.filter((route) => route.page || route.endpoint).map((route) => ({ id: route.id, page: !!route.page, endpoint: !!route.endpoint })))};`;
 			if (id === ids.bootstrap)
 				return `import { init } from ${JSON.stringify(name + '/internal/payload')}; init(globalThis[${JSON.stringify(project.global)}]);`;
 			if (id === ids.client) return clientApp(project);

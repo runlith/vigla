@@ -18,7 +18,7 @@ const metaNames = new Set([
 	'og:audio:secure_url',
 	'twitter:image'
 ]);
-const internalOrigin = 'http://sveltekit.invalid';
+const internalOrigin = 'http://crawl.invalid';
 
 export function decode(text: string): string {
 	const fragment = parseFragment(text.replaceAll('<', '&lt;'));

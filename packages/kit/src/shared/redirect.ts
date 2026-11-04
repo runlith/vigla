@@ -6,7 +6,7 @@ import {
 	redirect_external_option_invalid
 } from './errors.ts';
 
-const base = 'https://sveltekit-redirect.invalid';
+const base = 'https://redirect.invalid';
 
 export function matchesOrigin(location: string, allowed: string): boolean {
 	if (location === allowed) return true;

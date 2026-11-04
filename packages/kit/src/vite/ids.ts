@@ -6,7 +6,7 @@ import type { ValidatedConfig } from '../types/builder.ts';
 import type { Project } from './project.ts';
 
 export function namespace(version: string, dev: boolean): string {
-	return dev ? '__sveltekit_dev' : `__sveltekit_${hash(version)}`;
+	return dev ? '__vigla_dev' : `__vigla_${hash(version)}`;
 }
 export const virtualDirectory = `${posix(codeDirectory)}vite/__generated__/`;
 export const ids = {

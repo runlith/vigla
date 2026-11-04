@@ -20,7 +20,7 @@ function platform(context: BuildContext): WorkerPlatform {
 	return {
 		directory: `${context.config.outDir}/output`,
 		assets: context.config.files.assets,
-		origin: context.config.paths.origin || 'http://sveltekit-prerender',
+		origin: context.config.paths.origin || 'http://prerender.invalid',
 		environment: context.environment
 	};
 }

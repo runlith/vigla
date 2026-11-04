@@ -53,7 +53,7 @@ function root(anchor: ChildNode, props: RootProps): Record<string, unknown> {
 function fixture(load: NonNullable<ClientNode['universal']>['load']): ClientApp {
 	init({ version: 'one' });
 	return {
-		global: '__sveltekit_test',
+		global: '__vigla_test',
 		nodes: [
 			async () => ({ component: () => {} }),
 			async () => ({ component: () => {} }),
