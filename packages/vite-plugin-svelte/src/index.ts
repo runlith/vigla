@@ -7,6 +7,7 @@ import {
 } from '@vigla/vite-plugin';
 import type { UserConfig } from 'vite';
 import { history } from './history.ts';
+import { messages } from './messages.ts';
 import { names } from './names.ts';
 
 export { vitePreprocess } from '@vigla/vite-plugin';
@@ -40,6 +41,7 @@ export type LoadedSvelteConfig = Partial<SvelteConfig> & { configFile?: string }
 export const svelte: PluginFactory<Options> = createPlugin<Options>({
 	name: 'vite-plugin-svelte',
 	names,
+	messages,
 	history
 });
 

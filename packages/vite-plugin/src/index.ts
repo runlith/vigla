@@ -20,6 +20,7 @@ export type { Compiler } from './compiler.ts';
 export type { LoadedConfig } from './config-file.ts';
 export type { FrontEnd } from './front-end.ts';
 export type { History, Links, Names, Naming } from './identity.ts';
+export type { Messages } from './messages.ts';
 export type { Log } from './log.ts';
 
 export interface PluginFactory<O extends object = Options> {
@@ -53,7 +54,7 @@ export function createPlugin<O extends object = Options>(naming: Naming): Plugin
 	return Object.assign(factory, {
 		marker: name,
 		loadConfig: (viteConfig?: UserConfig, inline?: Partial<O>, stem?: string) =>
-			loadConfig(identity.log, viteConfig, inline as RawOptions | undefined, stem)
+			loadConfig(identity, viteConfig, inline as RawOptions | undefined, stem)
 	});
 }
 

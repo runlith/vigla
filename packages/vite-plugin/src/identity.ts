@@ -1,5 +1,6 @@
 import type { ResolvedConfig } from 'vite';
 import { createLog, type Log } from './log.ts';
+import { ownMessages, type Messages } from './messages.ts';
 
 export interface Links {
 	readonly cssHash?: string;
@@ -27,6 +28,7 @@ export interface History {
 export interface Naming {
 	readonly name: string;
 	readonly names?: Partial<Names>;
+	readonly messages?: Partial<Messages>;
 	readonly history?: History;
 }
 
@@ -34,6 +36,7 @@ export interface Identity {
 	readonly name: string;
 	readonly log: Log;
 	readonly names: Names;
+	readonly messages: Messages;
 	readonly history: History;
 	readonly virtualStyle: RegExp;
 }
@@ -58,12 +61,13 @@ export function styleQuery(names: Names): string {
 	return `?${names.styleFlag}&type=style&lang.css`;
 }
 
-export function createIdentity({ name, names, history }: Naming): Identity {
+export function createIdentity({ name, names, messages, history }: Naming): Identity {
 	const resolved: Names = { ...ownNames, ...names };
 	return {
 		name,
 		log: createLog(name),
 		names: resolved,
+		messages: { ...ownMessages, ...messages },
 		history: history ?? {},
 		virtualStyle: new RegExp(`[?&]${escape(resolved.styleFlag)}&type=style&lang.css$`)
 	};

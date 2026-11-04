@@ -4,7 +4,7 @@ import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import type { UserConfig } from 'vite';
 import { frontEnds } from './front-end.ts';
-import type { Log } from './log.ts';
+import type { Identity } from './identity.ts';
 import type { Config, Options } from './public.ts';
 
 export type LoadedConfig = Partial<Config> & { configFile?: string };
@@ -19,27 +19,24 @@ function find(
 	root: string,
 	inline: Partial<Options> | undefined,
 	stems: readonly string[],
-	log: Log
+	{ log, messages }: Identity
 ): string | undefined {
 	if (inline?.configFile) {
 		const file = path.isAbsolute(inline.configFile)
 			? inline.configFile
 			: path.resolve(root, inline.configFile);
-		if (!fs.existsSync(file)) throw new Error(`failed to find config file ${file}.`);
+		if (!fs.existsSync(file)) throw new Error(messages.configNotFound(file));
 		return file;
 	}
 	const existing = configNames(stems)
 		.map((name) => path.resolve(root, name))
 		.filter((file) => fs.existsSync(file));
 	if (existing.length === 0) {
-		log.info(`no config file found at ${root} - using default configuration.`);
+		log.info(messages.configAbsent(root));
 		return undefined;
 	}
 	if (existing.length > 1) {
-		log.warn(
-			`found more than one config file, using ${existing[0]}. you should only have one!`,
-			existing
-		);
+		log.warn(messages.configsMultiple(existing[0]!), existing);
 	}
 	return existing[0];
 }
@@ -48,10 +45,10 @@ export async function loadConfigFile(
 	viteConfig: UserConfig | undefined,
 	inline: Partial<Options> | undefined,
 	stems: readonly string[],
-	log: Log
+	identity: Identity
 ): Promise<LoadedConfig | undefined> {
 	if (inline?.configFile === false) return undefined;
-	const file = find(viteConfig?.root || process.cwd(), inline, stems, log);
+	const file = find(viteConfig?.root || process.cwd(), inline, stems, identity);
 	if (file === undefined) return undefined;
 	try {
 		const url = `${pathToFileURL(file).href}?t=${fs.statSync(file).mtimeMs}`;
@@ -59,13 +56,13 @@ export async function loadConfigFile(
 		if (loaded == null) throw new Error(`invalid export in ${file}`);
 		return { ...loaded, configFile: file };
 	} catch (error) {
-		log.error(`failed to import config ${file}`, error);
+		identity.log.error(`failed to import config ${file}`, error);
 		throw error;
 	}
 }
 
 export async function loadConfig(
-	log: Log,
+	identity: Identity,
 	viteConfig?: UserConfig,
 	inline?: Partial<Options>,
 	stem?: string
@@ -74,5 +71,5 @@ export async function loadConfig(
 	const root = viteConfig?.root || process.cwd();
 	const stems =
 		stem === undefined ? (await frontEnds(root)).map((frontEnd) => frontEnd.config) : [stem];
-	return loadConfigFile(viteConfig, inline, stems, log);
+	return loadConfigFile(viteConfig, inline, stems, identity);
 }

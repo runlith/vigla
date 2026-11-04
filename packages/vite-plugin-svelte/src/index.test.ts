@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { PluginAPI } from '@vigla/vite-plugin';
-import { createServer } from 'vite';
+import { createServer, resolveConfig } from 'vite';
 import { expect, onTestFinished, test } from 'vitest';
 import { svelte } from './index.ts';
 
@@ -19,6 +19,31 @@ test('svelte() names its marker and plugins as vite-plugin-svelte', () => {
 		'vite-plugin-svelte:compile-module',
 		'vite-plugin-svelte:hot-update'
 	]);
+});
+
+test("svelte() rejects a misplaced svelte config option in upstream's words", async () => {
+	const root = await mkdtemp(join(tmpdir(), 'vite-plugin-svelte-'));
+	onTestFinished(() => rm(root, { recursive: true, force: true }));
+	await writeFile(join(root, 'package.json'), JSON.stringify({ type: 'module' }));
+	await writeFile(
+		join(root, 'svelte.config.js'),
+		'export default { prebundleSvelteLibraries: true };\n'
+	);
+	await expect(
+		resolveConfig(
+			{
+				root,
+				configFile: false,
+				logLevel: 'silent',
+				plugins: svelte({ configFile: 'svelte.config.js' })
+			},
+			'serve'
+		)
+	).rejects.toThrow(
+		new Error(
+			"Invalid options in svelte config. Move the following options into 'vitePlugin:{...}': prebundleSvelteLibraries"
+		)
+	);
 });
 
 test('svelte() accepts upstream option names and shows upstream names for styles and warnings', async () => {

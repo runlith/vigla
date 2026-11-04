@@ -36,21 +36,25 @@ function changed(
 	return !loose;
 }
 
-function watchConfig(api: PluginAPI, { name, log }: Identity, server: ViteDevServer): void {
+function watchConfig(
+	api: PluginAPI,
+	{ name, messages, log }: Identity,
+	server: ViteDevServer
+): void {
 	const configFile = api.options.configFile;
 	if (configFile === false) return;
 	const { watcher, ws } = server;
 	const { root, server: serverConfig } = server.config;
 	const restart = (filename: string) => {
 		if (serverConfig.middlewareMode) {
-			const message = 'Config file change detected, restart your dev process to apply the changes.';
+			const message = messages.configChangeDetected;
 			log.info(message, filename);
 			ws.send({
 				type: 'error',
 				err: { message, stack: '', plugin: name, id: filename }
 			});
 		} else {
-			log.info(`config file changed: restarting vite server. - file: ${filename}`);
+			log.info(messages.configChanged(filename));
 			void server.restart();
 		}
 	};
@@ -98,9 +102,7 @@ export function hotUpdate(api: PluginAPI, identity: Identity): Plugin {
 			);
 			if (client) watchConfig(api, identity, server);
 			else {
-				log.warn(
-					'No client environment found, not adding watchers for config file and preprocessor dependencies'
-				);
+				identity.log.warn(identity.messages.noClientEnvironment);
 			}
 		},
 		buildStart() {

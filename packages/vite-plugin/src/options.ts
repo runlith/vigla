@@ -89,36 +89,28 @@ export function validateInlineOptions(
 
 function convertPluginOptions(
 	config: (Partial<Config> & { configFile?: string }) | undefined,
-	{ names, log }: Identity
+	{ names, messages, log }: Identity
 ): RawOptions | undefined {
 	if (!config) return undefined;
 	const pluginKeys = pluginOptions(names);
 	const misplaced = Object.keys(config).filter((key) => pluginKeys.has(key));
 	if (misplaced.length > 0) {
-		throw new Error(
-			`Invalid options in config file. Move the following options into 'vitePlugin:{...}': ${misplaced.join(', ')}`
-		);
+		throw new Error(messages.optionsMisplaced(misplaced.join(', ')));
 	}
 	if (!config.vitePlugin) return config as RawOptions;
 	const plugin = config.vitePlugin as Record<string, unknown>;
 	const keys = Object.keys(plugin);
 	const atRoot = keys.filter((key) => rootOptions.has(key));
 	if (atRoot.length > 0) {
-		throw new Error(
-			`Invalid options in config file under vitePlugin:{...}', move them to the config root : ${atRoot.join(', ')}`
-		);
+		throw new Error(messages.optionsAtRoot(atRoot.join(', ')));
 	}
 	const duplicate = keys.filter((key) => Object.prototype.hasOwnProperty.call(config, key));
 	if (duplicate.length > 0) {
-		throw new Error(
-			`Invalid duplicate options in config file under vitePlugin:{...}', they are defined in root too and must only exist once: ${duplicate.join(', ')}`
-		);
+		throw new Error(messages.optionsDuplicate(duplicate.join(', ')));
 	}
 	const unknown = keys.filter((key) => !pluginKeys.has(key));
 	if (unknown.length > 0) {
-		log.warn(
-			`ignoring unknown plugin options in config file under vitePlugin:{...}: ${unknown.join(', ')}`
-		);
+		log.warn(messages.optionsUnknown(unknown.join(', ')));
 		for (const key of unknown) delete plugin[key];
 	}
 	const result: Record<string, unknown> = { ...config, ...plugin };
@@ -156,7 +148,7 @@ export async function preResolveOptions(
 	};
 	const stems = frontEnds.map((frontEnd) => frontEnd.config);
 	const loaded = convertPluginOptions(
-		await loadConfigFile({ ...viteUserConfig, root }, inline, stems, log),
+		await loadConfigFile({ ...viteUserConfig, root }, inline, stems, identity),
 		identity
 	);
 	const extra = {
@@ -175,7 +167,7 @@ function enforceOptionsForHmr(
 	options: ResolvedOptions,
 	viteConfig: ResolvedConfig,
 	frontEnds: readonly FrontEnd[],
-	{ names, log }: Identity
+	{ names, messages, log }: Identity
 ): void {
 	const compilerOptions = options.compilerOptions;
 	if (compilerOptions.hmr && viteConfig.server?.hmr === false) {
@@ -208,9 +200,7 @@ function enforceOptionsForHmr(
 		});
 		if (!usesFilename || usesCss) {
 			const link = names.links.cssHash;
-			log.warn(
-				`The custom compilerOptions.cssHash in your config can degrade your DX.${link ? ` See ${link} for more information.` : ''}`
-			);
+			log.warn(`${messages.cssHash}${link ? ` See ${link} for more information.` : ''}`);
 		}
 	}
 }
@@ -231,13 +221,11 @@ function enforceOptionsForProduction(options: ResolvedOptions, log: Log): void {
 	}
 }
 
-function removeIgnoredOptions(options: ResolvedOptions, { name, log }: Identity): void {
+function removeIgnoredOptions(options: ResolvedOptions, { name, messages, log }: Identity): void {
 	const ignored = ['generate', 'format', 'filename'];
 	const passed = Object.keys(options.compilerOptions ?? {}).filter((key) => ignored.includes(key));
 	if (passed.length === 0) return;
-	log.warn(
-		`The following compilerOptions are controlled by ${name} and essential to its functionality. User-specified values are ignored. Please remove them from your configuration: ${passed.join(', ')}`
-	);
+	log.warn(messages.controlledOptions(name, passed.join(', ')));
 	for (const key of passed) delete options.compilerOptions[key];
 }
 

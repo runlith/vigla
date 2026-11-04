@@ -196,7 +196,7 @@ export class ConfigErrors {
 	config_csp_trusted_types_missing(): never {
 		return this.d.raise(
 			'config_csp_trusted_types_missing',
-			`The \`csp.directives['trusted-types']\` option must include '${this.d.identity.name}-trusted-url' when \`serviceWorker.register\` is \`true\``,
+			`The \`csp.directives['trusted-types']\` option must include \`'${this.d.identity.name}-trusted-url'\` when \`serviceWorker.register\` is \`true\``,
 			this.config_csp_trusted_types_missing
 		);
 	}

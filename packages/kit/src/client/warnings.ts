@@ -16,13 +16,13 @@ interface Preload {
 export function window_fetch_in_load(values: { url: string }): void {
 	warnDiagnostic(
 		'window_fetch_in_load',
-		`Use the fetch provided to load instead of window.fetch for ${values.url}`
+		`Loading \`${values.url}\` using \`window.fetch\`. For best results, use the \`fetch\` that is passed to your \`load\` function`
 	);
 }
 export function preload_route_is_pathname(values: Route): void {
 	warnDiagnostic(
 		'preload_route_is_pathname',
-		`\`${values.id}\` is a pathname, not a route ID. Use match to find its route ID.`
+		`\`${values.id}\` did not match any route, but it does match as a pathname — use \`match(...)\` from \`$app/paths\` to convert a pathname into a route ID`
 	);
 }
 export function preload_code_endpoint_only(values: Route): void {
