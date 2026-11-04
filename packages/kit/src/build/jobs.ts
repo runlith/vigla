@@ -19,9 +19,15 @@ export interface WorkerPlatform {
 export interface FallbackJob extends WorkerPlatform {
 	kind: 'fallback';
 }
+export interface AnalysisSources {
+	params: string | null;
+	extension: string;
+	endpoints: Record<string, string>;
+}
 export interface AnalysisJob extends WorkerPlatform {
 	kind: 'analyse';
 	hash: boolean;
+	sources: AnalysisSources;
 }
 export interface PrerenderJob extends WorkerPlatform {
 	kind: 'prerender';

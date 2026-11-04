@@ -41,7 +41,12 @@ afterAll(async () => {
 });
 
 test('dev registers server exports and exposes only remote stubs to clients', async () => {
-	const project = { root, name: '@vigla/kit', identity: own } as Project;
+	const project = {
+		root,
+		name: '@vigla/kit',
+		identity: own,
+		config: { experimental: { remoteFunctions: true } }
+	} as Project;
 	const remote = createRemotePlugin(() => project, own);
 	const server = await createServer({
 		root,
@@ -67,6 +72,7 @@ test('server builds publish remote chunks and client builds use analysed kinds',
 	const project = {
 		root,
 		name: '@vigla/kit',
+		config: { experimental: { remoteFunctions: true } },
 		build: {
 			analysis: {
 				remotes: new Map([

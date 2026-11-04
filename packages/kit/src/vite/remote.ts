@@ -6,6 +6,7 @@ import type { Identity } from '../types/identity.ts';
 import type { RemoteExport, RemoteInternals } from '../types/internal/remote.ts';
 import { isRunnable } from '../sync/index.ts';
 import { fileUrl, isRemoteModule, posix, remotePattern } from './paths.ts';
+import { ViteMessages } from './messages.ts';
 import type { Project } from './project.ts';
 
 export interface RemoteEntry {
@@ -71,6 +72,12 @@ export function createRemotePlugin(
 		async transform(code, id) {
 			if (!isRemote(id)) return;
 			const project = getProject();
+			if (!project.config.experimental.remoteFunctions)
+				new ViteMessages(project.diagnostics).config_feature_disabled({
+					feature: 'remote functions',
+					keypath: 'experimental.remoteFunctions',
+					value: 'true'
+				});
 			const file = posix(path.relative(project.root, id));
 			const key = hash(file);
 			if (this.environment.config.consumer === 'server') {
@@ -110,7 +117,7 @@ export function createRemotePlugin(
 			let index = 0;
 			for (const [name, info] of exports) {
 				if (!info || !kinds.has(info.type))
-					throw new Error(`Invalid remote export ${name} in ${file}`);
+					new ViteMessages(project.diagnostics).remote_module_invalid_export({ name, file });
 				const local = `$$remote_${index++}`;
 				declarations.push(
 					`const ${local} = remote.${info.type}(${JSON.stringify(key + '/' + name)}); export { ${local} as ${JSON.stringify(name)} };`

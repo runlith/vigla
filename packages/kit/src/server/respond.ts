@@ -35,6 +35,7 @@ import { FrameworkError } from './failure.ts';
 import { appEvent } from './hooks.ts';
 import { renderDocument } from './document.ts';
 import { restrictSearch } from './url.ts';
+import { client_address_unsupported } from './errors.ts';
 import { identity } from '../shared/identity.ts';
 
 const subresources = new Set([
@@ -128,7 +129,9 @@ export async function respond(
 	const event = {
 		cookies: jar.cookies,
 		fetch: (...args: Parameters<typeof fetch>) => fetch(...args),
-		getClientAddress: options.getClientAddress,
+		getClientAddress:
+			options.getClientAddress ??
+			(() => client_address_unsupported({ adapter: server.options.adapter })),
 		locals: {},
 		params: {},
 		platform: options.emulator?.platform

@@ -10,6 +10,7 @@ import { walk } from '../build/index.ts';
 import type { PrerenderedAsset, PrerenderedPage, PrerenderedRedirect } from '../types/builder.ts';
 import type { ServerManifest, ServerModule } from '../types/internal/server.ts';
 import { outsideBase } from './assets.ts';
+import { ViteMessages } from './messages.ts';
 import type { Project } from './project.ts';
 
 const scope = new AsyncLocalStorage();
@@ -28,7 +29,7 @@ export async function configurePreview(
 	const output = path.join(project.config.outDir, 'output');
 	const directory = path.join(output, 'server');
 	if (!existsSync(path.join(directory, 'manifest.js')))
-		throw new Error(`Server files not found at ${directory}, did you run build first?`);
+		new ViteMessages(project.diagnostics).preview_build_missing({ dir: directory });
 	const module = (await import(
 		pathToFileURL(path.join(directory, 'index.js')).href
 	)) as ServerModule;

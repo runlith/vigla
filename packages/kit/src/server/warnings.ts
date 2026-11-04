@@ -1,4 +1,5 @@
-import { warnDiagnostic } from '../shared/diagnostics.ts';
+import { runtime, warnDiagnostic } from '../shared/diagnostics.ts';
+import { identity } from '../shared/identity.ts';
 
 export function cookie_path_mismatch({
 	name,
@@ -54,22 +55,28 @@ export function load_tracking_after_return({
 		`\`${id}\`: ${usage} in a promise handler after \`load(...)\` has returned will not cause the function to re-run when ${change}`
 	);
 }
-export function form_action_error_without_ssr(): void {
+export function form_action_error_without_ssr(extension: string): void {
 	warnDiagnostic(
 		'form_action_error_without_ssr',
-		'The form action returned an error, but the error page was not rendered because SSR is off. Enhance the form to receive its result in CSR.'
+		`The form action returned an error, but \`+error${extension}\` wasn't rendered because SSR is off. To get the error page with CSR, enhance your form with \`use:enhance\`.${runtime.docs('enhance')}`
 	);
 }
 export function form_action_data_without_ssr(): void {
 	warnDiagnostic(
 		'form_action_data_without_ssr',
-		'The form action returned a value, but it is not available in `page.form` because SSR is off. Enhance the form to receive its result in CSR.'
+		`The form action returned a value, but it isn't available in \`page.form\`, because SSR is off. To handle the returned value in CSR, enhance your form with \`use:enhance\`.${runtime.docs('enhance')}`
 	);
 }
 export function transform_page_chunk_comments(): void {
 	warnDiagnostic(
 		'transform_page_chunk_comments',
-		'Removing comments in `transformPageChunk` can break hydration'
+		`Removing comments in \`transformPageChunk\` can break ${identity.framework ? `${identity.framework}'s ` : ''}hydration`
+	);
+}
+export function ssr_fetch_eager(): void {
+	warnDiagnostic(
+		'ssr_fetch_eager',
+		'Avoid calling `fetch` eagerly during server-side rendering — put your `fetch` calls inside `onMount` or a `load` function instead'
 	);
 }
 export function streaming_without_csr(): void {

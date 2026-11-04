@@ -13,6 +13,13 @@ interface EnvCycle {
 interface VariableName {
 	name: string;
 }
+interface ComponentExtension {
+	extension: string;
+}
+function componentName(extension: string): string {
+	const name = extension.replace(/^\./, '');
+	return name.charAt(0).toUpperCase() + name.slice(1);
+}
 
 export class SyncErrors {
 	private readonly d: Diagnostics;
@@ -162,14 +169,18 @@ export class SyncErrors {
 	routes_not_found(): never {
 		return this.d.raise(
 			'routes_not_found',
-			`No routes found. If you are using a custom routes directory, make sure it is specified in your ${this.d.identity.product} Vite plugin options`,
+			`No routes found. If you are using a custom \`src/routes\` directory, make sure it is specified in your ${this.d.identity.product} Vite plugin options`,
 			this.routes_not_found
 		);
 	}
-	route_prerender_page_and_endpoint({ id, file }: RouteId & FileName): never {
+	route_prerender_page_and_endpoint({
+		id,
+		file,
+		extension
+	}: RouteId & FileName & ComponentExtension): never {
 		return this.d.raise(
 			'route_prerender_page_and_endpoint',
-			`Cannot prerender a route (\`${id}\`) with both a page and a \`${file}\``,
+			`Cannot prerender a route (\`${id}\`) with both a \`+page${extension}\` and a \`${file}\``,
 			this.route_prerender_page_and_endpoint
 		);
 	}
@@ -183,18 +194,21 @@ export class SyncErrors {
 	route_named_layout_in_module({
 		file,
 		name,
-		layout
-	}: FileName & { name: string; layout: string }): never {
+		layout,
+		extension
+	}: FileName & ComponentExtension & { name: string; layout: string }): never {
 		return this.d.raise(
 			'route_named_layout_in_module',
-			`Only component files can reference named layouts. Remove \`${layout}\` from \`${name}\` (at \`${file}\`)`,
+			`Only ${componentName(extension)} files can reference named layouts. Remove \`${layout}\` from \`${name}\` (at \`${file}\`)`,
 			this.route_named_layout_in_module
 		);
 	}
-	tsconfig_parse_failed({ file, details }: FileName & { details: string }): never {
+	tsconfig_parse_failed({ details }: { details?: string }): never {
 		return this.d.raise(
 			'tsconfig_parse_failed',
-			`Could not parse ${file}: ${details}`,
+			details === undefined
+				? 'Failed to parse TypeScript config'
+				: `Failed to parse TypeScript config: ${details}`,
 			this.tsconfig_parse_failed
 		);
 	}

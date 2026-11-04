@@ -29,7 +29,7 @@ process.once('message', async (job: WorkerJob) => {
 		const runtime = await loadRuntime(job, job.kind !== 'analyse');
 		runtime.emulator = emulator;
 		if (job.kind === 'analyse') {
-			const value = await analyse(runtime.manifest, job.hash, d);
+			const value = await analyse(runtime.manifest, job.hash, job.sources, d);
 			value.environment = runtime.environment.rendered;
 			message = { kind: 'result', value };
 		} else if (job.kind === 'fallback')

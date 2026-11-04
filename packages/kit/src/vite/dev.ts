@@ -1,5 +1,6 @@
 import { existsSync, statSync } from 'node:fs';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { SCHEME } from '../shared/url.ts';
 import path from 'node:path';
 import type { Connect, EnvironmentModuleNode, RunnableDevEnvironment, ViteDevServer } from 'vite';
 import { createReadableStream, getRequest, setResponse } from '../node/index.ts';
@@ -93,6 +94,11 @@ async function styles(
 export async function configureDev(server: ViteDevServer, project: Project): Promise<() => void> {
 	const e: ViteMessages = new ViteMessages(project.diagnostics);
 	const syncErrors: SyncErrors = new SyncErrors(project.diagnostics);
+	const globalFetch = globalThis.fetch;
+	globalThis.fetch = (info, init) => {
+		if (typeof info === 'string' && !SCHEME.test(info)) e.fetch_relative_url({ url: info });
+		return globalFetch(info, init);
+	};
 	const environment = server.environments.ssr;
 	if (!isRunnable(environment)) syncErrors.vite_ssr_environment_not_runnable();
 	const fixStack = (error: Error) => {

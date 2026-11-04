@@ -93,7 +93,12 @@ export function discover(config: ValidatedConfig, root: string, d: Diagnostics):
 				e.route_file_reserved({ file: source });
 			const role = match[1]!;
 			if (!component && match[2] !== undefined)
-				e.route_named_layout_in_module({ file: source, name, layout: match[2] });
+				e.route_named_layout_in_module({
+					file: source,
+					name,
+					layout: match[2],
+					extension: config.extensions[0] ?? ''
+				});
 			const kind = component ? 'component' : role === 'server' || match[3] ? 'server' : 'universal';
 			if (config.router.type === 'hash' && kind === 'server')
 				e.route_server_file_hash_router({ file: source });
@@ -210,7 +215,11 @@ export function discover(config: ValidatedConfig, root: string, d: Diagnostics):
 			route.page &&
 			(nodes[route.page.leaf]!.options?.prerender || route.endpoint.options?.prerender)
 		)
-			e.route_prerender_page_and_endpoint({ id: route.id, file: basename(route.endpoint.file) });
+			e.route_prerender_page_and_endpoint({
+				id: route.id,
+				file: basename(route.endpoint.file),
+				extension: config.extensions[0] ?? ''
+			});
 	}
 	const hook = (file: string): string | null => {
 		const entry = resolveEntry(file, config.moduleExtensions);

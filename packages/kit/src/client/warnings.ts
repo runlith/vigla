@@ -19,6 +19,18 @@ export function window_fetch_in_load(values: { url: string }): void {
 		`Loading \`${values.url}\` using \`window.fetch\`. For best results, use the \`fetch\` that is passed to your \`load\` function`
 	);
 }
+export function app_body_unwrapped(values: { tag: string }): void {
+	warnDiagnostic(
+		'app_body_unwrapped',
+		`Placing \`${values.tag}\` directly inside \`<body>\` is not recommended, as your app may break for users who have certain browser extensions installed`
+	);
+}
+export function history_api_conflict(): void {
+	warnDiagnostic(
+		'history_api_conflict',
+		`Avoid using \`history.pushState(...)\` and \`history.replaceState(...)\` as these will conflict with ${identity.product}'s router. Use \`goto(...)\` from \`$app/navigation\` instead.`
+	);
+}
 export function preload_route_is_pathname(values: Route): void {
 	warnDiagnostic(
 		'preload_route_is_pathname',

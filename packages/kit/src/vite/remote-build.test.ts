@@ -53,7 +53,12 @@ export { saved as two } from './two/data.remote.js';
 `
 	);
 	const api = await importVite(packageDirectory);
-	const project = { root, name: '@vigla/kit', api } as Project;
+	const project = {
+		root,
+		name: '@vigla/kit',
+		api,
+		config: { experimental: { remoteFunctions: true } }
+	} as Project;
 	const remote = createRemotePlugin(() => project, own);
 	const directory = path.join(root, 'output/server');
 	await api.build({
@@ -141,6 +146,8 @@ export { saved as two } from './two/data.remote.js';
 			handleError: ({ error }) => ({ status: 500, message: String(error) })
 		}),
 		templates: { app: ({ body }) => body, error: ({ message }) => message },
+		extension: '.page',
+		adapter: '',
 		appTemplateContainsNonce: false,
 		csp: {},
 		csrf: { checkOrigin: true, trustedOrigins: [] },

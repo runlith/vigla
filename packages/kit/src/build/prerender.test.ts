@@ -90,6 +90,8 @@ async function app(fixture: Fixture): Promise<Runtime> {
 			app: ({ head, body }) => `<head>${head}</head><body>${body}</body>`,
 			error: ({ status, message }) => `${status}:${message}`
 		},
+		extension: '.page',
+		adapter: '',
 		appTemplateContainsNonce: false,
 		csp: {},
 		csrf: { checkOrigin: true, trustedOrigins: [] },
@@ -121,7 +123,12 @@ async function job(runtime: Runtime, name: string): Promise<PrerenderJob> {
 		assets: directory,
 		origin: 'https://app.test',
 		environment: {},
-		analysis: await analyse(runtime.manifest, false, d),
+		analysis: await analyse(
+			runtime.manifest,
+			false,
+			{ params: null, extension: '.page', endpoints: {} },
+			d
+		),
 		base: runtime.options.paths.base,
 		hash: false,
 		entries: ['*'],

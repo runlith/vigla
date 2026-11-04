@@ -100,7 +100,7 @@ export async function loadEnvironment(
 		result.variables = module.variables;
 		for (const name of Object.keys(result.variables)) {
 			if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) || reserved.has(name))
-				e.env_invalid_variable_name({ name });
+				e.env_invalid_variable_name({ name: JSON.stringify(name) });
 		}
 		return result;
 	} finally {

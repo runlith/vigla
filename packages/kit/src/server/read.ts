@@ -13,6 +13,9 @@ export function configureRead(manifest: ServerManifest, paths: ServerPaths, read
 }
 
 export function read(file: string): Response {
+	(globalThis as { __VIGLA_TRACK__?: (label: string) => void }).__VIGLA_TRACK__?.(
+		'$app/server:read'
+	);
 	const store = findRequest();
 	const source = store
 		? { manifest: store.manifest, paths: store.options.paths, read: store.state.read }

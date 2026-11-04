@@ -256,11 +256,15 @@ export class Form {
 			if (this.#unread?.length)
 				warnDiagnostic(
 					'remote_form_issues_ignored',
-					this.#unread
+					`Form submission had invalid data, but the validation issues were ignored:\n\n${this.#unread
 						.map((issue) =>
-							issue.path.length ? `${issue.name} (${issue.message})` : issue.message
+							issue.path.length === 0
+								? `  - ${issue.message}`
+								: `  - ${issue.path.join('.')} (${issue.message})`
 						)
-						.join('\n')
+						.join(
+							'\n'
+						)}\n\nMake sure you provide actionable feedback to users, using e.g. \`myForm.fields.myField.issues()\` or \`myForm.fields.allIssues()\``
 				);
 			this.#unread = null;
 		});
@@ -289,7 +293,7 @@ export class Form {
 	#send(data: FormData, preflight: boolean): UpdatingPromise<boolean> {
 		const remote = this.forms.remote;
 		const release = this.forms.retain(this);
-		const promise = updating(remote, async (updates) => {
+		const promise = updating(remote, 'form submission', async (updates) => {
 			try {
 				if (preflight && !(await this.#preflight(data))) return false;
 				const response = await remote.channel.request(

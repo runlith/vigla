@@ -30,6 +30,7 @@ import { History, type Metadata } from './history.ts';
 import { Restoration } from './restore.ts';
 import { listen } from './links.ts';
 import * as errors from './errors.ts';
+import { app_body_unwrapped } from './warnings.ts';
 import { identity } from '../shared/identity.ts';
 
 interface Transition extends GotoOptions {
@@ -154,6 +155,8 @@ export class Client {
 	}
 
 	async start(input?: Hydration): Promise<void> {
+		if (DEV && this.#target === document.body)
+			app_body_unwrapped({ tag: `%${identity.name}.body%` });
 		const url = new URL(location.href);
 		if (this.routes.hash) url.hash = decodeURIComponent(url.hash);
 		const closeInput = this.#consumeHydration ? this.#openInput() : () => {};

@@ -17,6 +17,10 @@ interface HashMessage {
 	file: string;
 	options: string;
 }
+interface PrerenderConflict {
+	path: string;
+	parent?: string;
+}
 function bulletList(items: string[]): string {
 	return items.map((item) => `  - ${item}`).join('\n');
 }
@@ -29,8 +33,15 @@ export class BuildMessages {
 	adapter_instrumentation_file_missing({ kind, file }: InstrumentationMessage): never {
 		this.d.raise(
 			'adapter_instrumentation_file_missing',
-			`${kind} not found at \`${file}\``,
+			`${kind} \`${file}\` not found. This is probably a bug in your adapter.`,
 			this.adapter_instrumentation_file_missing
+		);
+	}
+	adapter_read_unsupported({ route, adapter }: { route: string; adapter: string }): never {
+		this.d.raise(
+			'adapter_read_unsupported',
+			`Cannot use \`read\` from \`$app/server\` in \`${route}\` when using \`${adapter}\`. Please ensure that your adapter is up to date and supports this feature.`,
+			this.adapter_read_unsupported
 		);
 	}
 	adapter_fallback_overwrites({ file }: FileMessage): void {
@@ -42,21 +53,21 @@ export class BuildMessages {
 	router_hash_page_options({ file, options }: HashMessage): never {
 		this.d.raise(
 			'router_hash_page_options',
-			`Page options ${options} cannot be used with hash routing in ${file}`,
+			`Page options are ignored when \`router.type === 'hash'\` (\`${file}\` has ${options})`,
 			this.router_hash_page_options
 		);
 	}
-	params_export_missing(): never {
+	params_export_missing({ file }: FileMessage): never {
 		this.d.raise(
 			'params_export_missing',
-			'The params module does not export params from defineParams',
+			`\`${file}\` does not export \`params\` from \`defineParams\``,
 			this.params_export_missing
 		);
 	}
-	param_matcher_missing({ name }: NameMessage): never {
+	param_matcher_missing({ name, file }: NameMessage & { file?: string }): never {
 		this.d.raise(
 			'param_matcher_missing',
-			`No matcher found for parameter \`${name}\``,
+			`No matcher found for parameter \`${name}\`${file === undefined ? '' : ` in \`${file}\``}`,
 			this.param_matcher_missing
 		);
 	}
@@ -67,42 +78,56 @@ export class BuildMessages {
 			this.prerender_endpoint_methods
 		);
 	}
-	route_prerender_page_and_endpoint({ id }: RouteMessage): never {
+	route_prerender_page_and_endpoint({
+		id,
+		file,
+		extension
+	}: RouteMessage & FileMessage & { extension: string }): never {
 		this.d.raise(
 			'route_prerender_page_and_endpoint',
-			`Cannot prerender both the page and endpoint for ${id}`,
+			`Cannot prerender a route (\`${id}\`) with both a \`+page${extension}\` and a \`${file}\``,
 			this.route_prerender_page_and_endpoint
 		);
 	}
 	route_config_mismatch({ id }: RouteMessage): never {
 		this.d.raise(
 			'route_config_mismatch',
-			`Page and endpoint config must match for ${id}`,
+			`Mismatched route config for \`${id}\` — the \`+page\` and \`+server\` files must export the same config, if any`,
 			this.route_config_mismatch
-		);
-	}
-	remote_export_invalid({ name }: NameMessage): never {
-		this.d.raise(
-			'remote_export_invalid',
-			`Invalid remote export ${name}`,
-			this.remote_export_invalid
 		);
 	}
 	prerender_http_error(
 		status: number,
 		path: string,
 		referrer: string | null,
-		referenceType: string
+		referenceType: string,
+		base: string
 	): string {
+		if (status === 404 && !path.startsWith(base))
+			return this.d.text(
+				'prerender_path_outside_base',
+				referrer
+					? `\`${path}\` (${referenceType} from \`${referrer}\`) does not begin with \`base\`. You can fix this by using \`resolve('${path}')\` from \`$app/paths\`. The base path is configurable from \`paths.base\``
+					: `\`${path}\` does not begin with \`base\`. You can fix this by using \`resolve('${path}')\` from \`$app/paths\`. The base path is configurable from \`paths.base\``
+			);
 		return this.d.text(
 			'prerender_http_error',
-			`${status} ${path}${referrer ? ` (${referenceType} from ${referrer})` : ''}`
+			status === 404 && referrer
+				? `\`${path}\` was ${referenceType} from \`${referrer}\``
+				: `Failed to prerender \`${path}\``
 		);
 	}
 	prerender_invalid_url(href: string, referrer: string | null): string {
 		return this.d.text(
 			'prerender_invalid_url',
-			`Invalid URL ${href}${referrer ? ` linked from ${referrer}` : ''}`
+			referrer ? `Invalid URL \`${href}\` (linked from \`${referrer}\`)` : `Invalid URL \`${href}\``
+		);
+	}
+	prerender_directory_conflict({ path, parent }: PrerenderConflict): never {
+		this.d.raise(
+			'prerender_directory_conflict',
+			`Cannot save \`${path}\` as ${parent === undefined ? 'it is already a directory' : `\`${parent}\` is already a file`}.${this.d.docs('prerenderConflicts', (url) => ` See ${url} for more information`)}`,
+			this.prerender_directory_conflict
 		);
 	}
 	prerender_missing_id(path: string, id: string, referrers: string[]): string {
@@ -114,7 +139,7 @@ export class BuildMessages {
 	prerender_entry_generator_mismatch(id: string, entry: string, matched: string): string {
 		return this.d.text(
 			'prerender_entry_generator_mismatch',
-			`Entry ${entry} generated by ${id} matched ${matched}`
+			`The \`entries\` export from \`${id}\` generated entry \`${entry}\`, which was matched by \`${matched === entry ? 'a static route' : matched}\``
 		);
 	}
 	prerender_unseen_routes(routes: string[]): string {
@@ -143,14 +168,14 @@ export class BuildMessages {
 	prerender_client_address(): never {
 		this.d.raise(
 			'prerender_client_address',
-			'Cannot read client address while prerendering',
+			'Cannot read `clientAddress` during prerendering',
 			this.prerender_client_address
 		);
 	}
 	prerender_fallback_failed(): never {
 		this.d.raise(
 			'prerender_fallback_failed',
-			'Could not generate a fallback page',
+			'Could not create a fallback page',
 			this.prerender_fallback_failed
 		);
 	}

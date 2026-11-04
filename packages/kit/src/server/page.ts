@@ -68,7 +68,8 @@ async function renderPage(
 		if (result.type === 'redirect')
 			return new Response(null, { status: result.status, headers: { location: result.location } });
 		if (result.type === 'error') {
-			if (!settings.ssr && server.options.dev) warnings.form_action_error_without_ssr();
+			if (!settings.ssr && server.options.dev)
+				warnings.form_action_error_without_ssr(server.options.extension);
 			status =
 				result.error instanceof HttpError || result.error instanceof FrameworkError
 					? result.error.status

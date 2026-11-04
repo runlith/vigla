@@ -1,3 +1,4 @@
+import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { uneval } from 'devalue';
 import { resolveRoute } from '../shared/routing/index.ts';
@@ -151,7 +152,13 @@ export async function prerender(
 					path: pathname,
 					referrer,
 					referenceType,
-					message: e.prerender_http_error(response.status, pathname, referrer, referenceType)
+					message: e.prerender_http_error(
+						response.status,
+						pathname,
+						referrer,
+						referenceType,
+						job.base
+					)
 				}
 			});
 			return;
@@ -169,6 +176,14 @@ export async function prerender(
 		const destination = path.resolve(target, category, file);
 		if (!destination.startsWith(path.resolve(target, category) + path.sep))
 			throw new Error(`Prerender path escapes its output: ${pathname}`);
+		if (existsSync(destination) && statSync(destination).isDirectory())
+			e.prerender_directory_conflict({ path: pathname });
+		const parent = path.dirname(destination);
+		if (existsSync(parent) && !statSync(parent).isDirectory())
+			e.prerender_directory_conflict({
+				path: pathname,
+				parent: pathname.split('/').slice(0, -1).join('/')
+			});
 		if (!written.has(file)) {
 			write(destination, body);
 			written.add(file);
@@ -287,7 +302,7 @@ export async function prerender(
 						path: pathname,
 						referrer,
 						referenceType: 'linked',
-						message: e.prerender_http_error(404, pathname, referrer, 'linked')
+						message: e.prerender_http_error(404, pathname, referrer, 'linked', job.base)
 					}
 				});
 				return;

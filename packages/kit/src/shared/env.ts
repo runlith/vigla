@@ -47,10 +47,7 @@ export function handleIssues(issues: EnvironmentIssues, d: Diagnostics = runtime
 	const entries = Object.entries(issues);
 	if (!entries.length) return;
 	const list = entries
-		.map(
-			([name, found]) =>
-				`${name}\n${found.map((issue) => `  - ${issue.message.replaceAll('\n', '\n    ')}`).join('\n')}`
-		)
+		.map(([name, found]) => `${name}\n${found.map((issue) => `  - ${issue.message}`).join('\n')}`)
 		.join('\n\n');
 	try {
 		d.raise('env_invalid', `Invalid environment variables:\n\n${list}\n`, handleIssues);

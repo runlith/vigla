@@ -3,22 +3,26 @@ import path from 'node:path';
 import type { Manifest, Plugin, ViteBuilder } from 'vite';
 import {
 	analyseBuild,
+	checkFeatures,
 	copy,
 	createBuilder,
 	createLogger,
 	manifestSource,
 	prerenderBuild,
+	trackFeatures,
 	walk,
 	write,
 	writeNodes,
 	type BuildContext,
-	type BuiltNode
+	type BuiltNode,
+	type TrackedFeatures
 } from '../build/index.ts';
 import { resolveConfig } from '../config/index.ts';
 import type { ValidatedConfig } from '../types/builder.ts';
 import type { ManifestRoute } from '../types/paths.ts';
 import type { ClientBuild, Style } from '../types/internal/server.ts';
 import { dependencies, entry } from './dependencies.ts';
+import { requireHtmlPolicy } from './csp.ts';
 import { styleExpression } from './styles.ts';
 import { pruneRemotes } from './remote-build.ts';
 import { ids, nodeId } from './ids.ts';
@@ -325,9 +329,15 @@ export function buildPlugin(
 	d: Diagnostics
 ): Plugin {
 	const e: ViteMessages = new ViteMessages(d);
+	const tracked: TrackedFeatures = new Map();
 	return {
 		name: 'kit:build',
 		apply: 'build',
+		renderChunk(code, chunk) {
+			if (this.environment.name !== 'ssr') return;
+			const rewritten = trackFeatures(code, chunk.fileName, tracked);
+			return rewritten === null ? undefined : { code: rewritten, map: null };
+		},
 		config(user) {
 			const root = path.resolve(user.root ?? process.cwd());
 			const config = resolveConfig(validated, root, d);
@@ -336,8 +346,7 @@ export function buildPlugin(
 			const inline = config.output.bundleStrategy === 'inline';
 			const split = config.output.bundleStrategy === 'split';
 			const serviceWorker = resolveEntry(config.files.serviceWorker, config.moduleExtensions);
-			if (serviceWorker && config.paths.assets)
-				throw new Error('Cannot use service worker alongside config.paths.assets');
+			if (serviceWorker && config.paths.assets) e.service_worker_assets();
 			return {
 				base: config.paths.relative || config.paths.assets ? './' : (config.paths.base || '') + '/',
 				builder: { sharedConfigBuild: true, sharedPlugins: true },
@@ -442,6 +451,7 @@ export function buildPlugin(
 		},
 		async buildApp(builder) {
 			const project = await getProject();
+			tracked.clear();
 			const context = fresh(project);
 			project.build = context;
 			const output = path.join(context.config.outDir, 'output');
@@ -538,11 +548,14 @@ export function buildPlugin(
 				);
 			full();
 			context.analysis = await analyseBuild(context);
+			checkFeatures(context, tracked);
+			const clientless = project.tree.nodes.every((node) => node.options?.csr === false);
+			if (!clientless) requireHtmlPolicy(project);
 			const {
 				sources: clientSources,
 				inlineScript,
 				inlined
-			} = project.tree.nodes.every((node) => node.options?.csr === false)
+			} = clientless
 				? skipClient(project, context, serverManifest, component)
 				: await buildClient(builder, project, context, serverManifest, component);
 			writeNodes(context);
@@ -595,6 +608,7 @@ export function buildPlugin(
 				})
 			);
 			if (project.config.adapter) await project.config.adapter.adapt(createBuilder(context));
+			else e.adapter_missing();
 		}
 	};
 }

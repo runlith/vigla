@@ -13,6 +13,7 @@ import { DataSerializer } from './data.ts';
 import { Csp } from './csp.ts';
 import { handleError } from './failure.ts';
 import { collect } from './remote/collect.ts';
+import { guardRenderFetch } from './fetch-guard.ts';
 import { requestContext, runRequest } from './scope.ts';
 import { stateKey } from './state.ts';
 import { clientPath, documentPaths } from './paths.ts';
@@ -106,8 +107,8 @@ export async function renderDocument(
 		const context = requestContext(store);
 		context.set(stateKey, page);
 		state.isRendering = true;
-		try {
-			rendered = await runRequest(store, () =>
+		const renderRoot = () =>
+			runRequest(store, () =>
 				render(root, {
 					props,
 					context,
@@ -122,6 +123,8 @@ export async function renderDocument(
 					format: options.format
 				})
 			);
+		try {
+			rendered = await (options.dev ? guardRenderFetch(renderRoot) : renderRoot());
 		} finally {
 			state.isRendering = false;
 		}

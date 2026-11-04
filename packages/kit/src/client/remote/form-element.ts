@@ -81,7 +81,7 @@ export function attach(form: Form, element: HTMLFormElement): () => void {
 						candidate instanceof HTMLInputElement && candidate.name === control.name
 				);
 				if (DEV && controls.some((candidate) => (candidate.type === 'file') !== isFile))
-					remote_form_mixed_inputs();
+					remote_form_mixed_inputs({ name: control.name });
 				value = isFile
 					? controls.flatMap((candidate) => [...(candidate.files ?? [])])
 					: controls
@@ -90,7 +90,7 @@ export function attach(form: Form, element: HTMLFormElement): () => void {
 			}
 		} else if (isFile) {
 			const file = control as HTMLInputElement;
-			if (DEV && file.multiple) remote_form_multiple_files();
+			if (DEV && file.multiple) remote_form_multiple_files({ name: control.name });
 			value = file.files?.[0] ?? DELETE_KEY;
 		} else
 			value =

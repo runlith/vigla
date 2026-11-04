@@ -218,6 +218,8 @@ export interface ServerOptions {
 	global: string;
 	root: Component<any>;
 	format?: Format;
+	extension: string;
+	adapter: string;
 	getHooks(): Promise<ServerHooks>;
 	templates: ServerTemplates;
 	appTemplateContainsNonce: boolean;
@@ -277,7 +279,7 @@ export interface PrerenderState {
 }
 
 export interface RespondOptions {
-	getClientAddress(): string;
+	getClientAddress?(): string;
 	platform?: App.Platform;
 	emulator?: Emulator;
 	read?: Read;

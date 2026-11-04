@@ -37,7 +37,9 @@ test('analysis retains automatic prerender and action metadata for request-time 
 			}
 		]
 	};
-	const metadata = (await analyse(manifest, false, d)).routes.get('/actions');
+	const metadata = (
+		await analyse(manifest, false, { params: null, extension: '.page', endpoints: {} }, d)
+	).routes.get('/actions');
 	expect(metadata).toMatchObject({
 		prerender: 'auto',
 		methods: ['GET', 'POST'],

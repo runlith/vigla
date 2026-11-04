@@ -5,6 +5,7 @@ import type { PageNode, ServerManifest } from '../types/internal/server.ts';
 import type { Analysis, RemoteMetadata, RouteMetadata } from './types.ts';
 import type { Diagnostics } from '../shared/diagnostics.ts';
 import { BuildMessages } from './messages.ts';
+import type { AnalysisSources } from './jobs.ts';
 
 const endpointMethods: HttpMethod[] = [
 	'GET',
@@ -22,6 +23,7 @@ const common = ['load', 'ssr', 'csr', 'prerender', 'trailingSlash', 'config'];
 export async function analyse(
 	manifest: ServerManifest,
 	hash: boolean,
+	sources: AnalysisSources,
 	d: Diagnostics
 ): Promise<Analysis> {
 	const e: BuildMessages = new BuildMessages(d);
@@ -51,8 +53,11 @@ export async function analyse(
 	);
 	if (names.size) {
 		const matchers = await manifest.matchers();
-		if (!matchers || typeof matchers !== 'object') e.params_export_missing();
-		for (const name of names) if (!Object.hasOwn(matchers, name)) e.param_matcher_missing({ name });
+		if (!matchers || typeof matchers !== 'object')
+			e.params_export_missing({ file: sources.params ?? '' });
+		for (const name of names)
+			if (!Object.hasOwn(matchers, name))
+				e.param_matcher_missing({ name, file: sources.params ?? undefined });
 	}
 	for (const route of manifest.routes) {
 		const chain: PageNode[] = route.page
@@ -86,7 +91,12 @@ export async function analyse(
 			(endpoint?.fallback || bodyMethods.some((method) => endpoint?.[method]))
 		)
 			e.prerender_endpoint_methods({ id: route.id, methods: bodyMethods.join(', ') });
-		if (pagePrerender && endpointPrerender) e.route_prerender_page_and_endpoint({ id: route.id });
+		if (pagePrerender && endpointPrerender)
+			e.route_prerender_page_and_endpoint({
+				id: route.id,
+				file: sources.endpoints[route.id] ?? '+server.js',
+				extension: sources.extension
+			});
 		if (route.page && endpoint?.config) {
 			for (const key of Object.keys({ ...pageConfig, ...endpoint.config }))
 				if (JSON.stringify(pageConfig[key]) !== JSON.stringify(endpoint.config[key]))

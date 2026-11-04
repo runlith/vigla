@@ -30,7 +30,7 @@ export function navigation_external_url(values: Destination): never {
 	if (DEV)
 		throwDiagnostic(
 			'navigation_external_url',
-			`Cannot use \`${values.caller}\` with an external URL (${values.url}). Use \`window.location = "${values.url}"\` instead`,
+			`Cannot use \`${values.caller}\` with an external URL. Use \`window.location = "${values.url}"\` instead`,
 			navigation_external_url
 		);
 	throwCode('navigation_external_url');
@@ -75,7 +75,7 @@ export function preload_invalid_route_id(values: Route): never {
 	if (DEV)
 		throwDiagnostic(
 			'preload_invalid_route_id',
-			`\`preloadCode\` expects a route ID starting with \`/\`, but received \`${values.id}\``,
+			`\`preloadCode\` expects a route ID starting with \`/\` (such as \`/blog/[slug]\`), but received \`${values.id}\``,
 			preload_invalid_route_id
 		);
 	throwCode('preload_invalid_route_id');
@@ -120,7 +120,7 @@ export function remote_form_multiple_elements(): never {
 	if (DEV)
 		throwDiagnostic(
 			'remote_form_multiple_elements',
-			'A remote form instance can only be attached to one form element',
+			'A form object can only be attached to a single `<form>` element',
 			remote_form_multiple_elements
 		);
 	throwCode('remote_form_multiple_elements');
@@ -129,7 +129,7 @@ export function remote_form_not_attached(): never {
 	if (DEV)
 		throwDiagnostic(
 			'remote_form_not_attached',
-			'The remote form must be attached to a form element before submitting',
+			'Cannot call `submit()` before the form is attached',
 			remote_form_not_attached
 		);
 	throwCode('remote_form_not_attached');
@@ -138,25 +138,25 @@ export function remote_form_reserved_field(): never {
 	if (DEV)
 		throwDiagnostic(
 			'remote_form_reserved_field',
-			'Remote form field names cannot begin with $',
+			'`$` is used to collect all FormData validation issues and cannot be used as the `name` of a form control',
 			remote_form_reserved_field
 		);
 	throwCode('remote_form_reserved_field');
 }
-export function remote_form_mixed_inputs(): never {
+export function remote_form_mixed_inputs(values: { name: string }): never {
 	if (DEV)
 		throwDiagnostic(
 			'remote_form_mixed_inputs',
-			'All inputs of an array field must have the same type',
+			`Cannot mix and match file and non-file inputs under the same name (\`${values.name}\`)`,
 			remote_form_mixed_inputs
 		);
 	throwCode('remote_form_mixed_inputs');
 }
-export function remote_form_multiple_files(): never {
+export function remote_form_multiple_files(values: { name: string }): never {
 	if (DEV)
 		throwDiagnostic(
 			'remote_form_multiple_files',
-			'Use file multiple for an input with multiple files',
+			`Can only use the \`multiple\` attribute when \`name\` includes a \`[]\` suffix — consider changing \`${values.name}\` to \`${values.name}[]\``,
 			remote_form_multiple_files
 		);
 	throwCode('remote_form_multiple_files');

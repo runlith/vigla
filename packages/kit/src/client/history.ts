@@ -1,4 +1,6 @@
+import { DEV } from 'esm-env';
 import type { Transport } from './transport.ts';
+import { history_api_conflict } from './warnings.ts';
 import { identity } from '../shared/identity.ts';
 
 export interface Metadata {
@@ -20,6 +22,32 @@ export interface HistoryEntry {
 	navigation: number;
 }
 
+let watching = false;
+
+function watchHistoryApi(): void {
+	if (!DEV || watching) return;
+	watching = true;
+	let warned = false;
+	const own = import.meta.url.split('?')[0]!;
+	const check = (): void => {
+		if (warned) return;
+		let stack = new Error().stack?.split('\n');
+		if (!stack) return;
+		if (!stack[0]!.includes('https:') && !stack[0]!.includes('http:')) stack = stack.slice(1);
+		const frame = stack[2];
+		if (frame?.includes('node_modules') || frame?.includes(own)) return;
+		warned = true;
+		history_api_conflict();
+	};
+	for (const method of ['pushState', 'replaceState'] as const) {
+		const original = history[method];
+		history[method] = (...args) => {
+			check();
+			return original.apply(history, args);
+		};
+	}
+}
+
 export class History implements HistoryEntry {
 	index: number;
 	navigation: number;
@@ -36,6 +64,7 @@ export class History implements HistoryEntry {
 		if (metadata) this.#current = metadata;
 		else this.write(new URL(location.href), this.encode({}), true, false, false, undefined, false);
 		history.scrollRestoration = 'manual';
+		watchHistoryApi();
 	}
 
 	get current(): Metadata {

@@ -27,7 +27,7 @@ export class Command {
 		untrack(() => {
 			this.#pending.current++;
 		});
-		const promise = updating(remote, async (updates) => {
+		const promise = updating(remote, 'command invocation', async (updates) => {
 			const payload = await remote.owner.run(() =>
 				encodeCommand(argument, remote.client.app.hooks.transport)
 			);
@@ -44,7 +44,7 @@ export class Command {
 				if (DEV)
 					throwDiagnostic(
 						'remote_command_redirect',
-						'Cannot redirect from a command. Return a result and call goto() instead',
+						'Redirects are not allowed in commands. Return a result instead and use `goto` on the client',
 						this.invoke
 					);
 				throwCode('remote_command_redirect');

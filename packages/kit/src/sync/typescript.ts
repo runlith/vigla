@@ -84,7 +84,6 @@ function parseConfig(file: string, errors: SyncErrors): ProjectConfig {
 	} catch (failure) {
 		try {
 			errors.tsconfig_parse_failed({
-				file: relativeFile(process.cwd(), file),
 				details: failure instanceof Error ? failure.message : String(failure)
 			});
 		} catch (error) {
@@ -141,16 +140,20 @@ function pathAliases(
 	return paths;
 }
 
+const listFormat = new Intl.ListFormat('en-gb', { type: 'conjunction' });
+function quotedList(items: string[]): string {
+	return listFormat.format(items.map((item) => JSON.stringify(item)));
+}
 function tsconfig_extends_missing(d: Diagnostics, file: string, example: ProjectConfig): void {
 	d.warn(
 		'tsconfig_extends_missing',
-		`${file} should extend the generated configuration:\n${JSON.stringify(example, null, 2)}`
+		`\`${file}\` should extend ${d.identity.product}'s built-in configuration:\n${JSON.stringify(example, null, '  ')}`
 	);
 }
 function tsconfig_invalid(d: Diagnostics, file: string, issues: string[]): void {
 	d.warn(
 		'tsconfig_invalid',
-		`${file} has invalid configuration:\n${issues.map((issue) => `- ${issue}`).join('\n')}`
+		`Found issues while validating \`${file}\`:\n${issues.map((issue) => `  - ${issue}`).join('\n')}`
 	);
 }
 
@@ -224,11 +227,12 @@ export function writeTsconfig(config: ValidatedConfig, root: string, d: Diagnost
 			);
 			if (mismatch.length)
 				issues.push(
-					`"paths" was overwritten. Imports from ${[...new Set(mismatch.map(([key]) => key.replace(/\/\*$/, '')))].map((key) => JSON.stringify(key)).join(' and ')} may not typecheck`
+					`"paths" was overwritten. Imports from ${quotedList([...new Set(mismatch.map(([key]) => key.replace(/\/\*$/, '')))])} may not typecheck`
 				);
 		}
+		const included: string[] = [];
 		for (const exclusion of exclusions) {
-			const included = filesUnder(dirname(exclusion)).some((path) => {
+			const found = filesUnder(dirname(exclusion)).some((path) => {
 				if (!sourceFile.test(path)) return false;
 				if (
 					path !== exclusion &&
@@ -239,11 +243,10 @@ export function writeTsconfig(config: ValidatedConfig, root: string, d: Diagnost
 				const name = relativeFile(directory, path);
 				return matches(parsed.include ?? ['**/*'], name) && !matches(parsed.exclude ?? [], name);
 			});
-			if (included)
-				issues.push(
-					`${JSON.stringify(relativeFile(directory, exclusion))} should be added to the "exclude" array`
-				);
+			if (found) included.push(relativeFile(directory, exclusion));
 		}
+		if (included.length)
+			issues.push(`${quotedList(included)} should be added to the "exclude" array`);
 		for (const key of Object.keys(required))
 			if (options[key] !== true)
 				issues.push(`${JSON.stringify(key)} was overwritten. It should be true`);

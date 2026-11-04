@@ -77,6 +77,8 @@ async function app(fixture: Fixture): Promise<Server> {
 			app: ({ head, body }) => `<head>${head}</head><body>${body}</body>`,
 			error: ({ status, message }) => `${status}:${message}`
 		},
+		extension: '.page',
+		adapter: '',
 		appTemplateContainsNonce: false,
 		csp: {},
 		csrf: { checkOrigin: true, trustedOrigins: [] },

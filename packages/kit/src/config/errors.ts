@@ -98,21 +98,21 @@ export class ConfigErrors {
 	config_app_dir_slash({ keypath }: KeyPath): never {
 		return this.d.raise(
 			'config_app_dir_slash',
-			`\`${keypath}\` cannot start or end with '/'`,
+			`\`${keypath}\` cannot start or end with \`'/'\``,
 			this.config_app_dir_slash
 		);
 	}
 	config_extension_missing_dot({ keypath, extension }: Extension): never {
 		return this.d.raise(
 			'config_extension_missing_dot',
-			`Each member of ${keypath} must start with '.' — saw '${extension}'`,
+			`Each member of ${keypath} must start with \`'.'\` — saw \`'${extension}'\``,
 			this.config_extension_missing_dot
 		);
 	}
 	config_extension_invalid({ extension }: { extension: string }): never {
 		return this.d.raise(
 			'config_extension_invalid',
-			`File extensions must be alphanumeric — saw '${extension}'`,
+			`File extensions must be alphanumeric — saw \`'${extension}'\``,
 			this.config_extension_invalid
 		);
 	}
@@ -126,14 +126,14 @@ export class ConfigErrors {
 	config_invalid_prerender_handler({ keypath }: KeyPath): never {
 		return this.d.raise(
 			'config_invalid_prerender_handler',
-			`\`${keypath}\` should be 'fail', 'warn', 'ignore' or a custom function`,
+			`\`${keypath}\` should be \`'fail'\`, \`'warn'\`, \`'ignore'\` or a custom function`,
 			this.config_invalid_prerender_handler
 		);
 	}
 	config_paths_base_invalid({ keypath }: KeyPath): never {
 		return this.d.raise(
 			'config_paths_base_invalid',
-			`\`${keypath}\` option must either be the empty string or a root-relative path that starts but doesn't end with '/'`,
+			`\`${keypath}\` option must either be the empty string or a root-relative path that starts but doesn't end with \`'/'\``,
 			this.config_paths_base_invalid
 		);
 	}
@@ -147,14 +147,14 @@ export class ConfigErrors {
 	config_paths_assets_trailing_slash({ keypath }: KeyPath): never {
 		return this.d.raise(
 			'config_paths_assets_trailing_slash',
-			`\`${keypath}\` option must not end with '/'`,
+			`\`${keypath}\` option must not end with \`'/'\``,
 			this.config_paths_assets_trailing_slash
 		);
 	}
 	config_origin_invalid({ keypath, input }: Origin): never {
 		return this.d.raise(
 			'config_origin_invalid',
-			`\`${keypath}\` must be a valid origin (e.g. 'https://my-site.com'). '${input}' could not be parsed as a URL`,
+			`\`${keypath}\` must be a valid origin (e.g. 'https://my-site.com'). \`'${input}'\` could not be parsed as a URL`,
 			this.config_origin_invalid
 		);
 	}
@@ -168,28 +168,28 @@ export class ConfigErrors {
 	config_origin_has_path({ keypath, input, origin }: Origin & { origin: string }): never {
 		return this.d.raise(
 			'config_origin_has_path',
-			`\`${keypath}\` must be a valid origin — received '${input}' which contains a path, query, or hash. Use the bare origin '${origin}' instead`,
+			`\`${keypath}\` must be a valid origin — received \`'${input}'\` which contains a path, query, or hash. Use the bare origin \`'${origin}'\` instead`,
 			this.config_origin_has_path
 		);
 	}
 	config_prerender_entry_invalid({ keypath, entry }: KeyPath & { entry: string }): never {
 		return this.d.raise(
 			'config_prerender_entry_invalid',
-			`Each member of \`${keypath}\` must be either '*' or an absolute path beginning with '/' — saw '${entry}'`,
+			`Each member of \`${keypath}\` must be either \`'*'\` or an absolute path beginning with \`'/'\` — saw \`'${entry}'\``,
 			this.config_prerender_entry_invalid
 		);
 	}
 	config_server_resolution_hash(): never {
 		return this.d.raise(
 			'config_server_resolution_hash',
-			"The `router.resolution` option cannot be 'server' if `router.type` is 'hash'",
+			"The `router.resolution` option cannot be `'server'` if `router.type` is `'hash'`",
 			this.config_server_resolution_hash
 		);
 	}
 	config_server_resolution_bundle_strategy(): never {
 		return this.d.raise(
 			'config_server_resolution_bundle_strategy',
-			"The `router.resolution` option cannot be 'server' if `output.bundleStrategy` is 'inline' or 'single'",
+			"The `router.resolution` option cannot be `'server'` if `output.bundleStrategy` is `'inline'` or `'single'`",
 			this.config_server_resolution_bundle_strategy
 		);
 	}

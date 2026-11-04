@@ -2,6 +2,8 @@ import { DEV } from 'esm-env';
 import type { TrailingSlash } from '../types/internal/data.ts';
 import { url_hash_unavailable } from './errors.ts';
 
+export const SCHEME = /^[a-z][a-z\d+\-.]+:/i;
+
 export function decodePathname(path: string): string {
 	return path
 		.split('%25')

@@ -15,6 +15,7 @@ import { respond } from './respond.ts';
 import { configureEnvironment } from './environment.ts';
 import { configurePaths } from './paths.ts';
 import { configureRead } from './read.ts';
+import { reportDecodedResponse, watchDecodedResponses } from './fetch-guard.ts';
 import { configureTransport } from './transport.ts';
 
 export class Server implements ServerInstance {
@@ -37,6 +38,7 @@ export class Server implements ServerInstance {
 		return (this.#configuration ??= (async () => {
 			this.read = read;
 			if (scope) carryRequests(scope);
+			if (this.options.dev) watchDecodedResponses();
 			configureEnvironment(this.options, this.environment);
 			configurePaths(this.options.paths, this.manifest.app_dir);
 			configureRead(this.manifest, this.options.paths, read);
@@ -63,7 +65,9 @@ export class Server implements ServerInstance {
 		if (!this.#initialization)
 			throw new Error('Server.init() must be called before Server.respond()');
 		await this.#initialization;
-		return this.tracer.request(request, () => respond(this, request, options));
+		const response = await this.tracer.request(request, () => respond(this, request, options));
+		if (this.options.dev) reportDecodedResponse(response, this.options.fixStack);
+		return response;
 	}
 
 	respondInternal(request: Request, parent: RequestStore): Promise<Response> {

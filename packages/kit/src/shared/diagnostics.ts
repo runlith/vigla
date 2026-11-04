@@ -10,7 +10,7 @@ export function enableVerboseErrors(): void {
 export interface Diagnostics {
 	readonly identity: Identity;
 	link(code: string): string;
-	docs(link: keyof Links): string;
+	docs(link: keyof Links, wrap?: (url: string) => string): string;
 	text(code: string, text: string): string;
 	raise(code: string, text: string, caller: Function): never;
 	raiseCode(code: string): never;
@@ -25,9 +25,9 @@ export function diagnostics(identity: Identity): Diagnostics {
 	return {
 		identity,
 		link,
-		docs(name) {
+		docs(name, wrap = (url) => ` See ${url}`) {
 			const url = identity.links?.[name];
-			return url ? ` See ${url}` : '';
+			return url ? wrap(url) : '';
 		},
 		text,
 		raise(code, message, caller) {

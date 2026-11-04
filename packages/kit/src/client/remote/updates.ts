@@ -1,6 +1,6 @@
 import type { RemoteQueryUpdate, UpdatingPromise } from '../../types/remote.ts';
 import { DEV } from 'esm-env';
-import { throwCode, throwDiagnostic, warnDiagnostic } from '../../shared/diagnostics.ts';
+import { throwCode, throwDiagnostic, warnCode, warnDiagnostic } from '../../shared/diagnostics.ts';
 import type { Remotes } from './cache.ts';
 
 export const queryId = Symbol('query.id');
@@ -32,7 +32,7 @@ function invalidUpdate(): never {
 	if (DEV)
 		throwDiagnostic(
 			'remote_updates_invalid_argument',
-			'Expected a query, query function, or query override',
+			'`updates()` expects a query or live query function, query resource, or query override',
 			invalidUpdate
 		);
 	throwCode('remote_updates_invalid_argument');
@@ -53,7 +53,7 @@ function categorize(remotes: Remotes, updates: RemoteQueryUpdate[]): Updates {
 					if (DEV)
 						throwDiagnostic(
 							'remote_updates_duplicate_override',
-							'Only one override per query can be passed to updates',
+							'Multiple overrides for the same query are not allowed in a single `updates()` invocation',
 							categorize
 						);
 					throwCode('remote_updates_duplicate_override');
@@ -75,6 +75,7 @@ function categorize(remotes: Remotes, updates: RemoteQueryUpdate[]): Updates {
 
 export function updating<T>(
 	remotes: Remotes,
+	source: 'command invocation' | 'form submission',
 	run: (updates: Updates | null) => Promise<T>
 ): UpdatingPromise<T> {
 	const invocation: Invocation = { updates: null, called: false };
@@ -89,10 +90,12 @@ export function updating<T>(
 	})() as UpdatingPromise<T>;
 	promise.updates = (...values) => {
 		if (invocation.called) {
-			warnDiagnostic(
-				'remote_updates_repeated',
-				DEV ? 'updates() can only be called once per invocation' : ''
-			);
+			if (DEV)
+				warnDiagnostic(
+					'remote_updates_repeated',
+					`Updates can only be sent once per ${source}. Ignoring additional updates.`
+				);
+			else warnCode('remote_updates_repeated');
 			return promise;
 		}
 		invocation.called = true;

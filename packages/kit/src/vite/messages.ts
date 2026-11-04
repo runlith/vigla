@@ -51,6 +51,69 @@ export class ViteMessages {
 			this.service_worker_invalid_import
 		);
 	}
+	config_feature_disabled({
+		feature,
+		keypath,
+		value
+	}: {
+		feature: string;
+		keypath: string;
+		value: string;
+	}): never {
+		const parts = keypath.split('.');
+		const snippet = parts
+			.map(
+				(part, index) => `${'  '.repeat(index)}${part}: ${index === parts.length - 1 ? value : '{'}`
+			)
+			.concat(parts.slice(1).map((_, index) => `${'  '.repeat(parts.length - 2 - index)}}`))
+			.join('\n');
+		this.d.raise(
+			'config_feature_disabled',
+			`To enable ${feature}, add the following to your ${this.d.identity.product} plugin in \`vite.config.js\`:\n\n${snippet}`,
+			this.config_feature_disabled
+		);
+	}
+	config_csp_trusted_html_missing({ policy }: { policy: string }): never {
+		this.d.raise(
+			'config_csp_trusted_html_missing',
+			`The \`csp.directives['trusted-types']\` option must include \`'${policy}'\` unless all pages have \`csr: false\``,
+			this.config_csp_trusted_html_missing
+		);
+	}
+	fetch_relative_url({ url }: { url: string }): never {
+		this.d.raise(
+			'fetch_relative_url',
+			`Cannot use relative URL (\`${url}\`) with global \`fetch\` — use \`event.fetch\` instead${this.d.docs('fetch', (link) => `: ${link}`)}`,
+			this.fetch_relative_url
+		);
+	}
+	remote_module_invalid_export({ name, file }: { name: string; file: string }): never {
+		this.d.raise(
+			'remote_module_invalid_export',
+			`\`${name}\` exported from \`${file}\` is invalid — all exports from this file must be remote functions`,
+			this.remote_module_invalid_export
+		);
+	}
+	adapter_missing(): void {
+		this.d.warn(
+			'adapter_missing',
+			`No adapter specified.${this.d.docs('adapters', (url) => ` See ${url} to learn how to configure your app to run on the platform of your choosing`)}`
+		);
+	}
+	service_worker_assets(): never {
+		this.d.raise(
+			'service_worker_assets',
+			'Cannot use service worker alongside `config.paths.assets`',
+			this.service_worker_assets
+		);
+	}
+	preview_build_missing({ dir }: { dir: string }): never {
+		this.d.raise(
+			'preview_build_missing',
+			`Server files not found at \`${dir}\`, did you run \`build\` first?`,
+			this.preview_build_missing
+		);
+	}
 	params_export_missing({ file }: FileMessage): never {
 		this.d.raise(
 			'params_export_missing',

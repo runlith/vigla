@@ -93,7 +93,7 @@ export function serverOptions(project: Project): string {
 import error from ${JSON.stringify(ids.errorTemplate)};
 import { setEnv } from ${JSON.stringify(ids.env)};
 export const options = {
-root, format: ${uneval(format)}, global: ${JSON.stringify(project.global)},
+root, format: ${uneval(format)}, extension: ${uneval(config.extensions[0] ?? '')}, adapter: ${uneval(config.adapter?.name ?? '')}, global: ${JSON.stringify(project.global)},
 appTemplateContainsNonce: ${template.includes(`%${project.identity.name}.nonce%`)},
 csp: ${uneval(config.csp)},
 csrf: ${uneval({ checkOrigin: !config.csrf.trustedOrigins.includes('*'), trustedOrigins: config.csrf.trustedOrigins })},

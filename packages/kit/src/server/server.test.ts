@@ -75,6 +75,8 @@ function options(hooks: ServerHooks = {}): ServerOptions {
 			app: ({ head, body }) => `<!doctype html><head>${head}</head><body>${body}</body>`,
 			error: ({ status, message }) => `${status}:${message}`
 		},
+		extension: '.page',
+		adapter: '',
 		appTemplateContainsNonce: false,
 		csp: {},
 		csrf: { checkOrigin: true, trustedOrigins: [] },

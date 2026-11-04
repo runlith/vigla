@@ -109,7 +109,20 @@ function run(job: WorkerJob, context: BuildContext): Promise<WorkerValue> {
 }
 export function analyseBuild(context: BuildContext): Promise<Analysis> {
 	return run(
-		{ ...platform(context), kind: 'analyse', hash: context.config.router.type === 'hash' },
+		{
+			...platform(context),
+			kind: 'analyse',
+			hash: context.config.router.type === 'hash',
+			sources: {
+				params: context.tree.params ?? null,
+				extension: context.config.extensions[0] ?? '',
+				endpoints: Object.fromEntries(
+					context.tree.routes.flatMap((route) =>
+						route.endpoint ? [[route.id, route.endpoint.file.split('/').pop()!]] : []
+					)
+				)
+			}
+		},
 		context
 	);
 }

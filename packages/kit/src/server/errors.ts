@@ -1,4 +1,5 @@
-import { throwDiagnostic } from '../shared/diagnostics.ts';
+import { runtime, throwDiagnostic } from '../shared/diagnostics.ts';
+import { identity } from '../shared/identity.ts';
 
 export function request_event_unavailable(): never {
 	return throwDiagnostic(
@@ -10,15 +11,36 @@ export function request_event_unavailable(): never {
 export function request_event_after_await(): never {
 	return throwDiagnostic(
 		'request_event_after_await',
-		'The current request must be read synchronously in environments without an async-context store.',
+		'Can only read the current request event inside functions invoked during `handle`, such as server `load` functions, actions, endpoints, and other server hooks. In environments without `AsyncLocalStorage`, the event must be read synchronously, not after an `await`.',
 		request_event_after_await
 	);
 }
 export function request_store_after_await(): never {
 	return throwDiagnostic(
 		'request_store_after_await',
-		'Could not get the request store. Without an async-context store it must be accessed synchronously.',
+		'Could not get the request store. In environments without `AsyncLocalStorage`, the request store (used by e.g. remote functions) must be accessed synchronously, not after an `await`. If it was accessed synchronously then this is an internal error.',
 		request_store_after_await
+	);
+}
+export function ssr_fetch_relative_url({ url }: { url: string }): never {
+	return throwDiagnostic(
+		'ssr_fetch_relative_url',
+		`Cannot call \`fetch\` eagerly during server-side rendering with relative URL (\`${url}\`) — put your \`fetch\` calls inside \`onMount\` or a \`load\` function instead`,
+		ssr_fetch_relative_url
+	);
+}
+export function fetch_response_decoded({ encoding }: { encoding: string }): never {
+	return throwDiagnostic(
+		'fetch_response_decoded',
+		`Cannot return \`fetch(...)\` directly from a handler if the response has a \`Content-Encoding: ${encoding}\` header. The body has already been decoded`,
+		fetch_response_decoded
+	);
+}
+export function client_address_unsupported({ adapter }: { adapter: string }): never {
+	return throwDiagnostic(
+		'client_address_unsupported',
+		`\`${adapter}\` does not specify \`getClientAddress\`. Please raise an issue`,
+		client_address_unsupported
 	);
 }
 export function set_headers_cookie(): never {
@@ -80,7 +102,7 @@ export function action_throw_fail(): never {
 export function action_default_with_named(): never {
 	return throwDiagnostic(
 		'action_default_with_named',
-		'When using named actions, the default action cannot be used.',
+		`When using named actions, the default action cannot be used.${runtime.docs('namedActions', (url) => ` See the docs for more info: ${url}`)}`,
 		action_default_with_named
 	);
 }
@@ -108,7 +130,7 @@ export function action_return_error(): never {
 export function action_response_not_serializable({ id }: { id: string }): never {
 	return throwDiagnostic(
 		'action_response_not_serializable',
-		`Data returned from action inside \`${id}\` is not serializable. Form actions need to return plain objects or \`fail()\`.`,
+		`Data returned from action inside \`${id}\` is not serializable. Form actions need to return plain objects or \`fail()\`. E.g. \`return { success: true }\` or \`return fail(400, { message: "invalid" });\``,
 		action_response_not_serializable
 	);
 }
@@ -142,7 +164,7 @@ export function load_not_serializable(
 	try {
 		throwDiagnostic(
 			'load_not_serializable',
-			`Data returned from \`load\` while rendering \`${id}\` is not serializable: ${message} (\`${path}\`). Use transport hooks for custom types.`,
+			`Data returned from \`load\` while rendering \`${id}\` is not serializable: ${message} (\`${path}\`). If you need to serialize/deserialize custom types, use transport hooks${runtime.docs('transport', (url) => `: ${url}`)}.`,
 			load_not_serializable
 		);
 	} catch (error) {
@@ -181,7 +203,7 @@ export function load_response_header_not_serialized({
 }): never {
 	return throwDiagnostic(
 		'load_response_header_not_serialized',
-		`Failed to get response header \`${name}\` — it must be included by \`filterSerializedResponseHeaders\` (at \`${id}\`)`,
+		`Failed to get response header \`${name}\` — it must be included by the \`filterSerializedResponseHeaders\` option${runtime.docs('handle', (url) => `: ${url}`)} (at \`${id}\`)`,
 		load_response_header_not_serialized
 	);
 }
@@ -236,7 +258,7 @@ export function prerender_template_nonce({ tag }: { tag: string }): never {
 export function csp_report_only_missing_report(): never {
 	return throwDiagnostic(
 		'csp_report_only_missing_report',
-		'`content-security-policy-report-only` must specify `report-to` or `report-uri`',
+		'`content-security-policy-report-only` must be specified with either the `report-to` or `report-uri` directives, or both',
 		csp_report_only_missing_report
 	);
 }
@@ -250,14 +272,14 @@ export function server_api_unavailable({ name }: { name: string }): never {
 export function state_read_outside_render({ name }: { name: string }): never {
 	return throwDiagnostic(
 		'state_read_outside_render',
-		`Can only read \`${name}\` on the server during rendering, as it is bound to the current request via component context.`,
+		`Can only read \`${name}\` on the server during rendering (not in e.g. \`load\` functions), as it is bound to the current request via component context. This prevents state from leaking between users.`,
 		state_read_outside_render
 	);
 }
 export function read_implementation_missing(): never {
 	return throwDiagnostic(
 		'read_implementation_missing',
-		'No `read` implementation was provided. Your adapter must support this feature.',
+		'No `read` implementation was provided. Please ensure that your adapter is up to date and supports this feature',
 		read_implementation_missing
 	);
 }
@@ -290,7 +312,7 @@ export function handle_error_hook_failed(options?: ErrorOptions): never {
 export function tracing_api_missing(): never {
 	return throwDiagnostic(
 		'tracing_api_missing',
-		'Tracing is enabled, but `@opentelemetry/api` is not available.',
+		`Tracing is enabled (see the ${identity.product} plugin \`tracing.server\` option in your \`vite.config.js\`), but \`@opentelemetry/api\` is not available. This error will likely resolve itself when you set up your tracing instrumentation in \`instrumentation.server.js\`.${runtime.docs('observability', (url) => ` For more information, see ${url}`)}`,
 		tracing_api_missing
 	);
 }
