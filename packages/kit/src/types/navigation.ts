@@ -1,5 +1,5 @@
 import type { LayoutParams, RouteId } from '$app/types';
-import type { Route, Snapshot } from './request.ts';
+import type { Snapshot } from './request.ts';
 import type { MaybePromise } from './value.ts';
 import type { ParamValue } from './params.ts';
 
@@ -12,7 +12,7 @@ export interface NavigationTarget<
 	Id extends RouteId | null = RouteId | null
 > {
 	params: Params | null;
-	route: Route<Id | null>;
+	route: { id: Id | null };
 	url: URL;
 	scroll: ScrollPosition | null;
 }

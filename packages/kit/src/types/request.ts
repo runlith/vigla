@@ -18,9 +18,6 @@ export interface Cookies {
 	parse: typeof parseSetCookie;
 	serialize(name: string, value: string, options?: SerializeOptions): string;
 }
-export interface Route<Id> {
-	id: Id;
-}
 export interface Tracing {
 	enabled: boolean;
 	root: Span;
@@ -31,7 +28,7 @@ export interface NavigationEvent<
 	Id extends RouteId | null = RouteId | null
 > {
 	params: Params;
-	route: Route<Id>;
+	route: { id: Id };
 	url: URL;
 }
 export interface RequestEvent<
@@ -45,7 +42,7 @@ export interface RequestEvent<
 	readonly params: Params;
 	readonly platform: Readonly<App.Platform> | undefined;
 	readonly request: Request;
-	readonly route: Route<Id>;
+	readonly route: { id: Id };
 	readonly setHeaders: (headers: Record<string, string>) => void;
 	readonly url: URL;
 	readonly isDataRequest: boolean;
