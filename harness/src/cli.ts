@@ -6,11 +6,12 @@ import { judge } from './judge.ts';
 import { root } from './manifest.ts';
 import { passingDir, readPassing, record } from './passing.ts';
 import { matches, type Scope } from './scope.ts';
+import { parseShard, shardOf } from './shards.ts';
 import { suiteId, suites } from './suites.ts';
 import { trees } from './trees.ts';
 
 const usage =
-	'usage: cli.ts <target> [--passing] [--record] [--verbose] [--differences] [--results <dir>] [<project>[/<suite>[/<entry>]] ...]';
+	'usage: cli.ts <target> [--passing [--shard <index>/<total>]] [--record] [--verbose] [--differences] [--results <dir>] [<project>[/<suite>[/<entry>]] ...]';
 
 const { values, positionals } = parseArgs({
 	allowPositionals: true,
@@ -19,9 +20,14 @@ const { values, positionals } = parseArgs({
 		record: { type: 'boolean', default: false },
 		verbose: { type: 'boolean', default: false },
 		differences: { type: 'boolean', default: false },
-		results: { type: 'string' }
+		results: { type: 'string' },
+		shard: { type: 'string' }
 	}
 });
+if (values.shard !== undefined && !values.passing) {
+	console.error('--shard splits the recorded entries and needs --passing');
+	process.exit(2);
+}
 const [where, ...picks] = positionals;
 if (where === undefined) {
 	console.error(usage);
@@ -82,7 +88,15 @@ if (values.passing && recorded !== null) {
 		if (entries.length > 0) narrowed[suite] = entries;
 	}
 	scope = narrowed;
-	if (Object.keys(narrowed).length === 0) {
+	if (values.shard !== undefined) {
+		const shard = parseShard(values.shard);
+		const share = shardOf(narrowed, shard);
+		scope = share.scope;
+		console.log(
+			`shard ${shard.index}/${shard.total}: ${share.units} units, ${share.entries} entries, about ${share.seconds} s`
+		);
+	}
+	if (Object.keys(scope).length === 0) {
 		console.log('no recorded entries to run');
 		process.exit(0);
 	}
