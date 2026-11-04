@@ -101,6 +101,12 @@ fields:
         "for": [
           "1b906004"
         ]
+      },
+      {
+        "at": "internal/sequence.ts",
+        "for": [
+          "1b906004"
+        ]
       }
     ],
     "id": "kit-entries"
@@ -124,4 +130,4 @@ sources:
   - kind: file
     ref: packages/kit/vitest.config.ts
 ---
-What an app imports from Kit: `@vigla/kit` (`@sveltejs/kit` through the facade) and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit's public names; the behaviour lives in those runtimes. `internal/identity`, `internal/shallow` and `internal/restore` are the facade's alone: the first exposes the factories that build the identity-reading public functions (`error`, `redirect`, `applyReroute`, `sequence`, `defineParams`) over an identity, from which Kit's entries build theirs over the define-or-own identity and the facade's over SvelteKit's; through the second its `pushState`/`replaceState` write shallow history without running navigation callbacks, reporting errors under their own names; the third is the restorer slot the generated client app imports under the installed name, empty in Kit's own entry, which the facade's entry of the same name fills.
+What an app imports from Kit: `@vigla/kit` (`@sveltejs/kit` through the facade) and its `hooks`, `params`, `env` and `adapter` subpaths, and the `$app/*` modules as pairs of client and server files the package's import conditions choose between. Each file projects the client or server runtime under Kit's public names; the behaviour lives in those runtimes. `internal/identity`, `internal/sequence`, `internal/shallow` and `internal/restore` are the facade's alone: the first two expose the factories that build the identity-reading public functions (`error`, `redirect`, `applyReroute`, `defineParams`; `sequence`) over an identity, from which Kit's entries build theirs over the define-or-own identity and the facade's over SvelteKit's — `sequence` apart because it reads the request scope, which no client graph may load, while the facade's root entry reaches every client bundle that imports `@sveltejs/kit`; through the second its `pushState`/`replaceState` write shallow history without running navigation callbacks, reporting errors under their own names; the third is the restorer slot the generated client app imports under the installed name, empty in Kit's own entry, which the facade's entry of the same name fills.
