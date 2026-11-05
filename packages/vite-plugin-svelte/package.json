@@ -1,6 +1,6 @@
 {
 	"name": "@vigla/vite-plugin-svelte",
-	"version": "7.3.1",
+	"version": "7.3.2",
 	"type": "module",
 	"files": [
 		"dist",
