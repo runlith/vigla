@@ -31,6 +31,8 @@ export function loadCompiledCss(
 				const ssr = this.environment.config.consumer === 'server';
 				const request = api.idParser(id, ssr);
 				if (!request) return undefined;
+				if (this.environment.mode === 'dev')
+					await this.environment.transformRequest(request.filename);
 				const meta = (moduleId: string) =>
 					(this.getModuleInfo(moduleId)?.meta as CssMeta | undefined)?.[names.metaKey]?.css ??
 					undefined;
