@@ -19,7 +19,7 @@ edges:
 ---
 **Question.** Should Vigla give a host application what it needs to run interface code it did not write inside its own document? Three things: a plugin root whose teardown frees everything, a time budget a hung plugin cannot exceed, and globals limited to what the plugin declared.
 
-**Motivation.** Tagma is moving plugin interfaces from iframes into the window ([[c1891844]]), because iframes cost focus, keys, menus, drag and Tagma's own components. Code in the window costs three other things: a hung plugin hangs the window, a leak lives until reload, and the plugin reaches every global. Tagma compiles a native plugin from its source with its own compiler, so whatever Vigla's compiler and runtime add reaches every plugin without its author changing anything.
+**Motivation.** Tagma is moving plugin interfaces from iframes into the window ([[d2b5f488]]), because iframes cost focus, keys, menus, drag and Tagma's own components. Code in the window costs three other things: a hung plugin hangs the window, a leak lives until reload, and the plugin reaches every global. Tagma compiles a native plugin from its source with its own compiler, so whatever Vigla's compiler and runtime add reaches every plugin without its author changing anything.
 
 **What it would be.**
 - *Teardown.* A plugin mounts under its own root, which owns every effect, subscription, listener and timer the plugin opens. Disposing the root frees all of it. Rule [[4786b347]] already makes roots, owners and lifetimes public primitives of the core, and a plugin root is one more use of them. Listeners and timers opened through raw globals escape the owner unless the compiler routes them through it.
