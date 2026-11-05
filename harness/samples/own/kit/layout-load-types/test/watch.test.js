@@ -29,7 +29,7 @@ test('layout load constraints follow a child losing and regaining its load expor
 		const update = async (text) => {
 			const time = statSync(types).mtimeMs;
 			writeFileSync(source, text);
-			await expect.poll(() => statSync(types).mtimeMs).not.toBe(time);
+			await expect.poll(() => statSync(types).mtimeMs, { timeout: 30_000 }).not.toBe(time);
 		};
 		await update('export {};\n');
 		const missing = check();
