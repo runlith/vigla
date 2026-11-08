@@ -11,6 +11,8 @@ edges:
   - kind: relates
     to: 01a1852f-ba89-7089-9ac3-30e788b9f5b3
 ---
+**Paused.** The TSX front end is paused; Tagma and its plugins stay on `.svelte` whatever becomes of it ([[011655b8]]).
+
 The compiler reads two source forms into one template IR, with asymmetric roles: `.svelte` is the compatibility input, TSX with runes is Vigla's own format. Each is read by a front end filling the core's port — TSX's in the core `vigla`, `.svelte`'s in the compatibility adapter `@vigla/svelte` — so the core knows no Svelte ([[07b61535]]).
 
 **`.svelte`, runes mode only, syntax frozen at upstream.** It carries the drop-in promise for runes code (an alias in the package manager), the runes part of the library ecosystem (Svelte libraries ship `.svelte` sources and are compiled by the app's compiler), upstream's runtime tests as the oracle for the scheduler, and Tagma's 807 `.svelte` files. A component without runes is a compile error: legacy mode and its syntax are out by default, so a library still written without runes does not build on Vigla until its authors migrate it. A compat layer for such components, as `preact/compat` is for React, is considered only if Vigla finds users and they ask for it. Because its syntax never grows, upstream tooling — `svelte-check`, the language server, the prettier plugin — keeps working on it. One condition: `svelte-check` loads the compiler from the package named `svelte` and svelte2tsx builds its TSX from `parse()` ([[88b9f5b3]]), so the adapter's `svelte/compiler` must keep `parse()` answering the upstream AST.
