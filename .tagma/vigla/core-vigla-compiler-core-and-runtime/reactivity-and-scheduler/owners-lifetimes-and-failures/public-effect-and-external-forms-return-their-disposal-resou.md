@@ -1,6 +1,6 @@
 ---
 id: 01a19e73-9448-7fa1-ba9a-8d536077256f
-title: Public effect, resource and external forms return disposal and keep compiled protocols internal
+title: Public effect and external forms return their disposal, resource a read-only cell; compiled protocols stay internal
 ord: 5
 tags: ["explanation"]
 edges:

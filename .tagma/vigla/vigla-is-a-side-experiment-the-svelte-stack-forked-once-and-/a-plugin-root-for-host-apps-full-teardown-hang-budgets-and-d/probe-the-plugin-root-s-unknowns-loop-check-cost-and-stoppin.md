@@ -16,4 +16,6 @@ The two unknowns [[6b792682]] names decide whether a plugin root's hang budget i
 1. **Loop-check cost.** Insert a budget check into every loop of the benchmark sources ([[cab271de]]) and compare against the same sources without it: ten alternating runs per variant, medians compared, on the client and server benchmarks.
 2. **Stopping an async root.** Show what happens when a root over its budget is stopped while one of its async segments is suspended: its pending units, the batch they hold, `settled()`, and the segment that resumes later.
 
+Fix the check's form before measuring — a counter per iteration, or a clock read every N iterations — since the cost differs by form. Record beside the cost what a loop check cannot stop: synchronous library calls, regex backtracking, code the host did not compile.
+
 Record the numbers, the probe code's location and the conclusion on the idea; no product code lands from this task.

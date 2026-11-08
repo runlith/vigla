@@ -26,6 +26,8 @@ edges:
 - *Hang budget.* The compiler inserts budget checks into loops of plugin code and the scheduler counts time per root, so a root over its budget is stopped instead of stalling the document. Only code Vigla compiled is covered.
 - *Declared globals.* The compiler resolves `document`, `fetch`, `localStorage` and similar names in plugin code to versions limited to what the plugin declared.
 
+**Not only Vigla's.** The hang budget and declared globals are transforms over compiled JavaScript: a host that compiles plugin code itself, as Tagma's view build does, can apply them over upstream Svelte's output too. Loop checks never stop synchronous library calls, regex backtracking or code the host did not compile.
+
 **Boundary.** Rewriting JavaScript at compile time is not a security boundary, because escape hatches remain. These are tools of stability and honesty for code a person chose to install.
 
 **Not the framework's job.** Reactive access to the host's data and the host's components are libraries on top, as layer stays a library ([[57917054]]). They work on today's stack.
