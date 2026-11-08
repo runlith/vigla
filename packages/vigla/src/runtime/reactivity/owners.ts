@@ -41,6 +41,14 @@ function current(): Layer<Effect> | null {
 	return standing() ?? layerOf(ambient());
 }
 
+function readable(): Layer<Effect> | null {
+	const layer = current();
+	if (layer === null && ambient() === null) {
+		throw failure('context_without_owner', 'Context can only be read where an owner exists');
+	}
+	return layer;
+}
+
 function writable(): Layer<Effect> {
 	const layer = standing();
 	if (layer !== null) return layer;
@@ -52,7 +60,7 @@ function writable(): Layer<Effect> {
 }
 
 export function getContext<T>(key: unknown): T {
-	for (let layer = current(); layer !== null; layer = layer.parent) {
+	for (let layer = readable(); layer !== null; layer = layer.parent) {
 		if (layer.map?.has(key)) return layer.map.get(key) as T;
 	}
 	return undefined as T;
@@ -77,7 +85,7 @@ export function createContext<T>(): Context<T> {
 
 export function getAllContexts<T extends Map<unknown, unknown> = Map<unknown, unknown>>(): T {
 	const chain: Layer<Effect>[] = [];
-	for (let layer = current(); layer !== null; layer = layer.parent) chain.push(layer);
+	for (let layer = readable(); layer !== null; layer = layer.parent) chain.push(layer);
 	const all = new Map<unknown, unknown>();
 	for (let index = chain.length - 1; index >= 0; index--) {
 		for (const [key, value] of chain[index]?.map ?? []) all.set(key, value);

@@ -116,6 +116,13 @@ test('late context reaches an existing effect owner with its own context layer',
 	}
 });
 
+test('context is read and written only where an owner exists, and probed anywhere', () => {
+	assert.throws(() => core.getContext('scope'), /context_without_owner/);
+	assert.throws(() => core.getAllContexts(), /context_without_owner/);
+	assert.throws(() => core.setContext('scope', 1), /context_without_owner/);
+	assert.equal(core.hasContext('scope'), false);
+});
+
 test('sibling services release dependents before their dependencies', () => {
 	const app = root();
 	const released: number[] = [];

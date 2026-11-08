@@ -22,9 +22,9 @@ export default test({
 		const observing = requests[0].run(async () => {
 			await gate.promise;
 			for (let tick = 0; tick < 40; tick++) {
-				const seen = getContext('request');
-				if (seen !== undefined && seen !== 'first') foreign.push(`context ${seen}`);
 				const owner = getOwner();
+				const seen = owner === null ? undefined : getContext('request');
+				if (seen !== undefined && seen !== 'first') foreign.push(`context ${seen}`);
 				if (owner !== null && owner !== requests[0])
 					foreign.push(`render of ${owner.parent === requests[0] ? 'first' : 'second'}`);
 				await null;
