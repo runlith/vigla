@@ -2,7 +2,7 @@ import {
 	AsyncVariable,
 	carryAcrossAwait,
 	getContext,
-	getOwner,
+	hasContext,
 	openHydration,
 	root,
 	setContext,
@@ -27,7 +27,7 @@ export function carryRequests(store: AsyncStore): void {
 export function findRequest(): RequestStore | undefined {
 	const running = current.get();
 	if (running?.state.active) return running;
-	const store = getOwner() ? getContext<RequestStore | undefined>(requestKey) : undefined;
+	const store = hasContext(requestKey) ? getContext<RequestStore>(requestKey) : undefined;
 	return store?.state.active ? store : undefined;
 }
 

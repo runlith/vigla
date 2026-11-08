@@ -1,4 +1,4 @@
-import { getContext, getOwner } from 'vigla';
+import { getContext, hasContext } from 'vigla';
 import type { Page, Updated } from '../types/state.ts';
 import type { ParamValue } from '../types/params.ts';
 import { state_read_outside_render, server_api_unavailable } from './errors.ts';
@@ -7,7 +7,7 @@ export const stateKey = Symbol('page state');
 
 export function renderedPage(): Page<Record<string, ParamValue>> {
 	return (
-		(getOwner() ? getContext<Page<Record<string, ParamValue>> | undefined>(stateKey) : undefined) ??
+		(hasContext(stateKey) ? getContext<Page<Record<string, ParamValue>>>(stateKey) : undefined) ??
 		state_read_outside_render({ name: 'page' })
 	);
 }
