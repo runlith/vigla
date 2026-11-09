@@ -1,3 +1,4 @@
 {
-  "step": "20261109162200_incoming_edges"
+  "step": "20261109162200_incoming_edges",
+  "writers": "20261104000000_work_catalog"
 }
