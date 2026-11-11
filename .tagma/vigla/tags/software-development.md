@@ -7,13 +7,13 @@ fields:
   {
     "id": "software-development",
     "release": {
-      "guidance": "The software-development catalog connects product understanding, accepted changes and the work realizing them.\n\nWhen the product's behaviour changes, edit the block that describes it; never write a second block about the same behaviour beside it.\n\nA subtree offered as an example for other work is first read against the code by someone who did not write it: a qualified body does not repair an overbroad title.\n\nWrite for a competent reader only the distinctions, conditions and reasons they cannot reliably infer — never what code or structure already says; write from the code, never its comments: the graph cuts prose, it does not move it. An orientation body is as short as its reason; a spec, research reading or rule takes the space its complete subject needs. Another subject is another node, never a longer body; one subject's conditions stay together. Examples earn their place by resolving ambiguity. An explicit data constraint names the real consuming contract requiring it; the reason, not a character cap, measures quality. Precision is judged per sentence: a title or body promising more than the code holds is a defect.",
+      "guidance": "The software-development catalog connects product understanding, accepted changes and the work realizing them.\n\nA subtree offered as an example for other work is first read against the code by someone who did not write it: a qualified body does not repair an overbroad title.\n\nWrite for a competent reader only the distinctions, conditions and reasons they cannot reliably infer — never what code or structure already says; write from the code, never its comments: the graph cuts prose, it does not move it. An orientation body is as short as its reason; a spec, research reading or rule takes the space its complete subject needs. One subject's conditions stay together. Examples earn their place by resolving ambiguity. An explicit data constraint names the real consuming contract requiring it; the reason, not a character cap, measures quality. Precision is judged per sentence: a title or body promising more than the code holds is a defect.",
       "profile": {
         "checks": {
           "code": true
         }
       },
-      "revision": "04af7fed5d78c7250b0be2db72cf3ac11b8ccc0399da47b8fa1b546ad70538da",
+      "revision": "d55038766127c1015f0838dbbeeeff4df5b0cac20eb5c74df6ab40b3459d6ed3",
       "tags": [
         {
           "body": {
@@ -145,8 +145,6 @@ fields:
 ---
 The software-development catalog connects product understanding, accepted changes and the work realizing them.
 
-When the product's behaviour changes, edit the block that describes it; never write a second block about the same behaviour beside it.
-
 A subtree offered as an example for other work is first read against the code by someone who did not write it: a qualified body does not repair an overbroad title.
 
-Write for a competent reader only the distinctions, conditions and reasons they cannot reliably infer — never what code or structure already says; write from the code, never its comments: the graph cuts prose, it does not move it. An orientation body is as short as its reason; a spec, research reading or rule takes the space its complete subject needs. Another subject is another node, never a longer body; one subject's conditions stay together. Examples earn their place by resolving ambiguity. An explicit data constraint names the real consuming contract requiring it; the reason, not a character cap, measures quality. Precision is judged per sentence: a title or body promising more than the code holds is a defect.
+Write for a competent reader only the distinctions, conditions and reasons they cannot reliably infer — never what code or structure already says; write from the code, never its comments: the graph cuts prose, it does not move it. An orientation body is as short as its reason; a spec, research reading or rule takes the space its complete subject needs. One subject's conditions stay together. Examples earn their place by resolving ambiguity. An explicit data constraint names the real consuming contract requiring it; the reason, not a character cap, measures quality. Precision is judged per sentence: a title or body promising more than the code holds is a defect.
