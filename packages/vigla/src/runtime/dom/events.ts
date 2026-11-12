@@ -2,6 +2,7 @@ import { warn } from '../../shared/diagnostics.ts';
 import { isPassive } from '../../shared/html.ts';
 import { setOwner, untrack } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
+import { task } from '../reactivity/tasks.ts';
 import type { Location } from './meta.ts';
 
 const handlers = Symbol('events');
@@ -80,7 +81,7 @@ export function listen(
 		if (!event.cancelBubble) unowned(() => handler.call(this, event));
 	};
 	if (deferred(type)) {
-		queueMicrotask(() => {
+		task(() => {
 			if (!removed) target.addEventListener(type, wrapped, options);
 		});
 	} else {
