@@ -1,7 +1,8 @@
 import { warn } from '../../shared/diagnostics.ts';
 import { isPassive } from '../../shared/html.ts';
-import { setOwner, untrack } from '../reactivity/tracking.ts';
+import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
+import type { Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
 import type { Location } from './meta.ts';
 
@@ -103,6 +104,29 @@ export function event(
 	teardown(listen(target, type, handler, capture, passive));
 }
 
+let retiring: Effect | null = null;
+
+let retired: (() => void)[] = [];
+
+function retireWithOwner(remove: () => void): void {
+	const current = owner;
+	if (
+		retiring !== null &&
+		current !== null &&
+		retiring.parent === current &&
+		current.last === retiring &&
+		!retiring.destroyed
+	) {
+		retired.push(remove);
+		return;
+	}
+	const removals = [remove];
+	retiring = teardown(() => {
+		for (const each of removals) each();
+	});
+	retired = removals;
+}
+
 export function delegated(
 	element: EventTarget,
 	type: string,
@@ -116,7 +140,7 @@ export function delegated(
 	const remove = (): void => {
 		if (events[type] === registration) delete events[type];
 	};
-	if (owned) teardown(remove);
+	if (owned) retireWithOwner(remove);
 	return remove;
 }
 

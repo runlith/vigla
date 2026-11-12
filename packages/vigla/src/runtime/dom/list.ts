@@ -12,7 +12,7 @@ import {
 	type Batch
 } from '../reactivity/batch.ts';
 import { write } from '../reactivity/scheduler.ts';
-import { block, branch, hide, show as unhide } from '../reactivity/effects.ts';
+import { block, branch, destroy, hide, show as unhide } from '../reactivity/effects.ts';
 import type { Derived, Effect, Source } from '../reactivity/graph.ts';
 import { derived, mutableEqual, mutableSource, source } from '../reactivity/sources.ts';
 import { get } from '../reactivity/reads.ts';
@@ -37,22 +37,37 @@ import {
 	resume,
 	type Mover
 } from '../transitions/manager.ts';
-import { build, discard, opener, place, stash, type Built } from './range.ts';
+import { build, buildLoose, discard, opener, place, stash, type Built } from './range.ts';
 import type { Render } from './template.ts';
+
+export const MUTABLE_ROWS = 1;
+
+export const PLAIN_ITEM = 2;
+
+export const PLAIN_INDEX = 4;
 
 interface Row<T> extends Built {
 	readonly key: unknown;
-	readonly item: Source<T>;
-	readonly index: Source<number>;
+	readonly item: Source<T> | null;
+	readonly index: Source<number> | null;
+	pass: number;
+	at: number;
+	was: number;
+	shown: number;
 }
 
-export type Item<T> = (anchor: ChildNode, item: Source<T>, index: Source<number>) => void;
+export type Item<T> = (
+	anchor: ChildNode,
+	item: Source<T> | T,
+	index: Source<number> | number
+) => void;
 
 type Collection<T> = Iterable<T> | ArrayLike<T> | null | undefined;
 
 interface Stage<T> {
 	readonly rows: readonly Row<T>[];
 	readonly empty: boolean;
+	readonly pass: number;
 }
 
 function duplicate(key: unknown, first: number, second: number): Error {
@@ -72,9 +87,9 @@ function volatile(position: number, first: unknown, second: unknown): Error {
 	);
 }
 
-function kept(positions: readonly number[]): Set<number> {
+function kept(positions: readonly number[]): Uint8Array {
 	const tails: number[] = [];
-	const links = new Array<number>(positions.length);
+	const links = new Int32Array(positions.length);
 	for (let at = 0; at < positions.length; at++) {
 		const position = positions[at] as number;
 		if (position < 0) continue;
@@ -88,9 +103,9 @@ function kept(positions: readonly number[]): Set<number> {
 		links[at] = low > 0 ? (tails[low - 1] as number) : -1;
 		tails[low] = at;
 	}
-	const result = new Set<number>();
+	const result = new Uint8Array(positions.length);
 	for (let at = tails.length > 0 ? (tails.at(-1) as number) : -1; at >= 0; at = links[at] as number)
-		result.add(at);
+		result[at] = 1;
 	return result;
 }
 
@@ -100,7 +115,7 @@ class List<T> {
 	readonly #key: ((item: T, index: number) => unknown) | null;
 	readonly #render: Item<T>;
 	readonly #fallback: Render | null;
-	readonly #mutable: boolean;
+	readonly #flags: number;
 	#block: Effect | null = null;
 	#start: ChildNode | null = null;
 	readonly #rows = new Map<unknown, Row<T>>();
@@ -109,6 +124,9 @@ class List<T> {
 	#empty: Built | null = null;
 	#emptyShown = false;
 	#stages: Map<Batch, Stage<T>> | null = null;
+	#ended: Row<T>[] | null = null;
+	#pass = 0;
+	#shown = 0;
 
 	constructor(
 		anchor: ChildNode,
@@ -116,42 +134,63 @@ class List<T> {
 		key: ((item: T, index: number) => unknown) | null,
 		render: Item<T>,
 		fallback: Render | null,
-		mutable: boolean
+		flags: number
 	) {
 		this.anchor = anchor;
 		this.#collection = collection;
 		this.#key = key;
 		this.#render = render;
 		this.#fallback = fallback;
-		this.#mutable = mutable;
+		this.#flags = flags;
 	}
 
-	#identify(items: ArrayLike<T>, position: number, seen: Map<unknown, number> | null): unknown {
+	#identify(items: ArrayLike<T>, position: number): unknown {
 		if (this.#key === null) return position;
 		const key = this.#key(items[position] as T, position);
 		if (DEV) {
 			const again = this.#key(items[position] as T, position);
 			if (!Object.is(key, again)) throw volatile(position, key, again);
 		}
-		const earlier = (seen as Map<unknown, number>).get(key);
-		if (earlier !== undefined) throw duplicate(key, earlier, position);
-		(seen as Map<unknown, number>).set(key, position);
 		return key;
 	}
 
-	#create(key: unknown, value: T, position: number, update: boolean): Row<T> {
-		const item = this.#mutable ? mutableSource(value) : source(value);
-		const index = source(position);
-		if (DEV)
+	#create(key: unknown, value: T, position: number, pass: number, update: boolean): Row<T> {
+		const flags = this.#flags;
+		const item =
+			(flags & PLAIN_ITEM) !== 0
+				? null
+				: (flags & MUTABLE_ROWS) !== 0
+					? mutableSource(value)
+					: source(value);
+		const index = (flags & PLAIN_INDEX) !== 0 && !(DEV && item !== null) ? null : source(position);
+		if (DEV && item !== null)
 			traceSource(item, () => {
-				const position = untrace(() => get(index));
+				const position = untrace(() => get(index as Source<number>));
 				return traceInputs(this.#collection)[position];
 			});
 		const built = building(update, () =>
-			build((at) => this.#render(at, item, index), branch, this.anchor)
+			buildLoose((at) => this.#render(at, item ?? value, index ?? position), branch, this.anchor)
 		);
-		const row: Row<T> = { key, item, index, ...built };
+		const row: Row<T> = {
+			key,
+			item,
+			index,
+			effect: built.effect,
+			first: built.first,
+			last: built.last,
+			fragment: built.fragment,
+			pass,
+			at: position,
+			was: -1,
+			shown: 0
+		};
 		this.#rows.set(key, row);
+		return row;
+	}
+
+	#find(key: unknown, position: number, pass: number): Row<T> | undefined {
+		const row = this.#rows.get(key);
+		if (row !== undefined && row.pass === pass) throw duplicate(key, row.at, position);
 		return row;
 	}
 
@@ -175,18 +214,19 @@ class List<T> {
 			}
 		}
 		try {
+			const pass = ++this.#pass;
 			const rows: Row<T>[] = [];
-			const seen = this.#key === null ? null : new Map<unknown, number>();
 			for (let position = 0; position < items.length; position++) {
 				const value = items[position] as T;
-				const key = this.#identify(items, position, seen);
+				const key = this.#identify(items, position);
+				this.#find(key, position, pass);
 				if (adopting && isClose(cursor)) {
 					this.anchor = cursor;
 					adopting = false;
 					setHydrating(false);
 					restore = true;
 				}
-				rows.push(this.#create(key, value, position, false));
+				rows.push(this.#create(key, value, position, pass, false));
 			}
 			if (items.length === 0 && this.#fallback !== null) {
 				this.#empty = building(false, () => build(this.#fallback as Render, branch, this.anchor));
@@ -208,18 +248,20 @@ class List<T> {
 
 	update(items: ArrayLike<T>): void {
 		const batch = processed();
+		const pass = ++this.#pass;
 		const rows: Row<T>[] = [];
-		const seen = this.#key === null ? null : new Map<unknown, number>();
 		for (let position = 0; position < items.length; position++) {
 			const value = items[position] as T;
-			const key = this.#identify(items, position, seen);
-			let row = this.#rows.get(key);
+			const key = this.#identify(items, position);
+			let row = this.#find(key, position, pass);
 			if (row === undefined) {
-				row = this.#create(key, value, position, true);
+				row = this.#create(key, value, position, pass, true);
 				if (batch !== null) hide(row.effect);
 			} else {
-				write(row.item, value);
-				write(row.index, position);
+				if (row.item !== null) write(row.item, value);
+				if (row.index !== null) write(row.index, position);
+				row.pass = pass;
+				row.at = position;
 			}
 			rows.push(row);
 		}
@@ -228,7 +270,7 @@ class List<T> {
 			this.#empty = building(true, () => build(this.#fallback as Render, branch, this.anchor));
 			if (batch !== null) hide(this.#empty.effect);
 		}
-		const stage: Stage<T> = { rows, empty };
+		const stage: Stage<T> = { rows, empty, pass };
 		if (batch === null) {
 			this.#capture(stage);
 			this.#apply(stage);
@@ -237,9 +279,8 @@ class List<T> {
 		const stages = (this.#stages ??= new Map());
 		const known = stages.has(batch);
 		stages.set(batch, stage);
-		const selected = new Set(rows);
 		for (const row of this.#rows.values()) {
-			if (selected.has(row)) unskip(row.effect);
+			if (row.pass === pass) unskip(row.effect);
 			else skip(row.effect);
 		}
 		if (this.#empty !== null) {
@@ -260,12 +301,20 @@ class List<T> {
 		if (from.order > into.order || !stages.has(into)) stages.set(into, stage);
 	}
 
-	#capture(stage: Stage<T>): void {
+	#selected(stage: Stage<T>): (row: Row<T>) => boolean {
+		const pass = stage.pass;
+		if (pass === this.#pass) return (row) => row.pass === pass;
 		const selected = new Set(stage.rows);
+		return (row) => selected.has(row);
+	}
+
+	#capture(stage: Stage<T>): void {
+		const selected = this.#selected(stage);
 		const branches: Effect[] = [];
 		const retained: Effect[] = [];
-		for (const row of this.#order) (selected.has(row) ? retained : branches).push(row.effect);
-		for (const row of stage.rows) if (this.#leaving.has(row)) branches.push(row.effect);
+		for (const row of this.#order) (selected(row) ? retained : branches).push(row.effect);
+		if (this.#leaving.size > 0)
+			for (const row of stage.rows) if (this.#leaving.has(row)) branches.push(row.effect);
 		prepare(branches, retained);
 	}
 
@@ -304,28 +353,37 @@ class List<T> {
 	#apply(stage: Stage<T>): void {
 		const next = stage.rows;
 		const needed = this.#needed();
-		const selected = new Set(next);
+		const selected = this.#selected(stage);
 		const previous = this.#order;
-		const positions = new Map<Row<T>, number>();
+		const shown = ++this.#shown;
 		for (let position = 0; position < previous.length; position++) {
 			const row = previous[position] as Row<T>;
-			if (selected.has(row)) positions.set(row, position);
+			if (!selected(row)) continue;
+			row.was = position;
+			row.shown = shown;
 		}
 		const moved: Mover[] = [];
 		for (const row of next) {
-			const mover = positions.has(row) ? moverOf(row.effect) : undefined;
+			const mover = row.shown === shown ? moverOf(row.effect) : undefined;
 			if (mover !== undefined) moved.push(mover);
 		}
-		for (const row of previous) {
-			if (selected.has(row)) continue;
-			if (needed?.has(row)) {
-				stash(row);
-				hide(row.effect);
-				continue;
+		const ended: Row<T>[] | null = next.length === 0 && this.#leaving.size === 0 ? [] : null;
+		this.#ended = ended;
+		try {
+			for (const row of previous) {
+				if (row.shown === shown) continue;
+				if (needed?.has(row)) {
+					stash(row);
+					hide(row.effect);
+					continue;
+				}
+				moverOf(row.effect)?.fix();
+				this.#leave(row);
 			}
-			moverOf(row.effect)?.fix();
-			this.#leave(row);
+		} finally {
+			this.#ended = null;
 		}
+		if (ended !== null) this.#clear(ended);
 		if (this.#empty !== null) {
 			if (stage.empty && !this.#emptyShown) {
 				place(this.#empty, this.anchor);
@@ -342,21 +400,20 @@ class List<T> {
 				}
 			}
 		}
-		const order = next.map((row) => positions.get(row) ?? -1);
+		const order = new Array<number>(next.length);
 		let ordered = true;
-		for (let at = 0; at < order.length; at++) {
-			const position = order[at] as number;
-			if (position < 0 || (at > 0 && position < (order[at - 1] as number))) {
-				ordered = false;
-				break;
-			}
+		for (let at = 0; at < next.length; at++) {
+			const row = next[at] as Row<T>;
+			const position = row.shown === shown ? row.was : -1;
+			order[at] = position;
+			if (position < 0 || (at > 0 && position < (order[at - 1] as number))) ordered = false;
 		}
 		if (!ordered) {
 			const stay = kept(order);
 			let after = this.#start as ChildNode;
 			for (let at = 0; at < next.length; at++) {
 				const row = next[at] as Row<T>;
-				if (!stay.has(at)) {
+				if (stay[at] === 0) {
 					if (this.#leaving.delete(row)) {
 						moverOf(row.effect)?.unfix();
 						resume(row.effect);
@@ -382,9 +439,28 @@ class List<T> {
 				stash(row);
 				return;
 			}
-			discard(row);
+			if (this.#ended !== null) this.#ended.push(row);
+			else discard(row);
 			if (this.#rows.get(row.key) === row) this.#rows.delete(row.key);
 		});
+	}
+
+	#clear(ended: readonly Row<T>[]): void {
+		if (ended.length === 0) return;
+		const parent = this.anchor.parentNode;
+		const whole =
+			this.#leaving.size === 0 &&
+			!this.#emptyShown &&
+			parent !== null &&
+			parent.firstChild === this.#start &&
+			parent.lastChild === this.anchor;
+		if (!whole) {
+			for (const row of ended) discard(row);
+			return;
+		}
+		parent.textContent = '';
+		parent.append(this.#start as ChildNode, this.anchor);
+		for (const row of ended) destroy(row.effect);
 	}
 
 	#prune(needed: Set<Row<T>> | null): void {
@@ -409,16 +485,16 @@ export function list<T>(
 	key: ((item: T, index: number) => unknown) | null,
 	render: Item<T>,
 	fallback: Render | null = null,
-	mutable = false
+	flags = 0
 ): void {
 	const values = derived<ArrayLike<T>>(
 		() => {
 			const given = collection();
 			return given == null ? [] : Array.isArray(given) ? given : Array.from(given as Iterable<T>);
 		},
-		mutable ? mutableEqual : undefined
+		(flags & MUTABLE_ROWS) !== 0 ? mutableEqual : undefined
 	);
-	const rows = new List<T>(node, values, key, render, fallback, mutable);
+	const rows = new List<T>(node, values, key, render, fallback, flags);
 	let first = true;
 	block(() => {
 		const items = get(values);

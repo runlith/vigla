@@ -85,6 +85,57 @@ export function build(
 	return { effect, first, last: fragment.lastChild as ChildNode, fragment };
 }
 
+const stages: (DocumentFragment | undefined)[] = [];
+
+let depth = 0;
+
+function stage(): DocumentFragment {
+	let found = stages[depth];
+	if (found === undefined) {
+		found = document.createDocumentFragment();
+		found.append(document.createTextNode(''));
+		stages[depth] = found;
+	}
+	return found;
+}
+
+export function buildLoose(
+	render: Render,
+	create: (fn: () => void) => Effect = branch,
+	at: ChildNode | null = null
+): Built {
+	if (hydrating) return adopt(render, create);
+	const slotted = slots(at);
+	const fragment = stage();
+	const anchor = fragment.lastChild as ChildNode;
+	const outer = slotting;
+	slotting = slotted;
+	depth++;
+	let effect: Effect;
+	try {
+		effect = create(() => render(anchor));
+	} catch (error) {
+		while (fragment.firstChild !== anchor) (fragment.firstChild as ChildNode).remove();
+		throw error;
+	} finally {
+		depth--;
+		slotting = outer;
+	}
+	const first = fragment.firstChild as ChildNode;
+	if (first !== anchor && first.nextSibling === anchor && first.nodeType === 1) {
+		first.remove();
+		positions.set(effect, first);
+		return { effect, first, last: first, fragment: null };
+	}
+	stages[depth] = undefined;
+	anchor.remove();
+	const marker = slotted ? document.createComment('') : document.createTextNode('');
+	fragment.prepend(marker);
+	offscreen.set(fragment, slotted);
+	positions.set(effect, marker);
+	return { effect, first: marker, last: fragment.lastChild as ChildNode, fragment };
+}
+
 export function place(built: Built, before: ChildNode): void {
 	if (built.fragment !== null) {
 		before.before(built.fragment);

@@ -16,6 +16,12 @@ import { cleaned, render, type TemplateContext } from './template.ts';
 
 export type Block = Branch | KeyedList | UnkeyedList | KeyedBlock | AsyncBlock;
 
+const MUTABLE_ROWS = 1;
+
+const PLAIN_ITEM = 2;
+
+const PLAIN_INDEX = 4;
+
 export function arm(
 	context: TemplateContext,
 	fragment: Fragment,
@@ -158,11 +164,25 @@ function listCode(
 	b.walk(node.collection, (node) => {
 		if (node.type === 'Identifier' && context.analysis.externals.has(node)) mutable = true;
 	});
-	const body = arm({ ...context, externalRows: mutable }, node.body, true, [item, index], prelude);
+	const itself =
+		node.kind === 'keyed-list' &&
+		named !== null &&
+		!mutable &&
+		node.key.type === 'Identifier' &&
+		facts.names.length === 1 &&
+		context.analysis.references.get(node.key) === facts.names[0];
+	let flags = 0;
+	if (mutable) flags |= MUTABLE_ROWS;
+	if (itself) flags |= PLAIN_ITEM;
+	if (facts.index === null) flags |= PLAIN_INDEX;
+	const inner = itself
+		? { ...context, plain: new Set([...context.plain, ...facts.names]) }
+		: context;
+	const body = arm({ ...inner, externalRows: mutable }, node.body, true, [item, index], prelude);
 	const args: ES.Expression[] = [anchor, collection, key, body];
-	if (node.fallback !== null || mutable)
+	if (node.fallback !== null || flags !== 0)
 		args.push(node.fallback === null ? b.literal(null) : arm(context, node.fallback, true));
-	if (mutable) args.push(b.literal(true));
+	if (flags !== 0) args.push(b.literal(flags));
 	return [b.statement(runtime(context, 'list', ...args))];
 }
 
