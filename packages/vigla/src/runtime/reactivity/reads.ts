@@ -1,5 +1,5 @@
 import { DEV } from 'esm-env';
-import { processed } from './batch.ts';
+import { foreign, processed } from './batch.ts';
 import {
 	destroyEffects,
 	discardAside,
@@ -317,16 +317,18 @@ export function changed(reads: ReadonlyMap<Source, unknown>, target: Reaction): 
 }
 
 export function stale(target: Reaction, recheck = false): boolean {
-	if (recheck) {
-		if (target.deps === null) return true;
+	if (recheck && target.deps === null) return true;
+	if (recheck && ((target.deps as Source[]).length > 0 || (target as Effect).async)) {
 		const effect = target as Effect;
-		const own = (view?.batch ?? processed())?.reads?.get(effect);
+		const batch = view?.batch ?? processed();
+		const own = batch?.reads?.get(effect);
 		if (
 			own === undefined &&
 			effect.kind === BLOCK &&
 			(!effect.async || effect.forked) &&
 			effect.batch !== 0 &&
-			effect.batch !== (view?.batch.order ?? processed()?.order)
+			effect.batch !== batch?.order &&
+			(batch === null || effect.forked || foreign(effect.batch, batch))
 		)
 			return true;
 		const reads = own ?? observedReads(target);

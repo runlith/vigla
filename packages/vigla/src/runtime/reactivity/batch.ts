@@ -34,6 +34,7 @@ export interface Batch extends History {
 	waits: Map<Batch, Set<Effect>> | null;
 	settles: (() => void)[] | null;
 	into: Batch | null;
+	folded: number[] | null;
 	work: number;
 	phase: Phase | null;
 	started: boolean;
@@ -71,6 +72,7 @@ export function createBatch(): Batch {
 		waits: null,
 		settles: null,
 		into: null,
+		folded: null,
 		work: 0,
 		phase: null,
 		started: false,
@@ -258,13 +260,28 @@ export function skip(effect: Effect, batch: Batch | null = processing): void {
 	if (batch !== null) (alias(batch).skipped ??= new Set()).add(effect);
 }
 
+function carries(batch: Batch | null, order: number): boolean {
+	return (
+		batch !== null &&
+		!batch.done &&
+		(batch.order === order || (batch.folded !== null && batch.folded.includes(order)))
+	);
+}
+
+export function foreign(order: number, batch: Batch): boolean {
+	if (order === 0 || order === batch.order) return false;
+	if (carries(batch, order) || carries(open, order)) return true;
+	for (let index = 0; index < pending.length; index++)
+		if (carries(pending[index] as Batch, order)) return true;
+	return false;
+}
+
 export function unskip(effect: Effect): void {
 	const batch = processing;
 	if (batch === null) return;
 	const skipped = batch.skipped !== null && batch.skipped.delete(effect);
 	(batch.shown ??= new Set()).add(effect);
-	const foreign = effect.batch !== 0 && effect.batch !== batch.order;
-	if (skipped || foreign || overlooked.has(effect)) requeue(batch, effect);
+	if (skipped || foreign(effect.batch, batch) || overlooked.has(effect)) requeue(batch, effect);
 }
 
 export function processed(): Batch | null {
@@ -277,12 +294,20 @@ export function force(batch: Batch, effect: Effect): void {
 	enqueue(batch, effect);
 }
 
-function gather(effect: Effect, out: Effect[], marked: boolean, adopter = 0): void {
+function gather(
+	effect: Effect,
+	out: Effect[],
+	marked: boolean,
+	adopter: Batch | null = null
+): void {
 	if (marked) effect.pending = false;
 	for (let child = effect.first; child !== null; child = child.next) {
 		if (child.destroyed) continue;
-		const foreign = adopter !== 0 && child.batch !== 0 && child.batch !== adopter;
-		if ((child.status !== CLEAN || foreign) && child.kind !== BRANCH && child.kind !== ROOT)
+		if (
+			child.kind !== BRANCH &&
+			child.kind !== ROOT &&
+			(child.status !== CLEAN || (adopter !== null && foreign(child.batch, adopter)))
+		)
 			out.push(child);
 		if (!marked || child.pending) gather(child, out, marked, adopter);
 	}
@@ -316,7 +341,7 @@ export function handOver(effect: Effect, holder: Batch): void {
 export function requeue(batch: Batch, branch: Effect): void {
 	overlooked.delete(branch);
 	const found: Effect[] = [];
-	gather(branch, found, false, batch.order);
+	gather(branch, found, false, batch);
 	for (const effect of found) force(batch, effect);
 }
 
