@@ -54,6 +54,7 @@ function topLevelAwaits(analysis: ComponentAnalysis): Set<ES.Node> {
 
 export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.Program {
 	const names = new b.Names(analysis.names);
+	const name = names.unique(options.name);
 	const id = b.id(names.unique('$'));
 	const out = b.id(names.unique('$$out'));
 	const props = b.id(names.unique('$$props'));
@@ -184,7 +185,7 @@ export function server(analysis: ComponentAnalysis, options: ServerOptions): ES.
 		b.namespaceImport(id.name, options.runtime),
 		...imports,
 		...hoisted,
-		b.exportDefaultFunction(options.name, [out, props], body)
+		b.exportDefaultFunction(name, [out, props], body)
 	]);
 }
 

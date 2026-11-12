@@ -117,6 +117,7 @@ function exportProperties(context: Context, name: string, local: ES.Identifier):
 
 export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.Program {
 	const names = new b.Names(analysis.names);
+	const name = names.unique(options.name);
 	const id = b.id(names.unique('$'));
 	const anchor = b.id(names.unique('$$anchor'));
 	const props = b.id(names.unique('$$props'));
@@ -256,11 +257,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		)
 	});
 	const trailer: ES.Statement[] = options.dev
-		? [
-				b.statement(
-					runtime(context, 'componentSource', b.id(options.name), b.literal(options.filename))
-				)
-			]
+		? [b.statement(runtime(context, 'componentSource', b.id(name), b.literal(options.filename)))]
 		: [];
 	if (context.events.size > 0) {
 		trailer.push(
@@ -269,7 +266,7 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 			)
 		);
 	}
-	trailer.push(...customElement(context, options.name, exported, options.hmr));
+	trailer.push(...customElement(context, name, exported, options.hmr));
 	const hash = options.scoping.hash === '' ? null : options.scoping.hash;
 	return b.program([
 		b.namespaceImport(id.name, options.runtime),
@@ -278,8 +275,8 @@ export function client(analysis: ComponentAnalysis, options: ClientOptions): ES.
 		...level,
 		...context.hoisted,
 		...(options.hmr
-			? hotComponent(id, options.name, [anchor, props], body, hash)
-			: [b.exportDefaultFunction(options.name, [anchor, props], body)]),
+			? hotComponent(id, name, [anchor, props], body, hash)
+			: [b.exportDefaultFunction(name, [anchor, props], body)]),
 		...trailer
 	]);
 }
