@@ -316,7 +316,7 @@ export function prepare(branches: readonly Effect[], retained: readonly Effect[]
 
 export function pause(branch: Effect, done: () => void): void {
 	const found: Manager[] = [];
-	collect(branch, true, found);
+	if (live > 0) collect(branch, true, found);
 	hide(branch);
 	let remaining = found.length;
 	if (remaining === 0) {
@@ -337,7 +337,7 @@ export function resume(branch: Effect): void {
 	stayed(branch);
 	show(branch);
 	const found: Manager[] = [];
-	collect(branch, true, found);
+	if (live > 0) collect(branch, true, found);
 	for (const manager of found) placementOf(manager.element).restore();
 	for (const manager of found) manager.in();
 }
