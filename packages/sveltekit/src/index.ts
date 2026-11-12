@@ -13,7 +13,7 @@ export type {
 	ErrorProperties,
 	LegacyErrorBody
 } from './types/index.ts';
-export const VERSION = '3.1.5';
+export const VERSION = '3.1.6';
 
 type Raise = (status: number, message?: string, properties?: ErrorProperties) => never;
 
