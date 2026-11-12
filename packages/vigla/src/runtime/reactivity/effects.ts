@@ -328,7 +328,7 @@ export function overflow(effect: Effect, error: unknown): void {
 
 function dispose(effect: Effect, teardown: () => void): void {
 	try {
-		retire(teardown);
+		retire(effect, teardown);
 	} catch (error) {
 		fail(effect, error);
 	}

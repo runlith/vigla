@@ -18,7 +18,7 @@ import {
 	type Source,
 	type Status
 } from './graph.ts';
-import type { Prior } from './history.ts';
+import type { History, Prior } from './history.ts';
 import { localLeaving, withoutLeaving } from './outgoing.ts';
 import { computed, tracedRun, tracing } from './provenance.ts';
 
@@ -57,6 +57,8 @@ export interface View {
 export interface Past {
 	readonly before: Prior;
 	readonly later: Prior | null;
+	readonly home: History;
+	readonly reader: Effect;
 	written: Set<Source> | null;
 	derived: Map<Derived, unknown> | null;
 }

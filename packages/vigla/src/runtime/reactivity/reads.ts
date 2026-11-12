@@ -153,19 +153,22 @@ function through(source: Source, given: View): unknown {
 	return value;
 }
 
-function dated(derived: Derived, given: Past): boolean {
+function dated(derived: Derived, given: Past, loose: boolean): boolean {
 	if (derived.deps === null) return true;
 	for (const dep of derived.deps) {
 		if (given.written?.has(dep)) continue;
+		if (loose && given.home.retired!.has(dep)) continue;
 		if (given.before(dep) !== NONE || (given.later !== null && given.later(dep) !== NONE))
 			return true;
-		if (isDerived(dep) && dated(dep, given)) return true;
+		if (isDerived(dep) && dated(dep, given, loose)) return true;
 	}
 	return false;
 }
 
 function recall(source: Source, given: Past): unknown {
-	if (given.written === null || !given.written.has(source)) {
+	const retired = given.home.retired;
+	const loose = retired !== null && !given.reader.deps?.includes(source);
+	if ((given.written === null || !given.written.has(source)) && !(loose && retired.has(source))) {
 		const before = given.before(source);
 		if (before !== NONE) return before;
 		if (given.later !== null) {
@@ -175,7 +178,7 @@ function recall(source: Source, given: Past): unknown {
 	}
 	if (!isDerived(source)) return view === null ? source.v : through(source, view);
 	if (given.derived !== null && given.derived.has(source)) return given.derived.get(source);
-	if (!dated(source, given)) {
+	if (!dated(source, given, loose)) {
 		if (view !== null) return through(source, view);
 		return settled(source);
 	}

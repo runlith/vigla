@@ -63,6 +63,10 @@ function fold(from: Batch, into: Batch): void {
 		if (from.passed?.has(source)) (into.passed ??= new Set()).add(source);
 		else into.passed?.delete(source);
 	}
+	if (from.retired !== null) {
+		if (into.retired === null) into.retired = from.retired;
+		else for (const source of from.retired) into.retired.add(source);
+	}
 	if (from.after !== null || into.after !== null) {
 		const merged = (into.after ??= materialize(into));
 		for (const [source, value] of from.after ?? materialize(from)) {

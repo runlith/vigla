@@ -1,6 +1,6 @@
 import { active, open, processing } from './batch.ts';
-import type { Source } from './graph.ts';
-import { earlier, prior, type Prior } from './history.ts';
+import type { Effect, Source } from './graph.ts';
+import { earlier, prior, type History } from './history.ts';
 import { withoutLeaving } from './outgoing.ts';
 import { past, setPast, withoutReaction } from './tracking.ts';
 
@@ -21,19 +21,26 @@ export function instantly(fn: () => void): void {
 	}
 }
 
-export function retire(teardown: () => void): void {
+export function retire(reader: Effect, teardown: () => void): void {
 	const batch = active ?? processing ?? open;
 	retiring++;
 	try {
 		if (batch === null || instant) withoutReaction(() => teardown.call(null));
-		else recalling(earlier(batch), open !== null && open !== batch ? prior(open) : null, teardown);
+		else recalling(batch, reader, teardown);
 	} finally {
 		retiring--;
 	}
 }
 
-export function recalling(before: Prior, later: Prior | null, fn: () => void): void {
-	const previous = setPast({ before, later, written: null, derived: null });
+function recalling(home: History, reader: Effect, fn: () => void): void {
+	const previous = setPast({
+		before: earlier(home),
+		later: open !== null && open !== home ? prior(open) : null,
+		home,
+		reader,
+		written: null,
+		derived: null
+	});
 	try {
 		withoutReaction(() => fn.call(null));
 	} finally {
@@ -53,5 +60,6 @@ export function presently(fn: () => void): void {
 export function written(source: Source): void {
 	if (past === null) return;
 	(past.written ??= new Set()).add(source);
+	(past.home.retired ??= new Set()).add(source);
 	past.derived = null;
 }

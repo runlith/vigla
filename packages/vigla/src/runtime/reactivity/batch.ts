@@ -51,6 +51,7 @@ export function createBatch(): Batch {
 		map: null,
 		prior: null,
 		passed: null,
+		retired: null,
 		crowded: false,
 		after: null,
 		origins: null,

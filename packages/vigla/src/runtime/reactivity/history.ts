@@ -30,6 +30,7 @@ export interface History {
 	map: Map<Source, unknown> | null;
 	prior: Prior | null;
 	passed: Set<Source> | null;
+	retired: Set<Source> | null;
 	crowded: boolean;
 }
 
@@ -100,6 +101,7 @@ export function clear(history: History): void {
 	history.map = null;
 	history.prior = null;
 	history.passed = null;
+	history.retired = null;
 }
 
 export function detach(history: History): void {
