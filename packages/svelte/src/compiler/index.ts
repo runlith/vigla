@@ -64,7 +64,7 @@ export interface CssHashInput {
 
 export interface CompileOptions extends ModuleCompileOptions {
 	name?: string;
-	runes?: boolean;
+	runes?: boolean | undefined | ((options: { filename: string }) => boolean | undefined);
 	css?: 'injected' | 'external';
 	cssHash?: (input: CssHashInput) => string;
 	cssOutputFilename?: string;
