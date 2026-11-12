@@ -104,7 +104,10 @@ function fold(from: Batch, into: Batch): void {
 	from.work = 0;
 	from.done = true;
 	from.into = into;
-	(into.folded ??= []).push(from.order, ...(from.folded ?? []));
+	const folded = (into.folded ??= new Set());
+	folded.add(from.order);
+	for (const order of from.folded ?? []) folded.add(order);
+	from.folded = null;
 	if (from.merges !== null) {
 		for (const transfer of from.merges) transfer(from, into);
 		(into.merges ??= []).push(...from.merges);

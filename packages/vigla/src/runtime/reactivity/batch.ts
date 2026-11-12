@@ -34,7 +34,7 @@ export interface Batch extends History {
 	waits: Map<Batch, Set<Effect>> | null;
 	settles: (() => void)[] | null;
 	into: Batch | null;
-	folded: number[] | null;
+	folded: Set<number> | null;
 	work: number;
 	phase: Phase | null;
 	started: boolean;
@@ -91,6 +91,7 @@ export function release(batch: Batch): void {
 	batch.merges = null;
 	batch.origins = null;
 	batch.reads = null;
+	batch.folded = null;
 	clear(batch);
 }
 
@@ -264,13 +265,14 @@ function carries(batch: Batch | null, order: number): boolean {
 	return (
 		batch !== null &&
 		!batch.done &&
-		(batch.order === order || (batch.folded !== null && batch.folded.includes(order)))
+		(batch.order === order || (batch.folded !== null && batch.folded.has(order)))
 	);
 }
 
-export function foreign(order: number, batch: Batch): boolean {
+function foreign(effect: Effect, batch: Batch): boolean {
+	const order = effect.batch;
 	if (order === 0 || order === batch.order) return false;
-	if (carries(batch, order) || carries(open, order)) return true;
+	if (effect.forked || carries(batch, order) || carries(open, order)) return true;
 	for (let index = 0; index < pending.length; index++)
 		if (carries(pending[index] as Batch, order)) return true;
 	return false;
@@ -281,7 +283,7 @@ export function unskip(effect: Effect): void {
 	if (batch === null) return;
 	const skipped = batch.skipped !== null && batch.skipped.delete(effect);
 	(batch.shown ??= new Set()).add(effect);
-	if (skipped || foreign(effect.batch, batch) || overlooked.has(effect)) requeue(batch, effect);
+	if (skipped || foreign(effect, batch) || overlooked.has(effect)) requeue(batch, effect);
 }
 
 export function processed(): Batch | null {
@@ -306,7 +308,7 @@ function gather(
 		if (
 			child.kind !== BRANCH &&
 			child.kind !== ROOT &&
-			(child.status !== CLEAN || (adopter !== null && foreign(child.batch, adopter)))
+			(child.status !== CLEAN || (adopter !== null && foreign(child, adopter)))
 		)
 			out.push(child);
 		if (!marked || child.pending) gather(child, out, marked, adopter);

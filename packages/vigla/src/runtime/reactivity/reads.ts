@@ -1,5 +1,5 @@
 import { DEV } from 'esm-env';
-import { foreign, processed } from './batch.ts';
+import { processed } from './batch.ts';
 import {
 	destroyEffects,
 	discardAside,
@@ -327,8 +327,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 			effect.kind === BLOCK &&
 			(!effect.async || effect.forked) &&
 			effect.batch !== 0 &&
-			effect.batch !== batch?.order &&
-			(batch === null || effect.forked || foreign(effect.batch, batch))
+			effect.batch !== batch?.order
 		)
 			return true;
 		const reads = own ?? observedReads(target);
