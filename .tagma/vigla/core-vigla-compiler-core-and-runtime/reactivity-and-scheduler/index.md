@@ -132,7 +132,8 @@ fields:
       ],
       [
         "leaving.ts",
-        "owners.ts"
+        "owners.ts",
+        "drafting.ts"
       ],
       [
         "reads.ts"
