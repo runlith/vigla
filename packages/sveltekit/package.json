@@ -1,6 +1,11 @@
 {
 	"name": "@vigla/sveltekit",
 	"version": "3.1.2",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/runlith/vigla.git",
+		"directory": "packages/sveltekit"
+	},
 	"type": "module",
 	"types": "./types/index.d.ts",
 	"files": [

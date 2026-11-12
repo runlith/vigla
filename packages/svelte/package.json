@@ -1,6 +1,11 @@
 {
 	"name": "@vigla/svelte",
 	"version": "5.57.4",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/runlith/vigla.git",
+		"directory": "packages/svelte"
+	},
 	"type": "module",
 	"types": "./types/index.d.ts",
 	"files": [

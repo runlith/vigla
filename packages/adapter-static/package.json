@@ -1,6 +1,11 @@
 {
 	"name": "@vigla/adapter-static",
 	"version": "0.1.2",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/runlith/vigla.git",
+		"directory": "packages/adapter-static"
+	},
 	"type": "module",
 	"files": [
 		"dist",

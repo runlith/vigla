@@ -1,6 +1,11 @@
 {
 	"name": "@vigla/kit",
 	"version": "0.1.2",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/runlith/vigla.git",
+		"directory": "packages/kit"
+	},
 	"type": "module",
 	"files": [
 		"dist",

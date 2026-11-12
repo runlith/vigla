@@ -66,6 +66,10 @@ function missing(manifest: Manifest, directory: string): string[] {
 export function stage(item: Package, versions: ReadonlyMap<string, string>): string {
 	const { files } = item.manifest;
 	if (!files) throw new Error(`${item.manifest.name} declares no files to publish`);
+	if (!item.manifest.repository)
+		throw new Error(
+			`${item.manifest.name} declares no repository: the registry refuses a provenance it cannot match to one`
+		);
 	const directory = mkdtempSync(path.join(tmpdir(), 'vigla-pack-'));
 	for (const entry of files) {
 		const from = path.join(item.directory, entry);

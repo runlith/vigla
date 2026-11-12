@@ -1,6 +1,11 @@
 {
 	"name": "@vigla/vite-plugin-svelte",
 	"version": "7.3.3",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/runlith/vigla.git",
+		"directory": "packages/vite-plugin-svelte"
+	},
 	"type": "module",
 	"files": [
 		"dist",

@@ -1,6 +1,11 @@
 {
 	"name": "@vigla/vite-plugin",
 	"version": "0.1.2",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/runlith/vigla.git",
+		"directory": "packages/vite-plugin"
+	},
 	"type": "module",
 	"files": [
 		"dist",
