@@ -1,6 +1,6 @@
 {
 	"name": "@vigla/svelte",
-	"version": "5.57.4",
+	"version": "5.57.5",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/runlith/vigla.git",
