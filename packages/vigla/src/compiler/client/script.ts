@@ -309,11 +309,7 @@ function effectCall(
 		case '$effect':
 			return {
 				...call,
-				callee: effectCallee(
-					context,
-					context.props === null ? 'effect' : 'userEffect',
-					call.callee as ES.Expression
-				)
+				callee: effectCallee(context, 'userEffect', call.callee as ES.Expression)
 			};
 		case '$effect.pre':
 			return { ...call, callee: effectCallee(context, 'pre', call.callee as ES.Expression) };

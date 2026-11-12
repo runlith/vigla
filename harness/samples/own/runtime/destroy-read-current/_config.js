@@ -8,7 +8,7 @@ export default test({
 		assert.deepEqual(logs, ['changed|changed|changed']);
 		assert.equal(target.querySelector('p').textContent, 'initial');
 		raf.tick(100);
-		assert.deepEqual(logs, ['changed|changed|changed', 'destroy:finished/finished', 'cleanup:changed', 'active:initial']);
+		assert.deepEqual(logs, ['changed|changed|changed', 'cleanup:changed', 'destroy:finished/finished', 'active:initial']);
 		assert.equal(target.querySelector('p'), null);
 	}
 });
