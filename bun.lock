@@ -81,7 +81,7 @@
     },
     "packages/svelte": {
       "name": "@vigla/svelte",
-      "version": "5.57.7",
+      "version": "5.57.8",
       "dependencies": {
         "@jridgewell/remapping": "^2.3.5",
         "@jridgewell/sourcemap-codec": "^1.6.0",

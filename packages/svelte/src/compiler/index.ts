@@ -40,7 +40,7 @@ export {
 } from './preprocess/index.ts';
 export type { AST };
 
-export const VERSION = '5.57.7';
+export const VERSION = '5.57.8';
 
 export interface Experimental {
 	async?: boolean;
