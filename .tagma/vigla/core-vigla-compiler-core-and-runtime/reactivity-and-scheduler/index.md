@@ -144,7 +144,8 @@ fields:
         "held.ts"
       ],
       [
-        "scheduler.ts"
+        "scheduler.ts",
+        "holding.ts"
       ],
       [
         "sources.ts",
