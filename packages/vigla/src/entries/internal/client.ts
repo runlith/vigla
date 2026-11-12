@@ -44,7 +44,7 @@ export {
 } from '../../runtime/dom/media.ts';
 export { async, deferredExports, prepareAsync, save, script } from '../../runtime/dom/async.ts';
 export { awaited } from '../../runtime/dom/await.ts';
-export { animation, transition } from '../../runtime/transitions/manager.ts';
+export { animation, transition } from '../../runtime/transitions/directives.ts';
 export { branch, key } from '../../runtime/dom/blocks.ts';
 export { list } from '../../runtime/dom/list.ts';
 export { boundary } from '../../runtime/dom/boundary.ts';
