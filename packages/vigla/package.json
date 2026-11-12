@@ -19,6 +19,7 @@
 			"browser": "./src/entries/index.ts",
 			"default": "./src/entries/index-server.ts"
 		},
+		"./package.json": "./package.json",
 		"./server": "./src/entries/server.ts",
 		"./attachments": "./src/entries/attachments.ts",
 		"./action": "./src/entries/action.ts",
