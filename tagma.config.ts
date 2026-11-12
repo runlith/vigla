@@ -5,7 +5,7 @@ export default defineConfig({
 	inspections: {
 		modules: Imports.modules({
 			runtimes: ['node', 'bun'],
-			framework: ['svelte', 'svelte/*', '@tagmahq/tagma/*', '$app/*'],
+			framework: ['svelte', 'svelte/*', '@tagmahq/tagma/*', '$app/*', '~upstream-utils'],
 			tests: ['.test'],
 			files: { exclude: ['harness/samples/**'] }
 		}),

@@ -81,7 +81,12 @@ export function vitePlugin(): Record<string, unknown> {
 	}
 	return {
 		root: work,
-		resolve: { alias: { '~utils': join(root, 'testUtils') } },
+		resolve: {
+			alias: {
+				'~utils': join(import.meta.dirname, 'utils.ts'),
+				'~upstream-utils': join(root, 'testUtils')
+			}
+		},
 		test: {
 			include,
 			exclude,

@@ -15,12 +15,23 @@ function check() {
 }
 
 test('layout load constraints follow a child losing and regaining its load export', async () => {
+	let watching;
 	const server = await createServer({
 		server: { host: '127.0.0.1', port: 6402, strictPort: true, hmr: false },
-		clearScreen: false
+		clearScreen: false,
+		plugins: [
+			{
+				name: 'watcher-ready',
+				enforce: 'pre',
+				configureServer(server) {
+					watching = new Promise((done) => server.watcher.once('ready', done));
+				}
+			}
+		]
 	});
 	try {
 		await server.listen();
+		await watching;
 		const initial = check();
 		expect(initial.status, initial.stdout + initial.stderr).toBe(0);
 		const source = 'src/routes/dashboard/+page.ts';
