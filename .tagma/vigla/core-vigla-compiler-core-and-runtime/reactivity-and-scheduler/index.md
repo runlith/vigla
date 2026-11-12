@@ -92,7 +92,9 @@ fields:
     "kind": "product",
     "order": [
       [
-        "graph.ts",
+        "graph.ts"
+      ],
+      [
         "collector.ts",
         "tasks.ts",
         "errors.ts",
