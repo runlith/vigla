@@ -20,6 +20,9 @@ fields:
       },
       {
         "at": "animate.ts"
+      },
+      {
+        "at": "directives.ts"
       }
     ],
     "id": "transitions",
@@ -39,7 +42,10 @@ fields:
         "layout.ts"
       ],
       [
-        "manager.ts",
+        "manager.ts"
+      ],
+      [
+        "directives.ts",
         "presets.ts",
         "flip.ts"
       ]
