@@ -3,7 +3,7 @@ import { OPEN_ELSE, OPEN_FAILED } from '../../shared/markers.ts';
 import { reveal } from '../reactivity/async.ts';
 import { current, onCommit, skip as skipEffect } from '../reactivity/batch.ts';
 import { block, branch, destroy, fail } from '../reactivity/effects.ts';
-import type { Boundary as Contract, Effect } from '../reactivity/graph.ts';
+import { isDestroyed, type Boundary as Contract, type Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
 import { owner, setOwner } from '../reactivity/tracking.ts';
 import { seeThrough } from '../transitions/manager.ts';
@@ -119,7 +119,7 @@ class Boundary implements Contract {
 			}
 			this.#settleAnchor();
 			task(() => {
-				if (this.#effect.destroyed) return;
+				if (isDestroyed(this.#effect)) return;
 				this.#offscreen();
 			});
 			return;
@@ -219,7 +219,7 @@ class Boundary implements Contract {
 		let done = false;
 		let reporting = false;
 		const reset: Reset = () => {
-			if (this.#effect.destroyed) return;
+			if (isDestroyed(this.#effect)) return;
 			if (done) {
 				warn(
 					'boundary_reset_noop',
@@ -241,7 +241,7 @@ class Boundary implements Contract {
 			this.#run(() => this.#render());
 		};
 		const report = (): void => {
-			if (this.#effect.destroyed) return;
+			if (isDestroyed(this.#effect)) return;
 			try {
 				reporting = true;
 				this.#props.onerror?.(error, reset);
@@ -261,7 +261,12 @@ class Boundary implements Contract {
 	failed(error: unknown): void {
 		if (error === MISMATCH) throw error;
 		const failed = this.#props.failed;
-		if (this.#falling || this.#effect?.destroyed === true || (!failed && !this.#props.onerror)) {
+		const effect: Effect | undefined = this.#effect;
+		if (
+			this.#falling ||
+			(effect !== undefined && isDestroyed(effect)) ||
+			(!failed && !this.#props.onerror)
+		) {
 			this.#escalate(error);
 			return;
 		}
@@ -272,7 +277,7 @@ class Boundary implements Contract {
 			}
 			onCommit(batch, {
 				apply: () => {
-					if (!this.#effect.destroyed) this.#handle(error);
+					if (!isDestroyed(this.#effect)) this.#handle(error);
 				}
 			});
 			return;
@@ -288,7 +293,7 @@ class Boundary implements Contract {
 		this.showing = false;
 		for (const built of retiring) if (built !== null) discard(built);
 		task(() => {
-			if (this.#effect.destroyed) return;
+			if (isDestroyed(this.#effect)) return;
 			let transformed: unknown;
 			try {
 				transformed = this.#transform(error);
@@ -297,10 +302,10 @@ class Boundary implements Contract {
 				return;
 			}
 			const handle = (value: unknown): void => {
-				if (this.#effect.destroyed) return;
+				if (isDestroyed(this.#effect)) return;
 				const { reset, report } = this.#resettable(value);
 				report();
-				if (!failed || this.#effect.destroyed) return;
+				if (!failed || isDestroyed(this.#effect)) return;
 				if (this.#failed !== null) {
 					discard(this.#failed);
 					this.#failed = null;
@@ -315,7 +320,7 @@ class Boundary implements Contract {
 							)
 						)
 					);
-					if (this.#effect.destroyed) {
+					if (isDestroyed(this.#effect)) {
 						discard(built);
 						return;
 					}

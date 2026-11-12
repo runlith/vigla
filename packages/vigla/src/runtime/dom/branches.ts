@@ -1,4 +1,5 @@
 import {
+	admit,
 	alias,
 	atCommit,
 	atDiscard,
@@ -9,7 +10,7 @@ import {
 	type Batch
 } from '../reactivity/batch.ts';
 import { branch, hide, show as unhide } from '../reactivity/effects.ts';
-import type { Effect } from '../reactivity/graph.ts';
+import { isDestroyed, type Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { building, pause, prepare, resume, seeThrough } from '../transitions/manager.ts';
 import {
@@ -117,10 +118,15 @@ export class Branches<K> {
 			this.#switch(key);
 			return;
 		}
-		(this.#stages ??= new Map()).set(batch, key);
+		const staged = (this.#stages ??= new Map()).set(batch, key);
 		for (const [held, built] of this.#built) {
-			if (same(held, key)) unskip(built.effect);
-			else skip(built.effect);
+			if (same(held, key)) {
+				unskip(built.effect);
+				continue;
+			}
+			skip(built.effect);
+			for (const [other, chosen] of staged)
+				if (other !== batch && same(chosen, held)) admit(other, built.effect);
 		}
 		if (known) return;
 		atCommit({ prepare: () => this.#prepare(batch), apply: () => this.#commit(batch) });
@@ -149,14 +155,16 @@ export class Branches<K> {
 	#prepare(given: Batch): void {
 		const stages = this.#stages;
 		const batch = alias(given);
-		if (stages === null || !stages.has(batch) || this.#block?.destroyed === true) return;
+		if (stages === null || !stages.has(batch) || (this.#block !== null && isDestroyed(this.#block)))
+			return;
 		this.#capture(stages.get(batch) as K);
 	}
 
 	#commit(given: Batch): void {
 		const batch = alias(given);
 		const stages = this.#stages;
-		if (stages === null || !stages.has(batch) || this.#block?.destroyed === true) return;
+		if (stages === null || !stages.has(batch) || (this.#block !== null && isDestroyed(this.#block)))
+			return;
 		const key = stages.get(batch) as K;
 		stages.delete(batch);
 		this.#switch(key);
@@ -164,7 +172,8 @@ export class Branches<K> {
 
 	#discard(given: Batch): void {
 		const batch = alias(given);
-		if (this.#stages?.delete(batch) !== true || this.#block?.destroyed === true) return;
+		if (this.#stages?.delete(batch) !== true || (this.#block !== null && isDestroyed(this.#block)))
+			return;
 		this.#prune();
 	}
 
@@ -185,6 +194,8 @@ export class Branches<K> {
 				if (this.#needed(previous)) {
 					stash(old);
 					hide(old.effect);
+					for (const [batch, held] of this.#stages ?? [])
+						if (same(held, previous)) admit(batch, old.effect);
 				} else this.#leave(previous, old);
 			}
 		}
@@ -194,7 +205,7 @@ export class Branches<K> {
 	#leave(key: K, built: Built): void {
 		this.#leaving.add(key);
 		pause(built.effect, () => {
-			if (!this.#leaving.delete(key) || this.#block?.destroyed === true) return;
+			if (!this.#leaving.delete(key) || (this.#block !== null && isDestroyed(this.#block))) return;
 			if (this.#needed(key)) {
 				stash(built);
 				return;

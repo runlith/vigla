@@ -4,6 +4,7 @@ import { viewOf } from './views.ts';
 import {
 	CLEAN,
 	isDerived,
+	isDestroyed,
 	retainsFailures,
 	type Derived,
 	type Effect,
@@ -164,7 +165,7 @@ export function stayed(branch: Effect): void {
 	if (given === undefined) return;
 	branches.delete(branch);
 	countLeaving(-1);
-	detach(branch, branch.destroyed ? null : (inheriting.get(branch) ?? null));
+	detach(branch, isDestroyed(branch) ? null : (inheriting.get(branch) ?? null));
 	inheriting.delete(branch);
 	release(given);
 }
@@ -188,7 +189,7 @@ function admitted(branch: Effect): boolean {
 export function leavingView(derived: Derived): LeavingView | null {
 	if (!selecting) return null;
 	for (let at = derived.owner; at !== null; at = at.parent) {
-		if (at.destroyed) return null;
+		if (isDestroyed(at)) return null;
 		const given = branches.get(at);
 		if (given !== undefined) return admitted(at) ? null : given;
 	}
@@ -264,7 +265,7 @@ function cached(source: Derived, given: LeavingView): unknown {
 		return found.value;
 	} catch (error) {
 		if (source.owner === null) throw error;
-		if (!source.owner.destroyed) fail(source.owner, error);
+		if (!isDestroyed(source.owner)) fail(source.owner, error);
 		found.value = undefined;
 		found.ready = true;
 		if (!retainsFailures(source)) return undefined;

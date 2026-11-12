@@ -15,7 +15,7 @@ import {
 	propertyName
 } from '../../shared/html.ts';
 import { spreadAttachments } from './attachments.ts';
-import { delegated, delegate, listen } from './events.ts';
+import { delegate, delegation, listen } from './events.ts';
 import { claim, cursor, hydrating, overwriting, setHydrating } from './hydration.ts';
 import { owner, setOwner, withoutReaction } from '../reactivity/tracking.ts';
 import { teardown } from '../reactivity/effects.ts';
@@ -441,7 +441,7 @@ export function attributes(
 					existing();
 					(current[listeners] as Set<Listener>).delete(existing);
 				}
-				const remove = delegated(element, type, value as EventListener | null);
+				const remove = delegation(element, type, value as EventListener | null);
 				listenerSet(current).add(remove);
 				current[slot] = remove;
 				delegate(type);

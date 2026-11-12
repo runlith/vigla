@@ -1,6 +1,6 @@
 import { leaving, stayed } from '../reactivity/leaving.ts';
 import { hide, show, teardown } from '../reactivity/effects.ts';
-import { BLOCK, BRANCH, ROOT, type Effect } from '../reactivity/graph.ts';
+import { BLOCK, BRANCH, ROOT, isDestroyed, isInert, type Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 
 export interface Manager {
@@ -51,9 +51,14 @@ export function seeThrough(block: Effect): void {
 	transparent.add(block);
 }
 
-export function building<T>(update: boolean, fn: () => T): T {
+export function setBuilding(update: boolean): boolean {
 	const previous = local;
 	local = update;
+	return previous;
+}
+
+export function building<T>(update: boolean, fn: () => T): T {
+	const previous = setBuilding(update);
 	try {
 		return fn();
 	} finally {
@@ -101,7 +106,7 @@ function collect(effect: Effect, inherited: boolean, found: Manager[]): void {
 		if (manager.global || inherited) found.push(manager);
 	}
 	for (let child = effect.first; child !== null; child = child.next) {
-		if (child.destroyed || child.inert) continue;
+		if (isDestroyed(child) || isInert(child)) continue;
 		const through =
 			child.kind === ROOT ||
 			transparent.has(child) ||

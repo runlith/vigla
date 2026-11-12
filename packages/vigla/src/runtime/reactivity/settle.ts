@@ -1,7 +1,7 @@
 import { concealed, excluded, handOver, type Batch } from './batch.ts';
 import { drafting, heldAbove } from './drafts.ts';
 import { escape, run } from './effects.ts';
-import { CLEAN, DIRTY, type Effect } from './graph.ts';
+import { CLEAN, DESTROYED, DIRTY, RUNNING, isDestroyed, isInert, type Effect } from './graph.ts';
 import { instantly } from './past.ts';
 import { stale } from './reads.ts';
 
@@ -28,7 +28,7 @@ function blocks(marked: Set<Effect>, batch: Batch): void {
 				if (marked.delete(at)) ordered.push(at);
 			for (let index = ordered.length - 1; index >= 0; index--) {
 				const effect = ordered[index] as Effect;
-				if (effect.destroyed || excluded(effect, batch)) continue;
+				if (isDestroyed(effect) || excluded(effect, batch)) continue;
 				const holder = drafting === 0 ? null : heldAbove(effect);
 				if (holder !== null && holder !== batch) handOver(effect, holder);
 				else if (due(effect)) run(effect);
@@ -49,8 +49,8 @@ export function settle(
 	try {
 		for (; index < effects.length; index++) {
 			const effect = effects[index] as Effect;
-			if (effect.destroyed || effect.running) continue;
-			if (batch.skipped !== null || concealed > 0 ? excluded(effect, batch) : effect.inert)
+			if ((effect.flags & (DESTROYED | RUNNING)) !== 0) continue;
+			if (batch.skipped !== null || concealed > 0 ? excluded(effect, batch) : isInert(effect))
 				continue;
 			const recheck = batch.forced?.delete(effect) === true;
 			if (!due(effect, force || recheck, batch)) continue;

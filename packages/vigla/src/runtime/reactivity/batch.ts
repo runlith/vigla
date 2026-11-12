@@ -1,6 +1,16 @@
 import { DEV } from 'esm-env';
 import type { AsyncRun } from './async.ts';
-import { BRANCH, CLEAN, ROOT, type Effect, type Source } from './graph.ts';
+import {
+	BRANCH,
+	CLEAN,
+	FORKED,
+	PENDING,
+	ROOT,
+	isDestroyed,
+	isInert,
+	type Effect,
+	type Source
+} from './graph.ts';
 import { clear, detach, enter, sequence, type History, type Origin } from './history.ts';
 import { forgotten } from './provenance.ts';
 import { parked, showing } from './tallies.ts';
@@ -182,7 +192,7 @@ export function excluded(effect: Effect, batch: Batch): boolean {
 	const shown = batch.shown;
 	for (let at: Effect | null = effect; at !== null; at = at.parent) {
 		if (skipped !== null && skipped.has(at)) return true;
-		if (at.inert && (shown === null || !shown.has(at))) return true;
+		if (isInert(at) && (shown === null || !shown.has(at))) return true;
 	}
 	return false;
 }
@@ -276,9 +286,23 @@ function carries(batch: Batch | null, order: number): boolean {
 function foreign(effect: Effect, batch: Batch): boolean {
 	const order = effect.batch;
 	if (order === 0 || order === batch.order) return false;
-	if (effect.forked || carries(batch, order) || carries(open, order)) return true;
+	if ((effect.flags & FORKED) !== 0 || carries(batch, order) || carries(open, order)) return true;
 	for (let index = 0; index < pending.length; index++)
 		if (carries(pending[index] as Batch, order)) return true;
+	return false;
+}
+
+export function admit(batch: Batch, effect: Effect): void {
+	const found = alias(batch);
+	if (!found.done) (found.shown ??= new Set()).add(effect);
+}
+
+function skippedElsewhere(effect: Effect, batch: Batch): boolean {
+	if (open !== null && open !== batch && open.skipped?.has(effect) === true) return true;
+	for (let index = 0; index < pending.length; index++) {
+		const other = pending[index] as Batch;
+		if (other !== batch && !other.done && other.skipped?.has(effect) === true) return true;
+	}
 	return false;
 }
 
@@ -286,7 +310,7 @@ export function unskip(effect: Effect): void {
 	const batch = processing;
 	if (batch === null) return;
 	const skipped = batch.skipped !== null && batch.skipped.delete(effect);
-	(batch.shown ??= new Set()).add(effect);
+	if (isInert(effect) || skippedElsewhere(effect, batch)) (batch.shown ??= new Set()).add(effect);
 	if (skipped || foreign(effect, batch) || overlooked.has(effect)) requeue(batch, effect);
 }
 
@@ -295,7 +319,7 @@ export function processed(): Batch | null {
 }
 
 export function force(batch: Batch, effect: Effect): void {
-	if (effect.destroyed) return;
+	if (isDestroyed(effect)) return;
 	(batch.forced ??= new Set()).add(effect);
 	enqueue(batch, effect);
 }
@@ -306,16 +330,16 @@ function gather(
 	marked: boolean,
 	adopter: Batch | null = null
 ): void {
-	if (marked) effect.pending = false;
+	if (marked) effect.flags &= ~PENDING;
 	for (let child = effect.first; child !== null; child = child.next) {
-		if (child.destroyed) continue;
+		if (isDestroyed(child)) continue;
 		if (
 			child.kind !== BRANCH &&
 			child.kind !== ROOT &&
 			(child.status !== CLEAN || (adopter !== null && foreign(child, adopter)))
 		)
 			out.push(child);
-		if (!marked || child.pending) gather(child, out, marked, adopter);
+		if (!marked || (child.flags & PENDING) !== 0) gather(child, out, marked, adopter);
 	}
 }
 

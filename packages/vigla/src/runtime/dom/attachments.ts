@@ -1,6 +1,6 @@
 import { alias, atCommit, atDiscard, atMerge, processed, type Batch } from '../reactivity/batch.ts';
 import { block, branch, destroy, effect, template } from '../reactivity/effects.ts';
-import type { Effect } from '../reactivity/graph.ts';
+import { isDestroyed, type Effect } from '../reactivity/graph.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
 
 export const ATTACHMENT = '@attach';
@@ -17,7 +17,7 @@ export function attach(element: Element, get: () => unknown): Effect {
 	let parent: Effect | null = null;
 	let stages: Map<Batch, unknown> | null = null;
 	const publish = (next: unknown): void => {
-		if (parent === null || parent.destroyed || next === current) return;
+		if (parent === null || isDestroyed(parent) || next === current) return;
 		current = next;
 		if (shown !== null) destroy(shown);
 		shown = null;

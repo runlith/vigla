@@ -11,12 +11,15 @@ import {
 } from './effects.ts';
 import { inertDerived, referencesSelf } from './errors.ts';
 import {
+	ASYNC,
 	BLOCK,
 	CLEAN,
 	DIRTY,
+	FORKED,
 	MAYBE,
 	equal,
 	isDerived,
+	isDestroyed,
 	now,
 	retainsFailures,
 	stamp,
@@ -198,7 +201,7 @@ let lapsed: Set<Derived> | null = null;
 function inert(derived: Derived): boolean {
 	if (!derived.lapses) return false;
 	const holder = derived.owner;
-	if (holder === null || !holder.destroyed || !derived.computed || tearingDown()) return false;
+	if (holder === null || !isDestroyed(holder) || !derived.computed || tearingDown()) return false;
 	const outer = lapsed;
 	if (outer?.has(derived)) return true;
 	const checked = (lapsed = outer ?? new Set());
@@ -245,7 +248,7 @@ function recompute(derived: Derived): void {
 			if (holder === null || retainsFailures(derived)) derived.failure = { error };
 			if (holder === null) return;
 			derived.v = undefined as typeof derived.v;
-			if (holder.destroyed) return;
+			if (isDestroyed(holder)) return;
 			const status = derived.status;
 			derived.status = DIRTY;
 			fail(holder, error);
@@ -321,14 +324,18 @@ export function changed(reads: ReadonlyMap<Source, unknown>, target: Reaction): 
 
 export function stale(target: Reaction, recheck = false): boolean {
 	if (recheck && target.deps === null) return true;
-	if (recheck && ((target.deps as Source[]).length > 0 || (target as Effect).async)) {
+	if (
+		recheck &&
+		((target.deps as Source[]).length > 0 ||
+			(!isDerived(target) && ((target as Effect).flags & ASYNC) !== 0))
+	) {
 		const effect = target as Effect;
 		const batch = view?.batch ?? processed();
 		const own = batch?.reads?.get(effect);
 		if (
 			own === undefined &&
 			effect.kind === BLOCK &&
-			(!effect.async || effect.forked) &&
+			(effect.flags & (ASYNC | FORKED)) !== ASYNC &&
 			effect.batch !== 0 &&
 			effect.batch !== batch?.order
 		)
@@ -348,8 +355,7 @@ export function stale(target: Reaction, recheck = false): boolean {
 		const batch = view?.batch ?? processed();
 		if (
 			effect.kind === BLOCK &&
-			effect.forked &&
-			!effect.async &&
+			(effect.flags & (ASYNC | FORKED)) === FORKED &&
 			effect.batch !== batch?.order &&
 			!batch?.reads?.has(effect)
 		)

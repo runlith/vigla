@@ -1,5 +1,5 @@
 import { staleReaction } from '../../shared/abort.ts';
-import type { Effect, Reaction } from './graph.ts';
+import { isDestroyed, type Effect, type Reaction } from './graph.ts';
 
 const controllers = new WeakMap<object, AbortController>();
 const lifetimes = new WeakMap<Effect, AbortController>();
@@ -9,7 +9,7 @@ export function lifetime(effect: Effect): AbortSignal {
 	if (controller === undefined) {
 		controller = new AbortController();
 		lifetimes.set(effect, controller);
-		if (effect.destroyed) controller.abort(staleReaction);
+		if (isDestroyed(effect)) controller.abort(staleReaction);
 	}
 	return controller.signal;
 }

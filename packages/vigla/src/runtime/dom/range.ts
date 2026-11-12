@@ -17,7 +17,7 @@ let slotting = false;
 
 const offscreen = new WeakMap<ParentNode, boolean>();
 
-function slots(at: ChildNode | null): boolean {
+export function slots(at: ChildNode | null): boolean {
 	if (at === null) return false;
 	const parent = at.parentNode;
 	if (parent === null) return slotting;
@@ -94,11 +94,10 @@ export function stage(): DocumentFragment {
 export function buildLoose(
 	staging: DocumentFragment,
 	render: Render,
-	create: (fn: () => void) => Effect = branch,
-	at: ChildNode | null = null
+	create: (fn: () => void) => Effect,
+	slotted: boolean
 ): Built {
 	if (hydrating) return adopt(render, create);
-	const slotted = slots(at);
 	const anchor = staging.lastChild as ChildNode;
 	const before = anchor.previousSibling;
 	const outer = slotting;

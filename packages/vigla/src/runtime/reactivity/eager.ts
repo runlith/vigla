@@ -1,5 +1,5 @@
 import { run } from './effects.ts';
-import type { Effect } from './graph.ts';
+import { isDestroyed, type Effect } from './graph.ts';
 import { stale } from './reads.ts';
 import { present } from './tracking.ts';
 
@@ -36,7 +36,7 @@ export function runEager(): void {
 		present(() => {
 			for (const effect of queued) {
 				queued.delete(effect);
-				if (!effect.destroyed && due(effect)) run(effect);
+				if (!isDestroyed(effect) && due(effect)) run(effect);
 			}
 		});
 	} finally {

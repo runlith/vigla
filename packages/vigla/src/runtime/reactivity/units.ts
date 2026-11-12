@@ -1,13 +1,36 @@
 import { current, open, pending, processing } from './batch.ts';
 import { ambient } from './carried.ts';
-import { application, type Effect } from './graph.ts';
+import { UNITS, application, isDestroyed, type Effect } from './graph.ts';
 import { owner } from './tracking.ts';
 
 let outstanding = 0;
 const watchers = new Set<() => void>();
 const speculative = new WeakSet<() => void>();
+const held = new WeakMap<Effect, Set<() => void>>();
 let drains: (() => void)[] = [];
 let waiting: (() => void)[] = [];
+
+export function holdUnit(holder: Effect | null, settle: () => void): void {
+	if (holder === null || isDestroyed(holder)) return;
+	let found = held.get(holder);
+	if (found === undefined) {
+		held.set(holder, (found = new Set()));
+		holder.flags |= UNITS;
+	}
+	found.add(settle);
+}
+
+export function dropUnit(holder: Effect | null, settle: () => void): void {
+	if (holder !== null && (holder.flags & UNITS) !== 0) held.get(holder)?.delete(settle);
+}
+
+export function endUnits(effect: Effect): void {
+	if ((effect.flags & UNITS) === 0) return;
+	effect.flags &= ~UNITS;
+	const found = held.get(effect);
+	held.delete(effect);
+	for (const settle of found ?? []) settle();
+}
 
 export function unsettled(): boolean {
 	return outstanding > 0;
@@ -37,8 +60,9 @@ export function recheck(): void {
 }
 
 function busy(effect: Effect): boolean {
-	if (effect.destroyed) return false;
-	for (const settle of effect.units ?? []) if (!speculative.has(settle)) return true;
+	if (isDestroyed(effect)) return false;
+	if ((effect.flags & UNITS) !== 0)
+		for (const settle of held.get(effect) ?? []) if (!speculative.has(settle)) return true;
 	for (let child = effect.first; child !== null; child = child.next) if (busy(child)) return true;
 	return false;
 }
@@ -49,10 +73,10 @@ export function unit(holder: Effect | null): () => void {
 	const settle = (): void => {
 		if (!open) return;
 		open = false;
-		holder?.units?.delete(settle);
+		dropUnit(holder, settle);
 		released();
 	};
-	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
+	holdUnit(holder, settle);
 	return settle;
 }
 

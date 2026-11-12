@@ -4,7 +4,7 @@ import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
 import { destroy, detach, detached } from '../reactivity/effects.ts';
 import { setFront } from '../reactivity/front.ts';
-import type { Effect } from '../reactivity/graph.ts';
+import { isDestroyed, type Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
 import { introducing, pause } from '../transitions/manager.ts';
 import { boundary, transformAt } from './boundary.ts';
@@ -98,7 +98,7 @@ function start<P extends Props, E extends Exports>(
 }
 
 function finish(instance: object, built: Built, target: ParentNode): void {
-	if (built.effect.destroyed) {
+	if (isDestroyed(built.effect)) {
 		remove(built);
 		return;
 	}
@@ -120,7 +120,7 @@ export function mount<P extends Props, E extends Exports>(
 	options: MountOptions<P>
 ): E {
 	const { instance, built } = start(component, options);
-	if (!built.effect.destroyed) {
+	if (!isDestroyed(built.effect)) {
 		options.target.insertBefore(built.fragment as DocumentFragment, options.anchor ?? null);
 		built.fragment = null;
 	}

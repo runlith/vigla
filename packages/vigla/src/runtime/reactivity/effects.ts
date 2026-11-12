@@ -1,13 +1,22 @@
 import {
+	ASYNC,
 	BLOCK,
 	BRANCH,
 	CLEAN,
+	DESTROYED,
 	DIRTY,
 	EAGER,
 	EFFECT,
+	FORKED,
+	INERT,
+	PRESERVED,
 	ROOT,
+	RUNNING,
+	SCOPE,
 	TEMPLATE,
+	UNITS,
 	isDerived,
+	isDestroyed,
 	type Boundary,
 	type Derived,
 	type Effect,
@@ -55,6 +64,7 @@ import { orphan, teardownOrphan } from './errors.ts';
 import { ownLeaving } from './outgoing.ts';
 import { presently, retire } from './past.ts';
 import { link, unlink } from './siblings.ts';
+import { endUnits } from './units.ts';
 import {
 	deriving,
 	evaluation,
@@ -125,7 +135,7 @@ function install(derived: Derived, cohort: Batch): void {
 	for (const draft of found) drop(derived, draft);
 	take(derived, latest);
 	const replaced = derived.effects;
-	const effects = [...latest.children].filter((effect) => !effect.destroyed);
+	const effects = [...latest.children].filter((effect) => !isDestroyed(effect));
 	derived.effects = effects.length === 0 ? null : effects;
 	derived.frozen = null;
 	restoreSignal(derived, latest.signal);
@@ -138,7 +148,7 @@ function adopt(batch: Batch): void {
 		if (isDerived(reaction)) continue;
 		const effect = reaction as Effect;
 		const draft = draftOf(effect, batch);
-		if (draft === undefined || effect.destroyed) continue;
+		if (draft === undefined || isDestroyed(effect)) continue;
 		if (!draft.speculative || effect.batch === batch.order) promote(effect, draft);
 	}
 }
@@ -219,21 +229,21 @@ function disconnect(derived: Derived): void {
 	const deps = derived.deps;
 	destroyEffects(derived);
 	unsubscribe(derived);
-	if (derived.lapses && deps !== null && derived.owner?.destroyed === true)
+	if (derived.lapses && deps !== null && derived.owner !== null && isDestroyed(derived.owner))
 		ended.set(derived, deps);
 	derived.status = DIRTY;
 	marked();
 }
 
 export function hide(effect: Effect): void {
-	if (effect.destroyed || effect.inert) return;
-	effect.inert = true;
+	if ((effect.flags & (DESTROYED | INERT)) !== 0) return;
+	effect.flags |= INERT;
 	conceal(1);
 }
 
 export function show(effect: Effect): void {
-	if (!effect.inert) return;
-	effect.inert = false;
+	if ((effect.flags & INERT) === 0) return;
+	effect.flags &= ~INERT;
 	conceal(-1);
 }
 
@@ -241,9 +251,8 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 	const effect: Effect = {
 		kind,
 		status: DIRTY,
+		flags: 0,
 		batch: 0,
-		forked: false,
-		async: false,
 		deps: null,
 		rv: 0,
 		fn,
@@ -254,16 +263,9 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		prev: null,
 		next: null,
 		owned: null,
-		units: null,
 		boundary: parent === null ? null : parent.boundary,
 		context: parent === null ? null : parent.context,
 		order: ++created,
-		running: false,
-		destroyed: false,
-		inert: false,
-		pending: false,
-		scope: false,
-		preserved: false,
 		slots: null,
 		captured: null
 	};
@@ -359,7 +361,7 @@ export function run(effect: Effect, first = false): void {
 	const tracked = effect.kind !== ROOT && effect.kind !== BRANCH;
 	const batch = view?.batch ?? processed();
 	const draft =
-		!first && tracked && batch !== null && (batch.fork || effect.async)
+		!first && tracked && batch !== null && (batch.fork || (effect.flags & ASYNC) !== 0)
 			? begin(effect, batch)
 			: null;
 	let signal: AbortController | undefined;
@@ -374,7 +376,7 @@ export function run(effect: Effect, first = false): void {
 		if (drafting !== 0) dropAll(effect);
 	} else signal = takeSignal(effect);
 	const previous = setOwner(effect);
-	effect.running = true;
+	effect.flags |= RUNNING;
 	let result: unknown;
 	let failed = false;
 	let caught: unknown;
@@ -390,7 +392,7 @@ export function run(effect: Effect, first = false): void {
 		failed = true;
 		caught = error;
 	} finally {
-		effect.running = false;
+		effect.flags &= ~RUNNING;
 		setOwner(previous);
 		if (draft !== null) {
 			draft.signal = takeSignal(effect);
@@ -399,18 +401,20 @@ export function run(effect: Effect, first = false): void {
 	}
 	const hidden = tracked ? takeHidden() : null;
 	effect.batch = batch?.order ?? 0;
-	effect.forked = batch?.fork ?? false;
+	if (batch?.fork === true) effect.flags |= FORKED;
+	else effect.flags &= ~FORKED;
 	if (failed) {
 		effect.status = CLEAN;
 		fail(effect, caught);
 		return;
 	}
 	if (typeof result === 'function') {
-		if (draft === null) effect.teardown = result as () => void;
-		else draft.teardown = result as () => void;
+		const returned = result as () => void;
+		if (draft !== null) draft.teardown = returned;
+		else effect.teardown = effect.teardown === null ? returned : both(effect.teardown, returned);
 	}
 	if (hidden !== null || pending.length > 0) revisit(effect, hidden);
-	if (effect.status !== CLEAN && !effect.destroyed) schedule(effect);
+	if (effect.status !== CLEAN && !isDestroyed(effect)) schedule(effect);
 }
 
 export function start(effect: Effect): Effect {
@@ -430,13 +434,11 @@ function spent(effect: Effect): boolean {
 	const deps = effect.deps;
 	return (
 		effect.status === CLEAN &&
-		!effect.destroyed &&
-		!effect.preserved &&
+		(effect.flags & (DESTROYED | PRESERVED | UNITS)) === 0 &&
 		(deps === null || deps.length === 0) &&
 		effect.first === null &&
 		effect.teardown === null &&
-		effect.owned === null &&
-		effect.units === null
+		effect.owned === null
 	);
 }
 
@@ -445,7 +447,7 @@ function attach(kind: Kind, fn: () => void | (() => void)): Effect {
 	if (kind === TEMPLATE && spent(effect)) {
 		unlink(effect);
 		effect.fn = null;
-		effect.destroyed = true;
+		effect.flags |= DESTROYED;
 	}
 	return effect;
 }
@@ -509,6 +511,26 @@ export function teardown(fn: () => void): Effect {
 	return created;
 }
 
+function both(first: () => void, second: () => void): () => void {
+	return () => {
+		try {
+			first();
+		} finally {
+			second();
+		}
+	};
+}
+
+export function atEnd(fn: () => void): void {
+	const holder = owner;
+	if (holder === null || (holder.kind !== BRANCH && holder.kind !== ROOT)) {
+		teardown(fn);
+		return;
+	}
+	const previous = holder.teardown;
+	holder.teardown = previous === null ? fn : both(previous, fn);
+}
+
 export function destroyed(fn: () => void): Effect {
 	if (owner === null) teardownOrphan();
 	return teardown(() => presently(fn));
@@ -532,7 +554,7 @@ export function getReactionSignal(): AbortSignal {
 		);
 	}
 	const run = resuming();
-	const ended = run !== null && (run.ended || (run.reaction as Effect).destroyed);
+	const ended = run !== null && (run.ended || isDestroyed(run.reaction as Effect));
 	const release = ended ? immediately : teardown;
 	return evaluationSignal(reaction, release, reaction === running());
 }
@@ -545,8 +567,8 @@ type Among = ((child: Effect) => boolean) | null;
 
 function doomed(child: Effect, keepBranches: boolean, among: Among): boolean {
 	return (
-		!child.destroyed &&
-		(child.scope || !keepBranches || child.kind !== BRANCH) &&
+		(child.flags & DESTROYED) === 0 &&
+		((child.flags & SCOPE) !== 0 || !keepBranches || child.kind !== BRANCH) &&
 		(among === null || among(child))
 	);
 }
@@ -556,16 +578,16 @@ function destroyChildren(effect: Effect, keepBranches = false, among: Among = nu
 		let end = effect.last;
 		while (end !== null && !doomed(end, keepBranches, among)) end = end.prev;
 		if (end === null) return;
-		if (end.scope) {
+		if ((end.flags & SCOPE) !== 0) {
 			destroy(end);
 			continue;
 		}
 		let start = end;
-		while (start.prev !== null && !start.prev.scope) start = start.prev;
+		while (start.prev !== null && (start.prev.flags & SCOPE) === 0) start = start.prev;
 		for (let child: Effect | null = start; child !== null;) {
 			const next: Effect | null = child === end ? null : child.next;
 			if (doomed(child, keepBranches, among)) destroy(child);
-			if (next === null || next.destroyed) break;
+			if (next === null || isDestroyed(next)) break;
 			child = next;
 		}
 	}
@@ -583,8 +605,8 @@ export function detach(effect: Effect, fn: (() => void) | null): void {
 }
 
 export function destroy(effect: Effect): void {
-	if (effect.destroyed) return;
-	effect.destroyed = true;
+	if ((effect.flags & DESTROYED) !== 0) return;
+	effect.flags |= DESTROYED;
 	const detached = detaching.get(effect);
 	if (detached !== undefined) {
 		detaching.delete(effect);
@@ -598,24 +620,19 @@ export function destroy(effect: Effect): void {
 	effect.teardown = null;
 	effect.fn = null;
 	unlink(effect);
-	if (effect.inert) {
-		effect.inert = false;
+	if ((effect.flags & INERT) !== 0) {
+		effect.flags &= ~INERT;
 		conceal(-1);
 	}
 	if (teardown !== null) dispose(effect, teardown);
 	if (drafting !== 0) dropAll(effect);
 	if (effect.parent === null) orphaned(effect);
-	const units = effect.units;
-	if (units !== null) {
-		effect.units = null;
-		for (const settle of units) settle();
-	}
+	endUnits(effect);
 }
 
 function holding(effect: Effect): boolean {
 	return (
-		!effect.destroyed &&
-		!effect.running &&
+		(effect.flags & (DESTROYED | RUNNING)) === 0 &&
 		effect.fn !== null &&
 		(effect.kind === EFFECT || effect.kind === TEMPLATE) &&
 		(effect.teardown !== null || effect.first !== null)
@@ -650,7 +667,7 @@ export function thaw(derived: Derived): void {
 	if (frozen === null) return;
 	derived.frozen = null;
 	for (const effect of frozen) {
-		if (effect.destroyed) continue;
+		if (isDestroyed(effect)) continue;
 		effect.status = DIRTY;
 		schedule(effect);
 	}

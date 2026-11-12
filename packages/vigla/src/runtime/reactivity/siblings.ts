@@ -1,4 +1,4 @@
-import type { Effect } from './graph.ts';
+import { isDestroyed, type Effect } from './graph.ts';
 
 export function link(effect: Effect, parent: Effect): void {
 	effect.prev = parent.last;
@@ -19,7 +19,7 @@ export function unlink(effect: Effect): void {
 
 export function sendLast(effect: Effect): void {
 	const parent = effect.parent;
-	if (effect.destroyed || parent === null || parent.last === effect) return;
+	if (isDestroyed(effect) || parent === null || parent.last === effect) return;
 	unlink(effect);
 	link(effect, parent);
 }

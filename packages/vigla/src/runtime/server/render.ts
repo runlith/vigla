@@ -6,6 +6,7 @@ import { Data, type Csp, type Script } from './hydration.ts';
 import { isVoid } from '../../shared/html.ts';
 import { close, empty, open } from '../../shared/markers.ts';
 import { detached } from '../reactivity/effects.ts';
+import { SCOPE } from '../reactivity/graph.ts';
 import { setFront } from '../reactivity/front.ts';
 import { ambient } from '../reactivity/carried.ts';
 import {
@@ -429,7 +430,7 @@ export function render<P extends Props>(
 	const out = new Output(global);
 	const caller = ambient();
 	const scope = detached(null, caller);
-	scope.scope = true;
+	scope.flags |= SCOPE;
 	setFront(scope, options.format ?? nativeFormat);
 	const current = begin(
 		scope,

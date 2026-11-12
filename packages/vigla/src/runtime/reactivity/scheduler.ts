@@ -26,6 +26,7 @@ import { queueEager, runEager } from './eager.ts';
 import { enterScheduler, leaveScheduler, overflow, run } from './effects.ts';
 import { depthExceeded } from './errors.ts';
 import {
+	ASYNC,
 	BLOCK,
 	CLEAN,
 	DERIVED,
@@ -33,8 +34,11 @@ import {
 	EAGER,
 	EFFECT,
 	MAYBE,
+	PENDING,
 	TEMPLATE,
 	equal,
+	isDestroyed,
+	isInert,
 	stamp,
 	type Derived,
 	type Effect,
@@ -92,7 +96,12 @@ function mark(source: Source, status: Status, all: boolean, forked: number): voi
 		}
 		if (forked !== 0 && previous === CLEAN && effect.batch === forked) continue;
 		if (previous < status) effect.status = status;
-		if (eager !== null && previous !== DIRTY && effect.kind === BLOCK && !effect.async)
+		if (
+			eager !== null &&
+			previous !== DIRTY &&
+			effect.kind === BLOCK &&
+			(effect.flags & ASYNC) === 0
+		)
 			eager.add(effect);
 		if (all || previous === CLEAN) enqueue((scheduling ??= receiving()), effect);
 	}
@@ -200,21 +209,21 @@ function created(a: Effect, b: Effect): number {
 function resolve(pass: readonly Effect[], forced: Set<Effect> | null): Effect[] {
 	const roots: Effect[] = [];
 	for (const effect of pass) {
-		if (effect.destroyed) continue;
+		if (isDestroyed(effect)) continue;
 		if (effect.status === CLEAN && (forced === null || !forced.has(effect))) continue;
 		let top = effect;
 		let covered = false;
 		while (top.parent !== null) {
 			top = top.parent;
-			if (top.pending) {
+			if ((top.flags & PENDING) !== 0) {
 				covered = true;
 				break;
 			}
-			top.pending = true;
+			top.flags |= PENDING;
 		}
 		if (top === effect) {
-			covered = effect.pending;
-			effect.pending = true;
+			covered = (effect.flags & PENDING) !== 0;
+			effect.flags |= PENDING;
 		}
 		if (!covered) roots.push(top);
 	}
@@ -223,15 +232,15 @@ function resolve(pass: readonly Effect[], forced: Set<Effect> | null): Effect[] 
 }
 
 function unmark(effect: Effect): void {
-	effect.pending = false;
+	effect.flags &= ~PENDING;
 	for (let child = effect.first; child !== null; child = child.next)
-		if (child.pending) unmark(child);
+		if ((child.flags & PENDING) !== 0) unmark(child);
 }
 
 function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
-	effect.pending = false;
+	effect.flags &= ~PENDING;
 	for (let child = effect.first; child !== null; child = child.next) {
-		if (child.destroyed) continue;
+		if (isDestroyed(child)) continue;
 		if (drafting !== 0) {
 			const holder = heldBy(child);
 			if (holder !== null && holder !== batch) {
@@ -239,12 +248,12 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 				continue;
 			}
 		}
-		if (child.inert && (batch.shown === null || !batch.shown.has(child))) {
-			if (child.pending) overlook(child, batch);
+		if (isInert(child) && (batch.shown === null || !batch.shown.has(child))) {
+			if ((child.flags & PENDING) !== 0) overlook(child, batch);
 			continue;
 		}
 		if (batch.skipped !== null && batch.skipped.has(child)) {
-			if (child.pending) {
+			if ((child.flags & PENDING) !== 0) {
 				unmark(child);
 				overlooked.add(child);
 			}
@@ -263,7 +272,7 @@ function traverse(effect: Effect, batch: Batch, content: Effect[]): void {
 				if (forced || child.status !== CLEAN) batch.effects.push(child);
 				break;
 		}
-		if (child.pending) traverse(child, batch, content);
+		if ((child.flags & PENDING) !== 0) traverse(child, batch, content);
 	}
 }
 

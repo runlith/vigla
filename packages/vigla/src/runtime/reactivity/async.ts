@@ -7,10 +7,10 @@ import { sequence } from './history.ts';
 import { changed, get } from './reads.ts';
 import { waitFor } from './held.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
-import { type Boundary, type Effect, type Source } from './graph.ts';
+import { ASYNC, isDestroyed, type Boundary, type Effect, type Source } from './graph.ts';
 import { source } from './sources.ts';
 import { showing, tallied, tally } from './tallies.ts';
-import { begin, exempt, recheck, released } from './units.ts';
+import { begin, dropUnit, exempt, holdUnit, recheck, released } from './units.ts';
 import { awaiting, owner, running, settleReads, type Resumption } from './tracking.ts';
 
 export interface AsyncRun {
@@ -29,7 +29,7 @@ interface Result {
 export function reveal(boundary: Boundary): void {
 	const found = tallied(boundary);
 	if (found === undefined) return;
-	for (const effect of found.effects.splice(0)) if (!effect.destroyed) collect(effect);
+	for (const effect of found.effects.splice(0)) if (!isDestroyed(effect)) collect(effect);
 }
 
 function count(boundary: Boundary | null, delta: 1 | -1): void {
@@ -73,7 +73,7 @@ export function work(): () => void {
 	const settle = (): void => {
 		if (!unsettled) return;
 		unsettled = false;
-		holder?.units?.delete(settle);
+		dropUnit(holder, settle);
 		count(boundary, -1);
 		if (blocking) {
 			const target = alias(batch);
@@ -90,7 +90,7 @@ export function work(): () => void {
 		else recheck();
 	};
 	if (!counted) exempt(settle);
-	if (holder !== null && !holder.destroyed) (holder.units ??= new Set()).add(settle);
+	holdUnit(holder, settle);
 	return settle;
 }
 
@@ -229,7 +229,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			owned = false;
 			latest.delete(target);
 			const current = alias(target);
-			if (effect.destroyed || current.discarded) return false;
+			if (isDestroyed(effect) || current.discarded) return false;
 			return current.fork || order >= realOrder(true);
 		};
 		promise.then(
@@ -258,7 +258,7 @@ export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>
 			}
 		);
 	});
-	effect.async = true;
+	effect.flags |= ASYNC;
 	return ready;
 }
 

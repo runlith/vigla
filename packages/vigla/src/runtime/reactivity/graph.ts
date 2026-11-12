@@ -79,8 +79,19 @@ export interface Boundary {
 	failed(error: unknown): void;
 }
 
+export const DESTROYED = 1;
+export const INERT = 2;
+export const PENDING = 4;
+export const RUNNING = 8;
+export const FORKED = 16;
+export const ASYNC = 32;
+export const SCOPE = 64;
+export const PRESERVED = 128;
+export const UNITS = 256;
+
 export interface Effect extends Reaction {
 	readonly kind: Kind;
+	flags: number;
 	boundary: Boundary | null;
 	fn: (() => void | (() => void)) | null;
 	teardown: (() => void) | null;
@@ -90,18 +101,17 @@ export interface Effect extends Reaction {
 	prev: Effect | null;
 	next: Effect | null;
 	owned: Derived[] | null;
-	units: Set<() => void> | null;
 	context: unknown;
 	order: number;
 	batch: number;
-	forked: boolean;
-	async: boolean;
-	running: boolean;
-	destroyed: boolean;
-	inert: boolean;
-	pending: boolean;
-	scope: boolean;
-	preserved: boolean;
+}
+
+export function isDestroyed(effect: Effect): boolean {
+	return (effect.flags & DESTROYED) !== 0;
+}
+
+export function isInert(effect: Effect): boolean {
+	return (effect.flags & INERT) !== 0;
 }
 
 let clock = 0;

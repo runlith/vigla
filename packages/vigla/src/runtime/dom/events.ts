@@ -1,8 +1,8 @@
 import { warn } from '../../shared/diagnostics.ts';
 import { isPassive } from '../../shared/html.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
-import { teardown } from '../reactivity/effects.ts';
-import type { Effect } from '../reactivity/graph.ts';
+import { atEnd, teardown } from '../reactivity/effects.ts';
+import { isDestroyed, type Effect } from '../reactivity/graph.ts';
 import { task } from '../reactivity/tasks.ts';
 import type { Location } from './meta.ts';
 
@@ -12,6 +12,9 @@ const handled = Symbol('handled');
 
 interface Registration {
 	readonly handler: EventListener | null | undefined;
+	readonly events: Handlers;
+	readonly type: string;
+	next: Registration | null;
 }
 
 type Handlers = Record<string, Registration | undefined>;
@@ -106,42 +109,49 @@ export function event(
 
 let retiring: Effect | null = null;
 
-let retired: (() => void)[] = [];
+let head: Registration | null = null;
 
-function retireWithOwner(remove: () => void): void {
-	const current = owner;
-	if (
-		retiring !== null &&
-		current !== null &&
-		retiring.parent === current &&
-		current.last === retiring &&
-		!retiring.destroyed
-	) {
-		retired.push(remove);
-		return;
-	}
-	const removals = [remove];
-	retiring = teardown(() => {
-		for (const each of removals) each();
-	});
-	retired = removals;
+let tail: Registration | null = null;
+
+function unregister(registration: Registration): void {
+	const events = registration.events;
+	if (events[registration.type] === registration) delete events[registration.type];
 }
 
-export function delegated(
+function retire(first: Registration): void {
+	if (head === first) retiring = head = tail = null;
+	for (let at: Registration | null = first; at !== null; at = at.next) unregister(at);
+}
+
+function retireWithOwner(registration: Registration): void {
+	const current = owner;
+	if (tail !== null && current !== null && current === retiring && !isDestroyed(current)) {
+		tail = tail.next = registration;
+		return;
+	}
+	retiring = current;
+	head = tail = registration;
+	atEnd(() => retire(registration));
+}
+
+function register(element: EventTarget, type: string, handler: EventListener | null): Registration {
+	const events = ((element as EventTarget & Holder)[handlers] ??= {});
+	const registration: Registration = { handler, events, type, next: null };
+	events[type] = registration;
+	return registration;
+}
+
+export function delegated(element: EventTarget, type: string, handler: EventListener | null): void {
+	retireWithOwner(register(element, type, handler));
+}
+
+export function delegation(
 	element: EventTarget,
 	type: string,
-	handler: EventListener | null,
-	owned = false
+	handler: EventListener | null
 ): () => void {
-	const holder = element as EventTarget & Holder;
-	const events = (holder[handlers] ??= {});
-	const registration: Registration = { handler };
-	events[type] = registration;
-	const remove = (): void => {
-		if (events[type] === registration) delete events[type];
-	};
-	if (owned) retireWithOwner(remove);
-	return remove;
+	const registration = register(element, type, handler);
+	return () => unregister(registration);
 }
 
 const registered = new Set<string>();

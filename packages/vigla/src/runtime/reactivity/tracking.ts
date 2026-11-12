@@ -10,7 +10,9 @@ import {
 	DIRTY,
 	EAGER,
 	MAYBE,
+	ASYNC,
 	isDerived,
+	isDestroyed,
 	now,
 	type Derived,
 	type Effect,
@@ -164,6 +166,10 @@ function top(): Frame | null {
 	return depth === floor ? null : (frames[depth - 1] as Frame);
 }
 
+function ended(reaction: Reaction): boolean {
+	return (reaction as Effect | Derived).kind !== DERIVED && isDestroyed(reaction as Effect);
+}
+
 function kindOf(at: Frame): number {
 	return (at.target as Effect | Derived).kind;
 }
@@ -232,7 +238,7 @@ function retain(target: Reaction, current: Frame): void {
 	}
 	target.captured = { values: reads, viewed: view !== null };
 	const effect = target as Effect;
-	if (effect.kind !== BLOCK || effect.async) return;
+	if (effect.kind !== BLOCK || (effect.flags & ASYNC) !== 0) return;
 	const batch = view?.batch ?? processed();
 	if (batch !== null && (batch.after !== null || batch.work > 0 || batch.fork))
 		(batch.reads ??= new Map()).set(effect, reads);
@@ -248,7 +254,7 @@ export function viewedReads(target: Reaction): ReadonlyMap<Source, unknown> | un
 }
 
 export function settleReads(run: Resumption): void {
-	if (run.reaction.deps === null || (run.reaction as Effect).destroyed === true) return;
+	if (run.reaction.deps === null || ended(run.reaction)) return;
 	retainDeps(run.reaction, run.reads);
 }
 
@@ -354,7 +360,7 @@ export function resumeReading(run: Resumption | null, discarded: boolean): void 
 	if (run === null) return;
 	if (discarded) run.ended = true;
 	resumption = run;
-	if (frame !== null || (run.reaction as Effect).destroyed === true) return;
+	if (frame !== null || ended(run.reaction)) return;
 	late = {
 		target: run.reaction,
 		started: 0,
@@ -519,7 +525,7 @@ export function track<T>(target: Reaction, fn: () => T, isolated = false): T {
 		evaluating = previousEvaluation;
 		if (!isolated) {
 			hiddenByLast = current.hidden;
-			if ((target as Effect).destroyed === true) unsubscribe(target);
+			if (ended(target)) unsubscribe(target);
 			else {
 				const invalidated =
 					current.invalidated || ((view !== null || marks !== current.marks) && readDirty(current));

@@ -2,7 +2,7 @@ import { OPEN_ELSE } from '../../shared/markers.ts';
 import { flushSync, write } from '../reactivity/scheduler.ts';
 import { resumed, suspend } from '../reactivity/views.ts';
 import { block } from '../reactivity/effects.ts';
-import type { Effect, Source } from '../reactivity/graph.ts';
+import { isDestroyed, type Effect, type Source } from '../reactivity/graph.ts';
 import { derived, source } from '../reactivity/sources.ts';
 import { task } from '../reactivity/tasks.ts';
 import { get } from '../reactivity/reads.ts';
@@ -53,7 +53,7 @@ export function awaited(
 		}
 	};
 	const settle = (from: Run, key: number, update?: () => void): void => {
-		if (run !== from || from.effect.destroyed) return;
+		if (run !== from || isDestroyed(from.effect)) return;
 		const restore = suspend();
 		resumed();
 		setOwner(from.effect);

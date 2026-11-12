@@ -13,10 +13,12 @@ import {
 	type Batch
 } from './batch.ts';
 import {
+	ASYNC,
 	BLOCK,
 	CLEAN,
 	equal,
 	isDerived,
+	isDestroyed,
 	type Effect,
 	type Reaction,
 	type Source
@@ -36,11 +38,16 @@ export function reconcile(batch: Batch): void {
 	const seen = new Set<Effect>();
 	const memo = new Map<Reaction, boolean>();
 	for (const queued of batch.queued) {
-		if (queued.destroyed) continue;
+		if (isDestroyed(queued)) continue;
 		for (let at = queued.parent; at !== null; at = at.parent) {
 			if (seen.has(at)) break;
 			seen.add(at);
-			if (at.kind === BLOCK && at.batch !== batch.order && !at.async && depends(at, sources, memo))
+			if (
+				at.kind === BLOCK &&
+				at.batch !== batch.order &&
+				(at.flags & ASYNC) === 0 &&
+				depends(at, sources, memo)
+			)
 				force(batch, at);
 		}
 	}
@@ -177,7 +184,7 @@ export function rescue(batch: Batch, effects: readonly Effect[]): void {
 	}
 	const target = opening();
 	for (const effect of effects)
-		if (!effect.destroyed && effect.status !== CLEAN) enqueue(target, effect);
+		if (!isDestroyed(effect) && effect.status !== CLEAN) enqueue(target, effect);
 	fold(batch, target);
 	request();
 }
@@ -193,7 +200,7 @@ function defer(
 	const known = new Set(list);
 	for (const effect of effects) {
 		if (
-			effect.destroyed ||
+			isDestroyed(effect) ||
 			known.has(effect) ||
 			(effect.status === CLEAN && batch.forced?.has(effect) !== true)
 		)

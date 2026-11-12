@@ -1,7 +1,7 @@
 import type { Layer } from '../../shared/context.ts';
 import { fail } from '../reactivity/effects.ts';
 import { ambient } from '../reactivity/carried.ts';
-import type { Effect, Failure } from '../reactivity/graph.ts';
+import { isDestroyed, type Effect, type Failure } from '../reactivity/graph.ts';
 import type { Cell } from '../reactivity/sources.ts';
 import { collect, collected } from '../reactivity/collector.ts';
 import { owner, setOwner, untrack, withoutReaction } from '../reactivity/tracking.ts';
@@ -116,7 +116,7 @@ class Memo<T> implements Cell<T>, Dependency {
 			this.#value = undefined as T;
 			this.version++;
 			if (scope === null) throw error;
-			if (!scope.destroyed) fail(scope, error);
+			if (!isDestroyed(scope)) fail(scope, error);
 			return undefined as T;
 		} finally {
 			this.#reads = recorded;

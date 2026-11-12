@@ -6,7 +6,7 @@ import { setFront } from './front.ts';
 import { lifetime } from './abort.ts';
 import { settledUnder, unit } from './units.ts';
 import { presently } from './past.ts';
-import type { Effect } from './graph.ts';
+import { SCOPE, isDestroyed, type Effect } from './graph.ts';
 import { ambient, carry, port } from './carried.ts';
 import { handle } from './handlers.ts';
 import { setOwner, withoutReaction } from './tracking.ts';
@@ -104,7 +104,7 @@ function register(effect: Effect | null, fn: () => void): Effect {
 
 export function onDestroy(fn: () => void): void {
 	const effect = ambient();
-	if (effect !== null && effect.destroyed) {
+	if (effect !== null && isDestroyed(effect)) {
 		withoutReaction(() => presently(fn));
 		return;
 	}
@@ -146,7 +146,7 @@ export class Owner {
 	}
 
 	get disposed(): boolean {
-		return effectOf(this).destroyed;
+		return isDestroyed(effectOf(this));
 	}
 
 	get signal(): AbortSignal {
@@ -155,19 +155,19 @@ export class Owner {
 
 	onError(handler: (error: unknown) => void): () => void {
 		const effect = effectOf(this);
-		if (effect.destroyed) throw new Error('Cannot handle failures under a disposed owner');
+		if (isDestroyed(effect)) throw new Error('Cannot handle failures under a disposed owner');
 		return handle(effect, handler);
 	}
 
 	run<T>(fn: () => T): T {
 		const effect = effectOf(this);
-		if (effect.destroyed) throw new Error('Cannot run code under a disposed owner');
+		if (isDestroyed(effect)) throw new Error('Cannot run code under a disposed owner');
 		return port === null ? enter(effect, fn) : carry(effect, () => enter(effect, fn));
 	}
 
 	async start<T>(fn: () => T): Promise<Awaited<T>> {
 		const effect = effectOf(this);
-		if (effect.destroyed) throw new Error('Cannot run code under a disposed owner');
+		if (isDestroyed(effect)) throw new Error('Cannot run code under a disposed owner');
 		const finish = unit(effect);
 		try {
 			return await this.run(fn);
@@ -186,7 +186,7 @@ export class Owner {
 
 	onDispose(fn: () => void): () => void {
 		const effect = effectOf(this);
-		if (effect.destroyed) {
+		if (isDestroyed(effect)) {
 			withoutReaction(() => presently(fn));
 			return () => {};
 		}
@@ -231,7 +231,7 @@ export function root(fn?: () => void | (() => void), parent: Owner | null = null
 	if (parent !== null && parent.disposed)
 		throw new Error('Cannot create a root under a disposed owner');
 	const effect = detached(null, parent === null ? null : effectOf(parent));
-	effect.scope = true;
+	effect.flags |= SCOPE;
 	if (parent === null) setFront(effect, format);
 	const owner = ownerOf(effect);
 	if (fn !== undefined) {

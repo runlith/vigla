@@ -1,7 +1,7 @@
 import { asyncDerived, work } from '../reactivity/async.ts';
 import { resumed, suspend } from '../reactivity/views.ts';
 import { fail } from '../reactivity/effects.ts';
-import type { Effect, Source } from '../reactivity/graph.ts';
+import { isDestroyed, type Effect, type Source } from '../reactivity/graph.ts';
 import { get } from '../reactivity/reads.ts';
 import { endReading, owner } from '../reactivity/tracking.ts';
 import { derived, set, state } from '../reactivity/sources.ts';
@@ -52,7 +52,7 @@ function resume<T>(parked: Resume, fn: () => T): T {
 }
 
 function settleWith(effect: Effect | null, error: unknown): void {
-	if (effect === null || effect.destroyed) return;
+	if (effect === null || isDestroyed(effect)) return;
 	fail(effect, error);
 }
 
@@ -93,7 +93,7 @@ function startAsync(
 	const restore = suspend();
 	Promise.all(thunks.map((thunk) => asyncDerived(thunk))).then(
 		(sources) => {
-			if (at?.destroyed) {
+			if (at !== null && isDestroyed(at)) {
 				done();
 				return;
 			}
@@ -181,7 +181,7 @@ export function script(node: ChildNode, fn: () => Promise<Render>): void {
 	}
 	promise.then(
 		(render) => {
-			if (at?.destroyed) {
+			if (at !== null && isDestroyed(at)) {
 				done();
 				return;
 			}

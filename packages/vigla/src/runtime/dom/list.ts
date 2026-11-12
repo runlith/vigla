@@ -2,6 +2,7 @@ import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
 import { OPEN_ELSE } from '../../shared/markers.ts';
 import {
+	admit,
 	alias,
 	atCommit,
 	atDiscard,
@@ -13,7 +14,7 @@ import {
 } from '../reactivity/batch.ts';
 import { write } from '../reactivity/scheduler.ts';
 import { block, branch, destroy, hide, show as unhide } from '../reactivity/effects.ts';
-import type { Derived, Effect, Source } from '../reactivity/graph.ts';
+import { isDestroyed, type Derived, type Effect, type Source } from '../reactivity/graph.ts';
 import { derived, mutableEqual, mutableSource, source } from '../reactivity/sources.ts';
 import { get } from '../reactivity/reads.ts';
 import { owner } from '../reactivity/tracking.ts';
@@ -36,9 +37,20 @@ import {
 	pause,
 	prepare,
 	resume,
+	setBuilding,
 	type Mover
 } from '../transitions/manager.ts';
-import { build, buildLoose, discard, opener, place, stage, stash, type Built } from './range.ts';
+import {
+	build,
+	buildLoose,
+	discard,
+	opener,
+	place,
+	slots,
+	stage,
+	stash,
+	type Built
+} from './range.ts';
 import type { Render } from './template.ts';
 
 export const MUTABLE_ROWS = 1;
@@ -70,6 +82,8 @@ interface Stage<T> {
 	readonly empty: boolean;
 	readonly pass: number;
 }
+
+type Selection<T> = readonly [Batch, (row: Row<T>) => boolean];
 
 function duplicate(key: unknown, first: number, second: number): Error {
 	const shown = String(key);
@@ -127,6 +141,7 @@ class List<T> {
 	#stages: Map<Batch, Stage<T>> | null = null;
 	#ended: Row<T>[] | null = null;
 	#staging: DocumentFragment | null = null;
+	#slotted: boolean | null = null;
 	#pass = 0;
 	#shown = 0;
 
@@ -171,14 +186,19 @@ class List<T> {
 				return traceInputs(this.#collection)[position];
 			});
 		const staging = (this.#staging ??= stage());
-		const built = building(update, () =>
-			buildLoose(
+		const slotted = hydrating ? false : (this.#slotted ??= slots(this.anchor));
+		const previous = setBuilding(update);
+		let built: Built;
+		try {
+			built = buildLoose(
 				staging,
 				(at) => this.#render(at, item ?? value, index ?? position),
 				branch,
-				this.anchor
-			)
-		);
+				slotted
+			);
+		} finally {
+			setBuilding(previous);
+		}
 		const row: Row<T> = {
 			key,
 			item,
@@ -204,6 +224,7 @@ class List<T> {
 
 	start(items: ArrayLike<T>): void {
 		this.#block = owner;
+		this.#slotted = null;
 		let adopting = false;
 		let restore = false;
 		if (hydrating) this.#start = this.anchor;
@@ -257,6 +278,7 @@ class List<T> {
 	update(items: ArrayLike<T>): void {
 		const batch = processed();
 		const pass = ++this.#pass;
+		this.#slotted = null;
 		const rows: Row<T>[] = [];
 		for (let position = 0; position < items.length; position++) {
 			const value = items[position] as T;
@@ -287,13 +309,24 @@ class List<T> {
 		const stages = (this.#stages ??= new Map());
 		const known = stages.has(batch);
 		stages.set(batch, stage);
+		let others: Selection<T>[] | null = null;
 		for (const row of this.#rows.values()) {
-			if (row.pass === pass) unskip(row.effect);
-			else skip(row.effect);
+			if (row.pass === pass) {
+				unskip(row.effect);
+				continue;
+			}
+			skip(row.effect);
+			if (stages.size === 1) continue;
+			others ??= this.#selections(batch);
+			for (const [other, selects] of others) if (selects(row)) admit(other, row.effect);
 		}
 		if (this.#empty !== null) {
 			if (empty) unskip(this.#empty.effect);
-			else skip(this.#empty.effect);
+			else {
+				skip(this.#empty.effect);
+				for (const [other, held] of stages)
+					if (other !== batch && held.empty) admit(other, this.#empty.effect);
+			}
 		}
 		if (known) return;
 		atCommit({ prepare: () => this.#prepare(batch), apply: () => this.#commit(batch) });
@@ -316,6 +349,13 @@ class List<T> {
 		return (row) => selected.has(row);
 	}
 
+	#selections(except: Batch | null): Selection<T>[] {
+		const found: Selection<T>[] = [];
+		for (const [batch, stage] of this.#stages ?? [])
+			if (batch !== except) found.push([batch, this.#selected(stage)]);
+		return found;
+	}
+
 	#capture(stage: Stage<T>): void {
 		const selected = this.#selected(stage);
 		const branches: Effect[] = [];
@@ -328,20 +368,22 @@ class List<T> {
 
 	#prepare(given: Batch): void {
 		const stage = this.#stages?.get(alias(given));
-		if (stage !== undefined && this.#block?.destroyed !== true) this.#capture(stage);
+		if (stage !== undefined && (this.#block === null || !isDestroyed(this.#block)))
+			this.#capture(stage);
 	}
 
 	#commit(given: Batch): void {
 		const batch = alias(given);
 		const stage = this.#stages?.get(batch);
-		if (stage === undefined || this.#block?.destroyed === true) return;
+		if (stage === undefined || (this.#block !== null && isDestroyed(this.#block))) return;
 		this.#stages?.delete(batch);
 		this.#apply(stage);
 	}
 
 	#discard(given: Batch): void {
 		const batch = alias(given);
-		if (this.#stages?.delete(batch) !== true || this.#block?.destroyed === true) return;
+		if (this.#stages?.delete(batch) !== true || (this.#block !== null && isDestroyed(this.#block)))
+			return;
 		this.#prune(this.#needed());
 	}
 
@@ -372,20 +414,25 @@ class List<T> {
 			row.shown = shown;
 			retained++;
 		}
+		const animated = animating();
 		const moved: Mover[] = [];
-		for (const row of next) {
-			const mover = row.shown === shown ? moverOf(row.effect) : undefined;
-			if (mover !== undefined) moved.push(mover);
-		}
+		if (animated)
+			for (const row of next) {
+				const mover = row.shown === shown ? moverOf(row.effect) : undefined;
+				if (mover !== undefined) moved.push(mover);
+			}
 		const ended: Row<T>[] | null = retained === 0 && this.#leaving.size === 0 ? [] : null;
 		this.#ended = ended;
-		const still = ended !== null && !animating();
+		const still = ended !== null && !animated;
+		let wanting: Selection<T>[] | null = null;
 		try {
 			for (const row of previous) {
 				if (row.shown === shown) continue;
 				if (needed?.has(row)) {
 					stash(row);
 					hide(row.effect);
+					wanting ??= this.#selections(null);
+					for (const [batch, selects] of wanting) if (selects(row)) admit(batch, row.effect);
 					continue;
 				}
 				if (still) {
@@ -410,6 +457,8 @@ class List<T> {
 				if (this.#emptyNeeded()) {
 					stash(this.#empty);
 					hide(this.#empty.effect);
+					for (const [batch, held] of this.#stages ?? [])
+						if (held.empty) admit(batch, this.#empty.effect);
 				} else {
 					discard(this.#empty);
 					this.#empty = null;
@@ -449,7 +498,7 @@ class List<T> {
 	#leave(row: Row<T>): void {
 		this.#leaving.add(row);
 		pause(row.effect, () => {
-			if (!this.#leaving.delete(row) || this.#block?.destroyed === true) return;
+			if (!this.#leaving.delete(row) || (this.#block !== null && isDestroyed(this.#block))) return;
 			moverOf(row.effect)?.unfix();
 			if (this.#needed()?.has(row)) {
 				stash(row);

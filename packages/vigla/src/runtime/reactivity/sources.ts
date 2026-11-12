@@ -3,6 +3,7 @@ import { ownDerived } from './drafts.ts';
 import {
 	DERIVED,
 	DIRTY,
+	PRESERVED,
 	SOURCE,
 	isDerived,
 	retainFailures,
@@ -143,7 +144,7 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 	};
 	if (equals !== undefined) created.equals = equals;
 	if (owner !== null) {
-		owner.preserved = true;
+		owner.flags |= PRESERVED;
 		ownDerived(created);
 	}
 	return created;
