@@ -6,7 +6,7 @@ import { useDrafts } from './drafting.ts';
 import { block, fail } from './effects.ts';
 import { sequence } from './history.ts';
 import { changed, get } from './reads.ts';
-import { waitFor } from './held.ts';
+import { useHolding, waitFor } from './holding.ts';
 import { asyncOrphan, pendingOutside } from './errors.ts';
 import { ASYNC, isDestroyed, type Boundary, type Effect, type Source } from './graph.ts';
 import { source } from './sources.ts';
@@ -57,6 +57,7 @@ export async function hold<T>(fn: () => T): Promise<Awaited<T>> {
 
 export function work(): () => void {
 	useDrafts();
+	useHolding();
 	const batch = current();
 	const holder = owner;
 	const boundary = holder === null ? null : holder.boundary;
@@ -99,6 +100,7 @@ export function work(): () => void {
 export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>> {
 	if (owner === null) asyncOrphan();
 	useDrafts();
+	useHolding();
 	const signal = source<T>(undefined as T);
 	const latest = new Map<Batch, AsyncRun>();
 	const results = new Map<Batch, Result>();

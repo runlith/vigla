@@ -2,10 +2,11 @@ import { createBatch, open, processing, untouched, within } from './batch.ts';
 import { apply, flushSync, process } from './scheduler.ts';
 import { inside } from './views.ts';
 import { useDrafts } from './drafting.ts';
+import { adopt, useHolding, waitFor } from './holding.ts';
 import { destroy, teardown } from './effects.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
 import { application, isDestroyed, type Effect } from './graph.ts';
-import { adopt, discard, waitFor } from './held.ts';
+import { discard } from './held.ts';
 import { owner } from './tracking.ts';
 
 export interface Fork {
@@ -24,6 +25,7 @@ function admits(caller: Effect | null): boolean {
 
 export function fork(fn: () => void): Fork {
 	useDrafts();
+	useHolding();
 	const holder = owner;
 	if (!admits(holder)) forkTiming();
 	flushSync();

@@ -58,7 +58,7 @@ import {
 	type Past,
 	type View
 } from './tracking.ts';
-import { inside } from './views.ts';
+import { holding, type Holding } from './views.ts';
 
 const evaluating: Derived[] = [];
 
@@ -311,7 +311,10 @@ export function forget(source: Source): void {
 			given.reached.delete(reaction);
 			if (staged?.has(reaction)) {
 				const reads = given.batch.origins?.get(reaction)?.reads;
-				if (reads !== undefined && !inside(given.batch, () => changed(reads, reaction)))
+				if (
+					reads !== undefined &&
+					!(holding as Holding).inside(given.batch, () => changed(reads, reaction))
+				)
 					given.values.set(reaction, staged.get(reaction));
 				else {
 					staged.delete(reaction);

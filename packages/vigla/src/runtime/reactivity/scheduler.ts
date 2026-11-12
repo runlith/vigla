@@ -45,7 +45,7 @@ import {
 	type Source,
 	type Status
 } from './graph.ts';
-import { abandon, absorb, finish, hold, reconcile, rescue } from './held.ts';
+import { abandon, finish, rescue } from './held.ts';
 import { beforeOf, record } from './history.ts';
 import { departures } from './outgoing.ts';
 import { written } from './past.ts';
@@ -62,7 +62,7 @@ import {
 	writtenDuringRun
 } from './tracking.ts';
 import { quieted } from './units.ts';
-import { others, viewOf } from './views.ts';
+import { holding, others, type Holding } from './views.ts';
 
 const limit = 1000;
 
@@ -297,7 +297,8 @@ function commit(batch: Batch): void {
 export function process(batch: Batch): void {
 	const outerBatch = processing;
 	const outerCreation = enterScheduler();
-	const outerView = setView(others(batch) ? viewOf(batch) : null);
+	const many = holding;
+	const outerView = setView(others(batch) ? (many as Holding).viewOf(batch) : null);
 	setProcessing(batch);
 	batch.started = true;
 	const content: Effect[] = [];
@@ -305,7 +306,7 @@ export function process(batch: Batch): void {
 	try {
 		let passes = 0;
 		let merging = true;
-		reconcile(batch);
+		if (pending.length > 0) (many as Holding).reconcile(batch);
 		while (batch.queued.length > 0 || (batch.commits.length > 0 && !holds(batch))) {
 			if (++passes > limit) {
 				exceeded(batch, content);
@@ -327,16 +328,16 @@ export function process(batch: Batch): void {
 			if (merging && batch.queued.length > 0) continue;
 			if (merging) {
 				merging = false;
-				if (absorb(batch, content)) return;
+				if (pending.length > 0 && (holding as Holding).absorb(batch, content)) return;
 			}
 			batch.phase = 'commit';
 			commit(batch);
 		}
 		if (holds(batch)) {
-			hold(batch, content);
+			(holding as Holding).hold(batch, content);
 			return;
 		}
-		if (merging && absorb(batch, content)) return;
+		if (merging && pending.length > 0 && (holding as Holding).absorb(batch, content)) return;
 		batch.phase = 'content';
 		const deferred = batch.content;
 		batch.content = null;

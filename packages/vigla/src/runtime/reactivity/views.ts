@@ -9,7 +9,7 @@ import {
 	within,
 	type Batch
 } from './batch.ts';
-import { equal, isDerived, type Source } from './graph.ts';
+import { equal, isDerived, type Effect, type Source } from './graph.ts';
 import { beforeOf } from './history.ts';
 import {
 	endReading,
@@ -20,6 +20,21 @@ import {
 	suspendReading,
 	type View
 } from './tracking.ts';
+
+export interface Holding {
+	reconcile(batch: Batch): void;
+	absorb(batch: Batch, content: readonly Effect[]): boolean;
+	hold(batch: Batch, content: readonly Effect[]): void;
+	rebase(batch: Batch, committed: Batch, changed: readonly Source[]): void;
+	viewOf(batch: Batch): View;
+	inside<T>(batch: Batch, fn: () => T): T;
+}
+
+export let holding: Holding | null = null;
+
+export function setHolding(given: Holding): void {
+	holding = given;
+}
 
 export function others(batch: Batch): boolean {
 	if (batch.after !== null || batch.fork || (open !== null && open !== batch)) return true;
