@@ -2,12 +2,12 @@ import { DEV } from 'esm-env';
 import { processed } from './batch.ts';
 import {
 	destroyEffects,
-	discardAside,
+	drafter,
 	endedInputs,
 	fail,
-	restoreAside,
 	setAside,
-	type Aside
+	type Aside,
+	type Drafter
 } from './effects.ts';
 import { inertDerived, referencesSelf } from './errors.ts';
 import {
@@ -138,18 +138,19 @@ function through(source: Source, given: View): unknown {
 		return given.values.get(source);
 	}
 	const aside = setAside(source);
+	const drafts = drafter as Drafter;
 	if (DEV) enter(source);
 	let value: unknown;
 	try {
 		value = compute(source, given);
 	} catch (error) {
-		restoreAside(source, aside, given.batch);
+		drafts.restoreAside(source, aside, given.batch);
 		throw error;
 	} finally {
 		if (DEV) leave();
 	}
 	if ((source.deps as Source[]).length === 0) {
-		discardAside(source, aside);
+		drafts.discardAside(source, aside);
 		given.checked.set(source, false);
 		source.v = value;
 		source.wv = stamp();
@@ -158,7 +159,7 @@ function through(source: Source, given: View): unknown {
 		source.status = CLEAN;
 		return value;
 	}
-	restoreAside(source, aside, given.batch);
+	drafts.restoreAside(source, aside, given.batch);
 	given.values.set(source, value);
 	return value;
 }
@@ -282,8 +283,9 @@ function recompute(derived: Derived): void {
 		setOwner(previous);
 		if (DEV) leave();
 		if (aside !== null) {
-			if (local && given !== null) restoreAside(derived, aside, given.batch);
-			else discardAside(derived, aside);
+			const drafts = drafter as Drafter;
+			if (local && given !== null) drafts.restoreAside(derived, aside, given.batch);
+			else drafts.discardAside(derived, aside);
 		}
 	}
 }

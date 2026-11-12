@@ -1,5 +1,6 @@
 import { write } from './scheduler.ts';
-import { ownDerived } from './drafts.ts';
+import { drafting } from './drafts.ts';
+import { drafter, type Drafter } from './effects.ts';
 import {
 	DERIVED,
 	DIRTY,
@@ -145,7 +146,7 @@ export function derived<T>(fn: () => T, equals?: (before: T, after: T) => boolea
 	if (equals !== undefined) created.equals = equals;
 	if (owner !== null) {
 		owner.flags |= PRESERVED;
-		ownDerived(created);
+		if (drafting !== 0) (drafter as Drafter).ownDerived(created);
 	}
 	return created;
 }

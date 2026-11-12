@@ -2,6 +2,7 @@ import { alias, collect, current, holds, onMerge, request, within, type Batch } 
 import { stage, write } from './scheduler.ts';
 import { inside } from './views.ts';
 import { staleReaction } from '../../shared/abort.ts';
+import { useDrafts } from './drafting.ts';
 import { block, fail } from './effects.ts';
 import { sequence } from './history.ts';
 import { changed, get } from './reads.ts';
@@ -55,6 +56,7 @@ export async function hold<T>(fn: () => T): Promise<Awaited<T>> {
 }
 
 export function work(): () => void {
+	useDrafts();
 	const batch = current();
 	const holder = owner;
 	const boundary = holder === null ? null : holder.boundary;
@@ -96,6 +98,7 @@ export function work(): () => void {
 
 export function asyncDerived<T>(fn: () => T | PromiseLike<T>): Promise<Source<T>> {
 	if (owner === null) asyncOrphan();
+	useDrafts();
 	const signal = source<T>(undefined as T);
 	const latest = new Map<Batch, AsyncRun>();
 	const results = new Map<Batch, Result>();

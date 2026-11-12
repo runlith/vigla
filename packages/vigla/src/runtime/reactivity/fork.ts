@@ -1,6 +1,7 @@
 import { createBatch, open, processing, untouched, within } from './batch.ts';
 import { apply, flushSync, process } from './scheduler.ts';
 import { inside } from './views.ts';
+import { useDrafts } from './drafting.ts';
 import { destroy, teardown } from './effects.ts';
 import { forkDiscarded, forkTiming } from './errors.ts';
 import { application, isDestroyed, type Effect } from './graph.ts';
@@ -22,6 +23,7 @@ function admits(caller: Effect | null): boolean {
 }
 
 export function fork(fn: () => void): Fork {
+	useDrafts();
 	const holder = owner;
 	if (!admits(holder)) forkTiming();
 	flushSync();

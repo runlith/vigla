@@ -1,6 +1,6 @@
 import { concealed, excluded, handOver, type Batch } from './batch.ts';
-import { drafting, heldAbove } from './drafts.ts';
-import { escape, run } from './effects.ts';
+import { drafting } from './drafts.ts';
+import { drafter, escape, run, type Drafter } from './effects.ts';
 import { CLEAN, DESTROYED, DIRTY, RUNNING, isDestroyed, isInert, type Effect } from './graph.ts';
 import { instantly } from './past.ts';
 import { stale } from './reads.ts';
@@ -29,7 +29,7 @@ function blocks(marked: Set<Effect>, batch: Batch): void {
 			for (let index = ordered.length - 1; index >= 0; index--) {
 				const effect = ordered[index] as Effect;
 				if (isDestroyed(effect) || excluded(effect, batch)) continue;
-				const holder = drafting === 0 ? null : heldAbove(effect);
+				const holder = drafting === 0 ? null : (drafter as Drafter).heldAbove(effect);
 				if (holder !== null && holder !== batch) handOver(effect, holder);
 				else if (due(effect)) run(effect);
 			}
