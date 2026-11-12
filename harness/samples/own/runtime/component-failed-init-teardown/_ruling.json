@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "upstream 5.57.3 registers onDestroy only at the end of initialisation, so a component whose script throws after onDestroy never runs it: logs [] instead of ['released']"
+}

@@ -1,6 +1,7 @@
 import { DEV } from 'esm-env';
 import type { Layer } from '../../shared/context.ts';
 import { destroyed, detached, effect } from '../reactivity/effects.ts';
+import { sendLast } from '../reactivity/siblings.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { installComponents, layerOf, setContext } from '../reactivity/owners.ts';
 import { owner, running, setOwner, untrack } from '../reactivity/tracking.ts';
@@ -18,15 +19,19 @@ function standing(): Layer<Effect> | null {
 	return initializing !== null && initializing.layer.owner === owner ? initializing.layer : null;
 }
 
-function postponed(create: () => void): boolean {
-	if (initializing === null || standing() === null || running() !== null) return false;
-	initializing.deferred.push(create);
-	return true;
+function postponing(): Initializing | null {
+	return standing() !== null && running() === null ? initializing : null;
 }
 
 installComponents({
 	layer: standing,
-	teardown: (fn) => owner !== null && postponed(() => void destroyed(fn))
+	teardown(fn) {
+		const component = owner === null ? null : postponing();
+		if (component === null) return false;
+		const registered = destroyed(fn);
+		component.deferred.push(() => sendLast(registered));
+		return true;
+	}
 });
 
 export type Phase = 'initializing' | 'running' | null;
@@ -84,7 +89,9 @@ export function withContext<T>(map: Map<unknown, unknown> | undefined, fn: () =>
 
 export function userEffect(fn: () => void | (() => void)): void {
 	if (DEV) Object.defineProperty(fn, 'name', { value: '$effect' });
-	if (!postponed(() => void effect(fn))) effect(fn);
+	const component = postponing();
+	if (component === null) effect(fn);
+	else component.deferred.push(() => void effect(fn));
 }
 
 export function onMount(fn: () => unknown): void {

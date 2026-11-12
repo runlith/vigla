@@ -54,6 +54,7 @@ import { handlerOf } from './handlers.ts';
 import { orphan, teardownOrphan } from './errors.ts';
 import { ownLeaving } from './outgoing.ts';
 import { presently, retire } from './past.ts';
+import { link, unlink } from './siblings.ts';
 import {
 	deriving,
 	evaluation,
@@ -265,12 +266,7 @@ function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effe
 		slots: null,
 		captured: null
 	};
-	if (parent !== null) {
-		effect.prev = parent.last;
-		if (parent.last === null) parent.first = effect;
-		else parent.last.next = effect;
-		parent.last = effect;
-	}
+	if (parent !== null) link(effect, parent);
 	const claimer = ownEffect(effect);
 	if (drafting !== 0 && parent !== null) capture(parent, effect, claimer);
 	return effect;
@@ -542,16 +538,6 @@ export function getReactionSignal(): AbortSignal {
 
 function immediately(stop: () => void): void {
 	stop();
-}
-
-function unlink(effect: Effect): void {
-	const parent = effect.parent;
-	if (parent === null) return;
-	if (effect.prev === null) parent.first = effect.next;
-	else effect.prev.next = effect.next;
-	if (effect.next === null) parent.last = effect.prev;
-	else effect.next.prev = effect.prev;
-	effect.prev = effect.next = null;
 }
 
 type Among = ((child: Effect) => boolean) | null;
