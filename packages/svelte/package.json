@@ -27,7 +27,8 @@
 			"./compiler": {
 				"require": "./compiler/index.js"
 			}
-		}
+		},
+		"version": "src/compiler/index.ts"
 	},
 	"vigla": {
 		"frontEnd": {

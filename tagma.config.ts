@@ -1,11 +1,11 @@
-import { defineConfig, Files, Format, Imports } from '@runlith/tagma/rules';
+import { defineConfig, Files, Format, Imports } from '@tagmahq/tagma/rules';
 import { builtins, internals, loads, words } from './checks/inspections.ts';
 
 export default defineConfig({
 	inspections: {
 		modules: Imports.modules({
 			runtimes: ['node', 'bun'],
-			framework: ['svelte', 'svelte/*', '@runlith/tagma/*', '$app/*'],
+			framework: ['svelte', 'svelte/*', '@tagmahq/tagma/*', '$app/*'],
 			tests: ['.test'],
 			files: { exclude: ['harness/samples/**'] }
 		}),

@@ -22,10 +22,35 @@ export interface Manifest {
 
 export interface Release {
 	exports?: Record<string, Record<string, string>>;
+	version?: string;
+}
+
+interface Sibling {
+	name: string;
+	range: string;
+	alias: boolean;
 }
 
 const dependencyFields = ['dependencies', 'peerDependencies', 'optionalDependencies'] as const;
 const source = /^\.\/src\/(.*)\.ts$/;
+
+function sibling(dependency: string, range: string): Sibling | undefined {
+	if (!range.startsWith('workspace:')) return undefined;
+	const spec = range.slice('workspace:'.length);
+	const alias = /^(@?[^@]+)@(.*)$/.exec(spec);
+	return alias
+		? { name: alias[1]!, range: alias[2]!, alias: true }
+		: { name: dependency, range: spec, alias: false };
+}
+
+export function siblings(manifest: Manifest): string[] {
+	return dependencyFields.flatMap((field) =>
+		Object.entries(manifest[field] ?? {}).flatMap(([dependency, range]) => {
+			const found = sibling(dependency, range);
+			return found ? [found.name] : [];
+		})
+	);
+}
 
 export function publishedTarget(target: string, condition: string | null): string {
 	const match = source.exec(target);
@@ -80,15 +105,13 @@ function pinWorkspace(
 ): Record<string, string> {
 	return Object.fromEntries(
 		Object.entries(dependencies).map(([dependency, range]) => {
-			if (!range.startsWith('workspace:')) return [dependency, range];
-			const spec = range.slice('workspace:'.length);
-			const alias = /^(@?[^@]+)@(.*)$/.exec(spec);
-			const target = alias ? alias[1]! : dependency;
-			const version = versions.get(target);
+			const found = sibling(dependency, range);
+			if (!found) return [dependency, range];
+			const version = versions.get(found.name);
 			if (version === undefined)
-				throw new Error(`${name}: ${dependency} names no workspace package ${target}`);
-			const pinned = pinnedRange(alias ? alias[2]! : spec, version);
-			return [dependency, alias ? `npm:${target}@${pinned}` : pinned];
+				throw new Error(`${name}: ${dependency} names no workspace package ${found.name}`);
+			const pinned = pinnedRange(found.range, version);
+			return [dependency, found.alias ? `npm:${found.name}@${pinned}` : pinned];
 		})
 	);
 }

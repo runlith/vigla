@@ -112,6 +112,9 @@
 			"default": "./src/entries/env/dynamic/private/server.ts"
 		}
 	},
+	"release": {
+		"version": "src/entries/index.ts"
+	},
 	"dependencies": {
 		"@jridgewell/remapping": "^2.3.5",
 		"@opentelemetry/api": "^1.9.1",

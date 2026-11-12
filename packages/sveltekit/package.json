@@ -44,6 +44,9 @@
 		},
 		"./vite": "./src/vite.ts"
 	},
+	"release": {
+		"version": "src/index.ts"
+	},
 	"dependencies": {
 		"@vigla/kit": "workspace:*",
 		"@vigla/vite-plugin-svelte": "workspace:*",

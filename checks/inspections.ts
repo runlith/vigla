@@ -1,4 +1,4 @@
-import { defineInspection } from '@runlith/tagma/rules';
+import { defineInspection } from '@tagmahq/tagma/rules';
 
 export type InternalsParams = {
 	readonly patterns: readonly string[];

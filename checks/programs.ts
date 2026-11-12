@@ -1,5 +1,5 @@
 import { builtinModules } from 'node:module';
-import { defineProgram, type Finding, type Reading, type Side } from '@runlith/tagma/rules';
+import { defineProgram, type Finding, type Reading, type Side } from '@tagmahq/tagma/rules';
 import type {
 	BuiltinsParams,
 	InternalsParams,

@@ -17,7 +17,7 @@ export interface Package {
 	manifest: Manifest;
 }
 
-const test = /\.(test|spec)\.[cm]?[jt]sx?$/;
+export const test = /\.(test|spec)\.[cm]?[jt]sx?$/;
 
 function read(file: string): Manifest {
 	return JSON.parse(readFileSync(file, 'utf8')) as Manifest;
