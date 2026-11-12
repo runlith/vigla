@@ -43,6 +43,10 @@ export function equip(given: Geometry): void {
 	geometry = given;
 }
 
+export function animating(): boolean {
+	return geometry !== null;
+}
+
 export function seeThrough(block: Effect): void {
 	transparent.add(block);
 }

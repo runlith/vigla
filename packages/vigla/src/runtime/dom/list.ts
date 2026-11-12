@@ -30,6 +30,7 @@ import {
 } from './hydration.ts';
 import {
 	animateMoves,
+	animating,
 	building,
 	moverOf,
 	pause,
@@ -363,25 +364,33 @@ class List<T> {
 		const selected = this.#selected(stage);
 		const previous = this.#order;
 		const shown = ++this.#shown;
+		let retained = 0;
 		for (let position = 0; position < previous.length; position++) {
 			const row = previous[position] as Row<T>;
 			if (!selected(row)) continue;
 			row.was = position;
 			row.shown = shown;
+			retained++;
 		}
 		const moved: Mover[] = [];
 		for (const row of next) {
 			const mover = row.shown === shown ? moverOf(row.effect) : undefined;
 			if (mover !== undefined) moved.push(mover);
 		}
-		const ended: Row<T>[] | null = next.length === 0 && this.#leaving.size === 0 ? [] : null;
+		const ended: Row<T>[] | null = retained === 0 && this.#leaving.size === 0 ? [] : null;
 		this.#ended = ended;
+		const still = ended !== null && !animating();
 		try {
 			for (const row of previous) {
 				if (row.shown === shown) continue;
 				if (needed?.has(row)) {
 					stash(row);
 					hide(row.effect);
+					continue;
+				}
+				if (still) {
+					(ended as Row<T>[]).push(row);
+					if (this.#rows.get(row.key) === row) this.#rows.delete(row.key);
 					continue;
 				}
 				moverOf(row.effect)?.fix();
