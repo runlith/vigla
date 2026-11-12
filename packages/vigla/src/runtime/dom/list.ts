@@ -37,7 +37,7 @@ import {
 	resume,
 	type Mover
 } from '../transitions/manager.ts';
-import { build, buildLoose, discard, opener, place, stash, type Built } from './range.ts';
+import { build, buildLoose, discard, opener, place, stage, stash, type Built } from './range.ts';
 import type { Render } from './template.ts';
 
 export const MUTABLE_ROWS = 1;
@@ -125,6 +125,7 @@ class List<T> {
 	#emptyShown = false;
 	#stages: Map<Batch, Stage<T>> | null = null;
 	#ended: Row<T>[] | null = null;
+	#staging: DocumentFragment | null = null;
 	#pass = 0;
 	#shown = 0;
 
@@ -168,8 +169,14 @@ class List<T> {
 				const position = untrace(() => get(index as Source<number>));
 				return traceInputs(this.#collection)[position];
 			});
+		const staging = (this.#staging ??= stage());
 		const built = building(update, () =>
-			buildLoose((at) => this.#render(at, item ?? value, index ?? position), branch, this.anchor)
+			buildLoose(
+				staging,
+				(at) => this.#render(at, item ?? value, index ?? position),
+				branch,
+				this.anchor
+			)
 		);
 		const row: Row<T> = {
 			key,

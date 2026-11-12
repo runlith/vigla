@@ -27,7 +27,7 @@ import {
 import {
 	alias,
 	collect,
-	offscreen,
+	conceal,
 	orphaned,
 	pending,
 	processed,
@@ -226,14 +226,15 @@ function disconnect(derived: Derived): void {
 }
 
 export function hide(effect: Effect): void {
-	if (effect.destroyed || offscreen.has(effect)) return;
-	offscreen.add(effect);
+	if (effect.destroyed || effect.inert) return;
 	effect.inert = true;
+	conceal(1);
 }
 
 export function show(effect: Effect): void {
-	if (!offscreen.delete(effect)) return;
+	if (!effect.inert) return;
 	effect.inert = false;
+	conceal(-1);
 }
 
 function create(kind: Kind, fn: (() => void | (() => void)) | null, parent: Effect | null): Effect {
@@ -597,7 +598,10 @@ export function destroy(effect: Effect): void {
 	effect.teardown = null;
 	effect.fn = null;
 	unlink(effect);
-	if (offscreen.delete(effect)) effect.inert = false;
+	if (effect.inert) {
+		effect.inert = false;
+		conceal(-1);
+	}
 	if (teardown !== null) dispose(effect, teardown);
 	if (drafting !== 0) dropAll(effect);
 	if (effect.parent === null) orphaned(effect);

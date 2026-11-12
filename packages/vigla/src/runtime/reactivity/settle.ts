@@ -1,4 +1,4 @@
-import { excluded, handOver, offscreen, type Batch } from './batch.ts';
+import { concealed, excluded, handOver, type Batch } from './batch.ts';
 import { drafting, heldAbove } from './drafts.ts';
 import { escape, run } from './effects.ts';
 import { CLEAN, DIRTY, type Effect } from './graph.ts';
@@ -50,7 +50,7 @@ export function settle(
 		for (; index < effects.length; index++) {
 			const effect = effects[index] as Effect;
 			if (effect.destroyed || effect.running) continue;
-			if (batch.skipped !== null || offscreen.size > 0 ? excluded(effect, batch) : effect.inert)
+			if (batch.skipped !== null || concealed > 0 ? excluded(effect, batch) : effect.inert)
 				continue;
 			const recheck = batch.forced?.delete(effect) === true;
 			if (!due(effect, force || recheck, batch)) continue;

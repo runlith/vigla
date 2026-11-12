@@ -100,7 +100,10 @@ export let open: Batch | null = null;
 export let processing: Batch | null = null;
 export let active: Batch | null = null;
 export const pending: Batch[] = [];
-export const offscreen = new Set<Effect>();
+export let concealed = 0;
+export function conceal(delta: 1 | -1): void {
+	concealed += delta;
+}
 export const overlooked = new WeakSet<Effect>();
 let requested = false;
 let flusher: () => void = () => {};
@@ -168,7 +171,7 @@ export function holds(batch: Batch): boolean {
 	if (batch.fork) return true;
 	if (batch.work === 0) return false;
 	const owners = batch.owners;
-	if (owners === null || (batch.skipped === null && offscreen.size === 0)) return true;
+	if (owners === null || (batch.skipped === null && concealed === 0)) return true;
 	let free = batch.work;
 	for (const [effect, count] of owners) if (excluded(effect, batch)) free -= count;
 	return free > 0;
