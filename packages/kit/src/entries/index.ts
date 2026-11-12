@@ -32,7 +32,7 @@ export type {
 	ValidationError
 } from '../types/index.ts';
 export { normalizeUrl } from '../shared/pathname.ts';
-export const VERSION = '0.1.1';
+export const VERSION = '0.1.2';
 
 const bound = outcomes(identity);
 export const error: ErrorFunction = bound.error;
