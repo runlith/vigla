@@ -245,8 +245,41 @@ interface TransitionEventMap {
 	outroend: CustomEvent<null>;
 }
 
+interface DeclaredEventMap {
+	input: Event;
+	load: Event;
+	error: Event;
+	abort: Event;
+	progress: Event;
+	encrypted: Event;
+	auxclick: MouseEvent;
+	click: MouseEvent;
+	contextmenu: MouseEvent;
+	scroll: UIEvent;
+	scrollend: UIEvent;
+	contentvisibilityautostatechange: ContentVisibilityAutoStateChangeEvent;
+	dragexit: DragEvent;
+	gamepadconnected: GamepadEvent;
+	gamepaddisconnected: GamepadEvent;
+	message: MessageEvent;
+	messageerror: MessageEvent;
+	visibilitychange: Event;
+	fullscreenchange: Event;
+	fullscreenerror: Event;
+}
+
+type Declared<Events> = Omit<Events, keyof DeclaredEventMap> & DeclaredEventMap;
+
+interface WindowOnlyEventMap {
+	beforeinstallprompt: Event;
+	devicelight: Event;
+	deviceproximity: Event;
+	paint: Event;
+	userproximity: Event;
+}
+
 export interface DOMAttributes<T extends EventTarget> extends Handlers<
-	HTMLElementEventMap & TransitionEventMap,
+	Declared<HTMLElementEventMap> & TransitionEventMap,
 	T
 > {
 	children?: Snippet;
@@ -632,8 +665,8 @@ export interface HTMLMenuAttributes extends HTMLAttributes<HTMLMenuElement> {
 
 export interface HTMLMediaAttributes<T extends HTMLMediaElement>
 	extends
-		Omit<HTMLAttributes<T>, keyof Handlers<HTMLMediaElementEventMap, T>>,
-		Handlers<HTMLMediaElementEventMap, T> {
+		Omit<HTMLAttributes<T>, keyof Handlers<Declared<HTMLMediaElementEventMap>, T>>,
+		Handlers<Declared<HTMLMediaElementEventMap>, T> {
 	autoplay?: boolean | Nullish;
 	controls?: boolean | Nullish;
 	controlslist?:
@@ -676,9 +709,9 @@ export interface HTMLVideoAttributes
 	extends
 		Omit<
 			HTMLMediaAttributes<HTMLVideoElement>,
-			keyof Handlers<HTMLVideoElementEventMap, HTMLVideoElement>
+			keyof Handlers<Declared<HTMLVideoElementEventMap>, HTMLVideoElement>
 		>,
-		Handlers<HTMLVideoElementEventMap, HTMLVideoElement> {
+		Handlers<Declared<HTMLVideoElementEventMap>, HTMLVideoElement> {
 	disablepictureinpicture?: boolean | Nullish;
 	height?: Numberish | Nullish;
 	playsinline?: boolean | Nullish;
@@ -873,7 +906,10 @@ export interface HTMLTrackAttributes extends HTMLAttributes<HTMLTrackElement> {
 	srclang?: string | Nullish;
 }
 
-export interface SvelteWindowAttributes extends Handlers<WindowEventMap, Window> {
+export interface SvelteWindowAttributes extends Handlers<
+	Declared<WindowEventMap> & WindowOnlyEventMap,
+	Window
+> {
 	readonly 'bind:innerWidth'?: Window['innerWidth'] | Nullish;
 	readonly 'bind:innerHeight'?: Window['innerHeight'] | Nullish;
 	readonly 'bind:outerWidth'?: Window['outerWidth'] | Nullish;
@@ -884,7 +920,7 @@ export interface SvelteWindowAttributes extends Handlers<WindowEventMap, Window>
 	'bind:scrollY'?: Window['scrollY'] | Nullish;
 }
 
-export interface SvelteDocumentAttributes extends Handlers<DocumentEventMap, Document> {
+export interface SvelteDocumentAttributes extends Handlers<Declared<DocumentEventMap>, Document> {
 	readonly 'bind:activeElement'?: Document['activeElement'] | Nullish;
 	readonly 'bind:fullscreenElement'?: Document['fullscreenElement'] | Nullish;
 	readonly 'bind:pointerLockElement'?: Document['pointerLockElement'] | Nullish;
@@ -926,8 +962,8 @@ interface SvelteOptionsAttributes {
 export interface SVGAttributes<T extends EventTarget>
 	extends
 		AriaAttributes,
-		Omit<DOMAttributes<T>, keyof Handlers<HTMLElementEventMap, T>>,
-		Handlers<SVGElementEventMap, T>,
+		Omit<DOMAttributes<T>, keyof Handlers<Declared<HTMLElementEventMap>, T>>,
+		Handlers<Declared<SVGElementEventMap>, T>,
 		ElementBindings {
 	class?: ClassValue | Nullish;
 	id?: string | Nullish;
