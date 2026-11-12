@@ -1,10 +1,9 @@
 import { DEV } from 'esm-env';
 import { failure } from '../../shared/diagnostics.ts';
-import type { Effect } from '../reactivity/graph.ts';
 import { original, proxy } from '../reactivity/proxy.ts';
 import { derived, set } from '../reactivity/sources.ts';
 import { get } from '../reactivity/reads.ts';
-import { owner, untrack } from '../reactivity/tracking.ts';
+import { untrack } from '../reactivity/tracking.ts';
 import { advance, COMMENT, cursor, hydrating } from './hydration.ts';
 
 export const BINDABLE = 1;
@@ -189,11 +188,10 @@ export function rest(props: Props, excluded: readonly string[]): Props {
 	});
 }
 
-const issued = new WeakMap<Effect, number>();
-const mounts = new WeakSet<Effect>();
+let issued = 0;
 
-export function mountRoot(effect: Effect): void {
-	mounts.add(effect);
+export function restartIds(): void {
+	issued = 0;
 }
 
 export function propsId(): string {
@@ -204,9 +202,5 @@ export function propsId(): string {
 			return data.slice(1);
 		}
 	}
-	let top = owner as Effect;
-	while (top.parent !== null && !mounts.has(top)) top = top.parent;
-	const next = (issued.get(top) ?? 0) + 1;
-	issued.set(top, next);
-	return `c${next}`;
+	return `c${++issued}`;
 }

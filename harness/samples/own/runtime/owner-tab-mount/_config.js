@@ -17,8 +17,8 @@ export default test({
 			mount(Main, { target: second });
 		});
 		flushSync();
-		assert.htmlEqual(first.innerHTML, '<p>tab c1</p>');
-		assert.htmlEqual(second.innerHTML, '<p>tab c1</p>');
+		assert.htmlEqual(first.innerHTML, '<p>tab c2</p>');
+		assert.htmlEqual(second.innerHTML, '<p>tab c3</p>');
 
 		window.__vigla = { h: new Map([['payload', 'server']]) };
 		const close = tab.run(() => openHydration());

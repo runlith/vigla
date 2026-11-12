@@ -19,7 +19,7 @@ import {
 	setHydrating
 } from './hydration.ts';
 import { withContext } from './context.ts';
-import { entry, mountRoot } from './props.ts';
+import { entry } from './props.ts';
 import { withHydration } from './data.ts';
 import { build, remove, type Built } from './range.ts';
 
@@ -68,7 +68,6 @@ function start<P extends Props, E extends Exports>(
 	const parent = owner;
 	const create = (fn: () => void): Effect =>
 		detached(() => {
-			mountRoot(owner as Effect);
 			setFront(owner as Effect, options.format ?? nativeFormat);
 			fn();
 		}, parent);
