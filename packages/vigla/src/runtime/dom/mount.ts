@@ -1,3 +1,4 @@
+import { DEV } from 'esm-env';
 import { failure, isFailure, warn } from '../../shared/diagnostics.ts';
 import { format as nativeFormat, type Format } from '../../shared/format.ts';
 import { OPEN } from '../../shared/markers.ts';
@@ -56,6 +57,7 @@ export interface UnmountOptions {
 }
 
 const mounted = new WeakMap<object, Mounted>();
+const ended = new WeakSet<object>();
 
 function start<P extends Props, E extends Exports>(
 	component: Component<P, E>,
@@ -105,7 +107,7 @@ function finish(instance: object, built: Built, target: ParentNode): void {
 	const dispose = (): void => {
 		if (disposed) return;
 		disposed = true;
-		mounted.delete(instance);
+		if (mounted.delete(instance)) ended.add(instance);
 		release();
 		remove(built);
 	};
@@ -170,15 +172,16 @@ export function hydrate<P extends Props, E extends Exports>(
 export function unmount(instance: object, options?: UnmountOptions): Promise<void> {
 	const found = mounted.get(instance);
 	if (found === undefined) {
-		warn('lifecycle_double_unmount', 'Tried to unmount a component that was not mounted');
+		if (!ended.delete(instance) && DEV)
+			warn('lifecycle_double_unmount', 'Tried to unmount a component that was not mounted');
 		return Promise.resolve();
 	}
 	const { effect, dispose } = found;
+	mounted.delete(instance);
 	if (options?.outro !== true) {
 		destroy(effect);
 		return Promise.resolve();
 	}
-	mounted.delete(instance);
 	return new Promise((resolve) => {
 		detach(effect, () => {
 			dispose();
