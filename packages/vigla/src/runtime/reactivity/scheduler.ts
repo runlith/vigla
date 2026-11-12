@@ -47,7 +47,7 @@ import {
 } from './graph.ts';
 import { abandon, absorb, finish, hold, reconcile, rescue } from './held.ts';
 import { beforeOf, record } from './history.ts';
-import { remember } from './leaving.ts';
+import { departures } from './outgoing.ts';
 import { written } from './past.ts';
 import { applied, computed, loopWrite, reportLoop, resetLoop, updated } from './provenance.ts';
 import { due, eager, settle } from './settle.ts';
@@ -157,7 +157,7 @@ export function write<T>(source: Source<T>, value: T, origin?: number): T {
 	const batch = target ?? opening();
 	record(batch, source, previous, processing !== null && processing !== batch);
 	if (batch.after !== null) batch.after.set(source, value);
-	remember(source, previous);
+	departures?.remember(source, previous);
 	source.v = value;
 	source.wv = stamp();
 	if (batch.after !== null || pending.length > 0)
@@ -191,7 +191,7 @@ export function apply(batch: Batch): void {
 			derived.failure = null;
 		}
 		if (equal(source, source.v, value)) continue;
-		remember(source, source.v);
+		departures?.remember(source, source.v);
 		source.v = value;
 		source.wv = stamp();
 		const origin = batch.origins?.get(source);

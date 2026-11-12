@@ -29,9 +29,15 @@ import {
 	type Source
 } from './graph.ts';
 import { NONE } from './history.ts';
-import { leavingView, readLeaving } from './leaving.ts';
 import { lose } from './loss.ts';
-import { leavingCount, outgoing, selecting, withoutLeaving } from './outgoing.ts';
+import {
+	departures,
+	leavingCount,
+	outgoing,
+	selecting,
+	withoutLeaving,
+	type Departures
+} from './outgoing.ts';
 import { tearingDown } from './past.ts';
 import { updated } from './provenance.ts';
 import {
@@ -76,8 +82,9 @@ function read<T>(source: Source<T>): T {
 	depend(source);
 	if (past !== null) return recall(source, past) as T;
 	if (selecting && (leavingCount !== 0 || outgoing !== null)) {
-		const given = outgoing ?? (isDerived(source) ? leavingView(source) : null);
-		if (given !== null) return readLeaving(source, given) as T;
+		const found = departures as Departures;
+		const given = outgoing ?? (isDerived(source) ? found.view(source) : null);
+		if (given !== null) return found.read(source, given) as T;
 		if (isDerived(source))
 			return withoutLeaving(() => (view === null ? settled(source) : through(source, view))) as T;
 	}

@@ -1,4 +1,5 @@
 import { effect, teardown } from '../reactivity/effects.ts';
+import { leaving, stayed } from '../reactivity/leaving.ts';
 import type { Effect } from '../reactivity/graph.ts';
 import { owner, setOwner, untrack } from '../reactivity/tracking.ts';
 import { sweep } from './frame.ts';
@@ -30,13 +31,16 @@ let equipped = false;
 function ready(): void {
 	if (equipped) return;
 	equipped = true;
-	equip({
-		sweep,
-		capture: (element) => {
-			captureLayout(element);
+	equip(
+		{
+			sweep,
+			capture: (element) => {
+				captureLayout(element);
+			},
+			restore: (element) => placementOf(element).restore()
 		},
-		restore: (element) => placementOf(element).restore()
-	});
+		{ leave: leaving, stay: stayed }
+	);
 }
 
 function outside<T>(fn: () => T): T {

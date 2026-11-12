@@ -13,7 +13,15 @@ import {
 	type Source
 } from './graph.ts';
 import { beforeOf } from './history.ts';
-import { countLeaving, outgoing, selecting, setOutgoing } from './outgoing.ts';
+import {
+	countLeaving,
+	departures,
+	outgoing,
+	selecting,
+	setDepartures,
+	setOutgoing,
+	type Departures
+} from './outgoing.ts';
 import { running, setOwner, track, view } from './tracking.ts';
 
 interface Entry {
@@ -70,7 +78,7 @@ function append(epoch: Epoch, source: Source, value: unknown): void {
 	epoch.sources.push(new WeakRef(source));
 }
 
-export function remember(source: Source, value: unknown): void {
+function remember(source: Source, value: unknown): void {
 	if (latest !== null) append(latest, source, value);
 }
 
@@ -133,6 +141,7 @@ function release(given: LeavingView): void {
 }
 
 export function leaving(branch: Effect): () => boolean {
+	if (departures === null) setDepartures(hooks);
 	stayed(branch);
 	const epoch = start();
 	epoch.users++;
@@ -186,7 +195,7 @@ function admitted(branch: Effect): boolean {
 	return false;
 }
 
-export function leavingView(derived: Derived): LeavingView | null {
+function leavingView(derived: Derived): LeavingView | null {
 	if (!selecting) return null;
 	for (let at = derived.owner; at !== null; at = at.parent) {
 		if (isDestroyed(at)) return null;
@@ -291,7 +300,7 @@ function read(source: Source, given: LeavingView): unknown {
 	return isDerived(source) ? cached(source, given) : source.v;
 }
 
-export function readLeaving(source: Source, given: LeavingView): unknown {
+function readLeaving(source: Source, given: LeavingView): unknown {
 	if (outgoing === given) return read(source, given);
 	const previous = setOutgoing(given);
 	given.users++;
@@ -302,3 +311,5 @@ export function readLeaving(source: Source, given: LeavingView): unknown {
 		release(given);
 	}
 }
+
+const hooks: Departures = { remember, view: leavingView, read: readLeaving };

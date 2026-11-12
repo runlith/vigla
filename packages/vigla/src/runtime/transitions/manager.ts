@@ -1,4 +1,3 @@
-import { leaving, stayed } from '../reactivity/leaving.ts';
 import { hide, show, teardown } from '../reactivity/effects.ts';
 import { BLOCK, BRANCH, ROOT, isDestroyed, isInert, type Effect } from '../reactivity/graph.ts';
 import { owner } from '../reactivity/tracking.ts';
@@ -25,6 +24,11 @@ export interface Geometry {
 	restore(element: Element): void;
 }
 
+export interface Departing {
+	leave(branch: Effect): () => boolean;
+	stay(branch: Effect): void;
+}
+
 const managers = new WeakMap<Effect, Manager[]>();
 
 const movers = new WeakMap<Effect, Mover>();
@@ -39,8 +43,11 @@ let live = 0;
 
 let geometry: Geometry | null = null;
 
-export function equip(given: Geometry): void {
+let departing: Departing | null = null;
+
+export function equip(given: Geometry, leaving: Departing): void {
 	geometry = given;
+	departing = leaving;
 }
 
 export function animating(): boolean {
@@ -140,7 +147,7 @@ export function pause(branch: Effect, done: () => void): void {
 		done();
 		return;
 	}
-	const release = leaving(branch);
+	const release = (departing as Departing).leave(branch);
 	for (const manager of found) {
 		manager.out(() => {
 			if (--remaining !== 0 || !release()) return;
@@ -151,7 +158,7 @@ export function pause(branch: Effect, done: () => void): void {
 }
 
 export function resume(branch: Effect): void {
-	stayed(branch);
+	departing?.stay(branch);
 	show(branch);
 	const found: Manager[] = [];
 	if (live > 0) collect(branch, true, found);

@@ -1,5 +1,17 @@
-import { ROOT, type Effect, type Reaction, type Source } from './graph.ts';
+import { ROOT, type Derived, type Effect, type Reaction, type Source } from './graph.ts';
 import type { LeavingView } from './leaving.ts';
+
+export interface Departures {
+	remember(source: Source, value: unknown): void;
+	view(derived: Derived): LeavingView | null;
+	read(source: Source, given: LeavingView): unknown;
+}
+
+export let departures: Departures | null = null;
+
+export function setDepartures(given: Departures): void {
+	departures = given;
+}
 
 export let outgoing: LeavingView | null = null;
 export let leavingCount = 0;
