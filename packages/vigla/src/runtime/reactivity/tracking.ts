@@ -54,6 +54,7 @@ export interface View {
 	readonly hidden: Map<Source, Batch>;
 	readonly checked: Map<Derived, boolean>;
 	readonly reached: Map<Derived, Set<Batch>>;
+	born: WeakSet<Source> | null;
 }
 
 export interface Past {
@@ -422,9 +423,13 @@ export function compute(derived: Derived, given: View): unknown {
 }
 
 export function conceal(source: Source, value: unknown, batch: Batch): void {
-	if (view === null || view.values.has(source)) return;
+	if (view === null || view.values.has(source) || view.born?.has(source) === true) return;
 	view.values.set(source, value);
 	view.hidden.set(source, batch);
+}
+
+export function born(source: Source): void {
+	if (view !== null) (view.born ??= new WeakSet()).add(source);
 }
 
 export function present<T>(fn: () => T): T {

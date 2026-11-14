@@ -70,7 +70,8 @@ export function viewOf(batch: Batch): View {
 		values: new Map(),
 		hidden: new Map(),
 		checked: new Map(),
-		reached: new Map()
+		reached: new Map(),
+		born: null
 	};
 	const own = (batch.after ??= materialize(batch));
 	const hide = (other: Batch): void => {

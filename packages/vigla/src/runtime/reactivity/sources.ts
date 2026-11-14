@@ -13,10 +13,10 @@ import {
 } from './graph.ts';
 import { get, refresh } from './reads.ts';
 import { sequence } from './history.ts';
-import { guard, localize, marked, owner, present, untrack, view } from './tracking.ts';
+import { born, guard, localize, marked, owner, present, untrack, view } from './tracking.ts';
 
 export function source<T>(value: T): Source<T> {
-	return {
+	const created: Source<T> = {
 		kind: SOURCE,
 		v: value,
 		wv: 0,
@@ -26,6 +26,8 @@ export function source<T>(value: T): Source<T> {
 		read: 0,
 		links: null
 	};
+	born(created);
+	return created;
 }
 
 export function mutableEqual(before: unknown, after: unknown): boolean {

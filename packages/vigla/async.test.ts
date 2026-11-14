@@ -10,7 +10,8 @@ import {
 	resource,
 	root,
 	tick,
-	untrack
+	untrack,
+	watch
 } from './src/entries/index.ts';
 import {
 	asyncDerived,
@@ -152,6 +153,45 @@ test('a merged batch can publish a later run through a restored continuation', a
 		assert.equal(get(result), 3);
 	} finally {
 		resumed();
+		scope.dispose();
+		flushSync();
+	}
+});
+
+test('state a handler creates while another batch is held reads back what the handler wrote', async () => {
+	const scope = root();
+	const a = state(1);
+	const go = state(false);
+	const queued: (() => void)[] = [];
+	const seen: string[] = [];
+	try {
+		await scope.run(() =>
+			asyncDerived(() => {
+				const value = get(a);
+				return value === 1
+					? value
+					: new Promise<number>((resolve) => queued.push(() => resolve(value)));
+			})
+		);
+		scope.run(() =>
+			watch(
+				() => get(go),
+				(on) => {
+					if (!on) return;
+					const created = state('');
+					set(created, 'written');
+					seen.push(get(created));
+				}
+			)
+		);
+		flushSync();
+		set(a, 2);
+		flushSync();
+		set(go, true);
+		flushSync();
+		assert.deepEqual(seen, ['written']);
+	} finally {
+		queued.splice(0).forEach((resolve) => resolve());
 		scope.dispose();
 		flushSync();
 	}
