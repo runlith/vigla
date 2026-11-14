@@ -10,7 +10,8 @@ fields:
     },
     "edges": [
       "validates",
-      "relates"
+      "relates",
+      "changes"
     ],
     "fields": {
       "status": {
@@ -60,6 +61,10 @@ fields:
         "text": "A #spec agrees a change the operator asks to have specified, before it is built. It thinks through what stands and what will stand: outcome, owners and boundaries touched, reason for the choice, checkable acceptance criteria. Split independent specs into children. Edit it in place when what is wanted changes: it always says what is wanted now. Closing its tasks does not close it: whoever ends its last task, or led its work, closes it once built, or once no longer wanted — the answer of finish_block, close_block or apply_batch that ends a task names the spec left with no open work, in this project or another. A closed spec is history, never current knowledge."
       },
       {
+        "key": "software-development",
+        "text": "A spec that changes what the user gets links each feature it changes with `changes`. Whoever builds it keeps those features true and records each new capability in its own feature."
+      },
+      {
         "edits": [
           "append"
         ],
@@ -75,3 +80,5 @@ fields:
   }
 ---
 A #spec agrees a change the operator asks to have specified, before it is built. It thinks through what stands and what will stand: outcome, owners and boundaries touched, reason for the choice, checkable acceptance criteria. Split independent specs into children. Edit it in place when what is wanted changes: it always says what is wanted now. Closing its tasks does not close it: whoever ends its last task, or led its work, closes it once built, or once no longer wanted — the answer of finish_block, close_block or apply_batch that ends a task names the spec left with no open work, in this project or another. A closed spec is history, never current knowledge.
+
+A spec that changes what the user gets links each feature it changes with `changes`. Whoever builds it keeps those features true and records each new capability in its own feature.

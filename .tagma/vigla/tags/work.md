@@ -17,7 +17,7 @@ fields:
           }
         ]
       },
-      "revision": "827a3434df19cda1d333515e8a7705af9abb8396953606f2f6c02ec146f9de63",
+      "revision": "11821ee7af94c009b8024ccdf08980c52856ff64b6b228348b8b58708bab9d6e",
       "tags": [
         {
           "body": {
@@ -25,7 +25,8 @@ fields:
           },
           "edges": [
             "validates",
-            "relates"
+            "relates",
+            "changes"
           ],
           "fields": {
             "status": {
@@ -55,7 +56,7 @@ fields:
             }
           ],
           "id": "spec",
-          "prompt": "A #spec agrees a change the operator asks to have specified, before it is built. It thinks through what stands and what will stand: outcome, owners and boundaries touched, reason for the choice, checkable acceptance criteria. Split independent specs into children. Edit it in place when what is wanted changes: it always says what is wanted now. Closing its tasks does not close it: whoever ends its last task, or led its work, closes it once built, or once no longer wanted — the answer of finish_block, close_block or apply_batch that ends a task names the spec left with no open work, in this project or another. A closed spec is history, never current knowledge.",
+          "prompt": "A #spec agrees a change the operator asks to have specified, before it is built. It thinks through what stands and what will stand: outcome, owners and boundaries touched, reason for the choice, checkable acceptance criteria. Split independent specs into children. Edit it in place when what is wanted changes: it always says what is wanted now. Closing its tasks does not close it: whoever ends its last task, or led its work, closes it once built, or once no longer wanted — the answer of finish_block, close_block or apply_batch that ends a task names the spec left with no open work, in this project or another. A closed spec is history, never current knowledge.\n\nA spec that changes what the user gets links each feature it changes with `changes`. Whoever builds it keeps those features true and records each new capability in its own feature.",
           "roles": {
             "spec": true,
             "status": {
@@ -68,6 +69,10 @@ fields:
             {
               "key": "spec",
               "text": "A #spec agrees a change the operator asks to have specified, before it is built. It thinks through what stands and what will stand: outcome, owners and boundaries touched, reason for the choice, checkable acceptance criteria. Split independent specs into children. Edit it in place when what is wanted changes: it always says what is wanted now. Closing its tasks does not close it: whoever ends its last task, or led its work, closes it once built, or once no longer wanted — the answer of finish_block, close_block or apply_batch that ends a task names the spec left with no open work, in this project or another. A closed spec is history, never current knowledge."
+            },
+            {
+              "key": "software-development",
+              "text": "A spec that changes what the user gets links each feature it changes with `changes`. Whoever builds it keeps those features true and records each new capability in its own feature."
             },
             {
               "edits": [
