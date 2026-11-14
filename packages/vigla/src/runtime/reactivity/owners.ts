@@ -1,18 +1,20 @@
 import { keyed, type Context, type Layer } from '../../shared/context.ts';
 import { failure } from '../../shared/diagnostics.ts';
 import { format } from '../../shared/format.ts';
-import { destroy, destroyed, detached, start } from './effects.ts';
+import { request, revive } from './batch.ts';
+import { destroy, destroyed, detached, hide, show, start } from './effects.ts';
 import { setFront } from './front.ts';
 import { lifetime } from './abort.ts';
 import { settledUnder, unit } from './units.ts';
 import { presently } from './past.ts';
-import { SCOPE, isDestroyed, type Effect } from './graph.ts';
+import { SCOPE, isDestroyed, isInert, type Effect } from './graph.ts';
 import { ambient, carry, port } from './carried.ts';
 import { handle } from './handlers.ts';
 import { setOwner, withoutReaction } from './tracking.ts';
 
 const effects = new WeakMap<Owner, Effect>();
 const owners = new WeakMap<Effect, Owner>();
+const pausing = new WeakSet<Effect>();
 
 export interface Components {
 	layer(): Layer<Effect> | null;
@@ -198,6 +200,29 @@ export class Owner {
 			live = false;
 			destroy(registered);
 		};
+	}
+
+	get paused(): boolean {
+		const effect = effectOf(this);
+		return isInert(effect) || pausing.has(effect);
+	}
+
+	pause(): void {
+		const effect = effectOf(this);
+		if (isDestroyed(effect) || isInert(effect) || pausing.has(effect)) return;
+		pausing.add(effect);
+		queueMicrotask(() => {
+			if (!pausing.delete(effect)) return;
+			hide(effect);
+			request();
+		});
+	}
+
+	resume(): void {
+		const effect = effectOf(this);
+		if (pausing.delete(effect) || !isInert(effect)) return;
+		show(effect);
+		revive(effect);
 	}
 
 	dispose(): void {

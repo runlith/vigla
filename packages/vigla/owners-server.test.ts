@@ -399,6 +399,20 @@ test('an installed async store carries the owner and async variables across awai
 	assert.deepEqual(released, ['teardown']);
 });
 
+test('a server owner pauses and resumes with nothing to run', async () => {
+	const owner = core.root();
+	try {
+		owner.pause();
+		assert.equal(owner.paused, true);
+		await Promise.resolve();
+		assert.equal(owner.paused, true);
+		owner.resume();
+		assert.equal(owner.paused, false);
+	} finally {
+		owner.dispose();
+	}
+});
+
 test('a server watch reads no source and answers nothing, as server effects do', () => {
 	const owner = core.root();
 	let calls = 0;

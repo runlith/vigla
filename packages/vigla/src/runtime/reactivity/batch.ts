@@ -375,6 +375,15 @@ export function requeue(batch: Batch, branch: Effect): void {
 	for (const effect of found) force(batch, effect);
 }
 
+export function revive(owner: Effect): void {
+	overlooked.delete(owner);
+	const found: Effect[] = [];
+	gather(owner, found, false);
+	if (found.length === 0) return;
+	const batch = receiving();
+	for (const effect of found) force(batch, effect);
+}
+
 function park(batch: Batch): void {
 	const index = pending.indexOf(batch);
 	if (index !== -1) pending.splice(index, 1);

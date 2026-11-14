@@ -1,0 +1,4 @@
+{
+	"status": "difference",
+	"reason": "Public owner pause: a paused component keeps its DOM and catches up on resume; upstream 5.57.3 has no `vigla` entry"
+}
