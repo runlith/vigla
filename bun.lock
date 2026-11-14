@@ -28,7 +28,7 @@
     },
     "packages/adapter-bun": {
       "name": "@vigla/adapter-bun",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "dependencies": {
         "@types/bun": "1.4.4",
         "@vigla/kit": "workspace:*",
@@ -37,7 +37,7 @@
     },
     "packages/adapter-node": {
       "name": "@vigla/adapter-node",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "dependencies": {
         "@vigla/kit": "workspace:*",
         "rolldown": "1.2.9",
@@ -45,14 +45,14 @@
     },
     "packages/adapter-static": {
       "name": "@vigla/adapter-static",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "dependencies": {
         "@vigla/kit": "workspace:*",
       },
     },
     "packages/kit": {
       "name": "@vigla/kit",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "bin": {
         "vigla-kit": "./src/sync/bin.ts",
       },
@@ -81,7 +81,7 @@
     },
     "packages/svelte": {
       "name": "@vigla/svelte",
-      "version": "5.57.11",
+      "version": "5.57.12",
       "dependencies": {
         "@jridgewell/remapping": "^2.3.5",
         "@jridgewell/sourcemap-codec": "^1.6.0",
@@ -94,7 +94,7 @@
     },
     "packages/sveltekit": {
       "name": "@vigla/sveltekit",
-      "version": "3.1.8",
+      "version": "3.1.9",
       "bin": {
         "svelte-kit": "./src/bin.ts",
       },
@@ -115,7 +115,7 @@
     },
     "packages/vigla": {
       "name": "vigla",
-      "version": "0.2.6",
+      "version": "0.2.7",
       "dependencies": {
         "@jridgewell/remapping": "^2.3.5",
         "@types/estree": "^1.0.9",
@@ -134,7 +134,7 @@
     },
     "packages/vite-plugin": {
       "name": "@vigla/vite-plugin",
-      "version": "0.1.8",
+      "version": "0.1.9",
       "dependencies": {
         "deepmerge": "^4.3.1",
         "obug": "^2.1.0",
@@ -155,7 +155,7 @@
     },
     "packages/vite-plugin-svelte": {
       "name": "@vigla/vite-plugin-svelte",
-      "version": "7.3.9",
+      "version": "7.3.10",
       "dependencies": {
         "@vigla/vite-plugin": "workspace:*",
       },
