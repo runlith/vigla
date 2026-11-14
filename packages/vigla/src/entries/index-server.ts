@@ -67,7 +67,13 @@ export const fork: typeof client.fork = () => unavailable('fork');
 
 export type { Owner } from '../runtime/reactivity/owners.ts';
 export type { Cell } from '../runtime/reactivity/sources.ts';
-export type { Effects, Resource } from '../runtime/reactivity/public.ts';
+export type {
+	Effects,
+	Resource,
+	Watch,
+	Watching,
+	WatchOptions
+} from '../runtime/reactivity/public.ts';
 export { snapshot } from '../shared/clone.ts';
 
 const noop = (): void => {};
@@ -76,6 +82,8 @@ export const effect: typeof client.effect = Object.assign(() => noop, {
 	pre: () => noop,
 	root: () => noop
 });
+
+export const watch: typeof client.watch = Object.assign(() => noop, { pre: () => noop });
 
 export function external<T>(read: () => WritableSource<T> | null | undefined): WritableExternal<T>;
 export function external<T>(read: () => Subscribable<T> | null | undefined): External<T>;

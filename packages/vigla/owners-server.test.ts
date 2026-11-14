@@ -398,3 +398,19 @@ test('an installed async store carries the owner and async variables across awai
 	request.dispose();
 	assert.deepEqual(released, ['teardown']);
 });
+
+test('a server watch reads no source and answers nothing, as server effects do', () => {
+	const owner = core.root();
+	let calls = 0;
+	const count = (): number => ++calls;
+	try {
+		const stops = owner.run(() => [
+			core.watch(count, count, { immediate: true }),
+			core.watch.pre(count, count, { immediate: true })
+		]);
+		for (const stop of stops) stop();
+		assert.equal(calls, 0);
+	} finally {
+		owner.dispose();
+	}
+});

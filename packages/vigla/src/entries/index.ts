@@ -29,8 +29,14 @@ export { flushSync } from '../runtime/reactivity/scheduler.ts';
 export { settled } from '../runtime/reactivity/units.ts';
 export { getAbortSignal, tracking } from '../runtime/reactivity/effects.ts';
 export { hold, pending } from '../runtime/reactivity/async.ts';
-export { effect, external, resource } from '../runtime/reactivity/public.ts';
-export type { Effects, Resource } from '../runtime/reactivity/public.ts';
+export { effect, external, resource, watch } from '../runtime/reactivity/public.ts';
+export type {
+	Effects,
+	Resource,
+	Watch,
+	Watching,
+	WatchOptions
+} from '../runtime/reactivity/public.ts';
 export { latest } from '../runtime/reactivity/latest.ts';
 export { snapshot } from '../shared/clone.ts';
 export type {
